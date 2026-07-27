@@ -1,0 +1,13 @@
+# Permisos y estado local de Claude Code (por sesión, no aporta al proyecto)
+.claude/settings.local.json
+
+# El archivo de datos vive en Google Drive, nunca en el repo.
+# Contiene movimientos bancarios reales: no debe versionarse jamás.
+*.json
+!package.json
+!.vscode/*.json
+
+# Basura del sistema
+Thumbs.db
+desktop.ini
+.DS_Store

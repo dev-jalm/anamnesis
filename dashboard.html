@@ -1,0 +1,2807 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anatomía de un trimestre — Q1 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<!-- Para exportar la solapa actual a PNG/PDF. Se cargan en deferred porque solo
+     se usan cuando el usuario aprieta EXPORTAR. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<!-- Funciones puras y constantes compartidas con tests.html. Cargar ANTES del script principal. -->
+<script src="core.js"></script>
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<!-- Overlay de bloqueo: se muestra al inicio cuando no hay conexión con Drive.
+     El dashboard es inutilizable hasta que el usuario conecte. No tiene cerrar.
+     Se oculta automáticamente apenas se conecta. -->
+<div class="drive-required-overlay" id="driveRequiredOverlay">
+  <div class="drive-required-content">
+    <div class="drive-required-brand">
+      <img class="drive-required-logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAA4LElEQVR42u2deZwU1dX371ZV3V29Ts8Mq8i+gwoKoqCoGDcGZYmAGhU1LomJxhiXuOTJk8Ut8X2iRs2T4P5o3IIICEQTNQaRXTZFQFAEZZnpvau6qu695/2jZoYlMMzAgDNwv5lPO2Gme7qrzu/ec84991ycS32FFIqjFaIugUIJQKFQAlAolAAUCiUAhUIJQKE4CmAt7Q0BwB7fKI4AMMZ7fKMEUG/nICUgBAhhQgilhBBKCMEYt7SLpTjwewwgpZRSCCGllHW327/F+OgRQP3ojgCklEApNQxD03RCiRTS83ixWCwUUqWS47qOEHKPJypa17jv/4dSoutGIGCEwxHTNDWN1d1u13FcITghGGOyy3CHj1QBYCklANI0LRgMEMKsorVp05YNGzasXbt248Yvtmz+urqmupAvWJblOI4QQjlCR4Dz4w9zoVAoHAmXJ8s7dGzfpUvnnj17du3atUP79tFoXEph27bnuRgjQg5rXIoPWymEEIJSLRQKUUq3b9++YsWKj+YvXLJk6fr162tqahzHAUCEEIIJJqRuckTf7vyoaK5p33d0QUoJUkqJMTIMI5lMdu/effDgwSefPGTgcQMrK8uFEJZVFEJQSo8QAfjOn6ZppmkWi87SpUvnzJ7zwQf/2rBhg2WVCGGMUUoZIRjAD3x3ukmKI2ge2HVKwBgjKUEIzrmQUoRCwa5du4wYMeLc884ZNOgE0wwWi0XP8/yBsBULQAihaZoZDlfv2DFnztzXX3tj6dJl+Xxe07Q6owcA8D+jsvijTQ8AtWqQEgnBPc+NRMKDBp0wfsLYc889p7yiolgoeJ53SGeD5hWAH9FLhJCUEiEUi0VTqezfXp/2wgsvrl79qZQiEAhgXGv3yg4Ue8wLAFAqlQih/fr1ueyyS8aNH1tWFstmcwjVxwYEIWjGpEizzwAYIRBCmqYpAWa8OeOJJ55Y/vEqShljOkJS2b1iv0pAiHDuCsGPO77/DTfcUDWmimBcLBYpJb6BtVwXSEqJMYnG4qtWrnrwgQfmzH0bAei6AYB39e8VisbMB67rIIzPPefs226/rf+AAblsBkA2b5qoOQUghAgEApRqTz319P97+A/bt28PBUOg1nQVB6MDhCzbqqys/MktN1111RQhvFKp1IxRQbMJgHMejUa3bt161933zJw+S9ODlDIpRX02SN1ORdPdaYQQIoQKwT3XHn3hBb/59a/atm2by+UYa54lrOaZTYSQiURy0cKlF198yfRpM4IhkxAsJa+LV5T1Kw6AWuORkhOCgyFz+rQZF198yaKFSxOJ5C5VAt+2AISAeCI5c8asyy+/8rM160wzIoQKdhXNKgXwMyuRz9asu/zyK2fOmBVPJIWAb1kAAEhKFI/Hn5r61PXX35DL5QKBgJ8AVSiaHSllIBDI5XLXX3/DU1OfisfjUh7s8tFBCgBisdgTjz95+223SwmUMmX9ikOtAUqZlHD7bbc/8fiTsVjsIH2NAxeAEDwWT0yd+vQ999yraQYhVLk9isPjDhFCNc245557p059OhZPCMEPPNBuYhYI/NhccBFPJGa8+dZ1113vvyFl/YrDCcZYSoEx/tP/PllVdUEmnaKM7mqih04ASAgZicQWL1p62aXfy+XzmqYpz0dx+CGEeJ4XjUZeeOH5E08alM9nKfU9mkMpAClB1/VMOjd+/Hc/+2xdKBQSQqibofhWoJRaltWrV4/XX381noi5rkNI07aYNS0G8N0cRvU77vz56tWfKOtXfLsIIUKh0OrVn9xx588Z1VDTa4pJU/9eLFE29amnpr/xZjQaU9avaAkaiEZj0994c+pTT8USZU21ySa4QFLKYDC0du26sReNz+cLlDBQS7yKlhESS8kjkfC0N17v2bOHbVuNL5hrwgyAMUbA7vvtg9u3V2uarqxf0WIATdO3b6++77cPImBN2kTWWAEIISLR6PTpb86ePScSiSjnR9HSHKFIJDJ79pzp09+MRKONt89GCQAAGGOZdPrRRx9RvXoULdcTwvjRRx/JpNOMsUYuTDVKAFLKcCTy6quvLV++PBQKqay/ogUipQyFQsuXL3/11dfCkUgjrXT/AgAATdNqqqufeeYZTWP1e9gVihY2/Pu2yp555pma6hpN0xozCexXACClNM3IrFlzVq9eEwyG/M5WCkWLC4TBT1Saq1etmTVrtmmG63owHtwMQAi1bfuVv76KEVWmr2j5MsCYvPLXV227RMj+d06S/ftVZmjx4iWLFi82TVN5/4oWHwkI0wwvXrJ48eIlIXP/8SrZn54wY/rMGbOKReuwdatTKA4GSmmhYM2cMYsxHQAfuAAAkKbp1dur3333vUAg0Fy7MBWKQ4oQMhAIvPvue9X+ii0cqACkFMFgcOmyZRs2bDSMAIASgKJVhAHSMAIbNmxcumxZMBjcpTVJ010gwsi8f8+z7RIhRDV3ULQWCRBCbLs079/zCNufhTf0M0LtYnHhwoW6rqnhX9G6JgFd1xYuXGgXiw3ngsi+XwJ0Xdu8ecv69et13VA7HhWtSgCg68b69es3b96i6w2tiJF9BwCg6/q6detqamoYY8r+Fa1KAIgxVlNTs27dOl3XpWy6ABACwthna9Y5jqsCAEVrDAMcx/1szTrCWAPWu28BYARCrl+/ERNa93xVA6RoFfiGCpjQ9es3gpANWO4+BUAw9lxv06ZNlBAVAChaYxhACdm0aZPnemTf9ZtkX08mhBatYnV1dXO14VUoDjOMserq6qJVbKBv1T5nAEppPp/P5/NEzQCK1jkDEEJ8G26gimffLhAhtm1blnWYz21VKJoLQohlWbZtN2DD+3SBMCaO47quo2rgFK0USqnrOo7jYkya7AIRgvxjXNUmYEUrBWPMuRCCN+DENFgNKsGvgFAxgKI1xgAIIQAJsiHrJY18IYWilWpgP3GCukyKozpQVpdAoQSgUCgBKBRKAAqFEoBCoQSgUCgBKBRKAAqFEoBCoQSgUCgBKBRKAAqFEoBCoQSgUCgBKBRKAAqFEoBCoQSgUCgBKBQtH9X28LCCMfbbzDSm2QwA1LU2UH0JlABat9ET/xxzzrnneVJKIaSUwrfs+r5l9Ybut/VjjDHGKKWUUv93pJRKDEoALdfU6/rIA8YIY0oIFkL6zcmE4Iahl5Uly8uTkXCksk1l27aViUQiHIlEIhFNY0IIKYXgwvXcfK6wefM3a9eu3b59e6GQz+cLlmVjTHRdNwyDUgog1ZnNSgAtzfrrx3rkca9k5zyPB4NG+/YdevXq1aNnt6FDh/br2zeRSOiGYRiGpmmYUoQxAkAgEYZdT2CQXFhFK5fPW5b19ZYtixYtXb36k08+Wb1x4xe5XDoYDAUCQQBQMlACaAlODsKYYEw451ahIARPJpNDhgweNWpU3759e/Xq1a5dW6YTENJxHM65lNy2hWXt9HowRghJgF1CAwyU0Hg8UpaMdenS6bSRp0khU6maTz/9dM6cOTNnvLVhwxeMsXA4qvwiJYBvE0qplLJQyHPO4/HYyJGnnXnmyFGjzurarUvQNCX3HMcpFgtQEPXufn0ovPuhO+Q/Y2DOOeLIKTm+hQeDwVNOOWXEiBE33vijuX//+/PPPr9gweJg0AwEDCGEuhdKAIc1tCWECCHS6bRphk855eTzzj/n1FNP7devjxEIuE7JcZxMykYIE4IJwQix3c19v2P2zmNNMK79fSFEoVAAgFgscuWVl48fN+7F/3vlkUce/fLLTfF4rD5rpFACOERevh/gYkqJ63rZbDYajVw8cfwVV1w+dOhJgWDAddxSybZtC2OCMabUP5gESwl+FgghqJsAAADtLReK95dQwgghzkU6ldY07bobvj969HkPPPDgs88+HwqFKGUqKlACOKQOD/M8J5PJV1a2mThx4pVXfu+4EwaC5MViwbYttDMQxnUaIBj7MwD2vwGA+hwoAAjOoXY+2cP0oWElMMYAZDpVnSiLPfLHRwYMGHjXXXdJKTVNVxpQAmh+CMEAMpWubtum8trrrpk8+ZI+vftw7uSyWYwRIUTXtWAwSCiTQnKPu57rUyqVXNfzXLfklDzPCwVDZjgcCgU0TdN1PRKLE0K459l2ye9k35QDGTBjzPO8dE3N92+49thjO33/+9fadknXDaUBJYDmTPJQyvL5rKazq6Zc8YMf3tCnfz/HsjPZGn+M988UzOcL8z9csG795yuWr9i2bVuhUCgUCpZlua7HuVe/BMaYZhhGIKAbASMUDPbr33/YsJN79OjVp0/feFnSKuRd1yGENF4GhBBCULp6x3cuOO+xPz425copQniEMBUPKAE0y8BPAKC6uvrU4cN+8Yt7ho8Y7pTsdPUOSiml2HfZAWQwGPnJT3723LMvGgaTEgghhBBKKd4NgjF2HK9UctJp4S9mLVmy7PlnXzAjkd69eo0bN/biiRPatqss5PNCyCadzsYYTe/YVnXRmIcf/v3NN98SDKo7qwTQDB4/tayCYRj33PPzG2/8QThiZtIpQvAuR8cCQpgQatulz9dvCIWMSCTqux97zckAACEYY+ZfeYyxaWI/vbN8+crFi5dMnTr1sssu+f613zfNULFYrDugDTcia4QYY+nq6suvnvLpp58+8sjjZWUJlRvd/wCnLsG+HB9KWTqd7tGj+2uvv3zn3XdggrLZLKUUY+Kv+/pfAEApyWVz2WyOMSbq8Nen9qBeBj5SSv+XEUKmGUokEl9/ve3ee3818eJLNmzYEI/7FowbTg3trlhs5TI/vulHPXv2aPh0RIUSQEM5FkJwJpO66KIxb0x/Y9iwYemaGinlXg/MBABN0zdt2rT1m62MHXgW0heDrmsVlRUfffRRVdVFb7/9TjQaE4IjJBv/zh3Hade+3c033+S6rjrfUAngAAWQTqdv/NEPnnn26Wg0ks1mGWP7ikoBQNO0rVu3FgoFQg72SFkA4J4Xi8VSqcxll10+f/5HkWisSZ4MpbSQz40bd+HA4/oVi0WM1S1WAmia9ZNMJnvHHbffd99vbLvoeS6ldD9OCMZbt23zuNdc1sa5CAZCnit+cvMtNTU1htGEtCbG2PO8SNS85JJJruv8x/KCQgmgweEzk0n/5Cc33fOLe7PZDIAkxA9AcQNjNki5fv16Qkgzuhyci3A4/Mknn9591z2apjc+DPAzV7ZtjR59wbGdOzlOSZ30rATQWOvPZjOXXjb5F/99Ty5bvUvJGtqbF16bAGWM5fPFj5ctZ0xrxuUnjBHnPB4ve+Xl1997d144HJZSNF4AjuN06tRpxIjhllVUk4ASQKOMplgs9unT5/7773NKJditNLkhGKOZdGbTpq90XWv2tSeMsRDipZdeIoQcwGuffPLJmBCkFsSUABoZgN555+2JRMx1So1MIAKArusbNmxMp9OMNf/iq5QyHA6//fbfly9fHjJDjZ9hCCGO45588skV5eUe95rkQSkBHI3Df6GQHz78lPPOPy+fzzFGUeOGTQCgmvbBB/+yLOtQJN0BgDFWU5N69933dN1ovMAwxq7rtmvbtkOH9o7jKi9ICWD/nsZFF11oBJpWRoYx5q63fMWKQ7fkBACM0Xnz5nmu06Qsk5TCDIe7du0mBFdxsBLAfgbLDh3ajTr7TNsqEEIat/gqpZSBQPDzz79YsXxlMBg8RAWYAKDrxufrv0ilcprme1mkEW8PAwDTaN++faVUQYASQMOjOOfJZDIej3EummKa0giE3nvv/S1bvm6Sf9JUAWia9s03W9evX28YTfsrANCp0zEHvzynBHDkh7+arjcxUMSEUNsqTps2TdP0Q1p7zBjL5/OLFi6kWhMTTQDRaKxuY5pCCWCvRoIAY1wqldDe9yjuHc55OByZ9+8PFy9aYprmId2A4u+lzGSyTZ3Z/BhaBQBKAPuxL13Xt2zZsmHDBk1r1GIW51zXDc/jDz74EOe8rj70kPppxC7ZqIky87O0agZQAmjYShBjLJ3K/uUvzxhmkhDKOQeQaPcaZlRXsAkgo7GYphm3/OS2jz5aFIlEGr9GezASKOSLdW8GGp+lDQQMJQAlgP0ghIhGY397ffrv778PY5IoK9N1nVDmN3TwsyiU0lDIjCfKNM2YP3/+xd+9+Pnnno9Go0LIOqM8tJF6qVQC8HcMQ5OeqFyghuIrdQnqDAUhhH75y/+aNu21KVddcfrpI8PhcCwWMwxDCul6bqFQ+PLLT1euXDntb9M+WjDfdWU0FjssY3+tHXMu1ECuBHAIA02McSwW/+STNbf85LZkMplMJtu3b19RUe44Tjqd2bZt6+bNWwqFPKXUNE1Dp4fN+utEoO6SEsAh1oAQIhQyEcKWZedyX6xbt14I4be4opTquh6Pl/lbGQFU3xElgCMRPwtEKd01gej7Hn4QrC6REsBRMRsoh/toQGWBFEoACoUSgEKhBKBoyXGJugQqCD5K7R0QAoIJQrSuTaJaFFACOMKpPUOJEMyYBiDtkqVmASWAo8Y3JQRjIqWwLNvzspSRYzp1ACQRAuW4KgEcucM+xn5DdtsuOo4TCAT6D+h79tlnjxo1csDAASXbUv1ulQCOZLt3XdeyLE1jPXp2Of3006uqqgYMGJBIJrlbsm27rhpUoQTQWn36PaGUYIxc183lbEJwx47tzzzru6NGnTn81FOS5UkhhG3b6ZodAOCfuKGuoxJAKwX26uIXCnnPc9u2bTtq1JlVVVWnDh/WoUMHjFGxWEyn0wCIEBwIBIOhoODCsix1HZUAjgBXB5VKdqlkm2bopCGDL7xwzKhRZ/Xs2R1jYttWNpuWEgjBuq6bZgghtG3b9pdffhVjPHnyxFJJNbtVAmiVpo8opZ7n5fNZjEmPHt1HjTpzzJiqgccNDEejjm3lcjm/EJUxZpohTTOqq6v/8c67b7/zzr8/+GDF6s/HXDDqsssuAyhhrNYBlABa25Bv20XHKSWT5WeeWTVhwoThw0+taFvBXdeyiumaHRgjhLBhGKFwxLGdj5etmDbtzX/+85+fffaZ5/FwOBwJ6fF4GQKVAlICaLku/q4Ds38sNvU8N5fLEkL69ukzuuqCMReO6dOnN2O0WCxmUtUYEyklIdQ0w0zTt2ze8vJfX58+ffqCBQvz+WIgEAiHw/5LWZYlpURYqHUAJYAWLgNMCPXP6ioWM+XlybPOGj1hwoTTTjs9WVnuOnaxmAeoPQIVYxyPJ6SEJYuXvv763956a/YXX2wkhJjhcCKRqN9/U5v8UV6PEkBLdnYQIv6h2cVikXPRpUunqqqqyZMn9enbm1JStKx0TbV/cDAAJoRGo3HbtmfNfOvFF1/65z/fKxQKwWAwHk8ghIRQW8+UAFoVlFIAlM3mGKWDBp1wySWTzj3v3A4dO7qOXSjk6rL4WEqpaUY0Fs6k0y+99PKzzzy7YMFCIWQ4HEkkklKKuiYrCiWA1hPjCiEymWwgEDj33O9cfsWlZ5xxuhkOW0UrnaomBBOCEcJCCEJIPJ5IpdIvvfTSs88+//Gy5Ywx04xgTOpPC97F0VF1b0oALX3UZ5x72WwmHDHHjRtz1VVXnXLqMMZooZDLpGsoZf5BGz7RaMx1+Isv/vWRPzy6atVqXdfj8QSAvwdfeTtKAK0KQigAZDKZWCzyvcsvufzyy4YOHQoAhUIBACillGp+XohzYRiBYDD4wb/mP/TQ795//31N0xKJMr8Fi7qSSgCtzvQxRjhfyBFCx4276Kabf3zCCccL4eVyOd8d2pkPAiSlTCQSW7duu+uue154/kXX9WKxmDJ9JYBWHOnadtFxS6eNGHHTzTefddZZUspcLoMQ7Fqm5h+4RCiNR2MzZsz6xb2/WLt2XSwWDwSCyvSVAFrpwE8QQqlUunfvHrf89Kbx48caRiCXy/lzAkKkPmbFGAvBDSMICN9z972PPvo4pSyRSO4S5iqUAFrXNWLMX4i95pqr7rjztnbt22Yz6VLJ2WXU91M3gBDmnAdDoWwme+MPb545c1ZZWQIhokxfCaA1ghFClNFMJt2tW9ff/Pa/zz///KJVTKdqGNvjutUm74UQphmprq659NLLFi5YXF5eLoQAUNavBNAazR8jhFCqpvqCC85/+P893PGYdplUilD6H9aP6q0/FDK3bN7yve9dsXz58rKyMs65uowt3blVl2AfTj8GKS278LPbfvr8C88lk4l0KkX3fd4WAOh6IJ8rXHnllGXLPo7HlfWrGaB14pctCCFd1/797x+66vvX5NJpALmvgR/V9o7GmNAf3fjjRYuWlJdXeJ5X50VhhJHqs6tmgFY09hOEEOfe7x/+/VXXXJ2pqUZIEtJQKaaUMhqLP/n4k9PemJEsL3frrB9h7IFwuafqOJUAWk3USwjK5tK//OW9V15zVaammlK6j0MgcZ3x85AZWrFk2f/8/n/CZTFXSIQwJ1gQDFx2NtiQUIh5EgEhgAADQkBAbWpUAmiRUErT6fTVV0+54Yc3ZKp3UMYaoxlG2R/++Fh1Nh2gmsalJpEhkBSijyTXl3e+vrzLSWbEkZ6gBBAmgBFSLpESQIt0fgqF/KnDT/nNb39jFfONaUElpTTNyIIFi2bMmh2PxrHLEUYulR4WYckvaNu+HErIzV6QSHbAREiBEMVAJAaJlQSUAFqU94MxgNB0dvfdPw+FAp7H99d8Afzwl2n6q6+8XswVNUQQQpYmHU1ir3RevKJnIIg8AqCVMzqqrDxs24AR1C4bKwEoAbSw4T+Xy40bN+7U4cNz2RyljbkyQCnLZbMfL1uuGwbHIAhCGBsWP9lInhmN60K8Z+ffyecQwNBQuHck7AkXEV9YKgpQAmhBwz8Skpvh4NVXXyWFP/bv30ClhGAotHrVmk/XfBYIGgCcSoyEbEPJmPK2US7XSD49t2Oau+MrT5ZxPLKisi0XDsaCECal0oASQMsZ/mmhUBg27OSBAwdYVmMb0AIA0wIrV63O5bKUEImwxGC6blVFx44Y1WAybftmGzNPoNnprTnKeuHA6bEyT9qGRzDCygtSAmhBgIRzzz3XMAKN35VLCHFL9gf/ep8xBoggTAq4cE64/DQUKWE8N7NjpbQkMxgOLnbyi+xsiNNTY4m+RDqIS6ypa64E0FLCX8/zysuTp59+uuOUGuf9+wvGtFgsfv7551RjukBCuAOM4HdilUDRUiv7djHFtJDuIY4xRfrszNYtCLWT9MJYJWdcOUBKAC0I13U6d+7coUMHz/Ma33mTUOJ3M6eEeEgkAU2MdIohuYbyv6W3l5iucWDS45QTSrZyPjtfbWHWx4ycacTBc+r+kBKCEsC3nf/xPDHwuIFmqAk7tiRGGiDuOCWnRBCVwjuvvF13pttA3tix5QsKpqQSgaBAACwmDRpYmq5Z5RZ1QKPDbTpg5gAQwAhxCgDqRigBfJsBAMg+vXsTRptUu48xdm2nJDzJvRFm8uSQCQT9vZBdWSqFiMYxIIw9gpnEGseCSIvRtzJf5wW0Yfi0ijZISIQoQUJgSeV+5wFglDZckqRQAjhA+yeEtmvXvkk1m5qUXGNZh1slp5tOzysrL3Ppx44zo7DNRBoGuetrYQQAQuhstee9n08DgiGh0ImGbiEXUNChlO1PeACg64b/rbphSgDNiZRgGHoiEQcpGh8ACIx0DpiRcoGq2nTo5IkdUryU+bpINYyRwLu59hhhjDCWEELBWVb6C+60d+SYeJsYcA44wIlH5P4EgEJmCGOsqoial4PaD3BEnNSAEYChBwKBAPd4U6rUCJeibUAf2+bYAQJndfxyzdbNrggyJpGHgQGCnVcHEMIUI24gLQ1sRnZ7m+Qx3aV+dqRsRjqrUd1hqOHiIACorKxEe1ug8Btv7U3YEqQEAIyP8CM1AA58YmyaAAAh7DdABsSRRJwDJghg5+HN//mI9v2jxjwe5NOhLtGy19esa2Gia3okFtVN03Y9KSQmiCIksf9JMSAkMcYIAO80U+oRL6aVPltzvIOCujbD2jE/nwlTU0rbZYhxAkTALhEzASKoZ2GIisCiUqGPkz9HD58ZSa6wSxtdrgPhGDAgwBgBIrupx/d/tJ49esAuaxT+YrWQkmmaYRgSJN7dQ5JSaiHTCOicuxghhHGtvL/1699cT/fvH0hEKUN+GAWAmib2pglAYkBYaEKTEipC2nmBti7sMdu3poEDIcAYS5CU0M1/fjY0bEjF8JOhfaW0HWFbQBDDBCEkMQGMsUSAJcKISfAQYqFQ6cuvFv7+kZjkawV9q7oaa4ZAHJBGJJJE7D7LIMCSSg0Q4sTDSP/XjlSfjpH2BMbE2z6x/UtOCAaJERIYY4SJJALv7LPCuZdMxvv17+O6bn0cLDDBXAQM3f5669IXp1HuAMEIIVyrHwBAhLJUdc2lZW3q9HLEjf0IdExnOzU1RUEI8qhEQCjgQyIADEiTxNUAY1Sg4kQcGW9WFiFPWmsgUb/NBSME215784NZb5V3695x1Mi2F3wn0rWbBGK5FkgvAMIQkmMqJUYISYQRRgyXFt7/CNm4fXs4+NqOL9IEBTDebxiNEZIIaZisx96c3LYrosn+emCEGZvp1CQgCABEgiBIkJ0LZRjjkuMcd/yADh07uq6LsH+1MfUQDxmlQmbebb/MLlzCPO6B9HfaYACEASGCJOiBwJhkBcZHZmcKiaSJI2sc+0uaiSEGmOicAIbGS6ApMwBGCAiR4FEUcUnaLb1l13Dp1m58BQR7e/SVA/hAHn1/y5/ymvpEBLvM4ft8Y4AwBimJpp045ES28cualauzq9eseXVGm9NO7TzmnA79e+NgsOh6BeCUAAYkCJVSJELh1X+empr7XrtI+fzO0WXffBalYd7oFCoAMM34t5UeYoSO1+m5kfLVpcwWIgmiugAmBSc7D5shhHiud/bZZ5vhcCZV4y9UaxwQIbrL37/jwczypUb7eOWJw5jOeH21NQIEiDAtm06/M+9DjAigWv+thVz//T8d7/aGd/3H2kc/O0zctFuKCOLpiEiMEEWYH5IZABASBDEpHYzCkq2T1qc1X+lSa61pCSwQkr4zKaW86E+PdTYja15+7Zt/z3e3fL3t+b9ufWt2bNCALlXnth1xSrCyUpYs7niO9MqCge0fLlz1l5cCHmijho65Yuzj547HrkRaYyMxQCjEoYi06fmaY5PhhEFGR9s+nd7iBAIewobAGO3Morqu26ay8vzzznNKNvaHfwCPYhLFC+98yJ07jwYCnb936aAf3MCdkvS9IIQQAiFl0IwsXbhw6vS/YaQfkS4QRsilHsMQlkYWuCERJ007R61pLhDCEmGpS5zVEQE9QCQQ2WqvK/GzwJSSYsHakcsOPv2UE/p16/fF5i1z/7H2H2+7n65L/2Ne6sNleq/O3c4ecey558eO7UQN5G3d+tFDj2k1edGzS/8fTYke0/WE4cP+9dbbESPa+IVkTlxGAmtt94Nc9XfKKgZE4yflswtLBWkEBSBZN/gxxqqrq8dPGN+3f79sJuPHdwAQjUSWPPzkttfegADuOGnSCddcky/kJQKEMAbwYwAppUZ11/Uoo8iPro/EHGoAUQ+TrI506Tt+Eu+eQmi+GQAjgkAiihEiCBgARkhiwK1+FMGce5l0ClzHzuX1Y9r2+OGUbhMv+nregnWz3s4u/thdsXr1Jys+f2VGx5OHdbpk9Lq/zUYr11qR0Om33Bho18Hj8KMbrvvgH+8A+NvKGmVkHkG64FLT51rpnpFYb2ScUdHms2+yWY44oYb0BMYIM9f12rZtc8MPr8vbBV609XhYuG4sHF/9/Mtr//y8Llii6vQhd/3IdjhGgmKCkES1uxlw7SyH/UwoHEyusCXnMQhgWltKQiRCBEGTLPIA1gEwIMQAACOBMEKtfnMrICQR2vjFl5hSSglyPbvk0mCwU9X5Hc85o3rF6i3T3/nm/Y/y32xa//Jr3/z9nQDWCtTr/r1LOp09YkfJYpKPGj583EVjXnrhtfKK8kb2w6ISeUTqEuUFfju1rX1F527EOC1e8UY6xfQwxwwjoIykUqm7776z/8BBK5YumPf396f8+Ae6wda+PXfZw48ZnhcZdNwp9/6Mc+nVWn+t+wO1twlLANMM60awVHL888uOvBlAYIR8gzwgH48csNEcSVBCFi5c4JRKhBCEMaEEQFp5y3EhecLxg375s1Oef7T3z37Yrm//Eneqq3ckTh5y4nVXpD2HEk0D6bilX//6V8cdPyCfzzJGG5dQrk3XYKZ/XCwusvKaFGeFy7sZjEtHEkoZ27G9euLE8VddPQWEs3jxsjnvvRcIxWoWLV9170OmVTR6dxv6u7tFOOEIwfaW+8YYCcHjiUQsHj3iu/MesEGqUggkpdR1Y9269TU1NYyxncMkE4gKz7aKxaLRoaLf9VNO+r8/DP71nW1vumrYL+7EzNQdCHAgGJU8t7yy4n//8kRZMl4o5Hd7kX2NW4QEOOZEegRxZvw9s/0bQCbFYyPtNHA0hGp2pC4Yfc7//OFhIbl0vVdffjWL7OKa1R/eeT+pzqCKyiEP/lx07QBFHgCC92YAGGPORTweS5YlOecHthpMCGnk/rjWGwge7fjrrFu3frN8+ceBQKDedpnERGJBiWSU2B5PFbkZ7nhR1Vk/vTnUrm3JczHFgKVLMSGGlS327df36aefqmxTmU6nNU1v2G50jjlBCEkKEjHyleBzsjVYQP9g+FSzYlt1asrVU5577lnKsK6zpUuXzV+wkG755r1b78RffVUsiw7+1c/LevfDKYtSkAicfcw6QohwONKvX78DEADGmFJqWZZt20dwKYUSgD/OUdt23n77n4T6gzcgBB7BnGACWJNIUkIYpp4s5e1soVACVzDw20BgBBgBoyyfzZ566qlz586+6KLR1dU7SqUSpZRSWmc9sOsXRsAJwggoAGAZYoFFVn6VXdKxOE0L3nf7T/7w6CMShOd6hhZ8/H+nItc9TVCybr1lGKf97NY2Zw13MwWDEIGlR9HeUnFQu/qL0dnfOau2mKM2SNjL+9ntvWHEGJNSplKp4447btCgQY7jHKkaUALwvSBhmubcOW9v+nKTYRj+JEAACABCfhMrEBghjCjBhGCCMJG1GQACCCEpsaSU5fO5tm0r/zz1T48/+YfevXvmcplMJu15DiGIUlb3RSmliFGNUEIZwhRxKJTym9OZv/NcidByxM8IJZCwue3Eo+UffDj/H6++fkOnXkP0cMFx+/7oqjaTzitlcqARgRFgRABR2KcDU8jnR406c9Sos2pqqjVN2y37tfsXxoQQSgj1PJ5KpRBCd9xxx6w5cydPnlQq2UeqI6QEUOsFGUbgyy+//Nvr04KmecCnVVNKS6WS67hXXjll5qwZTzzxx7FjL6ysrLBtK51OZTKZTCaTzeay2Xwum8lm0+l0yrYLgYB+4rATb//5LU++9Wb7714kBN74zAtb/vWBFo9wB+7/3X1nhqLnhKPZXKF84tgTrrnMzuRI4zYu+2lZxtjvfv+7fv371tTsIARRSihlhPhKrJUlxth13Vw2l8vlksmyK668dNZb0++482ehcCibSx/Bt161R98ZCodC5l/+MnXixIvjieiuZWdNjRoRQpl0ijH9kksnT5o8ccuWLatWrVqxfNW2bdsLhXwul5dSIIwMQx84YGC//v06d+58bOdjzWBIcp69ZvI3/17grly+/NGnqs464+G/PAHvLhnboy8H930nl3SLZxCDSAsobmT6GWNsWdYxx7R/881pt/701pmz3vJcQQnFhCAEvtQBZCgU6NixY69evc+/4PyRp5/W6dgOpVJJgvh05cdPP/10KGRKeWQeYY9zqa/2ag2mGVqxfNV551VRerSIhFKWTtf84IfXP/DQ/ZlUirGD+uAAIKUkBGuaHggEMKUgJIAUQvonClBKKGMIwHXdkiOw5wLierxs21v/+Oddd8UdGhsz6tn5//xODa0M4OXSeWTd2q6DT5o98/USQ0gibfdNZ/v18XTdIITMmzf/ww8/3LJ5SzqdppRWVFSEI5Hy8mT//n379x9QXp5kjNm2bdtWIBBKp7PfHT9x9SefRKORA54Vv12E4LNnzxh4XP9ice/tntQMsNvFisfjf3ryz8OGDRs7fly6ZscuGmhyHyuMkV+45nme6zq+JDDGdavFfvU6+IM0xozrGkMgsoVjzj6t2z/O2TRnbvHNWd+hJBqKrndLz+34ygmaX369efNXm7p2617gpSatd1JKXdfBmIwcedqZo84CwV3XxRjruo4wQghLwUulUrFY8N+bYQQRwtdff/3KVasSiSTnrnKBjpJgABlG8M477undq2+Pnl3y+XzdwtYBNHKrr2dGGNM9tPEfvwoEkMBUUMk8PvTH129dsjSYro4AWg/y2e1fb5PICOo7vvn6/fkf9RjQB0p5RLUmfS5CKEIon8/XhviEIIQsy6r3lDDGhFAphcY0yrRrr73+3X++X1ZWzj1xBLduUUHwnn6Lbmhbt35zzTXXVFfXmOEI5/4a6qF2APyCDMQlMmKxF96ZPW3TBk2r2KpH/6/6i3XgGJRJkJTSv8992y15eyiqSSFKfXLWz/T7EEIwxlJIXQ9gQm+44YbXXn299py/I7qTuxLAf7jLQkaj0VWrVk+aeMnXm7+OxhJ1GjjUUTgIDuXlFc88++zP7rjz34X0n3JfPbXji7VWiejBEgEQwjTNf38wb8WKlc0dlYK/NTQQCpVK7pVXXP3Ky6+VlSU5F/XKVAI4iuCcx2KxZcuWX/zdSUsWL0mUl2OMDmk5DRcCU1yWSDz52OO3/PgWXQsKI/RefscSboEW0D1gEgFClLJCsfj4H/9EKYPmEwAA8jw3Fott27Zj8qRLZs6cXVZWfpQc7q0EsHc8z4vF4p9/vmHc2LEP3Xc/QiQSiXDOD0U2kHMeMk1M6K23/PTO224P6UFGGZbSJLqBNAwIIelX+wghotHY9DfenDN7Trws0SwnsUopAaFEsvy9996vuqBq/vwFyWRy91dWLtDRh78VPRgKCoH+679+M27sxQsXLEkky03TlFIKwRHCdVtqyC7bixuOiXf9QgiBEAIAEsmK9es2fnfc5Cee+LMZiQFBUgqEQCLACBBA3bky2E+uEkJuv+POLzZ+GYlEOeeNO29mL39dSukXC5lm9JH/eXzypO9t3vx1LBbj3NtrNK8EcPTFA1ISQsrKkgsXLpowYcJNP7pp6dJlwWAwHk8ASCE8KQWAREg2wgRl/ReAEEIAoFgspuuBxx97bPQFo+fNm5dMJqWUu25d8cuG9gjTA8HAV5u+uvqqa7Zv3xGLxTgXUjbhr0vJhRBSQigUisfLli37+NLJl97187sJocFg8Gg731sJYP95Ic69cDgMgJ+a+nTV6Asvv/zKN9+cSSmNJ+KBgEEpFkJwzv3hvL5NVX1BtP8PAOD/GoDUdT0ej+t64J133p148aTbfnaHZdl7G3r3jhAiEoktWrR0wvjvfvzxykSyIhAISimFqJXPrrXY/nqcP2sJwQEgGAzG4/FQKPzJJ5/99JZbq0ZfNGfO3Hg85gv+aLu/ah2gUe6QlBJjEo+XCSHemjVn7ty3B51w/ORLJp9yyilt27YtKytDlEjP5Zz7BrerEmovNPPXg5lj21s2b16ydNkzzzz30fyPhIBEIul7I413NoQQsVh8zZp1F4656Lrrrps8edKxnTsxwxCu67qulADA0c7sPmGMMU1HGBfz+fXrN3w0f8H06TOXLluaTqWj0Vg0GjtKQt693FxVCtH4a4UQwhgRQgBEsWgJIWKxWNeuXfv379+1W5devbp16NAhGo0ypum6ZhgGYxoAYIwwxtXVmZUrVn7yySfLly9fvHjx9u3bMSamGcaY1I270NQ3Qwjh3CsWixUVZWecOXLwoMG9+/Tu3r27YRiGoRFCXNd1Xdey7K+3bN28ecuGDRsWLVq0bNmyTCaDMQ6FwoxpQsgjONG531IIJYAD9R0JwRhzzh3HdV0HQAYCgXDYNIyApmm6ruu6XltJgRFCKJ3KbN261XFKjLFAIOhXJh+8y+EP8J7nFYsFKWU4HK6oqDAMQzd0XwCe69q2ncsVLKvoeVzX9WAw6C9v+xPVkX2bVC3QIYyPfRmEQkHTDCGEpZSuy0ulnO/81IezdS4QC4VCphn20y/N5W37oQWlNB5PIISEkNu376j3wXyV+qu/kUiMEOz/qJVWtqkYoCWGyLta+a47aPfYQuVL4hA5G74M/O/9uaV+G5r/7gBASiGV2SsBHGo97PX7w/8eQJ0j0EhXVl0ChRKAQqEEoFAoASgUSgAKhRKAQqEEoFAoASgUSgAKhRKAQqEEoFAoASgUSgAKhRKAQqEEoFAoASgUSgAKxZEiAL+phrpGitbLfm14nwIAQJRRSpl/rIO6lIpWZ/oAQCmjjDawP5Ts68lSSkM36o9MVChaHQBgGIahG1LKfQ3i+5wBpJSBUDAUCikBKFqvAEKhUCAUbKAJzb4EgIUQ0UjE7wmuXCBFa3SBOOeRSCQaiTTQdnJfLhCSQphmKFme4Nzb5axzhaIVDP11AvCS5QnTDEkh9jWG79sFAmCa1qlTB9mUpq0KRcuZA6QQnTp1YJom9+3GN5QFIpR1795NqhhA0TqRAN27dyOUNTkL5HtBIHivXr11Xas/11ahaC3DPwDoutarV28QvIEYdp8C8HsL9+zZ0z8rU4XBilYVASPOeVlZWc+ePV3X3Wtf6P3OANh13Q4dOnTv3s1xSioRpGhVAsCOU+revVuHDu1d123AehsqhRBChMLmSUMGu66DMVZekKL12D92XeekIYND4XDDh9/spxgOhBg+fIRhaGo5TNGKAADD0IYPHwH7O/qpIQEQSi3LGjx4UJcuXUol5QUpWs34XyqVunTpMnjwIMuyCKUHKACMkOd5FZVtRp4x0rbtBiIJhaLlQAixbXvkGSMrKtt4nocPeAbwxSQEr6qqCgaDUko1Byha/PCPpJTBYLCqqkqI/VfxkP2JCVvFwtAhQwcNOqFYtDBWk4CihQuAFIvWoEEnDB0y1CoWCDk4ASCEhBBBMzhp0kSxsyhIoWi5AYDg3qRJE4NmsDGHH+/9mNQ9AmpKqW075517/saNmwKBgFSHrSlaqvdfKpW6dOk0e85bwaAhhDhYF8iXlOd55ZXlV065vFRSobCihQvAvnLK5eWVSc9rlMOy/xnAnwQIwY7jXHD+2HXr1vsBsbrcipZm/bZt9+jRfdZb0wzDkLJRW3kbNZz7ewuS5eU33Xyj65XqXlbFA4qW4vkjhDBGrle66eYbk+Xljd/F1Vh/hlKWzWQnTBh/zjlnZ7MZ2uDigkJxmKGUZrOZc845e8KE8dlMltLGHoDdBIceABCCe++9J56INdLBUigOx/iPsed58UTs3nvvQQiaVLZDmiSyYrEw8Pjjbr311nw+t98Mq0JxuLx/nM/nbr311oHHH1csFprknjQqCN5lEpAIoWAwfNll35s1c3ZZWZJzrm6A4luEMZZK1Vww+rwXXnjetgsIoSYt1zZNAAiBlGAYRk1NavTo0V9+scU0w6pthOJbAQAYY0WrcOyxHWbOnJlMljmOQ0jT6vabmtTH/lpDu/ZtH3vs0WAo4LqeCogV31bg67peMBh47LFH27VvWyqVCCFNTU4eyKoWYyyXzZ06YsRjjz3qeQ6AVDOA4vAHvgDS85zHHnv01BEjctkcY+wAXudABOAXR6RrasaOH3vf/b/O5TIIqf6hisNq/QhBLpe57/5fjx0/Nl1TQyk9sD1bB17XwBjLpKqvu/7aX//mV/l8HgCpKgnFYYAQAoDy+fyvf/Or666/NpOqPrCx/2AFgBAilGYzmZtuvunBhx4olSyPq3hAccj9fo97pZL14EMP3HTzTdlMhhycyR2UADDChJBMOnX9D66d+tSTjOJisXgwclQoGjA3xrRiwWIUT33qyet/cG0mnSKE4IMrySHNIspMKjV23LhXXn3l2GOPTaVSlFIVEiia1+mnlKZSNcd27vTKq6+MHTcuk0o1i7vRPF47pTSdSg0bNnTmrDdGjz43laqRUip3SNFc1iWlTKWqR48+d+asN4YNG5puJutHzXhGGGMsl8uUlSWef+G5Bx64nzEtk81SSlVkrDiYeJdSmslmGaMPPPDb5194rqwsnstlm9HNbupKcMPzFJJSIoSjseTyZct/9atfzZ07V9d10wxLKdUWAkWTTJ8QUiwWXdc955yz77nnnuMGDcxlUqguC9QSBVAP5yIcNhFCr7322h/+8OjKFZ8Eg6FgMAQgpaxvto7VgQOKnfmUWmMAQijG1LYt2y4OGNj3ppt+PGHCeIRQoVA4FPmVQyIAhJDfQyUai6dq0i+9+Nenn35uzZo1jDHTNAmhUvpN10FpQIEQ9pe2CCFSimLR4tzr3bvPlCmXT75kUlkykcumD90q06ESgI8QgjEtHI1Vb98xffqbr7z8ypIly2y7FAwGDSNACAaQAKD6Lh6lhl8LkRIcp2TbdjAYGDx40MUTL77wwqryyspCLsMP8eLSoRUAQggAhABd181w2CoWFyxYOHPGrPfee2/Dho2O4+q6YRiGpjE/beorYddHxRFj63s8AoDnccdxXNcxDL1r1y4jR44cXXXB0KFDQmawWCi4rkcpOdT59EMtAIKQ9D+tlJIQYpohytiO7dVLliz54IP5ixYuXr9+fTqd9ntYM8YopX7uqPaIYxUptH7f3p/kpZRCCCEE5xwAdF1PJBLdu3c/aciJI0YMGzx4cEVlueC8WCz6pnJ4GpIf8hlgj/nA9/41TQsGg4RpVqG4efNXa9euW/PZmg3rN3z11dc7duwoFPKWZTmOI4SQEtSSWusFABGCKaWGYYRCoXA4UlFRccwx7bt279q7V++ePXt07HhMKGxK7tm27XmeHwkczn4Lh1kAO/0iKQEhSSg1dEPXdUwpCOm6XrFYzOfzJbvkOCUuBPJPZ/LngfrH2ldBe/77Ho/1gxDa/f/u66X2+rIH9pT9/l1o9Ms25pPu8SJ7ffp//qiRL9jIT73Xi4YAYcwoNYxAIBiIRCKmaeq6hikBIVzXdVxHCoFQ7ZT/LUxR34oA/kMMtUsEhCBCGKVkVxcIq/4rrXcG8P+30wWSUgopoe52k2+9ZObbL1zzyzx28ZGElEJFwEdwHExpCyoOaGmVm8TPEPg7HlTvrSNnJtjTqWoxBtdScwdIWf+RlQxqoTe0pc0AyvNRqBlAoVACUCiUABQKJQCF4pDx/wHuIfA7p9Mu5gAAAABJRU5ErkJggg==" alt="anamnesis">
+      <div class="drive-required-brand-text">
+        <span class="drive-required-brand-name">anamnesis</span>
+        <span class="drive-required-brand-tag">Diagnóstico financiero</span>
+      </div>
+    </div>
+    <h2 class="drive-required-title">Conectá tu Google Drive</h2>
+    <p class="drive-required-message">
+      <strong>anamnesis</strong> guarda toda tu información en Google Drive
+      para que esté disponible en cualquier dispositivo y respaldada
+      automáticamente. Necesitás conectar Drive para empezar a usar el dashboard.
+    </p>
+    <button class="upload-btn drive-required-cta" id="driveRequiredConnectBtn">
+      <i data-lucide="link" style="width:14px;height:14px"></i>
+      Conectar Google Drive
+    </button>
+    <div class="drive-required-help">
+      Tu información queda en tu propio Drive · anamnesis no guarda nada en sus servidores
+    </div>
+  </div>
+</div>
+<div class="container">
+<!-- Banner persistente cuando Drive se desconecta durante una sesión activa.
+     No bloquea (sigue trabajando con localStorage como red de seguridad) pero
+     alerta al usuario para que reconecte. Se muestra/oculta vía JS. -->
+<div class="drive-disconnected-banner hidden" id="driveDisconnectedBanner">
+  <i data-lucide="wifi-off" style="width:13px;height:13px"></i>
+  <span>Drive desconectado — los cambios no se están respaldando</span>
+  <button id="driveBannerReconnectBtn">Reconectar</button>
+</div>
+
+  <!-- ============================================================
+       SIDEBAR LATERAL
+       Aloja: logo + toggle pin, título dinámico + estado, los 3
+       selectores (año/trimestre/mes) y los 4 botones utility
+       (tema/drive/export/administración). Modo default: auto-oculto
+       (se abre con hamburger o hover en el borde izquierdo). Modo
+       pin: fijo, ocupa 260px permanentes a la izquierda del contenido.
+       ============================================================ -->
+  <aside class="app-sidebar" id="appSidebar" aria-label="Panel de controles">
+    <header class="sidebar-header">
+      <div class="brand-block">
+        <span class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+            <!-- Círculo dorado exterior (marca) -->
+            <circle cx="20" cy="20" r="18" fill="var(--accent, #D4A24C)"/>
+            <!-- Letra "a" minúscula centrada, color ink para contraste -->
+            <text x="20" y="27"
+                  text-anchor="middle"
+                  font-family="Fraunces, serif"
+                  font-size="22"
+                  font-weight="700"
+                  fill="var(--bg-1, #F5F1E8)"
+                  style="font-style: italic;">a</text>
+          </svg>
+        </span>
+        <div class="brand-text">
+          <span class="brand-name">anamnesis</span>
+          <span class="brand-tag">Diagnóstico financiero</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Selectores de período (año/trimestre/mes) stackeados verticalmente -->
+    <div class="sidebar-selectors">
+      <div class="selector-group">
+        <span class="period-label">Período</span>
+        <select class="period-select" id="yearSel"></select>
+      </div>
+      <div class="selector-group">
+        <span class="period-label">Trimestre</span>
+        <select class="period-select" id="quarterSel"></select>
+      </div>
+      <div class="selector-group">
+        <span class="period-label">Mes</span>
+        <select class="period-select" id="monthSel"></select>
+      </div>
+    </div>
+
+    <!-- Botones utility (fijar/desfijar panel, tema, drive, exportar, administración) -->
+    <div class="sidebar-utility-buttons">
+      <button class="upload-btn csv-btn btn-icon-only" id="sidebarPinBtn" title="Fijar panel">
+        <i data-lucide="panel-left-open" style="width:14px;height:14px"></i>
+        <span id="sidebarPinBtnText">FIJAR PANEL</span>
+      </button>
+      <button class="upload-btn csv-btn theme-toggle btn-icon-only" id="themeBtn" title="Cambiar tema">
+        <i data-lucide="moon" style="width:14px;height:14px" id="themeIcon"></i>
+        <span id="themeBtnText">DARK</span>
+      </button>
+      <button class="upload-btn csv-btn btn-icon-only" id="driveBtn" title="Sincronizar con Google Drive">
+        <i data-lucide="hard-drive" style="width:14px;height:14px"></i>
+        <span id="driveBtnText">CONECTAR DRIVE</span>
+      </button>
+      <div class="export-menu-wrap">
+        <button class="upload-btn csv-btn btn-icon-only" id="exportBtn" title="Exportar la solapa actual a PNG o PDF">
+          <i data-lucide="download" style="width:14px;height:14px"></i>
+          <span>EXPORTAR</span>
+        </button>
+        <div class="export-menu hidden" id="exportMenu" role="menu">
+          <button type="button" class="export-menu-item" data-export-format="png" role="menuitem">
+            <i data-lucide="image" style="width:13px;height:13px"></i>
+            PNG (imagen)
+          </button>
+          <button type="button" class="export-menu-item" data-export-format="pdf" role="menuitem">
+            <i data-lucide="file-text" style="width:13px;height:13px"></i>
+            PDF (A4 vertical)
+          </button>
+        </div>
+      </div>
+      <div class="sidebar-admin-wrap">
+        <button class="upload-btn csv-btn btn-icon-only" id="categoriesBtn" title="Administración de movimientos y categorías">
+          <i data-lucide="settings" style="width:14px;height:14px"></i>
+          <span>ADMINISTRACIÓN</span>
+        </button>
+        <!-- Submenú: acciones destructivas u otras acciones globales.
+             Se despliega al pasar el mouse sobre el wrap. -->
+        <div class="sidebar-admin-submenu" id="sidebarAdminSubmenu" role="menu">
+          <button type="button" class="sidebar-admin-item" id="deleteDataBtn" role="menuitem" title="Borrar datos del período seleccionado">
+            <i data-lucide="trash-2" style="width:13px;height:13px"></i>
+            BORRAR DATOS
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Backdrop: overlay oscuro detrás del sidebar cuando está abierto en
+       modo auto-oculto. Click en él lo cierra. -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <!-- Zona de hover invisible en el borde izquierdo. Al pasar el mouse
+       por acá, se abre el sidebar (shortcut). Solo activa cuando NO
+       está pineado (CSS oculta el elemento en modo pin). -->
+  <div class="sidebar-hover-zone" id="sidebarHoverZone"></div>
+
+  <div class="app-top-bar">
+
+  <!-- Fila superior sobre los tabs: título dinámico a la izq y estado
+       de sync a la derecha. -->
+  <div class="period-header-row">
+    <h1 class="period-title">Anatomía de un <strong id="titleWord">trimestre</strong></h1>
+    <div class="period-header-sync">
+      <div class="load-reminders-wrap hidden" id="loadRemindersWrap"></div>
+      <div id="syncStatus" class="sync-status">
+        <span class="sync-dot"></span>
+        <span id="syncStatusText">Sin conexión a Drive</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-tabs">
+    <button class="main-tab" data-main-tab="movements">
+      <i data-lucide="clipboard-list" style="width:14px;height:14px"></i>
+      Historia clínica
+    </button>
+    <button class="main-tab active" data-main-tab="medical">
+      <i data-lucide="activity" style="width:14px;height:14px"></i>
+      Ficha médica
+    </button>
+    <button class="main-tab" data-main-tab="diagnosis">
+      <i data-lucide="stethoscope" style="width:14px;height:14px"></i>
+      Diagnóstico
+    </button>
+    <button class="main-tab" data-main-tab="assets">
+      <i data-lucide="heart-pulse" style="width:14px;height:14px"></i>
+      Salud financiera
+    </button>
+    <button class="main-tab" data-main-tab="budget">
+      <i data-lucide="line-chart" style="width:14px;height:14px"></i>
+      Evolución
+    </button>
+    <!-- Toggles de vista (Resumen/Completa) alineados a la derecha, en la misma
+         fila que las solapas. Solo se muestra el toggle del tab activo (gestionado
+         por JS al cambiar de tab). -->
+    <div class="main-tabs-toggle-slot">
+      <div class="view-mode-toggle" id="movViewModeToggle" data-tab-toggle="movements" role="tablist" aria-label="Modo de vista de movimientos">
+        <button type="button" class="view-mode-btn active" data-mov-view="summary" role="tab">
+          <i data-lucide="layout-dashboard" style="width:13px;height:13px"></i>
+          Resumen
+        </button>
+        <button type="button" class="view-mode-btn" data-mov-view="full" role="tab">
+          <i data-lucide="layout-grid" style="width:13px;height:13px"></i>
+          Completa
+        </button>
+      </div>
+      <div class="view-mode-toggle currency-toggle" id="kpiCurrencyToggle" data-tab-toggle="medical" role="tablist" aria-label="Moneda de los valores KPI" style="margin-right:4px">
+        <button type="button" class="view-mode-btn active" data-kpi-currency="ARS" role="tab" title="Mostrar valores en pesos">
+          ARS
+        </button>
+        <button type="button" class="view-mode-btn" data-kpi-currency="USD" role="tab" title="Mostrar valores convertidos a dólares MEP">
+          USD
+        </button>
+      </div>
+      <div class="view-mode-toggle" id="viewModeToggle" data-tab-toggle="medical" role="tablist" aria-label="Modo de vista">
+        <button type="button" class="view-mode-btn" data-view-mode="resumen" role="tab">
+          <i data-lucide="layout-dashboard" style="width:13px;height:13px"></i>
+          Resumen
+        </button>
+        <button type="button" class="view-mode-btn active" data-view-mode="completa" role="tab">
+          <i data-lucide="layout-grid" style="width:13px;height:13px"></i>
+          Completa
+        </button>
+      </div>
+      <div class="view-mode-toggle" id="budgetViewToggle" data-tab-toggle="budget" role="tablist" aria-label="Modo de visualización de saldos">
+        <button type="button" class="view-mode-btn" data-budget-view="budgeted" role="tab" title="Mostrar solo los montos presupuestados">
+          <i data-lucide="target" style="width:13px;height:13px"></i>
+          Presupuestado
+        </button>
+        <button type="button" class="view-mode-btn" data-budget-view="real" role="tab" title="Mostrar solo los montos reales gastados">
+          <i data-lucide="receipt" style="width:13px;height:13px"></i>
+          Real
+        </button>
+        <button type="button" class="view-mode-btn active" data-budget-view="vs" role="tab" title="Comparar presupuestado vs real (ambos)">
+          <i data-lucide="git-compare" style="width:13px;height:13px"></i>
+          VS
+        </button>
+      </div>
+    </div>
+  </div>
+  </div><!-- /.app-top-bar -->
+
+  <!-- TAB MOVIMIENTOS -->
+  <div class="main-tab-panel hidden" id="mainTabMovements">
+
+    <div class="movements-controls" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px;align-items:flex-end">
+      <div class="selector-group">
+        <span class="period-label">Tipo categorías</span>
+        <select class="period-select" id="movFilterTypeSel" style="min-width:160px">
+          <option value="all">Todas</option>
+          <option value="basic">Básicas</option>
+          <option value="discretionary">Discrecionales</option>
+          <option value="flow">De flujo</option>
+        </select>
+      </div>
+      <div class="selector-group" style="flex:1 1 200px">
+        <span class="period-label">Buscar</span>
+        <input type="text" id="movSearchInput" class="period-select" placeholder="Filtrar por fecha, descripción, monto, origen, categoría, periodicidad, forma de pago, etiqueta..." style="background-image:none;padding-right:14px">
+      </div>
+      <button class="upload-btn" id="uploadBtn">
+        <i data-lucide="upload" style="width:14px;height:14px"></i>
+        CARGAR MOVIMIENTOS
+      </button>
+    </div>
+    <div id="mainMovCardFilterBar" class="mov-cardfilter-bar" style="display:none"></div>
+    <div class="cat-movements-list" id="mainMovementsList"></div>
+    <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="cat-modal-status" id="mainMovStatus">Sin cambios pendientes</span>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div id="mainMovSummary" class="main-mov-summary">
+          <div class="main-mov-summary-block" title="Balance de flujo: (Sueldo + Préstamo) − (Reserva + Inversión + Trading + Devolución de capital + Jubilación y demás categorías de flujo). Solo incluye tx de categorías DE FLUJO — básicas y discrecionales quedan fuera. Se calcula sobre TODAS las tx del período, sin importar el filtro superior.">
+            <div class="main-mov-summary-label">Flujo</div>
+            <div class="main-mov-summary-count mono" id="mainMovFlowCount">0</div>
+            <div class="main-mov-summary-value mono" id="mainMovFlowTotal">$0</div>
+          </div>
+          <div class="main-mov-summary-block" title="Cantidad y suma de los movimientos filtrados (según el selector de tipo).">
+            <div class="main-mov-summary-label">Movimientos</div>
+            <div class="main-mov-summary-count mono" id="mainMovCount">0</div>
+            <div class="main-mov-summary-value mono" id="mainMovTotal">$0</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="upload-btn" id="mainMovSaveBtn">
+            <i data-lucide="save" style="width:14px;height:14px"></i>
+            GUARDAR
+          </button>
+          <button class="upload-btn csv-btn" id="csvBtn" title="Exportar a CSV">
+            <i data-lucide="download" style="width:14px;height:14px"></i>
+            CSV
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB DIAGNOSTICO Y RECOMENDACIONES -->
+  <div class="main-tab-panel hidden" id="mainTabDiagnosis">
+    <div class="medical-vitals" id="mainMedicalVitals"></div>
+
+    <!-- Sección de alertas y avisos del período -->
+    <div class="medical-section hidden" id="insightsSection" style="margin-bottom:24px">
+      <div class="medical-section-title">
+        <i data-lucide="lightbulb" style="width:16px;height:16px;color:#D4A24C"></i>
+        <span>Avisos del período</span>
+      </div>
+      <div class="medical-list" id="insightsList"></div>
+    </div>
+
+    <!-- Sección de movimientos recurrentes detectados -->
+    <div class="medical-section hidden" id="recurringSection" style="margin-bottom:24px">
+      <div class="medical-section-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <span style="display:flex;align-items:center;gap:8px">
+          <i data-lucide="repeat" style="width:16px;height:16px;color:#6B8E4E"></i>
+          <span>Recurrentes detectados</span>
+        </span>
+        <button class="recurring-bulk-btn" id="recurringBulkBtn">
+          <i data-lucide="check-check" style="width:11px;height:11px"></i>
+          MARCAR TODOS COMO FIJO
+        </button>
+      </div>
+      <div class="medical-list" id="recurringList"></div>
+    </div>
+
+    <div class="medical-section">
+      <div class="medical-section-title">
+        <i data-lucide="alert-circle" style="width:16px;height:16px;color:#C8553D"></i>
+        <span>Diagnóstico</span>
+      </div>
+      <div class="medical-list" id="mainMedicalProblems"></div>
+    </div>
+    <div class="medical-section" style="margin-top:24px">
+      <div class="medical-section-title">
+        <i data-lucide="lightbulb" style="width:16px;height:16px;color:#6B8E4E"></i>
+        <span>Recomendaciones</span>
+      </div>
+      <div class="medical-list" id="mainMedicalRecommendations"></div>
+    </div>
+  </div>
+
+  <!-- TAB PRESUPUESTO -->
+  <div class="main-tab-panel hidden" id="mainTabBudget" data-budget-view="vs">
+    <div class="budget-annual-section-title" style="justify-content:space-between;flex-wrap:wrap;gap:14px">
+      <span style="display:flex;align-items:center;gap:8px"><i data-lucide="settings-2" style="width:13px;height:13px"></i>Categorías de flujo <span class="count" id="mainBudgetSystemCount"></span></span>
+      <span style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
+        <span class="legend-dot"><span class="swatch" style="background:var(--red)"></span><span class="label">Presupuestado</span></span>
+        <span class="legend-dot"><span class="swatch" style="background:var(--green)"></span><span class="label">Real</span></span>
+      </span>
+    </div>
+    <div class="budget-annual-wrap" id="mainBudgetAnnualWrapSystem"></div>
+    <div class="budget-annual-section-title"><i data-lucide="anchor" style="width:13px;height:13px"></i>Categorías básicas <span class="count" id="mainBudgetBasicCount"></span></div>
+    <div class="budget-annual-wrap" id="mainBudgetAnnualWrapBasic"></div>
+    <div class="budget-annual-section-title"><i data-lucide="sparkles" style="width:13px;height:13px"></i>Categorías discrecionales <span class="count" id="mainBudgetDiscCount"></span></div>
+    <div class="budget-annual-wrap" id="mainBudgetAnnualWrapDisc"></div>
+
+  </div>
+
+  <!-- TAB ACTIVOS -->
+  <div class="main-tab-panel hidden" id="mainTabAssets">
+    <!-- Bloque de proyecciones/forecasts (gasto del mes, etc.) -->
+    <div id="assetsForecastWrap"></div>
+    <div class="assets-grid">
+      <!-- Ninguna de las 5 secciones usa wrapper section-card: el propio panel
+           colapsable (buildInvestmentDetailPanel) muestra título y totales
+           agregados. Reserva además tiene una fila META con progreso de meta
+           total / aporte mensual / barra de avance. -->
+      <div id="reservaContent"></div>
+      <div id="inversionesContent"></div>
+      <div id="tradingContent"></div>
+      <div id="jubilacionJalmContent"></div>
+      <div id="jubilacionClmContent"></div>
+    </div>
+  </div>
+
+  <!-- TAB FICHA MEDICA (contenido del dashboard original) -->
+  <div class="main-tab-panel" id="mainTabMedical">
+
+  <!-- Empty state cuando no hay datos para el período seleccionado -->
+  <div class="hidden" id="medicalEmptyState">
+    <div class="medical-empty-card">
+      <i data-lucide="inbox" class="medical-empty-icon" style="width:48px;height:48px"></i>
+      <div class="medical-empty-title">Sin movimientos para el período seleccionado</div>
+      <div class="medical-empty-hint">Probá cambiar los selectores de Período, Trimestre o Mes, o cargá movimientos desde la solapa <strong>Historia clínica</strong>.</div>
+    </div>
+  </div>
+
+  <div id="medicalContentWrap">
+
+  <!-- Fila que aloja: [ Col izq de KPIs (opcional) ] + [ card Salud Financiera ]
+       + [ Col der de KPIs (opcional) ]. Cualquiera de las columnas laterales
+       desaparece si no tiene tarjetas asignadas. Si hay al menos 1, la columna
+       se muestra con las tarjetas apiladas verticalmente. Cada tarjeta mantiene
+       el alto natural de una KPI de la grilla principal. -->
+  <div class="health-score-row" id="healthScoreRow">
+    <div class="score-left-column" id="scoreLeftColumn"></div>
+    <!-- Score de salud financiera del período. Heurística de 4 componentes,
+         administrable desde Administración → Parámetros. -->
+    <div class="section-card health-score-card" id="healthScoreSection">
+    <div class="health-score-grid">
+      <div class="health-score-main">
+        <div class="health-score-eyebrow">SALUD FINANCIERA</div>
+        <div class="health-score-value-row">
+          <div class="health-score-number" id="healthScoreNumber">—</div>
+          <div class="health-score-meta">
+            <i data-lucide="heart-pulse" id="healthScoreIcon" class="health-score-icon" style="width:32px;height:32px"></i>
+            <div class="health-score-meta-bottom">
+              <div class="health-score-label" id="healthScoreLabel">Sin datos</div>
+              <div class="health-score-period" id="healthScorePeriod"></div>
+            </div>
+          </div>
+        </div>
+        <div class="health-score-bar-wrap">
+          <div class="health-score-bar" id="healthScoreBar"></div>
+        </div>
+        <div class="health-score-sparkline-wrap">
+          <div class="health-score-sparkline-eyebrow">Últimos 6 meses</div>
+          <div class="health-score-sparkline-svg" id="healthScoreSparkline"></div>
+        </div>
+    </div>
+    <div class="health-score-components" id="healthScoreComponents"></div>
+    </div>
+  </div>
+  <div class="score-right-column" id="scoreRightColumn"></div>
+  </div><!-- /.health-score-row -->
+
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <div class="section-card" id="flowSection">
+    <div class="section-header">
+      <div class="section-title">Flujo trimestral</div>
+      <div class="section-subtitle" id="flowChartSubtitle">Sueldos · préstamos · gastos · inversiones · trading · jubilación · reserva · click sobre el nombre para mostrar/ocultar</div>
+    </div>
+    <div class="chart-wrap"><canvas id="flowChart"></canvas></div>
+  </div>
+
+  <div class="section-card" id="annualSection">
+    <div class="section-header">
+      <div class="section-title">Evolución anual con tendencias</div>
+      <div class="section-subtitle">Gastos mensuales · tendencias de ingresos, inversiones y jubilación</div>
+    </div>
+    <div class="chart-wrap" style="height:380px"><canvas id="annualChart"></canvas></div>
+    <div class="legend">
+      <div class="legend-dot"><span class="swatch" style="background:#C8553D"></span><span class="label">Gastos</span></div>
+      <div class="legend-dot"><span class="swatch" style="background:#6B8E4E"></span><span class="label">Sueldos</span></div>
+      <div class="legend-dot"><span class="swatch" style="background:#8E5A9E"></span><span class="label">Inversión</span></div>
+      <div class="legend-dot"><span class="swatch" style="background:#8B8680"></span><span class="label">Jubilación JALM</span></div>
+      <div class="legend-dot"><span class="swatch" style="background:repeating-linear-gradient(90deg, var(--ink) 0 6px, transparent 6px 10px);height:2px;align-self:center"></span><span class="label">Presupuesto</span></div>
+    </div>
+  </div>
+
+  <div class="section-card" id="investSection">
+    <div class="invest-grid">
+      <div class="invest-card purple">
+        <div class="invest-header">
+          <i data-lucide="piggy-bank" style="width:16px;height:16px"></i>
+          <span class="invest-label">INVERSIONES</span>
+        </div>
+        <div class="flow-label">Flujo ARS del período</div>
+        <div class="flow-value" id="investFlowArs"></div>
+        <div class="stock-row">
+          <div>
+            <div class="stock-label" id="investStockLabel">STOCK AL CIERRE</div>
+            <div class="stock-value" id="investStockUsd"></div>
+          </div>
+          <span class="stock-tag">stablecoins</span>
+        </div>
+      </div>
+      <div class="invest-card blue">
+        <div class="invest-header">
+          <i data-lucide="line-chart" style="width:16px;height:16px"></i>
+          <span class="invest-label">TRADING</span>
+        </div>
+        <div class="flow-label">Flujo ARS del período</div>
+        <div class="flow-value" id="tradingFlowArs"></div>
+        <div class="stock-row">
+          <div>
+            <div class="stock-label" id="tradingStockLabel">STOCK AL CIERRE</div>
+            <div class="stock-value" id="tradingStockUsd"></div>
+          </div>
+          <span class="stock-tag">capital activo</span>
+        </div>
+      </div>
+    </div>
+    <div class="position-panel">
+      <div class="position-header">
+        <span class="position-label" id="positionLabel"></span>
+        <span class="position-value" id="positionTotal"></span>
+      </div>
+      <div class="position-bar">
+        <div id="posInvBar" style="background:#8E5A9E"></div>
+        <div id="posTradBar" style="background:#4A6B8A"></div>
+      </div>
+      <div class="position-bar-row">
+        <span class="mono" id="posInvPct" style="color:#8E5A9E"></span>
+        <span class="mono" id="posTradPct" style="color:#4A6B8A"></span>
+      </div>
+    </div>
+    <div id="usdEvoSection">
+      <div style="font-size:13px;font-weight:500;margin-bottom:12px;color:var(--muted-2)">Evolución del stock USD (acumulado mes a mes)</div>
+      <div class="chart-wrap small"><canvas id="usdEvoChart"></canvas></div>
+      <div class="legend">
+        <div class="legend-dot"><span class="swatch" style="background:#8E5A9E"></span><span class="label">Inversión</span></div>
+        <div class="legend-dot"><span class="swatch" style="background:#4A6B8A"></span><span class="label">Trading</span></div>
+        <div class="legend-dot"><span class="swatch" style="background:#D4A24C"></span><span class="label">Total USD (línea)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card" id="balanceSection">
+    <div class="balance-layout">
+      <div class="balance-stats-col">
+        <div class="balance-stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Saldo inicial</div>
+            <div class="stat-value" style="color:#8B7355" id="statInicial"></div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Saldo final</div>
+            <div class="stat-value" style="color:#8B7355" id="statFinal"></div>
+          </div>
+        </div>
+        <div class="balance-stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Saldo mínimo</div>
+            <div class="stat-value" style="color:#C8553D" id="statMin"></div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Saldo máximo</div>
+            <div class="stat-value" style="color:#6B8E4E" id="statMax"></div>
+          </div>
+        </div>
+        <div class="balance-stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Saldo promedio</div>
+            <div class="stat-value" style="color:#8B7355" id="statAvg"></div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label"><i data-lucide="activity" style="width:14px;height:14px;color:#D4A24C"></i> <span id="statLowLabel">Días bajo $50k</span></div>
+            <div class="stat-value" style="color:#D4A24C" id="statLow"></div>
+          </div>
+        </div>
+      </div>
+      <div class="balance-chart-col">
+        <div class="chart-wrap balance-fill"><canvas id="balanceChart"></canvas></div>
+        <div class="mono" style="font-size:10px;color:var(--muted);margin-top:8px;text-align:center">línea punteada = promedio del período</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card" id="salaryEvoSection">
+    <div class="section-header">
+      <div class="section-title">Evolución del flujo</div>
+      <div class="section-subtitle">Series por categoría de flujo en ARS · línea = Sueldo USD a BNA venta cierre de mes · click sobre el nombre para mostrar/ocultar</div>
+    </div>
+    <div class="chart-wrap" style="height:340px"><canvas id="salaryEvoChart"></canvas></div>
+  </div>
+
+  <div class="section-card" id="kpiEvoSection">
+    <div class="kpi-evo-groups" id="kpiEvoGroups">
+      <button type="button" class="kpi-evo-group-btn active" data-kpi-group="flow">
+        <span class="dot dot-flow"></span>
+        <span>Flujo</span>
+        <span class="count" id="kpiEvoGroupCountFlow">0</span>
+      </button>
+      <button type="button" class="kpi-evo-group-btn active" data-kpi-group="movements">
+        <span class="dot dot-movements"></span>
+        <span>Movimientos</span>
+        <span class="count" id="kpiEvoGroupCountMovements">0</span>
+      </button>
+    </div>
+    <div class="chart-wrap" style="height:360px"><canvas id="kpiEvoChart"></canvas></div>
+  </div>
+
+  <div class="section-card" id="evoSection">
+    <div class="section-header" style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div>
+        <div class="section-title">Evolución por categoría</div>
+        <div class="section-subtitle" id="evoChartSubtitle">Top 8 · gasto mensual · línea segmentada = proyección del próximo mes</div>
+      </div>
+      <div class="selector-group">
+        <span class="period-label">Categoría</span>
+        <select class="period-select" id="evoCatSel" style="min-width:220px">
+          <option value="__all__">— Todas (Top 8) —</option>
+        </select>
+      </div>
+    </div>
+    <div class="chart-wrap pie"><canvas id="evoChart"></canvas></div>
+  </div>
+
+  <div class="section-card" id="distRingsSection">
+    <div class="dist-rings-grid">
+      <div class="dist-rings-col">
+        <div class="dist-rings-chart-wrap">
+          <div class="chart-wrap pie"><canvas id="pieChartRingsClass"></canvas></div>
+          <div class="dist-rings-label" data-target-section="classDistSection" id="distRingsLabelClass">
+            <span class="eye-icon"><i data-lucide="eye-off" style="width:12px;height:12px"></i></span>
+            <span>Por tipo</span>
+          </div>
+        </div>
+        <div class="dist-rings-top3" id="distRingsTop3Class"></div>
+      </div>
+      <div class="dist-rings-col">
+        <div class="dist-rings-chart-wrap">
+          <div class="chart-wrap pie"><canvas id="pieChartRingsPeri"></canvas></div>
+          <div class="dist-rings-label" data-target-section="periDistSection" id="distRingsLabelPeri">
+            <span class="eye-icon"><i data-lucide="eye-off" style="width:12px;height:12px"></i></span>
+            <span>Por periodicidad</span>
+          </div>
+        </div>
+        <div class="dist-rings-top3" id="distRingsTop3Peri"></div>
+      </div>
+      <div class="dist-rings-col">
+        <div class="dist-rings-chart-wrap">
+          <div class="chart-wrap pie"><canvas id="pieChartRingsPayment"></canvas></div>
+          <div class="dist-rings-label" data-target-section="paymentDistSection" id="distRingsLabelPayment">
+            <span class="eye-icon"><i data-lucide="eye-off" style="width:12px;height:12px"></i></span>
+            <span>Por forma de pago</span>
+          </div>
+        </div>
+        <div class="dist-rings-top3" id="distRingsTop3Payment"></div>
+      </div>
+      <div class="dist-rings-col">
+        <div class="dist-rings-chart-wrap">
+          <div class="chart-wrap pie"><canvas id="pieChartRingsCat"></canvas></div>
+          <div class="dist-rings-label" data-target-section="pieDistSection" id="distRingsLabelCat">
+            <span class="eye-icon"><i data-lucide="eye-off" style="width:12px;height:12px"></i></span>
+            <span>Por categoría</span>
+          </div>
+        </div>
+        <div class="dist-rings-top3" id="distRingsTop3Cat"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card" id="pieDistSection">
+    <div class="section-header">
+      <div class="section-title">Distribución por categoría</div>
+      <div class="section-subtitle" id="distSubtitle"></div>
+    </div>
+    <div class="dist-grid">
+      <div class="dist-chart-col">
+        <div class="dist-detail-chart-wrap">
+          <div class="chart-wrap pie"><canvas id="pieChart"></canvas></div>
+          <button class="dist-detail-hide-btn" data-target-section="pieDistSection" title="Ocultar esta sección (la podés volver a mostrar desde Distribuciones o desde Administración)">
+            <i data-lucide="eye-off" style="width:14px;height:14px"></i>
+          </button>
+        </div>
+      </div>
+      <div class="dist-detail-col">
+        <div id="catDetail"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card" id="classDistSection">
+    <div class="section-header">
+      <div class="section-title">Distribución por tipo</div>
+      <div class="section-subtitle" id="distSubtitleClass"></div>
+    </div>
+    <div class="dist-grid">
+      <div class="dist-chart-col">
+        <div class="dist-detail-chart-wrap">
+          <div class="chart-wrap pie"><canvas id="pieChartClass"></canvas></div>
+          <button class="dist-detail-hide-btn" data-target-section="classDistSection" title="Ocultar esta sección (la podés volver a mostrar desde Distribuciones o desde Administración)">
+            <i data-lucide="eye-off" style="width:14px;height:14px"></i>
+          </button>
+        </div>
+      </div>
+      <div class="dist-detail-col">
+        <div id="catDetailClass"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card" id="periDistSection">
+    <div class="section-header">
+      <div class="section-title">Distribución por periodicidad</div>
+      <div class="section-subtitle" id="distSubtitlePeri"></div>
+    </div>
+    <div class="dist-grid">
+      <div class="dist-chart-col">
+        <div class="dist-detail-chart-wrap">
+          <div class="chart-wrap pie"><canvas id="pieChartPeri"></canvas></div>
+          <button class="dist-detail-hide-btn" data-target-section="periDistSection" title="Ocultar esta sección (la podés volver a mostrar desde Distribuciones o desde Administración)">
+            <i data-lucide="eye-off" style="width:14px;height:14px"></i>
+          </button>
+        </div>
+      </div>
+      <div class="dist-detail-col">
+        <div id="catDetailPeri"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card" id="paymentDistSection">
+    <div class="section-header">
+      <div class="section-title">Distribución por forma de pago</div>
+      <div class="section-subtitle" id="distSubtitlePayment"></div>
+    </div>
+    <div class="dist-grid">
+      <div class="dist-chart-col">
+        <div class="dist-detail-chart-wrap">
+          <div class="chart-wrap pie"><canvas id="pieChartPayment"></canvas></div>
+          <button class="dist-detail-hide-btn" data-target-section="paymentDistSection" title="Ocultar esta sección (la podés volver a mostrar desde Distribuciones o desde Administración)">
+            <i data-lucide="eye-off" style="width:14px;height:14px"></i>
+          </button>
+        </div>
+      </div>
+      <div class="dist-detail-col">
+        <div id="catDetailPayment"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card" id="anatomySection">
+    <div class="section-header" style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div>
+        <div class="section-title" id="anatomyTitle">Anatomía del gasto en —</div>
+        <div class="section-subtitle" id="foodSubtitle"></div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
+        <div class="selector-group" style="min-width:160px">
+          <span class="period-label">Agrupar por</span>
+          <select class="period-select" id="anatomyModeSel">
+            <option value="category" selected>Categoría</option>
+            <option value="tag">Etiqueta</option>
+          </select>
+        </div>
+        <div class="selector-group" style="min-width:200px">
+          <span class="period-label" id="anatomySelectorLabel">Categoría</span>
+          <select class="period-select" id="anatomyCategorySel"></select>
+        </div>
+        <div class="selector-group" style="min-width:160px">
+          <span class="period-label">Periodicidad</span>
+          <select class="period-select" id="anatomyPeriodicitySel">
+            <option value="all" selected>Todos</option>
+            <option value="fijo">Fijos</option>
+            <option value="variable">Variables</option>
+            <option value="esporadico">Esporádicos</option>
+            <option value="imprevisto">Imprevistos</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="food-banner">
+      <div>
+        <div class="food-label" id="anatomyTotalLabel">TOTAL CATEGORÍA</div>
+        <div class="food-value" id="foodTotal"></div>
+      </div>
+      <div style="text-align:right">
+        <div class="food-label">% DEL GASTO TOTAL</div>
+        <div class="food-value" id="foodPct"></div>
+      </div>
+    </div>
+    <div class="dist-grid">
+      <div class="dist-chart-col">
+        <div class="chart-wrap pie"><canvas id="foodPie"></canvas></div>
+      </div>
+      <div class="dist-detail-col">
+        <div id="foodRanking"></div>
+      </div>
+    </div>
+    <div id="foodEvoSection" style="margin-top:32px">
+      <div style="font-size:13px;font-weight:500;margin-bottom:12px;color:var(--muted-2)" id="anatomyEvoTitle">Evolución mensual</div>
+      <div class="chart-wrap stacked"><canvas id="foodEvoChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-card" id="monthlyResumeSection">
+    <div class="section-header">
+      <div class="section-title">Resumen mensual</div>
+      <div class="section-subtitle">Ingresos · gastos · inversiones · trading · resultado</div>
+    </div>
+    <div class="monthly-grid" id="monthlyGrid"></div>
+  </div>
+
+  </div><!-- /medicalContentWrap -->
+
+  </div><!-- /mainTabMedical -->
+
+  <footer>
+    <div class="eyebrow" style="margin-bottom:0;flex-wrap:wrap">
+      <span class="eyebrow-label">RESUMEN CONSOLIDADO</span>
+      <span class="eyebrow-period" id="periodLabel">Q1 2026</span>
+      <span class="eyebrow-sep">·</span>
+      <span class="eyebrow-sources" id="sourcesLabel">Mercado Pago + Banco Galicia</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;margin-left:auto">
+      <span>Diseñado y desarrollado por Claude & JALM</span>
+    </div>
+  </footer>
+</div>
+
+<!-- MODAL PICKER DE ICONOS LUCIDE -->
+<div class="modal-overlay hidden" id="kpiIconPickerOverlay" style="z-index:300">
+  <div class="modal-card" style="max-width:600px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:var(--accent)">SELECCIONAR ICONO</div>
+        <h2>Elegí un icono</h2>
+        <div class="medical-period mono">Buscá o navegá las categorías</div>
+      </div>
+      <button class="modal-close" id="kpiIconPickerCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div class="kpi-icon-picker-search-wrap">
+      <i data-lucide="search" style="width:14px;height:14px;color:var(--muted)"></i>
+      <input type="text" id="kpiIconPickerSearch" placeholder="Buscar (ej: wallet, heart, plus...)" autocomplete="off">
+    </div>
+    <div class="kpi-icon-picker-grid" id="kpiIconPickerGrid"></div>
+  </div>
+</div>
+
+<!-- MODAL EDICIÓN DE TARJETA KPI -->
+<div class="modal-overlay hidden" id="kpiEditorOverlay" style="z-index:200">
+  <div class="modal-card kpi-editor-modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:var(--accent)">EDITAR TARJETA</div>
+        <h2>Editar tarjeta KPI</h2>
+        <div class="medical-period mono">Definí la apariencia y el cálculo</div>
+      </div>
+      <button class="modal-close" id="kpiEditorCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+
+    <!-- Cuerpo del modal:
+         - Fila superior: Apariencia (izq) | Hint (der), en 2 columnas
+         - Fila inferior: Operación de cálculo, ocupando ancho completo
+         (la operación puede tener varios sub-controles — cat/sub, periodicidad,
+          tags — que se expanden mejor a ancho completo que en una columna).
+         En mobile (<900px) todo colapsa a 1 columna apilada. -->
+    <div class="kpi-editor-body">
+
+      <!-- FILA SUPERIOR: 2 columnas -->
+      <div class="kpi-editor-section">
+        <div class="kpi-editor-section-title">Apariencia</div>
+        <div class="kpi-editor-grid">
+          <div class="kpi-editor-field">
+            <span class="kpi-editor-field-label">Nombre</span>
+            <input type="text" id="kpiEditorLabel" placeholder="ej: Sueldos">
+          </div>
+          <div class="kpi-editor-field kpi-editor-field-compact">
+            <span class="kpi-editor-field-label">Color de borde</span>
+            <input type="color" id="kpiEditorAccent">
+          </div>
+          <div class="kpi-editor-field full">
+            <span class="kpi-editor-field-label">Icono</span>
+            <button type="button" class="kpi-icon-picker-trigger" id="kpiIconPickerTrigger">
+              <i data-lucide="circle" id="kpiIconPickerCurrent" style="width:18px;height:18px"></i>
+              <span class="kpi-icon-picker-name" id="kpiIconPickerName">circle</span>
+              <span class="kpi-icon-picker-hint">cambiar icono…</span>
+              <i data-lucide="chevron-down" style="width:14px;height:14px;margin-left:auto;opacity:0.5"></i>
+            </button>
+          </div>
+          <div class="kpi-editor-field kpi-editor-field-compact">
+            <span class="kpi-editor-field-label">Activa</span>
+            <label class="config-toggle" style="margin-top:6px">
+              <input type="checkbox" id="kpiEditorEnabled" checked>
+              <span class="track"></span>
+            </label>
+          </div>
+          <div class="kpi-editor-field">
+            <span class="kpi-editor-field-label">Posición</span>
+            <select id="kpiEditorPosition" class="kpi-editor-select-compact"></select>
+          </div>
+          <div class="kpi-editor-field">
+            <span class="kpi-editor-field-label">
+              Ubicación
+              <span class="kpi-editor-field-hint" id="kpiEditorLocationHint">grilla principal o columna del score</span>
+            </span>
+            <select id="kpiEditorLocation" class="kpi-editor-select-compact">
+              <option value="grid">Grilla principal</option>
+              <option value="score-left">Columna del score (izq)</option>
+            </select>
+          </div>
+          <div class="kpi-editor-field full">
+            <span class="kpi-editor-field-label">
+              Coloreo de tendencia
+              <span class="kpi-editor-field-hint">cuándo el sparkline se pinta verde/rojo respecto al promedio</span>
+            </span>
+            <select id="kpiEditorTrendDirection">
+              <option value="auto">Automático (recomendado)</option>
+              <option value="higher_better">Mayor es mejor (verde si sube)</option>
+              <option value="lower_better">Menor es mejor (verde si baja)</option>
+              <option value="neutral">Neutro (sin coloreo)</option>
+            </select>
+            <span class="kpi-editor-trend-inferred" id="kpiEditorTrendInferred"></span>
+          </div>
+          <div class="kpi-editor-field kpi-editor-field-compact">
+            <span class="kpi-editor-field-label">Mostrar en chart</span>
+            <label class="config-toggle" style="margin-top:6px">
+              <input type="checkbox" id="kpiEditorChartIncluded" checked>
+              <span class="track"></span>
+            </label>
+          </div>
+          <div class="kpi-editor-field" id="kpiEditorChartTypeWrap">
+            <span class="kpi-editor-field-label">Tipo en chart</span>
+            <select id="kpiEditorChartType" class="kpi-editor-select-compact">
+              <option value="bar">Barra apilada</option>
+              <option value="line">Línea de tendencia</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-editor-section">
+        <div class="kpi-editor-section-title">Hint (texto debajo del valor)</div>
+        <div class="kpi-editor-grid">
+          <div class="kpi-editor-field full">
+            <span class="kpi-editor-field-label">Modo del hint</span>
+            <select id="kpiEditorHintMode">
+              <option value="none">Sin hint</option>
+              <option value="text">Texto fijo</option>
+              <option value="pct_of">Porcentaje (valor / otra operación · 100)</option>
+              <option value="ratio">Ratio (valor / otra operación)</option>
+            </select>
+          </div>
+          <div class="kpi-editor-field full" id="kpiEditorHintExtraWrap"></div>
+        </div>
+      </div>
+
+      <!-- FILA INFERIOR: Operación a ancho completo (span 2 columnas) -->
+      <div class="kpi-editor-section kpi-editor-section-fullrow">
+        <div class="kpi-editor-section-title">Operación de cálculo (valor principal)</div>
+        <div class="kpi-editor-grid kpi-editor-grid-wide">
+          <div class="kpi-editor-field full">
+            <span class="kpi-editor-field-label">Tipo de operación</span>
+            <select id="kpiEditorOpType"></select>
+          </div>
+          <div class="kpi-editor-field full" id="kpiEditorOpExtraWrap"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Vista previa: sticky-bottom abarcando todo el ancho -->
+    <div class="kpi-editor-preview kpi-editor-preview-sticky">
+      <div class="kpi-editor-preview-label">VISTA PREVIA</div>
+      <div class="kpi-grid" style="grid-template-columns:1fr">
+        <div class="kpi-card" id="kpiEditorPreviewCard">
+          <div class="bar"></div>
+          <div class="header-row">
+            <span class="label" id="kpiPrevLabel">—</span>
+            <i id="kpiPrevIcon" data-lucide="circle" style="width:18px;height:18px"></i>
+          </div>
+          <div class="value" id="kpiPrevValue">$0</div>
+          <div class="hint" id="kpiPrevHint">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="btn-cancel" id="kpiEditorCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="kpiEditorSaveBtn">
+        <i data-lucide="check" style="width:14px;height:14px"></i>
+        APLICAR
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SELECCIÓN DE ETIQUETAS -->
+<!-- MODAL EXPORT CSV SELECTIVO -->
+<div class="modal-overlay hidden" id="exportModalOverlay">
+  <div class="modal-card" style="max-width:560px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:var(--accent)">EXPORTAR</div>
+        <h2>Exportar a CSV</h2>
+        <div class="medical-period mono">Elegí el alcance del export</div>
+      </div>
+      <button class="modal-close" id="exportModalCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+
+    <div class="export-section">
+      <div class="export-section-label">Período</div>
+      <div class="export-radio-group" id="exportPeriodGroup"></div>
+    </div>
+
+    <div class="export-section">
+      <div class="export-section-label">Categoría</div>
+      <div class="export-radio-group">
+        <label class="export-radio-row active">
+          <input type="radio" name="exportCat" value="all" checked>
+          <span class="opt-label">Todas las categorías</span>
+        </label>
+        <label class="export-radio-row">
+          <input type="radio" name="exportCat" value="one">
+          <span class="opt-label">Solo una categoría</span>
+        </label>
+      </div>
+      <div class="export-cat-select-wrap hidden" id="exportCatSelectWrap">
+        <select class="period-select" id="exportCatSelect"></select>
+      </div>
+    </div>
+
+    <div class="export-section">
+      <div class="export-section-label">Formato</div>
+      <div class="export-radio-group">
+        <label class="export-radio-row active">
+          <input type="radio" name="exportFormat" value="aggregated" checked>
+          <span class="opt-label">Agregado por mes y categoría</span>
+          <span class="opt-hint">resumen</span>
+        </label>
+        <label class="export-radio-row">
+          <input type="radio" name="exportFormat" value="transactions">
+          <span class="opt-label">Movimientos individuales</span>
+          <span class="opt-hint">detallado</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="export-summary" id="exportSummary"></div>
+
+    <div class="modal-actions" style="margin-top:18px">
+      <button class="btn-cancel" id="exportModalCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="exportModalConfirmBtn">
+        <i data-lucide="download" style="width:14px;height:14px"></i>
+        DESCARGAR CSV
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="tagPickerOverlay">
+  <div class="modal-card" style="max-width:560px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#6B8E4E">SELECCIÓN</div>
+        <h2>Agregar etiquetas</h2>
+        <div class="medical-period mono" id="tagPickerSubtitle"></div>
+      </div>
+      <button class="modal-close" id="tagPickerCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div class="tag-picker-list" id="tagPickerList"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel" id="tagPickerCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="tagPickerSaveBtn">
+        <i data-lucide="check" style="width:14px;height:14px"></i>
+        APLICAR
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INCLUIR EN PRESUPUESTO -->
+<div class="modal-overlay hidden" id="includeBudgetOverlay">
+  <div class="modal-card" style="max-width:620px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#6B8E4E">PRESUPUESTO</div>
+        <h2>Incluir en presupuesto</h2>
+        <div class="medical-period mono" id="includeBudgetCategoryLabel"></div>
+      </div>
+      <button class="modal-close" id="includeBudgetCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+
+    <div class="form-block" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <label class="period-label">Fecha</label>
+        <input type="date" id="incBudgetDate" class="period-select" style="width:100%">
+      </div>
+      <div>
+        <label class="period-label">Monto</label>
+        <input type="text" inputmode="decimal" id="incBudgetAmount" class="period-select" style="width:100%">
+      </div>
+    </div>
+
+    <div class="form-block">
+      <label class="period-label">Descripción</label>
+      <input type="text" id="incBudgetDesc" class="period-select" style="width:100%">
+    </div>
+
+    <div class="form-block">
+      <label class="period-label" style="margin-bottom:8px">Aplicar a</label>
+      <div style="display:flex;gap:6px;background:rgba(42,37,32,0.06);padding:4px;border-radius:8px;width:fit-content">
+        <button type="button" class="inc-budget-mode-btn active" data-mode="single">Mes único</button>
+        <button type="button" class="inc-budget-mode-btn" data-mode="range">Rango de meses</button>
+      </div>
+    </div>
+
+    <!-- MES ÚNICO -->
+    <div class="form-block" id="incBudgetSingleBlock" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <label class="period-label">Período (año)</label>
+        <select id="incBudgetSingleYear" class="period-select" style="width:100%"></select>
+      </div>
+      <div>
+        <label class="period-label">Mes</label>
+        <select id="incBudgetSingleMonth" class="period-select" style="width:100%"></select>
+      </div>
+    </div>
+
+    <!-- RANGO -->
+    <div class="form-block hidden" id="incBudgetRangeBlock">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+        <div>
+          <label class="period-label">Desde — año</label>
+          <select id="incBudgetFromYear" class="period-select" style="width:100%"></select>
+        </div>
+        <div>
+          <label class="period-label">Desde — mes</label>
+          <select id="incBudgetFromMonth" class="period-select" style="width:100%"></select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="period-label">Hasta — año</label>
+          <select id="incBudgetToYear" class="period-select" style="width:100%"></select>
+        </div>
+        <div>
+          <label class="period-label">Hasta — mes</label>
+          <select id="incBudgetToMonth" class="period-select" style="width:100%"></select>
+        </div>
+      </div>
+      <div class="mono" style="font-size:11px;color:var(--muted);margin-top:8px">
+        El monto se sumará al presupuesto de cada mes del rango.
+      </div>
+    </div>
+
+    <div class="alert-box error hidden" id="incBudgetError" style="display:flex;gap:10px;align-items:flex-start">
+      <i data-lucide="alert-triangle" style="width:16px;height:16px;flex-shrink:0;margin-top:2px"></i>
+      <div id="incBudgetErrorText"></div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel" id="incBudgetCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="incBudgetConfirmBtn">
+        <i data-lucide="check" style="width:14px;height:14px"></i>
+        CONFIRMAR
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR PRESUPUESTO ANUAL POR CATEGORÍA -->
+<div class="modal-overlay hidden" id="catBudgetOverlay">
+  <div class="modal-card" style="max-width:760px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#D4A24C">PRESUPUESTO ANUAL</div>
+        <h2 id="catBudgetTitle">Editar presupuesto</h2>
+        <div class="medical-period mono" id="catBudgetSubtitle"></div>
+      </div>
+      <button class="modal-close" id="catBudgetCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+
+    <div class="form-block">
+      <div class="cat-budget-grid" id="catBudgetGrid"></div>
+    </div>
+
+    <div class="cat-budget-totals">
+      <span class="label">Total anual presupuestado</span>
+      <span class="value" id="catBudgetAnnualTotal">$0</span>
+    </div>
+
+    <div class="alert-box error hidden" id="catBudgetError" style="display:flex;gap:10px;align-items:flex-start">
+      <i data-lucide="alert-triangle" style="width:16px;height:16px;flex-shrink:0;margin-top:2px"></i>
+      <div></div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel" id="catBudgetCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="catBudgetConfirmBtn">
+        <i data-lucide="check" style="width:14px;height:14px"></i>
+        CONFIRMAR
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONECTAR DRIVE -->
+<div class="modal-overlay hidden" id="driveModalOverlay">
+  <div class="modal-card" style="max-width:480px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#6B8E4E">SINCRONIZACIÓN</div>
+        <h2>Conectar con Drive</h2>
+      </div>
+      <button class="modal-close" id="driveModalCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div class="info-box">
+      <div class="info-text">
+        Elegí cómo querés conectar el dashboard con tu archivo de datos. Para que sincronice con Google Drive, el archivo debe estar en una carpeta de Drive sincronizada localmente en tu equipo.
+      </div>
+    </div>
+    <div class="form-block">
+      <div class="period-label" style="margin-bottom:10px">Acción</div>
+      <div class="source-btns" id="driveModeBtns">
+        <button class="source-btn active" data-drive-mode="open">
+          <i data-lucide="folder-open" style="width:14px;height:14px"></i>
+          ABRIR ARCHIVO EXISTENTE
+        </button>
+        <button class="source-btn" data-drive-mode="create">
+          <i data-lucide="file-plus" style="width:14px;height:14px"></i>
+          CREAR ARCHIVO NUEVO
+        </button>
+      </div>
+    </div>
+    <div class="info-box">
+      <div class="info-label" id="driveModeLabel">ABRIR EXISTENTE</div>
+      <div class="info-text" id="driveModeDetail">Vas a seleccionar un archivo .json ya creado. Sus datos van a reemplazar los actuales del dashboard.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="driveCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="driveConfirmBtn">
+        <i data-lucide="check" style="width:14px;height:14px"></i>
+        CONTINUAR
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- COMMAND PALETTE (Cmd/Ctrl+K) -->
+<div class="modal-overlay hidden" id="cmdPaletteOverlay" style="z-index:350; align-items:flex-start; padding-top:12vh">
+  <div class="modal-card" style="max-width:600px; padding:0; overflow:hidden; display:flex; flex-direction:column; max-height:70vh">
+    <div class="cmd-palette-input-wrap">
+      <i data-lucide="search" style="width:16px;height:16px;color:var(--muted)"></i>
+      <input type="text" id="cmdPaletteInput" placeholder="Buscar acción o navegación..." autocomplete="off" spellcheck="false">
+      <span class="cmd-palette-hint mono">esc para cerrar</span>
+    </div>
+    <div id="cmdPaletteList" class="cmd-palette-list"></div>
+    <div class="cmd-palette-footer mono">
+      <span><kbd>↑</kbd><kbd>↓</kbd> moverse</span>
+      <span><kbd>↵</kbd> ejecutar</span>
+      <span><kbd>?</kbd> ver atajos</span>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE ATAJOS DE TECLADO (?) -->
+<div class="modal-overlay hidden" id="shortcutsHelpOverlay" style="z-index:350">
+  <div class="modal-card" style="max-width:560px; max-height:85vh; overflow-y:auto">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#D4A24C">ATAJOS DE TECLADO</div>
+        <h2>Navegación rápida</h2>
+      </div>
+      <button class="modal-close" id="shortcutsHelpCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+
+    <div class="shortcuts-group-label">Generales</div>
+    <div class="shortcuts-list">
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>Cmd</kbd> + <kbd>K</kbd> <span class="kbd-os">Mac</span> · <kbd>Ctrl</kbd> + <kbd>K</kbd> <span class="kbd-os">Win/Linux</span></div>
+        <div class="shortcut-label">Abrir buscador de acciones</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>Cmd</kbd>/<kbd>Ctrl</kbd> + <kbd>S</kbd></div>
+        <div class="shortcut-label">Forzar guardado</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>?</kbd></div>
+        <div class="shortcut-label">Mostrar esta ayuda</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>Esc</kbd></div>
+        <div class="shortcut-label">Cerrar el modal abierto</div>
+      </div>
+    </div>
+
+    <div class="shortcuts-group-label" style="margin-top:14px">Navegación entre solapas</div>
+    <div class="shortcuts-list">
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>1</kbd></div>
+        <div class="shortcut-label">Historia clínica</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>2</kbd></div>
+        <div class="shortcut-label">Ficha médica</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>3</kbd></div>
+        <div class="shortcut-label">Diagnóstico</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>4</kbd></div>
+        <div class="shortcut-label">Salud financiera</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>5</kbd></div>
+        <div class="shortcut-label">Evolución</div>
+      </div>
+    </div>
+
+    <div class="shortcuts-group-label" style="margin-top:14px">Acciones rápidas</div>
+    <div class="shortcuts-list">
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>A</kbd></div>
+        <div class="shortcut-label">Abrir Administración</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>K</kbd></div>
+        <div class="shortcut-label">Editar tarjetas de KPIs</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>P</kbd></div>
+        <div class="shortcut-label">Parámetros</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>T</kbd></div>
+        <div class="shortcut-label">Cambiar tema (claro / oscuro)</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>D</kbd></div>
+        <div class="shortcut-label">Diagnóstico del archivo</div>
+      </div>
+    </div>
+
+    <div class="shortcuts-group-label" style="margin-top:14px">Crear nuevo</div>
+    <div class="shortcuts-list">
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>C</kbd></div>
+        <div class="shortcut-label">Nueva categoría</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>E</kbd></div>
+        <div class="shortcut-label">Nueva etiqueta</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>R</kbd></div>
+        <div class="shortcut-label">Nueva regla</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>V</kbd></div>
+        <div class="shortcut-label">Nuevo viaje / evento</div>
+      </div>
+    </div>
+
+    <div class="shortcuts-group-label" style="margin-top:14px">Dentro del buscador</div>
+    <div class="shortcuts-list">
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>↑</kbd> <kbd>↓</kbd></div>
+        <div class="shortcut-label">Navegar resultados</div>
+      </div>
+      <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>↵</kbd></div>
+        <div class="shortcut-label">Ejecutar el seleccionado</div>
+      </div>
+    </div>
+
+    <p class="travel-intro" style="margin-top:16px;font-size:12px">
+      Los atajos de una sola tecla no se disparan mientras estás escribiendo en un campo de texto, así no rompen tu flujo de carga.
+    </p>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn-cancel" id="shortcutsHelpDoneBtn">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ELEGIR CATEGORÍA DESTINO (redirección al eliminar) -->
+<div class="modal-overlay hidden" id="catRedirectOverlay" style="z-index:250">
+  <div class="modal-card" style="max-width:520px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#D4A24C">REDIRIGIR MOVIMIENTOS</div>
+        <h2 id="catRedirectTitle">Elegí destino</h2>
+      </div>
+      <button class="modal-close" id="catRedirectCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <p class="travel-intro" id="catRedirectIntro" style="margin-top:6px"></p>
+    <div style="margin-top:12px">
+      <label class="kpi-editor-field-label" for="catRedirectSelect" style="display:block;margin-bottom:6px">Categoría / subcategoría destino</label>
+      <select id="catRedirectSelect" class="period-select" style="width:100%"></select>
+    </div>
+    <div class="modal-actions" style="margin-top:18px">
+      <button class="btn-cancel" id="catRedirectCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="catRedirectConfirmBtn" style="background:#C8553D;border-color:#C8553D">
+        <i data-lucide="trash-2" style="width:14px;height:14px"></i>
+        <span>ELIMINAR Y REDIRIGIR</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR REGLA -->
+<div class="modal-overlay hidden" id="ruleEditorOverlay" style="z-index:200">
+  <div class="modal-card" style="max-width:560px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#D4A24C">EDITAR REGLA</div>
+        <h2>Modificar regla de categorización</h2>
+      </div>
+      <button class="modal-close" id="ruleEditorCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div class="rules-add-form" style="margin-top:8px">
+      <div class="rule-add-row">
+        <div class="rule-field">
+          <label class="rule-label">Si la descripción</label>
+          <select class="period-select" id="ruleEditMatchType">
+            <option value="contains">contiene</option>
+            <option value="exact">es exacto</option>
+            <option value="starts">empieza con</option>
+            <option value="regex">matchea regex</option>
+          </select>
+        </div>
+        <div class="rule-field" style="flex:1">
+          <label class="rule-label">
+            Texto / patrón
+            <span class="rule-label-hint" id="ruleEditPatternHint">(podés poner varias palabras separadas con <code>;</code>, la regla matchea si la descripción contiene cualquiera)</span>
+          </label>
+          <input type="text" id="ruleEditPatternInput" class="period-select" placeholder="ej: Carrefour;Dia;Sandy">
+        </div>
+      </div>
+      <div class="rule-add-row">
+        <div class="rule-field" style="flex:1">
+          <label class="rule-label">Asignar categoría</label>
+          <select class="period-select" id="ruleEditCategorySel"></select>
+        </div>
+        <div class="rule-field" style="flex:1">
+          <label class="rule-label">Periodicidad (opcional)</label>
+          <select class="period-select" id="ruleEditPeriodicitySel">
+            <option value="">— sin asignar —</option>
+            <option value="fijo">Fijo</option>
+            <option value="variable">Variable</option>
+            <option value="esporadico">Esporádico</option>
+            <option value="imprevisto">Imprevisto</option>
+          </select>
+        </div>
+      </div>
+      <div class="rule-add-row">
+        <div class="rule-field" style="flex:1">
+          <label class="rule-label">Etiquetas (opcional)</label>
+          <div class="rule-tags-picker" id="ruleEditTagsPicker"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn-cancel" id="ruleEditorCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="ruleEditorSaveBtn">
+        <i data-lucide="check" style="width:14px;height:14px"></i>
+        GUARDAR CAMBIOS
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR VIAJE / EVENTO -->
+<div class="modal-overlay hidden" id="travelEditorOverlay" style="z-index:200">
+  <div class="modal-card" style="max-width:520px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#D4A24C">EDITAR VIAJE / EVENTO</div>
+        <h2>Modificar datos del viaje</h2>
+      </div>
+      <button class="modal-close" id="travelEditorCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div class="travel-add-form" style="margin-top:8px">
+      <div class="travel-add-row" style="flex-wrap:wrap">
+        <div class="travel-field" style="flex:1.5;min-width:200px">
+          <span class="travel-field-label">Nombre</span>
+          <input type="text" id="travelEditNameInput" class="period-select">
+        </div>
+        <div class="travel-field">
+          <span class="travel-field-label">Fecha inicio</span>
+          <input type="date" id="travelEditStartInput" class="period-select">
+        </div>
+        <div class="travel-field">
+          <span class="travel-field-label">Fecha fin</span>
+          <input type="date" id="travelEditEndInput" class="period-select">
+        </div>
+      </div>
+      <p class="travel-intro" style="margin-top:10px;font-size:12px">
+        Al guardar, se re-etiquetan automáticamente los movimientos cuyo día caiga dentro del nuevo rango. Las tx que estaban tageadas antes y ya no entren en el rango pierden la etiqueta del viaje.
+      </p>
+    </div>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn-cancel" id="travelEditorCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="travelEditorSaveBtn">
+        <i data-lucide="check" style="width:14px;height:14px"></i>
+        GUARDAR CAMBIOS
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DIAGNÓSTICO DEL ARCHIVO (validación) -->
+<div class="modal-overlay hidden" id="validationReportOverlay" style="z-index:250">
+  <div class="modal-card" style="max-width:780px; max-height:85vh; display:flex; flex-direction:column; overflow:hidden">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" id="validationReportEyebrow" style="color:#D4A24C">DIAGNÓSTICO DEL ARCHIVO</div>
+        <h2>Inconsistencias detectadas</h2>
+        <div class="medical-period mono" id="validationReportSubtitle">—</div>
+      </div>
+      <button class="modal-close" id="validationReportCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div id="validationReportBody" style="overflow-y:auto; flex:1; min-height:0; padding-right:4px"></div>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn-cancel" id="validationReportDoneBtn">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMACIÓN GENÉRICO (reusable) -->
+<!--
+  Reemplaza window.confirm() en toda la app. Se usa así:
+    appConfirm({
+      title: 'Eliminar viaje',
+      eyebrow: 'CONFIRMAR',
+      eyebrowColor: '#C8553D',       // opcional
+      message: 'Texto largo opcional', // string o HTML
+      summaryLabel: 'DETALLE',        // opcional, va en info-box
+      summaryText: 'foo',             // opcional
+      cancelLabel: 'Cancelar',        // opcional
+      confirmLabel: 'ELIMINAR',
+      danger: true,                   // tiñe el botón de confirmar en rojo
+      icon: 'trash-2'                 // opcional, icono lucide en el botón confirmar
+    }, function (ok) { if (ok) ... });
+-->
+<div class="modal-overlay hidden" id="appConfirmOverlay" style="z-index:250">
+  <div class="modal-card" style="max-width:480px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" id="appConfirmEyebrow" style="color:#C8553D">CONFIRMAR</div>
+        <h2 id="appConfirmTitle">Confirmar</h2>
+      </div>
+      <button class="modal-close" id="appConfirmCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div class="alert-box" style="display:flex;gap:10px;align-items:flex-start;background:rgba(212,162,76,0.10);border:1px solid rgba(212,162,76,0.35)">
+      <i data-lucide="alert-triangle" style="width:16px;height:16px;flex-shrink:0;margin-top:2px;color:#D4A24C"></i>
+      <div id="appConfirmMessage">Esta acción no se puede deshacer.</div>
+    </div>
+    <div class="info-box hidden" id="appConfirmSummary">
+      <div class="info-label" id="appConfirmSummaryLabel">DETALLE</div>
+      <div class="info-text" id="appConfirmSummaryText">—</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="appConfirmCancelBtn">Cancelar</button>
+      <button class="btn-cancel hidden" id="appConfirmExtraBtn" style="background:transparent">
+        <span id="appConfirmExtraText">—</span>
+      </button>
+      <button class="upload-btn" id="appConfirmConfirmBtn">
+        <i data-lucide="check" id="appConfirmConfirmIcon" style="width:14px;height:14px"></i>
+        <span id="appConfirmConfirmText">CONFIRMAR</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR DESCARTAR CAMBIOS -->
+<div class="modal-overlay hidden" id="discardChangesOverlay" style="z-index:200">
+  <div class="modal-card" style="max-width:460px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#C8553D">CONFIRMAR</div>
+        <h2>Descartar cambios</h2>
+      </div>
+      <button class="modal-close" id="discardChangesCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div class="alert-box" style="display:flex;gap:10px;align-items:flex-start;background:rgba(212,162,76,0.10);border:1px solid rgba(212,162,76,0.35)">
+      <i data-lucide="alert-triangle" style="width:16px;height:16px;flex-shrink:0;margin-top:2px;color:#D4A24C"></i>
+      <div>
+        <strong>Hay cambios sin guardar.</strong>
+        <div style="margin-top:6px;font-size:12px">
+          Si cerrás ahora, vas a perder todos los cambios pendientes. Esta acción no se puede deshacer.
+        </div>
+      </div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">CAMBIOS PENDIENTES</div>
+      <div class="info-text" id="discardChangesText">—</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="discardChangesCancelBtn">Seguir editando</button>
+      <button class="upload-btn" id="discardChangesConfirmBtn" style="background:#C8553D">
+        <i data-lucide="x" style="width:14px;height:14px"></i>
+        DESCARTAR
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL APRENDER REGLAS -->
+<div class="modal-overlay hidden" id="learnRulesOverlay" style="z-index:200">
+  <div class="modal-card" style="max-width:720px;max-height:85vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#D4A24C">SUGERENCIAS</div>
+        <h2>Aprender reglas</h2>
+      </div>
+      <button class="modal-close" id="learnRulesCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div style="font-size:13px;color:var(--muted-2);line-height:1.5;margin-bottom:14px">
+      Detectamos patrones repetidos en las transacciones que clasificaste a mano de los últimos <strong id="learnRulesMonthsLabel">3</strong> meses (configurable en Administración → Parámetros). Marcá las que querés crear como reglas.
+    </div>
+    <div id="learnRulesList" style="flex:1 1 auto;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg-1);min-height:180px;max-height:50vh">
+      <!-- Filas dinámicas -->
+    </div>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn-cancel" id="learnRulesCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="learnRulesConfirmBtn">
+        <i data-lucide="check" style="width:14px;height:14px"></i>
+        <span id="learnRulesConfirmLabel">CREAR REGLAS</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR ELIMINAR MOVIMIENTO -->
+<div class="modal-overlay hidden" id="movDeleteOverlay" style="z-index:200">
+  <div class="modal-card" style="max-width:460px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#C8553D">CONFIRMAR</div>
+        <h2>Eliminar movimiento</h2>
+      </div>
+      <button class="modal-close" id="movDeleteCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div class="alert-box" style="display:flex;gap:10px;align-items:flex-start;background:rgba(212,162,76,0.10);border:1px solid rgba(212,162,76,0.35)">
+      <i data-lucide="info" style="width:16px;height:16px;flex-shrink:0;margin-top:2px;color:#D4A24C"></i>
+      <div>
+        <strong>El movimiento quedará marcado para borrar.</strong>
+        <div style="margin-top:6px;font-size:12px">
+          La eliminación se efectiviza recién al hacer click en <strong>GUARDAR</strong>. Hasta entonces podés deshacer el cambio recargando la página.
+        </div>
+      </div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">MOVIMIENTO</div>
+      <div class="info-text" id="movDeleteSummary">—</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="movDeleteCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="movDeleteConfirmBtn" style="background:#C8553D">
+        <i data-lucide="trash-2" style="width:14px;height:14px"></i>
+        ELIMINAR
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DESCONECTAR DRIVE -->
+<div class="modal-overlay hidden" id="driveDisconnectOverlay">
+  <div class="modal-card" style="max-width:460px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#C8553D">SINCRONIZACIÓN</div>
+        <h2>Desconectar Drive</h2>
+      </div>
+      <button class="modal-close" id="driveDisconnectCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div class="alert-box" style="display:flex;gap:10px;align-items:flex-start;background:rgba(212,162,76,0.10);border:1px solid rgba(212,162,76,0.35)">
+      <i data-lucide="info" style="width:16px;height:16px;flex-shrink:0;margin-top:2px;color:#D4A24C"></i>
+      <div>
+        <strong>Tus datos no se borran.</strong>
+        <div style="margin-top:6px;font-size:12px">
+          Los datos siguen guardándose localmente en el navegador. Podés volver a conectar Drive cuando quieras para sincronizar.
+        </div>
+      </div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">ARCHIVO CONECTADO</div>
+      <div class="info-text" id="driveDisconnectFileName">—</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="driveDisconnectCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="driveDisconnectConfirmBtn" style="background:#C8553D">
+        <i data-lucide="unlink" style="width:14px;height:14px"></i>
+        DESCONECTAR
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR BORRADO FINAL -->
+<div class="modal-overlay hidden" id="finalDeleteOverlay" style="z-index:200">
+  <div class="modal-card" style="max-width:460px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#C8553D">CONFIRMAR BORRADO</div>
+        <h2>¿Borrar datos?</h2>
+      </div>
+      <button class="modal-close" id="finalDeleteCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div class="alert-box" style="display:flex;gap:10px;align-items:flex-start;background:rgba(200,85,61,0.10);border:1px solid rgba(200,85,61,0.40)">
+      <i data-lucide="alert-triangle" style="width:16px;height:16px;flex-shrink:0;margin-top:2px;color:#C8553D"></i>
+      <div>
+        <strong>Esta acción no se puede deshacer.</strong>
+        <div style="margin-top:6px;font-size:12px">
+          Los datos seleccionados se borrarán del navegador y, si hay un archivo de Drive conectado, también se sincronizarán los cambios.
+        </div>
+      </div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">ALCANCE</div>
+      <div class="info-text" id="finalDeleteScopeText">—</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="finalDeleteCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="finalDeleteConfirmBtn" style="background:#C8553D">
+        <i data-lucide="trash-2" style="width:14px;height:14px"></i>
+        BORRAR
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR REEMPLAZAR DATOS AL CONECTAR DRIVE -->
+<div class="modal-overlay hidden" id="driveReplaceOverlay" style="z-index:200">
+  <div class="modal-card" style="max-width:460px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#D4A24C">SINCRONIZACIÓN</div>
+        <h2>El archivo ya tiene datos</h2>
+      </div>
+      <button class="modal-close" id="driveReplaceCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div class="alert-box" style="display:flex;gap:10px;align-items:flex-start;background:rgba(212,162,76,0.10);border:1px solid rgba(212,162,76,0.35)">
+      <i data-lucide="info" style="width:16px;height:16px;flex-shrink:0;margin-top:2px;color:#D4A24C"></i>
+      <div>
+        <strong>¿Cómo querés continuar?</strong>
+        <div style="margin-top:6px;font-size:12px">
+          <strong>Reemplazar</strong>: cargar los datos del archivo y descartar lo que tenés en el navegador.<br>
+          <strong>Mantener actuales</strong>: sobrescribir el archivo con los datos que ya tenés en el navegador.
+        </div>
+      </div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">ARCHIVO</div>
+      <div class="info-text" id="driveReplaceFileName">—</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="driveReplaceKeepBtn">Mantener actuales</button>
+      <button class="upload-btn" id="driveReplaceConfirmBtn">
+        <i data-lucide="download" style="width:14px;height:14px"></i>
+        REEMPLAZAR
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DELETE -->
+<div class="modal-overlay hidden" id="deleteModalOverlay">
+  <div class="modal-card" style="max-width:480px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#C8553D">ACCIÓN DESTRUCTIVA</div>
+        <h2>Borrar datos</h2>
+      </div>
+      <button class="modal-close" id="deleteModalCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div class="alert-box error" style="display:flex;gap:10px;align-items:flex-start">
+      <i data-lucide="alert-triangle" style="width:16px;height:16px;flex-shrink:0;margin-top:2px"></i>
+      <div>
+        <strong>Esta acción no se puede deshacer.</strong>
+        <div style="margin-top:6px;font-size:12px" id="deleteWarningText"></div>
+      </div>
+    </div>
+    <div class="form-block">
+      <div class="period-label" style="margin-bottom:10px">¿Qué querés borrar?</div>
+      <div class="source-btns" id="deleteScopeBtns">
+        <button class="source-btn active" data-scope="month">Mes actual</button>
+        <button class="source-btn" data-scope="quarter">Trimestre actual</button>
+        <button class="source-btn" data-scope="year">Año completo</button>
+        <button class="source-btn" data-scope="all">TODO el storage</button>
+      </div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">Se borrarán</div>
+      <div class="info-text" id="deleteScopeDetail"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="deleteCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="deleteConfirmBtn" style="background:#C8553D">
+        <i data-lucide="trash-2" style="width:14px;height:14px"></i>
+        CONFIRMAR BORRADO
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FICHA MEDICA -->
+<div class="modal-overlay hidden" id="medicalModalOverlay">
+  <div class="modal-card medical-modal-card">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#6B8E4E">DIAGNÓSTICO</div>
+        <h2>Ficha médica financiera</h2>
+        <div class="medical-period mono" id="medicalPeriod"></div>
+      </div>
+      <button class="modal-close" id="medicalCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+
+    <div class="medical-vitals" id="medicalVitals"></div>
+
+    <div class="cat-tabs" style="margin-bottom:14px">
+      <button class="cat-tab active" data-medical-tab="diag">
+        <i data-lucide="alert-circle" style="width:13px;height:13px"></i>
+        Diagnóstico
+      </button>
+      <button class="cat-tab" data-medical-tab="recs">
+        <i data-lucide="lightbulb" style="width:13px;height:13px"></i>
+        Recomendaciones
+      </button>
+    </div>
+
+    <div class="medical-tab-content">
+      <div class="medical-tab-panel" id="medicalTabDiag">
+        <div class="medical-list" id="medicalProblems"></div>
+      </div>
+      <div class="medical-tab-panel hidden" id="medicalTabRecs">
+        <div class="medical-list" id="medicalRecommendations"></div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="upload-btn" id="medicalCloseBtn2">
+        <i data-lucide="check" style="width:14px;height:14px"></i>
+        ENTENDIDO
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRESUPUESTO -->
+<div class="modal-overlay hidden" id="budgetModalOverlay">
+  <div class="modal-card budget-modal-card">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#6B8E4E">PLANIFICACIÓN</div>
+        <h2>Presupuesto</h2>
+      </div>
+      <button class="modal-close" id="budgetCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+
+    <div class="cat-tabs">
+      <button class="cat-tab active" data-budget-tab="edit">
+        <i data-lucide="edit-3" style="width:13px;height:13px"></i>
+        Editar montos
+      </button>
+      <button class="cat-tab" data-budget-tab="annual">
+        <i data-lucide="layout-grid" style="width:13px;height:13px"></i>
+        Vista anual
+      </button>
+    </div>
+
+    <!-- Tab Editar -->
+    <div class="cat-tab-panel" id="budgetTabEdit">
+      <div class="cat-modal-filters">
+        <div class="selector-group">
+          <span class="period-label">Período</span>
+          <select class="period-select" id="budgetYearSel" style="min-width:140px"></select>
+        </div>
+        <div class="selector-group">
+          <span class="period-label">Mes</span>
+          <select class="period-select" id="budgetMonthSel" style="min-width:160px"></select>
+        </div>
+        <div class="selector-group" style="margin-left:auto;flex-direction:row;align-items:flex-end;gap:10px">
+          <button class="upload-btn csv-btn" id="copyPrevBudgetBtn" title="Copiar valores del mes anterior">
+            <i data-lucide="copy" style="width:13px;height:13px"></i>
+            COPIAR ANTERIOR
+          </button>
+          <button class="upload-btn csv-btn" id="useRealAsBudgetBtn" title="Usar montos reales del mes como presupuesto">
+            <i data-lucide="check-square" style="width:13px;height:13px"></i>
+            USAR REAL
+          </button>
+        </div>
+      </div>
+      <div class="budget-summary" id="budgetSummary"></div>
+      <div class="budget-edit-list" id="budgetEditList"></div>
+    </div>
+
+    <!-- Tab Vista anual -->
+    <div class="cat-tab-panel hidden" id="budgetTabAnnual">
+      <div class="cat-modal-filters">
+        <div class="selector-group">
+          <span class="period-label">Período</span>
+          <select class="period-select" id="budgetAnnualYearSel" style="min-width:140px"></select>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
+          <div class="legend-dot"><span class="swatch" style="background:#6B8E4E"></span><span class="label">Real</span></div>
+          <div class="legend-dot"><span class="swatch" style="background:#A09080"></span><span class="label">Presupuestado</span></div>
+        </div>
+      </div>
+      <div class="budget-annual-wrap" id="budgetAnnualWrap"></div>
+    </div>
+
+    <div class="cat-modal-footer">
+      <span class="cat-modal-status" id="budgetStatus"></span>
+      <div style="display:flex;gap:10px">
+        <button class="btn-cancel" id="budgetCancelBtn">Cancelar</button>
+        <button class="upload-btn" id="budgetSaveBtn">
+          <i data-lucide="save" style="width:14px;height:14px"></i>
+          GUARDAR
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal-card" style="max-width:780px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow">NUEVA CARGA</div>
+        <h2>Cargar movimientos</h2>
+      </div>
+      <button class="modal-close" id="modalCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+
+    <!-- STEP 1: Selección de origen -->
+    <div id="step1">
+      <div class="step-indicator">
+        <span class="step-dot active">1</span>
+        <span class="step-sep"></span>
+        <span class="step-dot">2</span>
+        <span class="step-sep"></span>
+        <span class="step-dot">3</span>
+      </div>
+      <div class="step-title">Elegí el origen del archivo</div>
+      <div class="form-block">
+        <div class="period-label" style="margin-bottom:10px">Origen</div>
+        <div class="source-btns" id="sourceBtns"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancelBtn">Cancelar</button>
+        <button class="upload-btn" id="step1NextBtn">
+          Siguiente
+          <i data-lucide="arrow-right" style="width:14px;height:14px"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2 (archivo): Copiar prompt y abrir Claude.ai -->
+    <div id="step2" class="hidden">
+      <div class="step-indicator">
+        <span class="step-dot done">✓</span>
+        <span class="step-sep done"></span>
+        <span class="step-dot active">2</span>
+        <span class="step-sep" id="step2Sep3"></span>
+        <span class="step-dot" id="step2Dot3">3</span>
+      </div>
+
+      <!-- Variante 2a: desde archivo -->
+      <div id="step2FileMode">
+        <div class="step-title">Pegá el prompt en Claude.ai junto con tu archivo</div>
+        <div class="info-box">
+          <div class="info-label">INSTRUCCIONES</div>
+          <ol class="step-list">
+            <li>Click en <strong>COPIAR PROMPT</strong> abajo</li>
+            <li>Abrí <strong>Claude.ai</strong> en una nueva pestaña</li>
+            <li>En el chat de Claude: pegá el prompt y <strong>adjuntá el archivo</strong> de tu <strong id="step2SourceName" style="color:var(--accent)"></strong></li>
+            <li>Claude te va a devolver un JSON. Copialo completo y volvé acá</li>
+          </ol>
+        </div>
+        <div class="modal-actions" style="flex-wrap:wrap;gap:8px">
+          <button class="btn-cancel" id="step2BackBtn">
+            <i data-lucide="arrow-left" style="width:12px;height:12px"></i>
+            Atrás
+          </button>
+          <button class="upload-btn csv-btn" id="copyPromptBtn">
+            <i data-lucide="copy" style="width:14px;height:14px"></i>
+            COPIAR PROMPT
+          </button>
+          <button class="upload-btn" id="step2NextBtn">
+            Ya tengo el JSON
+            <i data-lucide="arrow-right" style="width:14px;height:14px"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Variante 2b: carga manual -->
+      <div id="step2ManualMode" class="hidden">
+        <div class="step-title">Cargar movimientos manualmente</div>
+        <div class="info-box" style="margin-bottom:14px">
+          <div class="info-text">Ingresá uno o varios movimientos a mano. Podés agregar más filas con el botón <strong>+ AGREGAR FILA</strong>.</div>
+        </div>
+        <div class="manual-list" id="manualMovementsList"></div>
+        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <button class="upload-btn csv-btn" id="addManualRowBtn">
+            <i data-lucide="plus" style="width:13px;height:13px"></i>
+            AGREGAR FILA
+          </button>
+          <span id="manualRowsCount" class="mono" style="font-size:11px;color:var(--muted)"></span>
+        </div>
+        <div class="alert-box error hidden" id="manualError" style="margin-top:12px"></div>
+        <div class="alert-box success hidden" id="manualSuccess" style="margin-top:12px"></div>
+        <div class="modal-actions" style="flex-wrap:wrap;gap:8px;margin-top:14px">
+          <button class="btn-cancel" id="step2BackBtnManual">
+            <i data-lucide="arrow-left" style="width:12px;height:12px"></i>
+            Atrás
+          </button>
+          <button class="upload-btn" id="saveManualBtn">
+            <i data-lucide="save" style="width:14px;height:14px"></i>
+            GUARDAR
+          </button>
+        </div>
+      </div>
+
+      <!-- Variante 2c: carga de inversiones -->
+      <div id="step2InvestmentMode" class="hidden">
+        <div class="step-title">Cargar inversiones</div>
+        <div class="info-box" style="margin-bottom:14px">
+          <div class="info-text">Ingresá los activos en los que invertiste. Estas entradas <strong>no se contabilizan como transacciones</strong> — se guardan como detalle del portfolio y aparecen en la solapa <strong>Salud financiera</strong> dentro del destino que elijas.</div>
+        </div>
+        <div class="investment-batch-controls">
+          <div class="investment-batch-field">
+            <span class="period-label">Destino</span>
+            <select id="investmentDestinoSel" class="period-select">
+              <option value="">— Elegir destino —</option>
+            </select>
+          </div>
+          <div class="investment-batch-field">
+            <span class="period-label">Moneda</span>
+            <select id="investmentMonedaSel" class="period-select">
+              <option value="ARS">ARS</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+        </div>
+        <div class="manual-list-wrap" style="margin-top:14px">
+          <div class="manual-list" id="investmentRowsList"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+            <button class="btn-cancel" id="investmentAddRowBtn">
+              <i data-lucide="plus" style="width:14px;height:14px"></i>
+              AGREGAR FILA
+            </button>
+            <div style="display:flex;gap:14px;align-items:center">
+              <span style="font-size:11px;color:var(--muted)" id="investmentRowsCount">0 activos</span>
+              <span style="font-size:11px;color:var(--muted)">·</span>
+              <span class="mono" style="font-size:12px;color:var(--ink)" id="investmentBatchTotal">Total: $0</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions" style="margin-top:14px">
+          <button class="btn-cancel" id="step2InvestmentBackBtn">
+            <i data-lucide="arrow-left" style="width:12px;height:12px"></i>
+            Atrás
+          </button>
+          <button class="upload-btn" id="saveInvestmentBtn">
+            <i data-lucide="save" style="width:14px;height:14px"></i>
+            GUARDAR
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: Pegar JSON -->
+    <div id="step3" class="hidden">
+      <div class="step-indicator">
+        <span class="step-dot done">✓</span>
+        <span class="step-sep done"></span>
+        <span class="step-dot done">✓</span>
+        <span class="step-sep done"></span>
+        <span class="step-dot active">3</span>
+      </div>
+      <div class="step-title">Pegá el JSON que te devolvió Claude</div>
+      <div class="upload-history-panel hidden" id="uploadHistoryPanel">
+        <div class="upload-history-header">
+          <i data-lucide="history" style="width:13px;height:13px"></i>
+          <span>Últimas cargas</span>
+        </div>
+        <div class="upload-history-list" id="uploadHistoryList"></div>
+      </div>
+      <div class="form-block">
+        <textarea id="jsonInput" placeholder='Pegá aquí el JSON devuelto por Claude.ai, algo como:\n\n{\n  "year": 2026,\n  "month": "abril",\n  "categories": { ... },\n  ...\n}' style="width:100%;min-height:200px;font-family:monospace;font-size:12px;padding:12px;background:var(--bg-1);border:1px solid var(--grid);border-radius:8px;color:var(--ink);resize:vertical"></textarea>
+      </div>
+      <div class="alert-box error hidden" id="uploadError"></div>
+      <div class="alert-box success hidden" id="uploadSuccess"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="step3BackBtn">
+          <i data-lucide="arrow-left" style="width:12px;height:12px"></i>
+          Atrás
+        </button>
+        <button class="upload-btn" id="importJsonBtn">
+          <i data-lucide="check" style="width:14px;height:14px"></i>
+          IMPORTAR DATOS
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CATEGORIAS -->
+<div class="modal-overlay hidden" id="catModalOverlay">
+  <div class="modal-card cat-modal-card">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow">GESTIÓN</div>
+        <h2>Administración</h2>
+      </div>
+      <button class="modal-close" id="catModalCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+
+    <div class="cat-tabs">
+      <button class="cat-tab active" data-tab="manage">
+        <i data-lucide="tag" style="width:13px;height:13px"></i>
+        Categorías y etiquetas
+      </button>
+      <button class="cat-tab" data-tab="rules">
+        <i data-lucide="zap" style="width:13px;height:13px"></i>
+        Reglas
+      </button>
+      <button class="cat-tab" data-tab="travel">
+        <i data-lucide="plane" style="width:13px;height:13px"></i>
+        Modo viaje
+      </button>
+      <button class="cat-tab" data-tab="config">
+        <i data-lucide="activity" style="width:13px;height:13px"></i>
+        Ficha médica
+      </button>
+      <button class="cat-tab" data-tab="params">
+        <i data-lucide="sliders-horizontal" style="width:13px;height:13px"></i>
+        Parámetros
+      </button>
+    </div>
+
+    <!-- Tab Movimientos (eliminado de este modal — ahora vive en la página principal) -->
+    <div class="cat-tab-panel hidden" id="catTabMovements" style="display:none">
+      <div class="cat-modal-filters">
+        <div class="selector-group">
+          <span class="period-label">Período</span>
+          <select class="period-select" id="catYearSel" style="min-width:140px"></select>
+        </div>
+        <div class="selector-group">
+          <span class="period-label">Mes</span>
+          <select class="period-select" id="catMonthSel" style="min-width:160px"></select>
+        </div>
+        <div class="selector-group" style="flex:1 1 200px">
+          <span class="period-label">Buscar</span>
+          <input type="text" id="catSearchInput" class="period-select" placeholder="Filtrar por descripción, origen o categoría..." style="background-image:none;padding-right:14px">
+        </div>
+      </div>
+      <div class="cat-movements-list" id="catMovementsList"></div>
+    </div>
+
+    <!-- Tab Categorías (master-detail) -->
+    <div class="cat-tab-panel hidden" id="catTabManage">
+      <!-- FILA 1 — Descripción Categorías -->
+      <p class="travel-intro" style="margin-bottom:14px">
+        Acá administrás tus <strong>categorías</strong> y <strong>subcategorías</strong> de gastos. Las <strong>básicas</strong> son las esenciales (vivienda, alimentación, salud). Las <strong>discrecionales</strong> son las que podrías reducir si hiciera falta. Las de <strong>flujo</strong> (sueldo, inversiones, etc.) no aparecen acá porque vienen del sistema y no se editan.
+      </p>
+
+      <!-- FILA 2 — Agregar nueva categoría / subcategoría / etiqueta -->
+      <div class="cat-add-unified">
+        <div class="period-label" style="margin-bottom:10px">Agregar nueva</div>
+        <div class="cat-add-row">
+          <select id="catAddTypeSel" class="period-select cat-add-field-type">
+            <option value="cat" selected>Categoría</option>
+            <option value="sub">Subcategoría</option>
+            <option value="label">Etiqueta</option>
+          </select>
+          <select id="catAddClassSel" class="period-select cat-add-field-class">
+            <option value="basic">Básica</option>
+            <option value="discretionary" selected>Discrecional</option>
+          </select>
+          <select id="catAddParentSel" class="period-select cat-add-field-parent hidden">
+            <option value="">— elegir categoría madre —</option>
+          </select>
+          <input type="text" id="catAddNameInput" class="period-select cat-add-field-name" placeholder="Nombre visible" style="background-image:none;padding-right:14px">
+          <input type="color" id="catAddColorInput" class="label-color-input cat-add-field-color hidden" value="#D4A24C" title="Color de la etiqueta">
+          <button class="upload-btn cat-add-btn" id="catAddBtn">
+            <i data-lucide="plus" style="width:14px;height:14px"></i>
+            AGREGAR
+          </button>
+        </div>
+        <div class="cat-add-error hidden" id="catAddUnifiedError"></div>
+      </div>
+
+      <!-- FILA 3 — Master + Detail -->
+      <div class="cat-md-wrap">
+        <div class="cat-md-master">
+          <div class="cat-md-header">
+            <span class="cat-md-title">Categorías</span>
+            <div class="cat-md-filter" id="catMasterFilter">
+              <button class="cat-md-filter-btn active" data-filter="all">Todas</button>
+              <button class="cat-md-filter-btn" data-filter="basic">Básicas</button>
+              <button class="cat-md-filter-btn" data-filter="discretionary">Discrecionales</button>
+            </div>
+            <div class="cat-md-header-actions">
+              <button class="cat-md-io-btn" id="exportCategoriesBtn" title="Exportar categorías a archivo JSON">
+                <i data-lucide="download" style="width:13px;height:13px"></i>
+              </button>
+              <button class="cat-md-io-btn" id="importCategoriesBtn" title="Importar categorías desde archivo JSON">
+                <i data-lucide="upload" style="width:13px;height:13px"></i>
+              </button>
+            </div>
+          </div>
+          <div class="cat-master-list" id="catMasterList"></div>
+        </div>
+        <div class="cat-md-detail">
+          <div class="cat-md-header">
+            <span class="cat-md-title" id="catDetailTitle">Subcategorías</span>
+            <span class="cat-md-hint" id="catDetailHint">Seleccioná una categoría</span>
+          </div>
+          <div class="cat-detail-list" id="catDetailList"></div>
+        </div>
+      </div>
+
+      <!-- FILA 4 — Descripción Etiquetas -->
+      <p class="travel-intro" style="margin-top:24px;margin-bottom:14px">
+        Las <strong>etiquetas</strong> son una clasificación cruzada a las categorías: agrupan transacciones por un criterio adicional (un viaje, un proyecto, un evento, una persona, etc.). Una misma tx puede tener varias etiquetas. <strong>JALM</strong> y <strong>CLM</strong> son por defecto del sistema (jubilación). Las etiquetas creadas desde <strong>Modo viaje</strong> también aparecen acá pero no se eliminan acá (se eliminan junto al viaje).
+      </p>
+
+      <!-- FILA 5 — Grilla etiquetas -->
+      <div class="cat-md-wrap cat-md-wrap-single">
+        <div class="cat-md-master">
+          <div class="cat-md-header">
+            <span class="cat-md-title">Etiquetas</span>
+            <div class="cat-md-header-actions">
+              <button class="cat-md-io-btn" id="exportTagsBtn" title="Exportar etiquetas a archivo JSON">
+                <i data-lucide="download" style="width:13px;height:13px"></i>
+              </button>
+              <button class="cat-md-io-btn" id="importTagsBtn" title="Importar etiquetas desde archivo JSON">
+                <i data-lucide="upload" style="width:13px;height:13px"></i>
+              </button>
+            </div>
+          </div>
+          <div class="cat-master-list" id="labelMasterList"></div>
+        </div>
+      </div>
+
+      <!-- Inputs huérfanos del flow viejo de etiqueta, preservados para que el JS no se rompa.
+           El nuevo form unificado (catAddBtn) los usa internamente al detectar tipo=label. -->
+      <input type="hidden" id="newLabelLabelInput">
+      <input type="hidden" id="newLabelColorInput" value="#D4A24C">
+      <button class="hidden" id="addLabelBtn"></button>
+      <div class="hidden" id="labelAddError"></div>
+      <!-- Inputs huérfanos del flow viejo de cat/sub, preservados igual. -->
+      <input type="hidden" id="newCatLabelInput">
+      <select id="newCatTypeSel" class="hidden"><option value="basic">basic</option><option value="discretionary">discretionary</option></select>
+      <button class="hidden" id="addCategoryBtn"></button>
+      <div class="hidden" id="catAddError"></div>
+      <input type="hidden" id="newSubCatLabelInput">
+      <button class="hidden" id="addSubCategoryBtn"></button>
+      <div class="hidden" id="subCatAddError"></div>
+      <div class="hidden" id="newSubCatTarget"></div>
+    </div>
+
+    <!-- Tab Reglas de categorización -->
+    <div class="cat-tab-panel hidden" id="catTabRules">
+      <div class="rules-intro">
+        <p style="margin:0 0 14px 0;font-size:13px;color:var(--muted-2);line-height:1.5">
+          Las reglas se aplican automáticamente al cargar movimientos. Se evalúan en orden y la primera que matchee define la categoría. Tienen prioridad sobre el aprendizaje automático y sobre lo que diga el LLM.
+        </p>
+      </div>
+      <div class="rules-add-form">
+        <div class="rule-add-row">
+          <div class="rule-field">
+            <label class="rule-label">Si la descripción</label>
+            <select class="period-select" id="ruleMatchType">
+              <option value="contains">contiene</option>
+              <option value="exact">es exacto</option>
+              <option value="starts">empieza con</option>
+              <option value="regex">matchea regex</option>
+            </select>
+          </div>
+          <div class="rule-field" style="flex:1">
+            <label class="rule-label">
+              Texto / patrón
+              <span class="rule-label-hint" id="rulePatternHint">(podés poner varias palabras separadas con <code>;</code>, la regla matchea si la descripción contiene cualquiera)</span>
+            </label>
+            <input type="text" id="rulePatternInput" class="period-select" placeholder="ej: Carrefour;Dia;Sandy (separá con ;)">
+          </div>
+        </div>
+        <div class="rule-add-row">
+          <div class="rule-field" style="flex:1 1 220px;min-width:180px">
+            <label class="rule-label">Asignar categoría</label>
+            <select class="period-select" id="ruleCategorySel"></select>
+          </div>
+          <div class="rule-field" style="flex:1 1 180px;min-width:160px">
+            <label class="rule-label">Periodicidad (opcional)</label>
+            <select class="period-select" id="rulePeriodicitySel">
+              <option value="">— sin asignar —</option>
+              <option value="fijo">Fijo</option>
+              <option value="variable">Variable</option>
+              <option value="esporadico">Esporádico</option>
+              <option value="imprevisto">Imprevisto</option>
+            </select>
+          </div>
+          <div class="rule-field" style="flex:2 1 280px;min-width:220px">
+            <label class="rule-label">Etiquetas (opcional)</label>
+            <div class="rule-tags-picker rule-tags-picker-inline" id="ruleTagsPicker"></div>
+          </div>
+          <div class="rule-field" style="align-self:flex-end">
+            <button class="upload-btn" id="addRuleBtn">
+              <i data-lucide="plus" style="width:14px;height:14px"></i>
+              AGREGAR REGLA
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="rules-list-wrap" style="margin-top:18px;flex:1 1 auto;display:flex;flex-direction:column;min-height:0">
+        <div class="rules-list-header" style="display:flex; align-items:center; justify-content:space-between; gap:8px;flex-shrink:0">
+          <span>REGLAS ACTIVAS <span id="rulesCount" style="opacity:0.6"></span></span>
+          <div style="display:flex; gap:6px; align-items:center">
+            <button class="upload-btn" id="learnRulesBtn" title="Detectar patrones repetidos en tus clasificaciones manuales (configurable en Parámetros)">
+              <i data-lucide="sparkles" style="width:14px;height:14px"></i>
+              APRENDER REGLAS
+            </button>
+            <button class="upload-btn" id="reapplyRulesBtn" title="Aplicar todas las reglas a todas las tx ya cargadas">
+              <i data-lucide="refresh-cw" style="width:14px;height:14px"></i>
+              RE-APLICAR A TX EXISTENTES
+            </button>
+            <button class="cat-md-io-btn cat-md-io-btn-large" id="exportRulesBtn" title="Exportar reglas a archivo JSON">
+              <i data-lucide="download" style="width:14px;height:14px"></i>
+            </button>
+            <button class="cat-md-io-btn cat-md-io-btn-large" id="importRulesBtn" title="Importar reglas desde archivo JSON">
+              <i data-lucide="upload" style="width:14px;height:14px"></i>
+            </button>
+          </div>
+        </div>
+        <!-- Filtro: dropdown con las mismas opciones que "Tipo categorías" en
+             Historia clínica (Todas / Básicas / Discrecionales / De flujo). -->
+        <div class="rules-filter-row" style="margin-top:10px;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span class="mono" style="font-size:10px;letter-spacing:1.5px;color:var(--muted-2);text-transform:uppercase">Filtrar por</span>
+          <select id="rulesFilterCatSel" class="period-select" style="min-width:200px;flex:0 1 220px">
+            <option value="">Todas</option>
+            <option value="basic">Básicas</option>
+            <option value="discretionary">Discrecionales</option>
+            <option value="flow">De flujo</option>
+          </select>
+          <button class="cat-md-io-btn cat-md-io-btn-large" id="rulesFilterClearBtn" title="Limpiar filtro" style="margin-left:0">
+            <i data-lucide="x" style="width:14px;height:14px"></i>
+          </button>
+        </div>
+        <div class="rules-list" id="rulesList"></div>
+      </div>
+    </div>
+
+    <!-- Tab Modo Viaje -->
+    <div class="cat-tab-panel hidden" id="catTabTravel">
+      <p class="travel-intro">Definí un viaje o evento con fecha de inicio y fin. Todos los movimientos cuyo día caiga dentro del rango se etiquetan automáticamente (también los que cargues después). Al terminar el viaje vas a ver el costo total acumulado, que sirve para entender cuánto te salió ese período de gasto especial.</p>
+      <div class="travel-add-form">
+        <div class="travel-add-row">
+          <div class="travel-field" style="flex:1.5;min-width:160px">
+            <span class="travel-field-label">Nombre del viaje / evento</span>
+            <input type="text" id="travelNameInput" class="period-select" placeholder="ej: Bariloche, casamiento Vicky...">
+          </div>
+          <div class="travel-field">
+            <span class="travel-field-label">Fecha inicio</span>
+            <input type="date" id="travelStartInput" class="period-select">
+          </div>
+          <div class="travel-field">
+            <span class="travel-field-label">Fecha fin</span>
+            <input type="date" id="travelEndInput" class="period-select">
+          </div>
+          <div class="travel-field" style="align-self:flex-end">
+            <button class="upload-btn" id="addTravelBtn">
+              <i data-lucide="plus" style="width:14px;height:14px"></i>
+              INICIAR VIAJE
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="travels-list-wrap">
+        <div class="travels-list-header">VIAJES Y EVENTOS <span id="travelsCount" style="opacity:0.6"></span></div>
+        <div class="travels-list" id="travelsList"></div>
+      </div>
+    </div>
+
+    <!-- Tab Parámetros -->
+    <div class="cat-tab-panel hidden" id="catTabParams">
+      <div class="params-list">
+        <div class="param-row">
+          <div class="param-info">
+            <div class="param-label">Meses para aprender reglas</div>
+            <div class="param-desc">Cantidad de meses hacia atrás desde hoy que el botón <strong>APRENDER REGLAS</strong> usa para detectar patrones repetidos en tus clasificaciones manuales. Cuanto más alto, más historial se analiza (pero pueden aparecer sugerencias menos relevantes si tu criterio cambió).</div>
+          </div>
+          <div class="param-input-wrap">
+            <input type="text" inputmode="numeric" id="paramLearnRulesMonthsInput" value="3">
+            <span class="param-suffix">meses</span>
+          </div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-info">
+            <div class="param-label">Días bajo $</div>
+            <div class="param-desc">Umbral para calcular cuántos días tu saldo MP estuvo por debajo. Se usa en la sección "Evolución del saldo MP día a día".</div>
+          </div>
+          <div class="param-input-wrap">
+            <span class="param-prefix">$</span>
+            <input type="text" inputmode="numeric" id="paramDiasBajoInput" value="50000">
+          </div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-info">
+            <div class="param-label">Cotización MEP (USD → ARS)</div>
+            <div class="param-desc">Cotización actual del dólar MEP. Se usa para convertir los tickers cargados en USD a su equivalente en pesos y mostrar el total combinado en <strong>Salud financiera</strong>. Click en <strong>↻</strong> para traer la cotización actual desde <strong>dolarapi.com</strong>, o editala manualmente.</div>
+            <div class="param-meta" id="cotizacionMepLastUpdate" style="margin-top:4px;font-size:11px;color:var(--muted)"></div>
+          </div>
+          <div class="param-input-wrap mep-input-wrap">
+            <span class="param-prefix">$</span>
+            <input type="text" inputmode="decimal" id="paramCotizacionMepInput" value="1000">
+            <button type="button" id="paramCotizacionMepFetchBtn" class="param-fetch-btn" title="Actualizar cotización desde dolarapi.com">
+              <i data-lucide="refresh-cw" style="width:14px;height:14px"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-info">
+            <div class="param-label">Alerta de fuga de gastos</div>
+            <div class="param-desc">Si los gastos <strong>variables, esporádicos o imprevistos</strong> superan este porcentaje respecto a los <strong>gastos básicos</strong> del período, aparece una recomendación en Diagnóstico para revisarlos. Los gastos fijos quedan afuera porque suelen ser obligaciones contractuales. El objetivo es detectar fuga de dinero que se podría redirigir a reserva, inversiones o jubilación.</div>
+          </div>
+          <div class="param-input-wrap">
+            <input type="text" inputmode="numeric" id="paramPeriFugaInput" value="40">
+            <span class="param-suffix">%</span>
+          </div>
+        </div>
+
+        <div class="param-row param-row-vertical">
+          <div class="param-info">
+            <div class="param-label">Reserva</div>
+            <div class="param-desc">Monto y plazo para construir tu fondo de reserva (liquidez para emergencias). Podés cargarlo manualmente o calcularlo automáticamente como 6 meses de gastos básicos promediando los últimos 3 meses cargados.</div>
+          </div>
+          <details class="reserva-config-panel">
+            <summary>Configurar reserva</summary>
+            <div class="reserva-controls">
+              <div class="reserva-mode-toggle">
+                <button type="button" class="reserva-mode-btn active" data-reserva-mode="manual">Manual</button>
+                <button type="button" class="reserva-mode-btn" data-reserva-mode="auto">Calculado</button>
+              </div>
+              <div class="reserva-hint hidden" id="paramReservaHint"></div>
+              <div class="reserva-fields">
+                <div class="reserva-field">
+                  <span class="reserva-field-label">Meses de reserva</span>
+                  <input type="number" id="paramReservaMesesInput" min="1" max="60" step="1" value="6">
+                </div>
+                <div class="reserva-field">
+                  <span class="reserva-field-label">Valor mensual</span>
+                  <input type="text" inputmode="numeric" id="paramReservaValorMensualInput" value="0" placeholder="0">
+                </div>
+                <div class="reserva-field">
+                  <span class="reserva-field-label">Monto a alcanzar</span>
+                  <input type="text" id="paramReservaAmountInput" readonly value="0">
+                </div>
+                <div class="reserva-field">
+                  <span class="reserva-field-label">Plazo (meses)</span>
+                  <input type="number" id="paramReservaMonthsInput" min="1" max="120" step="1" value="12">
+                </div>
+                <div class="reserva-field">
+                  <span class="reserva-field-label">Aporte mensual</span>
+                  <input type="text" id="paramReservaAporteMensualInput" readonly value="0" title="Monto a reservar por mes para alcanzar la meta en el plazo definido">
+                </div>
+                <div class="reserva-field">
+                  <span class="reserva-field-label">Inicio del plan</span>
+                  <input type="date" id="paramReservaStartInput">
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div class="param-row">
+          <div class="param-info">
+            <div class="param-label">Modo oscuro automático</div>
+            <div class="param-desc">Si está activado, el tema cambia automáticamente según la hora del día: oscuro entre las 19:00 y las 07:00 (hora local), claro el resto del tiempo. El botón <strong>DARK/LIGHT</strong> del header lo seguís pudiendo usar manualmente como override temporal — al pasar a un nuevo "tramo horario" vuelve a aplicarse el modo automático.</div>
+          </div>
+          <div class="param-input-wrap">
+            <label class="config-toggle" style="margin:0">
+              <input type="checkbox" id="paramThemeAutoInput">
+              <span class="track"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="param-row param-row-vertical">
+          <div class="param-info">
+            <div class="param-label">Score de salud financiera</div>
+            <div class="param-desc">Pesos (cuánto aporta cada componente al score) y umbrales (a partir de qué valor un componente cuenta como excelente / bueno / regular). Los pesos deben sumar 100. Los umbrales son porcentajes (ej: 25 = 25%). Si dejás algún campo vacío, se usa el valor por defecto.</div>
+          </div>
+          <details class="health-score-config-panel">
+            <summary>Personalizar pesos y umbrales</summary>
+            <div class="health-score-config-grid">
+
+              <div class="health-score-config-block">
+                <div class="health-score-config-title">1. Discrecional / total <span class="health-score-config-sub">(menor mejor)</span></div>
+                <div class="health-score-config-fields">
+                  <label>Peso máx <input type="text" inputmode="numeric" id="paramScoreDiscWeight" data-default="10"></label>
+                  <label>Excelente ≤ <input type="text" inputmode="numeric" id="paramScoreDiscExc" data-default="25">%</label>
+                  <label>Bueno ≤ <input type="text" inputmode="numeric" id="paramScoreDiscBuen" data-default="35">%</label>
+                  <label>Regular ≤ <input type="text" inputmode="numeric" id="paramScoreDiscReg" data-default="50">%</label>
+                </div>
+              </div>
+
+              <div class="health-score-config-block">
+                <div class="health-score-config-title">2. Margen libre <span class="health-score-config-sub">(mayor mejor)</span></div>
+                <div class="health-score-config-fields">
+                  <label>Peso máx <input type="text" inputmode="numeric" id="paramScoreMargenWeight" data-default="30"></label>
+                  <label>Excelente ≥ <input type="text" inputmode="numeric" id="paramScoreMargenExc" data-default="30">%</label>
+                  <label>Bueno ≥ <input type="text" inputmode="numeric" id="paramScoreMargenBuen" data-default="15">%</label>
+                  <label>Regular ≥ <input type="text" inputmode="numeric" id="paramScoreMargenReg" data-default="5">%</label>
+                </div>
+              </div>
+
+              <div class="health-score-config-block">
+                <div class="health-score-config-title">3. Ahorro + inversión <span class="health-score-config-sub">(mayor mejor)</span></div>
+                <div class="health-score-config-fields">
+                  <label>Peso máx <input type="text" inputmode="numeric" id="paramScoreAhorroWeight" data-default="15"></label>
+                  <label>Excelente ≥ <input type="text" inputmode="numeric" id="paramScoreAhorroExc" data-default="15">%</label>
+                  <label>Bueno ≥ <input type="text" inputmode="numeric" id="paramScoreAhorroBuen" data-default="8">%</label>
+                  <label>Regular ≥ <input type="text" inputmode="numeric" id="paramScoreAhorroReg" data-default="3">%</label>
+                </div>
+              </div>
+
+              <div class="health-score-config-block">
+                <div class="health-score-config-title">4. Deuda nueva <span class="health-score-config-sub">(menor mejor)</span></div>
+                <div class="health-score-config-fields">
+                  <label>Peso máx <input type="text" inputmode="numeric" id="paramScoreDeudaWeight" data-default="20"></label>
+                  <label>Excelente ≤ <input type="text" inputmode="numeric" id="paramScoreDeudaExc" data-default="0">%</label>
+                  <label>Bueno ≤ <input type="text" inputmode="numeric" id="paramScoreDeudaBuen" data-default="10">%</label>
+                  <label>Regular ≤ <input type="text" inputmode="numeric" id="paramScoreDeudaReg" data-default="30">%</label>
+                </div>
+              </div>
+
+              <div class="health-score-config-block health-score-config-block-full">
+                <div class="health-score-config-title">5. Reservas (meses de vida) <span class="health-score-config-sub">(mayor mejor)</span></div>
+                <div class="health-score-config-hint" style="margin-top:0;margin-bottom:8px">Mide cuántos meses podrías cubrir tus gastos con tu reserva acumulada. Umbrales en <strong>meses</strong> (no en %). Fórmula: <code>reservaAcumulada / gastoMensualPromedio</code>.</div>
+                <div class="health-score-config-fields">
+                  <label>Peso máx <input type="text" inputmode="numeric" id="paramScoreReservaWeight" data-default="25"></label>
+                  <label>Excelente ≥ <input type="text" inputmode="numeric" id="paramScoreReservaExc" data-default="6"> meses</label>
+                  <label>Bueno ≥ <input type="text" inputmode="numeric" id="paramScoreReservaBuen" data-default="3"> meses</label>
+                  <label>Regular ≥ <input type="text" inputmode="numeric" id="paramScoreReservaReg" data-default="1"> meses</label>
+                </div>
+              </div>
+
+              <div class="health-score-config-block health-score-config-block-full health-score-config-block-alt">
+                <div class="health-score-config-title">Umbrales alternativos <span class="health-score-config-sub">(sin sueldo cargado)</span></div>
+                <div class="health-score-config-hint" style="margin-top:0;margin-bottom:8px">Cuando no hay sueldo en el período, los componentes 3 y 4 se calculan sobre los <strong>gastos totales</strong> en lugar del sueldo. Como el denominador cambia, suelen necesitar umbrales distintos. El peso de cada componente se mantiene.</div>
+                <div class="health-score-config-alt-grid">
+                  <div>
+                    <div class="health-score-config-alt-label">3. Ahorro / gastos <span class="health-score-config-sub">(mayor mejor)</span></div>
+                    <div class="health-score-config-fields">
+                      <label>Excelente ≥ <input type="text" inputmode="numeric" id="paramScoreAhorroAltExc" data-default="20">%</label>
+                      <label>Bueno ≥ <input type="text" inputmode="numeric" id="paramScoreAhorroAltBuen" data-default="10">%</label>
+                      <label>Regular ≥ <input type="text" inputmode="numeric" id="paramScoreAhorroAltReg" data-default="4">%</label>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="health-score-config-alt-label">4. Deuda / gastos <span class="health-score-config-sub">(menor mejor)</span></div>
+                    <div class="health-score-config-fields">
+                      <label>Excelente ≤ <input type="text" inputmode="numeric" id="paramScoreDeudaAltExc" data-default="0">%</label>
+                      <label>Bueno ≤ <input type="text" inputmode="numeric" id="paramScoreDeudaAltBuen" data-default="15">%</label>
+                      <label>Regular ≤ <input type="text" inputmode="numeric" id="paramScoreDeudaAltReg" data-default="40">%</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="health-score-config-block health-score-config-block-full">
+                <div class="health-score-config-title">Rangos del score</div>
+                <div class="health-score-config-fields">
+                  <label>Saludable ≥ <input type="text" inputmode="numeric" id="paramScoreRangoSaludable" data-default="75"></label>
+                  <label>Atención ≥ <input type="text" inputmode="numeric" id="paramScoreRangoAtencion" data-default="50"></label>
+                </div>
+                <div class="health-score-config-hint">Debajo del valor "Atención" → Crítico (rojo). Saludable es verde, Atención amarillo.</div>
+              </div>
+
+              <div class="health-score-config-actions">
+                <button type="button" class="recurring-action-btn ghost" id="paramScoreResetBtn">
+                  <i data-lucide="rotate-ccw" style="width:11px;height:11px;vertical-align:-1px"></i>
+                  RESTABLECER DEFAULTS
+                </button>
+                <span class="health-score-config-weight-status" id="paramScoreWeightStatus"></span>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div class="param-row param-row-vertical">
+          <div class="param-info">
+            <div class="param-label">Diagnóstico del archivo</div>
+            <div class="param-desc">Analiza si hay inconsistencias en tus datos: transacciones con fechas inválidas, categorías o subcategorías que ya no existen, reglas rotas, KPIs mal configurados, etc. El diagnóstico se ejecuta automáticamente al cargar el archivo, pero podés volver a correrlo cuando quieras desde acá.</div>
+          </div>
+          <div style="margin-top:10px">
+            <button class="upload-btn" id="openValidationReportBtn">
+              <i data-lucide="stethoscope" style="width:14px;height:14px"></i>
+              REVISAR ARCHIVO AHORA
+            </button>
+          </div>
+        </div>
+
+        <div class="param-row param-row-vertical">
+          <div class="param-info">
+            <div class="param-label">Backup completo de configuración</div>
+            <div class="param-desc">Exportá o importá tu configuración completa (reglas + categorías + etiquetas) en un solo archivo. Útil para backup, migrar a otra cuenta de Drive o compartir tu setup. Al exportar/importar podés elegir qué secciones incluir.</div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+            <button class="upload-btn" id="exportFullConfigBtn">
+              <i data-lucide="download" style="width:14px;height:14px"></i>
+              EXPORTAR CONFIGURACIÓN
+            </button>
+            <button class="upload-btn" id="importFullConfigBtn">
+              <i data-lucide="upload" style="width:14px;height:14px"></i>
+              IMPORTAR CONFIGURACIÓN
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Tab Ficha médica (administra TODO lo de la solapa Ficha médica de la pantalla principal):
+         Sección 1: visibilidad de las secciones que se muestran
+         Sección 2: configuración de las tarjetas KPI -->
+    <div class="cat-tab-panel hidden" id="catTabConfig" style="overflow-y:auto">
+      <p class="travel-intro" style="margin-bottom:18px">Acá administrás todo lo relativo a la solapa <strong>Ficha médica</strong> de la pantalla principal: qué secciones se muestran y cómo se configuran las tarjetas KPI que aparecen arriba.</p>
+
+      <!-- SECCIÓN 1: VISUALIZACIÓN — grilla con dos toggles por fila (Completa / Resumen) -->
+      <div class="fm-section">
+        <div class="fm-section-head">
+          <div class="fm-section-icon"><i data-lucide="eye-off" style="width:14px;height:14px"></i></div>
+          <div class="fm-section-title">Visualización</div>
+        </div>
+        <p class="fm-section-desc">Cada fila es una sección de la solapa <strong>Ficha médica</strong>. Marcala en la columna <strong>Completa</strong> para que aparezca en el modo "Vista: Completa", y en la columna <strong>Resumen</strong> para que aparezca también cuando el usuario activa "Vista: Resumen" (lo esencial sin scroll). Algunas secciones aplican solo a un modo de vista (mensual, trimestral o anual): eso se indica al lado del nombre.</p>
+        <div class="visualization-grid" id="visualizationGrid"></div>
+      </div>
+
+      <!-- SECCIÓN 2: KPIs -->
+      <div class="fm-section">
+        <div class="fm-section-head">
+          <div class="fm-section-icon"><i data-lucide="layout-grid" style="width:14px;height:14px"></i></div>
+          <div class="fm-section-title">KPIs</div>
+        </div>
+        <p class="fm-section-desc">Configurá las tarjetas que aparecen en la sección KPIs de Ficha médica. Podés activarlas/desactivarlas, cambiar nombre, icono o hint, definir la operación de cálculo y reordenarlas con las flechas. Las operaciones que antes estaban hardcoded ahora viven acá.</p>
+        <div class="kpi-cfg-header" style="padding-left:38px">
+          <button class="upload-btn" id="addKpiBtn">
+            <i data-lucide="plus" style="width:14px;height:14px"></i>
+            AGREGAR TARJETA
+          </button>
+          <button class="recurring-action-btn ghost" id="resetKpiBtn" title="Restablecer las 8 tarjetas originales">
+            <i data-lucide="rotate-ccw" style="width:11px;height:11px;vertical-align:-1px"></i>
+            RESTABLECER DEFAULTS
+          </button>
+        </div>
+        <div class="kpi-cfg-list" id="kpiCfgList"></div>
+      </div>
+    </div>
+
+    <div class="cat-modal-footer">
+      <span class="cat-modal-status" id="catModalStatus"></span>
+      <div style="display:flex;gap:10px">
+        <button class="btn-cancel" id="catCancelBtn">Cancelar</button>
+        <button class="upload-btn" id="catSaveBtn">
+          <i data-lucide="save" style="width:14px;height:14px"></i>
+          GUARDAR
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: confirmación de import (reusable para reglas/categorías/etiquetas/full) -->
+<div class="modal-overlay hidden" id="importConfirmOverlay">
+  <div class="modal-card" style="max-width:560px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:var(--accent)">CONFIRMACIÓN</div>
+        <h2 id="importConfirmTitle">Confirmar importación</h2>
+      </div>
+      <button class="modal-close" id="importConfirmCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <p id="importConfirmIntro" style="font-size:13px;color:var(--muted);margin:14px 0 0">Elegí el modo de importación:</p>
+    <div class="import-mode-list">
+      <label class="import-mode-option">
+        <input type="radio" name="importMode" value="replace_all">
+        <div class="import-mode-text">
+          <span class="import-mode-title">Reemplazar todo</span>
+          <span class="import-mode-desc">Borra todo lo existente y deja solo lo del archivo.</span>
+        </div>
+      </label>
+      <label class="import-mode-option">
+        <input type="radio" name="importMode" value="replace_byid" checked>
+        <div class="import-mode-text">
+          <span class="import-mode-title">Reemplazar por ID</span>
+          <span class="import-mode-desc">Agrega/sobreescribe lo del archivo. Conserva lo existente que no esté.</span>
+        </div>
+      </label>
+      <label class="import-mode-option">
+        <input type="radio" name="importMode" value="merge_new">
+        <div class="import-mode-text">
+          <span class="import-mode-title">Fusionar sin sobreescribir</span>
+          <span class="import-mode-desc">Solo agrega lo nuevo. Lo existente NUNCA se toca.</span>
+        </div>
+      </label>
+    </div>
+    <div class="import-preview" id="importPreview"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel" id="importConfirmCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="importConfirmApplyBtn">
+        <i data-lucide="check" style="width:14px;height:14px"></i>
+        APLICAR
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: selector de secciones para exportar/importar config completa -->
+<div class="modal-overlay hidden" id="fullConfigOverlay">
+  <div class="modal-card" style="max-width:520px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:var(--accent)">BACKUP</div>
+        <h2 id="fullConfigTitle">Exportar configuración</h2>
+      </div>
+      <button class="modal-close" id="fullConfigCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <p id="fullConfigIntro" style="font-size:13px;color:var(--muted);margin:14px 0 0">Elegí qué secciones querés incluir:</p>
+    <div class="fullconfig-sections">
+      <label class="fullconfig-section">
+        <input type="checkbox" data-section="rules" checked>
+        <span class="fullconfig-section-label">
+          <strong>Reglas</strong>
+          <span class="fullconfig-section-count" id="fullCountRules"></span>
+        </span>
+      </label>
+      <label class="fullconfig-section">
+        <input type="checkbox" data-section="categories" checked>
+        <span class="fullconfig-section-label">
+          <strong>Categorías</strong>
+          <span class="fullconfig-section-count" id="fullCountCategories"></span>
+        </span>
+      </label>
+      <label class="fullconfig-section">
+        <input type="checkbox" data-section="tags" checked>
+        <span class="fullconfig-section-label">
+          <strong>Etiquetas</strong>
+          <span class="fullconfig-section-count" id="fullCountTags"></span>
+        </span>
+      </label>
+      <label class="fullconfig-section">
+        <input type="checkbox" data-section="params" checked>
+        <span class="fullconfig-section-label">
+          <strong>Parámetros</strong>
+          <span class="fullconfig-section-count" id="fullCountParams"></span>
+        </span>
+      </label>
+      <label class="fullconfig-section">
+        <input type="checkbox" data-section="fichaMedica" checked>
+        <span class="fullconfig-section-label">
+          <strong>Ficha médica</strong>
+          <span class="fullconfig-section-count" id="fullCountFichaMedica"></span>
+        </span>
+      </label>
+    </div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel" id="fullConfigCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="fullConfigConfirmBtn">
+        <i data-lucide="download" style="width:14px;height:14px"></i>
+        <span id="fullConfigConfirmText">EXPORTAR</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,2469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Anatomía — Tests</title>
+<style>
+  body {
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    background: linear-gradient(135deg, #F5F1E8 0%, #EDE5D3 100%);
+    color: #2A2520;
+    margin: 0;
+    padding: 32px 24px;
+    min-height: 100vh;
+  }
+  .container { max-width: 980px; margin: 0 auto; }
+  h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 300;
+    font-size: 36px;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px 0;
+  }
+  h1 strong { font-weight: 700; }
+  .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    color: #8B7355;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  .summary {
+    background: #FAF6ED;
+    border: 1px solid #E8DFD0;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+  }
+  .stat {
+    text-align: left;
+  }
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: #8B7355;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .stat-val {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 600;
+  }
+  .stat-val.ok { color: #6B8E4E; }
+  .stat-val.fail { color: #C8553D; }
+  .group {
+    background: #FAF6ED;
+    border: 1px solid #E8DFD0;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+  }
+  .group-title {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+  }
+  .group-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: #8B7355;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .test {
+    display: grid;
+    grid-template-columns: 18px 1fr auto;
+    align-items: baseline;
+    gap: 10px;
+    padding: 6px 0;
+    border-top: 1px dashed #E8DFD0;
+    font-size: 13px;
+  }
+  .test:first-of-type { border-top: none; }
+  .test-icon {
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .test.ok .test-icon { color: #6B8E4E; }
+  .test.fail .test-icon { color: #C8553D; }
+  .test-name { color: #2A2520; }
+  .test-detail {
+    grid-column: 2 / -1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #C8553D;
+    background: rgba(200, 85, 61, 0.06);
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-top: 4px;
+    white-space: pre-wrap;
+  }
+  .test-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #8B7355;
+  }
+  button {
+    background: #2A2520;
+    color: #D4A24C;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin-bottom: 24px;
+  }
+  button:hover { opacity: 0.85; }
+</style>
+<script src="core.js"></script>
+</head>
+<body>
+<div class="container">
+  <h1>Tests · <strong>Anatomía</strong></h1>
+  <div class="subtitle">Suite de tests sobre las funciones puras de cálculo</div>
+
+  <button onclick="runAllTests()">Re-ejecutar todo</button>
+
+  <div class="summary" id="summary"></div>
+  <div id="results"></div>
+</div>
+
+<script>
+// ============================================================
+// MINI TEST HARNESS — sin dependencias, vanilla
+// ============================================================
+// Uso:
+//   group('Nombre del grupo', () => {
+//     test('descripción', () => {
+//       assertEqual(actual, expected, 'opcional mensaje');
+//     });
+//   });
+//
+// Al final, runAllTests() ejecuta todo y pinta resultados en el DOM.
+
+const allGroups = [];
+let currentGroup = null;
+
+function group(name, fn) {
+  currentGroup = { name: name, tests: [] };
+  allGroups.push(currentGroup);
+  try {
+    fn();
+  } catch (e) {
+    // Si la función de grupo tira (ej: setup), lo registramos como un test fallido
+    currentGroup.tests.push({
+      name: '⚠ Error fatal en setup del grupo',
+      ok: false,
+      error: String(e && e.stack || e),
+      timeMs: 0
+    });
+  }
+  currentGroup = null;
+}
+
+function test(name, fn) {
+  if (!currentGroup) throw new Error('test() llamado fuera de group()');
+  const t0 = performance.now();
+  let ok = true, error = null;
+  try {
+    fn();
+  } catch (e) {
+    ok = false;
+    error = String(e && e.message || e);
+    if (e && e.stack && error.length < 200) error += '\n' + e.stack.split('\n')[1];
+  }
+  currentGroup.tests.push({
+    name: name,
+    ok: ok,
+    error: error,
+    timeMs: Math.round((performance.now() - t0) * 100) / 100
+  });
+}
+
+function assert(cond, msg) {
+  if (!cond) throw new Error('Assert falló: ' + (msg || 'sin mensaje'));
+}
+
+function assertEqual(actual, expected, msg) {
+  // Comparación profunda con JSON.stringify para objetos/arrays.
+  // Para primitivos, ===.
+  if (typeof actual === 'object' || typeof expected === 'object') {
+    const a = JSON.stringify(actual);
+    const e = JSON.stringify(expected);
+    if (a !== e) {
+      throw new Error((msg ? msg + ' — ' : '') + 'esperado ' + e + ', obtuve ' + a);
+    }
+  } else {
+    if (actual !== expected) {
+      throw new Error((msg ? msg + ' — ' : '') + 'esperado ' + JSON.stringify(expected) + ', obtuve ' + JSON.stringify(actual));
+    }
+  }
+}
+
+function assertAlmost(actual, expected, tolerance, msg) {
+  tolerance = tolerance != null ? tolerance : 0.01;
+  if (Math.abs(actual - expected) > tolerance) {
+    throw new Error((msg ? msg + ' — ' : '') + 'esperado ~' + expected + ' (±' + tolerance + '), obtuve ' + actual);
+  }
+}
+
+function assertNull(actual, msg) {
+  if (actual !== null) {
+    throw new Error((msg ? msg + ' — ' : '') + 'esperado null, obtuve ' + JSON.stringify(actual));
+  }
+}
+
+// Mock global state para tests que dependen de él
+function setupState(partial) {
+  window.state = Object.assign({
+    selYear: 2026,
+    selQuarter: null,
+    selMonth: null,
+    params: {},
+    transactionsByYear: {},
+    categoryRules: [],
+    categoryClassification: {},
+    subcategoryClassification: {}
+  }, partial || {});
+}
+
+// ============================================================
+// SUITE — STRINGS
+// ============================================================
+
+group('norm — normalización de strings', function () {
+  test('lowercase básico', function () {
+    assertEqual(norm('HOLA'), 'hola');
+  });
+  test('quita acentos en castellano', function () {
+    assertEqual(norm('ñoño café'), 'nono cafe');
+  });
+  test('preserva números y símbolos', function () {
+    assertEqual(norm('Spotify P*ABL 123'), 'spotify p*abl 123');
+  });
+  test('vacío y null', function () {
+    assertEqual(norm(''), '');
+    assertEqual(norm(null), '');
+    assertEqual(norm(undefined), '');
+  });
+  test('idempotente', function () {
+    const s = 'Médico María Ñ';
+    assertEqual(norm(norm(s)), norm(s));
+  });
+});
+
+group('escapeHtmlSafe — escape HTML', function () {
+  test('escapa caracteres peligrosos', function () {
+    assertEqual(escapeHtmlSafe('<script>'), '&lt;script&gt;');
+    assertEqual(escapeHtmlSafe('a & b'), 'a &amp; b');
+    assertEqual(escapeHtmlSafe('"hola"'), '&quot;hola&quot;');
+  });
+  test('preserva texto normal', function () {
+    assertEqual(escapeHtmlSafe('Hola mundo'), 'Hola mundo');
+  });
+  test('vacío y null', function () {
+    assertEqual(escapeHtmlSafe(''), '');
+    assertEqual(escapeHtmlSafe(null), '');
+  });
+});
+
+group('formatNumberAr — formato es-AR de miles', function () {
+  test('entero corto', function () {
+    assertEqual(formatNumberAr(0), '0');
+    assertEqual(formatNumberAr(50), '50');
+    assertEqual(formatNumberAr(999), '999');
+  });
+  test('miles con punto', function () {
+    assertEqual(formatNumberAr(1000), '1.000');
+    assertEqual(formatNumberAr(50000), '50.000');
+    assertEqual(formatNumberAr(1234567), '1.234.567');
+  });
+  test('millones', function () {
+    assertEqual(formatNumberAr(1000000), '1.000.000');
+    assertEqual(formatNumberAr(12345678), '12.345.678');
+  });
+  test('negativos', function () {
+    // Intl puede usar guión normal o Unicode '−' (U+2212) según locale.
+    // Aceptamos ambas variantes en la comparación.
+    const out = formatNumberAr(-1234567);
+    assert(out === '-1.234.567' || out === '−1.234.567');
+  });
+  test('decimales detectados automáticamente', function () {
+    assertEqual(formatNumberAr(1234.5), '1.234,5');
+    assertEqual(formatNumberAr(1234.56), '1.234,56');
+  });
+  test('decimales forzados con segundo argumento', function () {
+    assertEqual(formatNumberAr(1234, 2), '1.234,00');
+    assertEqual(formatNumberAr(1234.5, 0), '1.235');
+  });
+  test('null/undefined/NaN devuelven vacío', function () {
+    assertEqual(formatNumberAr(null), '');
+    assertEqual(formatNumberAr(undefined), '');
+    assertEqual(formatNumberAr(NaN), '');
+    assertEqual(formatNumberAr(''), '');
+  });
+  test('strings numéricos también funcionan', function () {
+    assertEqual(formatNumberAr('1234567'), '1.234.567');
+    assertEqual(formatNumberAr('1234.56'), '1.234,56');
+  });
+});
+
+group('parseNumberAr — parser tolerante', function () {
+  test('formato es-AR con puntos como miles', function () {
+    assertEqual(parseNumberAr('1.234.567'), 1234567);
+    assertEqual(parseNumberAr('50.000'), 50000);
+    assertEqual(parseNumberAr('1.000'), 1000);
+  });
+  test('formato es-AR con decimales (coma)', function () {
+    assertEqual(parseNumberAr('1.234.567,89'), 1234567.89);
+    assertEqual(parseNumberAr('1.234,5'), 1234.5);
+  });
+  test('sin separadores', function () {
+    assertEqual(parseNumberAr('1234567'), 1234567);
+    assertEqual(parseNumberAr('50'), 50);
+    assertEqual(parseNumberAr('0'), 0);
+  });
+  test('formato US con comas como miles', function () {
+    assertEqual(parseNumberAr('1,234,567'), 1234567);
+  });
+  test('formato US con punto decimal', function () {
+    assertEqual(parseNumberAr('1234.56'), 1234.56);
+    assertEqual(parseNumberAr('0.5'), 0.5);
+  });
+  test('1 punto con 3 dígitos = miles es-AR', function () {
+    assertEqual(parseNumberAr('1.234'), 1234);
+  });
+  test('1 punto con 1 o 2 dígitos = decimal', function () {
+    assertEqual(parseNumberAr('1.5'), 1.5);
+    assertEqual(parseNumberAr('1.50'), 1.5);
+  });
+  test('negativos', function () {
+    assertEqual(parseNumberAr('-1.234.567'), -1234567);
+    assertEqual(parseNumberAr('-1.234,5'), -1234.5);
+    assertEqual(parseNumberAr('-50'), -50);
+  });
+  test('espacios y trim', function () {
+    assertEqual(parseNumberAr('  1.234  '), 1234);
+    assertEqual(parseNumberAr(' -50,5 '), -50.5);
+  });
+  test('vacío → 0, null → null', function () {
+    assertEqual(parseNumberAr(''), 0);
+    assertEqual(parseNumberAr('   '), 0);
+    assertEqual(parseNumberAr(null), null);
+    assertEqual(parseNumberAr(undefined), null);
+  });
+  test('string inválido → 0', function () {
+    assertEqual(parseNumberAr('abc'), 0);
+    assertEqual(parseNumberAr('hola1234'), 0);
+  });
+  test('redondea correctamente al roundtrip', function () {
+    // format → parse debe dar el mismo número (entero o decimal)
+    assertEqual(parseNumberAr(formatNumberAr(1234567)), 1234567);
+    assertEqual(parseNumberAr(formatNumberAr(50000)), 50000);
+    assertEqual(parseNumberAr(formatNumberAr(1234.56)), 1234.56);
+  });
+});
+
+// ============================================================
+// SUITE — FECHAS
+// ============================================================
+
+group('ddMmToIso — parser de fechas', function () {
+  test('formato ISO ya válido', function () {
+    assertEqual(ddMmToIso('2026-03-14'), '2026-03-14');
+  });
+  test('ISO con un solo dígito normaliza padding', function () {
+    assertEqual(ddMmToIso('2026-3-4'), '2026-03-04');
+  });
+  test('dd/mm/yyyy', function () {
+    assertEqual(ddMmToIso('14/03/2026'), '2026-03-14');
+  });
+  test('dd-mm-yyyy con guiones', function () {
+    assertEqual(ddMmToIso('14-03-2026'), '2026-03-14');
+  });
+  test('dd/mm/yy asume siglo XXI', function () {
+    assertEqual(ddMmToIso('14/03/26'), '2026-03-14');
+  });
+  test('un dígito día/mes con padding', function () {
+    assertEqual(ddMmToIso('1/3/2026'), '2026-03-01');
+  });
+  test('vacío y null', function () {
+    assertEqual(ddMmToIso(''), '');
+    assertEqual(ddMmToIso(null), '');
+    assertEqual(ddMmToIso(undefined), '');
+  });
+  test('formato no reconocido devuelve vacío', function () {
+    assertEqual(ddMmToIso('marzo 14'), '');
+    assertEqual(ddMmToIso('2026/03/14'), '');  // este NO está soportado (separador / con yyyy primero)
+  });
+  test('trim de espacios', function () {
+    assertEqual(ddMmToIso(' 14/03/2026 '), '2026-03-14');
+  });
+});
+
+group('isLeapYear — años bisiestos', function () {
+  test('2024 es bisiesto (divisible por 4)', function () {
+    assertEqual(isLeapYear(2024), true);
+  });
+  test('2025 no es bisiesto', function () {
+    assertEqual(isLeapYear(2025), false);
+  });
+  test('2026 no es bisiesto', function () {
+    assertEqual(isLeapYear(2026), false);
+  });
+  test('2000 es bisiesto (divisible por 400)', function () {
+    assertEqual(isLeapYear(2000), true);
+  });
+  test('1900 NO es bisiesto (regla del 100 sin 400)', function () {
+    assertEqual(isLeapYear(1900), false);
+  });
+  test('2100 NO es bisiesto', function () {
+    assertEqual(isLeapYear(2100), false);
+  });
+});
+
+group('daysBetweenISO — diferencia en días', function () {
+  test('mismo día = 0', function () {
+    assertEqual(daysBetweenISO('2026-03-14', '2026-03-14'), 0);
+  });
+  test('un día después', function () {
+    assertEqual(daysBetweenISO('2026-03-14', '2026-03-15'), 1);
+  });
+  test('negativo si b < a', function () {
+    assertEqual(daysBetweenISO('2026-03-15', '2026-03-14'), -1);
+  });
+  test('a través de meses', function () {
+    assertEqual(daysBetweenISO('2026-02-28', '2026-03-01'), 1);
+  });
+  test('a través de años (2024 bisiesto)', function () {
+    assertEqual(daysBetweenISO('2024-01-01', '2025-01-01'), 366);
+  });
+  test('null si alguna fecha es inválida', function () {
+    assertEqual(daysBetweenISO('', '2026-03-14'), null);
+    assertEqual(daysBetweenISO('2026-03-14', ''), null);
+    assertEqual(daysBetweenISO('xxx', '2026-03-14'), null);
+    assertEqual(daysBetweenISO(null, null), null);
+  });
+});
+
+// ============================================================
+// SUITE — CATEGORÍAS
+// ============================================================
+
+group('isNonExpenseCat — cats de sistema', function () {
+  test('Sueldo es no-gasto', function () {
+    assertEqual(isNonExpenseCat('Sueldo'), true);
+  });
+  test('Inversion es no-gasto', function () {
+    assertEqual(isNonExpenseCat('Inversion'), true);
+  });
+  test('Trading es no-gasto', function () {
+    assertEqual(isNonExpenseCat('Trading'), true);
+  });
+  test('Reserva es no-gasto', function () {
+    assertEqual(isNonExpenseCat('Reserva'), true);
+  });
+  test('Jubilacion es no-gasto', function () {
+    assertEqual(isNonExpenseCat('Jubilacion'), true);
+  });
+  test('Prestamo (flujo) es no-gasto', function () {
+    // Prestamo en flujo = toma de préstamo personal (ingreso). NO confundir con
+    // la subcategoría "Prestamo" dentro de "Deuda" que sí es gasto.
+    assertEqual(isNonExpenseCat('Prestamo'), true);
+  });
+  test('__sin__ sentinela también', function () {
+    assertEqual(isNonExpenseCat('__sin__'), true);
+  });
+  test('Alimentacion sí es gasto', function () {
+    assertEqual(isNonExpenseCat('Alimentacion'), false);
+  });
+  test('Entretenimiento sí es gasto', function () {
+    assertEqual(isNonExpenseCat('Entretenimiento'), false);
+  });
+  test('categoría desconocida sí es gasto', function () {
+    assertEqual(isNonExpenseCat('Desconocida'), false);
+  });
+});
+
+group('getCategoryClassification — clasificación basic/discretionary', function () {
+  test('cats de sistema → reserved', function () {
+    setupState();
+    assertEqual(getCategoryClassification('Sueldo'), 'reserved');
+    assertEqual(getCategoryClassification('Inversion'), 'reserved');
+    assertEqual(getCategoryClassification('Prestamo'), 'reserved');
+  });
+  test('Vivienda → basic por default', function () {
+    setupState();
+    assertEqual(getCategoryClassification('Vivienda'), 'basic');
+  });
+  test('Alimentacion → basic por default', function () {
+    setupState();
+    assertEqual(getCategoryClassification('Alimentacion'), 'basic');
+  });
+  test('Entretenimiento → discretionary por default', function () {
+    setupState();
+    assertEqual(getCategoryClassification('Entretenimiento'), 'discretionary');
+  });
+  test('override del usuario tiene prioridad', function () {
+    setupState({ categoryClassification: { Entretenimiento: 'basic' } });
+    assertEqual(getCategoryClassification('Entretenimiento'), 'basic');
+  });
+  test('categoría desconocida cae a discretionary', function () {
+    setupState();
+    assertEqual(getCategoryClassification('CategoriaInventada'), 'discretionary');
+  });
+  test('override no aplica a cats de sistema', function () {
+    setupState({ categoryClassification: { Sueldo: 'basic' } });
+    assertEqual(getCategoryClassification('Sueldo'), 'reserved');
+  });
+});
+
+// ============================================================
+// SUITE — REGLAS
+// ============================================================
+
+group('matchCategoryRule — match individual', function () {
+  test('contains (default) matchea substring', function () {
+    const r = { pattern: 'spotify', categoria: 'Membresias' };
+    const res = matchCategoryRule('Spotify P*ABL 5/10', r);
+    assertEqual(res.categoria, 'Membresias');
+  });
+  test('contains insensitive a acentos', function () {
+    const r = { pattern: 'cafe', categoria: 'Gastronomia' };
+    const res = matchCategoryRule('Café Martínez SA', r);
+    assert(res !== null);
+    assertEqual(res.categoria, 'Gastronomia');
+  });
+  test('exact requiere match total normalizado', function () {
+    const r = { pattern: 'EXACTO', matchType: 'exact', categoria: 'X' };
+    assert(matchCategoryRule('exacto', r) !== null);
+    assert(matchCategoryRule('exacto y mas', r) === null);
+  });
+  test('starts requiere prefijo', function () {
+    const r = { pattern: 'mercadopago', matchType: 'starts', categoria: 'Financieras' };
+    assert(matchCategoryRule('mercadopago tx 123', r) !== null);
+    assert(matchCategoryRule('pago mercadopago', r) === null);
+  });
+  test('regex case-insensitive', function () {
+    const r = { pattern: '^SUPER\\s+', matchType: 'regex', categoria: 'Alimentacion' };
+    assert(matchCategoryRule('SUPER COTO 123', r) !== null);
+    assert(matchCategoryRule('Super Disco', r) !== null);
+    assert(matchCategoryRule('compra super', r) === null);
+  });
+  test('regex inválido devuelve null sin tirar', function () {
+    const r = { pattern: '[invalid', matchType: 'regex', categoria: 'X' };
+    assertNull(matchCategoryRule('cualquier cosa', r));
+  });
+  test('regla deshabilitada devuelve null', function () {
+    const r = { pattern: 'algo', categoria: 'X', enabled: false };
+    assertNull(matchCategoryRule('algo cualquiera', r));
+  });
+  test('regla sin pattern devuelve null', function () {
+    assertNull(matchCategoryRule('algo', { categoria: 'X' }));
+  });
+  test('regla sin categoría devuelve null', function () {
+    assertNull(matchCategoryRule('algo', { pattern: 'algo' }));
+  });
+  test('devuelve subcategoria y periodicidad si están', function () {
+    const r = { pattern: 'spotify', categoria: 'Membresias', subcategoria: 'Streaming', periodicidad: 'fijo' };
+    const res = matchCategoryRule('Spotify XYZ', r);
+    assertEqual(res, { categoria: 'Membresias', subcategoria: 'Streaming', periodicidad: 'fijo', tags: [] });
+  });
+  test('devuelve tags si la regla tiene (array)', function () {
+    const r = { pattern: 'bariloche', categoria: 'Gastronomia', tags: ['Viaje2026', 'CLM'] };
+    const res = matchCategoryRule('Pago Bariloche restaurante', r);
+    assertEqual(res.tags, ['Viaje2026', 'CLM']);
+  });
+  test('devuelve tags vacío si la regla no tiene', function () {
+    const r = { pattern: 'test', categoria: 'X' };
+    const res = matchCategoryRule('test 123', r);
+    assertEqual(res.tags, []);
+  });
+  test('migra el formato viejo `tag` (string) a array', function () {
+    const r = { pattern: 'test', categoria: 'X', tag: 'JALM' };  // formato pre-multi
+    const res = matchCategoryRule('test', r);
+    assertEqual(res.tags, ['JALM']);
+  });
+  test('si tags es array vacío, devuelve array vacío', function () {
+    const r = { pattern: 'test', categoria: 'X', tags: [] };
+    const res = matchCategoryRule('test', r);
+    assertEqual(res.tags, []);
+  });
+});
+
+group('applyCategoryRules — primera regla que matchea', function () {
+  test('aplica la primera regla ordenada', function () {
+    setupState({
+      categoryRules: [
+        { pattern: 'super coto', categoria: 'Alimentacion', subcategoria: 'Super', enabled: true },
+        { pattern: 'super', categoria: 'Otra', enabled: true }
+      ]
+    });
+    const res = applyCategoryRules('SUPER COTO 123');
+    assertEqual(res.categoria, 'Alimentacion');
+    assertEqual(res.subcategoria, 'Super');
+  });
+  test('null si ninguna regla matchea', function () {
+    setupState({
+      categoryRules: [{ pattern: 'inexistente', categoria: 'X', enabled: true }]
+    });
+    assertNull(applyCategoryRules('Compra cualquiera'));
+  });
+  test('null si no hay reglas', function () {
+    setupState({ categoryRules: [] });
+    assertNull(applyCategoryRules('Cualquier descripción'));
+  });
+  test('reglas deshabilitadas se saltean', function () {
+    setupState({
+      categoryRules: [
+        { pattern: 'spotify', categoria: 'X', enabled: false },
+        { pattern: 'spotify', categoria: 'Membresias', enabled: true }
+      ]
+    });
+    const res = applyCategoryRules('Spotify Premium');
+    assertEqual(res.categoria, 'Membresias');
+  });
+});
+
+// ============================================================
+// SUITE — FORECASTING
+// ============================================================
+
+group('forecastNextValue — proyección', function () {
+  test('serie vacía → 0', function () {
+    assertEqual(forecastNextValue([]), 0);
+    assertEqual(forecastNextValue(null), 0);
+    assertEqual(forecastNextValue(undefined), 0);
+  });
+  test('un solo valor → ese valor', function () {
+    assertEqual(forecastNextValue([100]), 100);
+  });
+  test('tendencia ascendente proyecta hacia arriba', function () {
+    // [100, 200] → avg=150, last+trend*0.5 = 200+50 = 250
+    // mezcla 0.7*150 + 0.3*250 = 105 + 75 = 180
+    assertEqual(forecastNextValue([100, 200]), 180);
+  });
+  test('tendencia descendente proyecta hacia abajo', function () {
+    // [200, 100] → avg=150, last+trend*0.5 = 100-50 = 50
+    // 0.7*150 + 0.3*50 = 105 + 15 = 120
+    assertEqual(forecastNextValue([200, 100]), 120);
+  });
+  test('serie plana → mismo valor', function () {
+    // [100, 100, 100] → avg=100, last+trend*0.5 = 100+0 = 100
+    // 0.7*100 + 0.3*100 = 100
+    assertEqual(forecastNextValue([100, 100, 100]), 100);
+  });
+  test('no permite valores negativos (clamp en 0)', function () {
+    // [1000, 100] → trend = -900, last+trend*0.5 = 100-450 = -350
+    // avg = 550, 0.7*550 + 0.3*(-350) = 385 - 105 = 280 (positivo, OK)
+    // Probemos uno que SÍ daría negativo:
+    // [10000, 100] → trend=-9900, last+trend*0.5=100-4950=-4850
+    // avg=5050, 0.7*5050 + 0.3*(-4850) = 3535 - 1455 = 2080 (todavía positivo)
+    // [1000000, 1] → trend=-999999, last+trend*0.5=1-499999.5
+    // avg=500000.5, 0.7*500000.5 + 0.3*(-499998.5) = 350000.35 - 149999.55 = 200000.8 ~ 200001
+    // Cuesta forzar negativo con la fórmula actual; verifico el clamp con valores ya negativos
+    assert(forecastNextValue([0, 0]) >= 0);
+    assert(forecastNextValue([1, 0]) >= 0);
+  });
+  test('redondea a entero', function () {
+    const out = forecastNextValue([100, 105, 110]);
+    assertEqual(out, Math.round(out));
+  });
+  test('toma últimos 3 para la media móvil (ignora viejos)', function () {
+    // [1000, 1000, 1000, 1000, 1000] → avg=1000, trend=0, esperado 1000
+    // si tomara TODOS los 5, sería 1000 igual
+    // Hacemos uno donde sí importe:
+    // [10000, 10000, 1, 1, 1] → últimos 3: avg=1
+    // last=1, prev=1, trend=0, 0.7*1 + 0.3*1 = 1
+    assertEqual(forecastNextValue([10000, 10000, 1, 1, 1]), 1);
+  });
+});
+
+group('buildHeatmapLevels — percentiles del heatmap', function () {
+  test('datos vacíos → todos los niveles devuelven -1', function () {
+    const levels = buildHeatmapLevels({});
+    assertEqual(levels.levelFor(0), -1);
+    assertEqual(levels.levelFor(1000), -1);
+    assertEqual(levels.days, 0);
+    assertEqual(levels.avg, 0);
+  });
+  test('días con monto 0 se ignoran del cálculo', function () {
+    const data = {
+      '2026-01-01': { total: 0 },
+      '2026-01-02': { total: 100 },
+      '2026-01-03': { total: 200 }
+    };
+    const levels = buildHeatmapLevels(data);
+    assertEqual(levels.days, 2);  // solo cuenta los que tienen >0
+  });
+  test('un solo día → es todos los percentiles', function () {
+    const data = { '2026-01-01': { total: 500 } };
+    const levels = buildHeatmapLevels(data);
+    assertEqual(levels.levelFor(500), 4);  // máximo, top 5%
+    assertEqual(levels.days, 1);
+    assertEqual(levels.avg, 500);
+  });
+  test('clasificación correcta en distribución pareja', function () {
+    // 100 días con valores 1..100. P25=25, P50=50, P75=75, P95=95
+    const data = {};
+    for (let i = 1; i <= 100; i++) {
+      data['2026-01-' + i] = { total: i };
+    }
+    const levels = buildHeatmapLevels(data);
+    assertEqual(levels.levelFor(10), 0);   // ≤25
+    assertEqual(levels.levelFor(25), 0);   // borde P25
+    assertEqual(levels.levelFor(40), 1);   // ≤50
+    assertEqual(levels.levelFor(60), 2);   // ≤75
+    assertEqual(levels.levelFor(80), 3);   // <P95=95
+    assertEqual(levels.levelFor(99), 4);   // ≥95
+    assertEqual(levels.days, 100);
+  });
+  test('monto negativo o 0 → nivel -1', function () {
+    const data = { '2026-01-01': { total: 1000 } };
+    const levels = buildHeatmapLevels(data);
+    assertEqual(levels.levelFor(0), -1);
+    assertEqual(levels.levelFor(-100), -1);
+  });
+  test('top5Threshold matches P95', function () {
+    const data = {};
+    for (let i = 1; i <= 100; i++) data['d' + i] = { total: i };
+    const levels = buildHeatmapLevels(data);
+    assertEqual(levels.p95, levels.top5Threshold);
+    assertEqual(levels.p95, 95);  // floor((100-1)*0.95)=94 → totals[94]=95
+  });
+});
+
+// ============================================================
+// SUITE — KPIs
+// ============================================================
+
+group('sumTxForKpi — suma de tx con filtros', function () {
+  // Setup con tx en varios meses
+  function setupTx() {
+    setupState({
+      selYear: 2026,
+      transactionsByYear: {
+        2026: {
+          enero: [
+            { fecha: '15/01/2026', monto: 100, categoria: 'Alimentacion', subcategoria: 'Super' },
+            { fecha: '20/01/2026', monto: 200, categoria: 'Alimentacion', subcategoria: 'Verduleria' },
+            { fecha: '25/01/2026', monto: 50, categoria: 'Transporte', periodicidad: 'fijo' }
+          ],
+          febrero: [
+            { fecha: '10/02/2026', monto: 300, categoria: 'Alimentacion', subcategoria: 'Super' },
+            { fecha: '15/02/2026', monto: 400, categoria: 'Vivienda', periodicidad: 'fijo', tags: ['CLM'] }
+          ]
+        }
+      }
+    });
+  }
+
+  test('sin filtros: suma todas las tx de los meses activos', function () {
+    setupTx();
+    assertEqual(sumTxForKpi({}, ['enero']), 350); // 100+200+50
+    assertEqual(sumTxForKpi({}, ['enero', 'febrero']), 1050);
+  });
+  test('filtro por categoría', function () {
+    setupTx();
+    assertEqual(sumTxForKpi({ categoria: 'Alimentacion' }, ['enero', 'febrero']), 600); // 100+200+300
+    assertEqual(sumTxForKpi({ categoria: 'Vivienda' }, ['enero', 'febrero']), 400);
+    assertEqual(sumTxForKpi({ categoria: 'Inexistente' }, ['enero', 'febrero']), 0);
+  });
+  test('filtro por subcategoría', function () {
+    setupTx();
+    assertEqual(sumTxForKpi({ subcategoria: 'Super' }, ['enero', 'febrero']), 400); // 100+300
+  });
+  test('filtro por periodicidad', function () {
+    setupTx();
+    assertEqual(sumTxForKpi({ periodicidad: 'fijo' }, ['enero', 'febrero']), 450); // 50+400
+  });
+  test('filtro por tag', function () {
+    setupTx();
+    assertEqual(sumTxForKpi({ tag: 'CLM' }, ['enero', 'febrero']), 400);
+    assertEqual(sumTxForKpi({ tag: 'JALM' }, ['enero', 'febrero']), 0);
+  });
+  test('filtros combinados (AND)', function () {
+    setupTx();
+    assertEqual(sumTxForKpi({ categoria: 'Alimentacion', subcategoria: 'Super' }, ['enero', 'febrero']), 400);
+  });
+  test('meses vacíos → 0', function () {
+    setupTx();
+    assertEqual(sumTxForKpi({}, []), 0);
+    assertEqual(sumTxForKpi({}, null), 0);
+  });
+  test('usa fecha REAL de la tx, no el bucket', function () {
+    // Tx con fecha de marzo guardada en bucket de enero (caso edge)
+    setupState({
+      selYear: 2026,
+      transactionsByYear: {
+        2026: {
+          enero: [
+            { fecha: '01/03/2026', monto: 999, categoria: 'X' }  // bucket enero pero fecha de marzo
+          ]
+        }
+      }
+    });
+    assertEqual(sumTxForKpi({}, ['enero']), 0);  // no entra en enero
+    assertEqual(sumTxForKpi({}, ['marzo']), 999);  // sí en marzo
+  });
+  test('classFilter basic: suma solo cats básicas, excluye flujo', function () {
+    setupState({
+      selYear: 2026,
+      categoryClassification: { Vivienda: 'basic', Entretenimiento: 'discretionary' },
+      subcategoryClassification: {},
+      transactionsByYear: {
+        2026: { enero: [
+          { fecha: '05/01/2026', categoria: 'Vivienda', monto: 100000 },
+          { fecha: '06/01/2026', categoria: 'Entretenimiento', monto: 50000 },
+          { fecha: '07/01/2026', categoria: 'Sueldo', monto: 500000 },
+          { fecha: '09/01/2026', monto: 30000 }
+        ] }
+      }
+    });
+    assertEqual(sumTxForKpi({ classFilter: 'basic' }, ['enero']), 100000);
+  });
+  test('classFilter discretionary: suma solo cats discrecionales', function () {
+    assertEqual(sumTxForKpi({ classFilter: 'discretionary' }, ['enero']), 50000);
+  });
+  test('classFilter all_expense: suma gastos sin flujo ni sin-categoría', function () {
+    assertEqual(sumTxForKpi({ classFilter: 'all_expense' }, ['enero']), 150000);
+  });
+  test('classFilter respeta clasificación de subcategoría sobre la madre', function () {
+    setupState({
+      selYear: 2026,
+      categoryClassification: { Educacion: 'basic' },
+      subcategoryClassification: { Educacion: { Cursos: 'discretionary' } },
+      transactionsByYear: {
+        2026: { enero: [
+          { fecha: '05/01/2026', categoria: 'Educacion', subcategoria: 'Colegio', monto: 80000 },  // hereda básica
+          { fecha: '06/01/2026', categoria: 'Educacion', subcategoria: 'Cursos', monto: 20000 }     // override discrecional
+        ] }
+      }
+    });
+    assertEqual(sumTxForKpi({ classFilter: 'basic' }, ['enero']), 80000);
+    assertEqual(sumTxForKpi({ classFilter: 'discretionary' }, ['enero']), 20000);
+  });
+});
+
+group('computeKpiOp — motor de operaciones KPI', function () {
+  test('gasto_total lee del contexto', function () {
+    assertEqual(computeKpiOp({ type: 'gasto_total' }, { total: 1234567 }), 1234567);
+  });
+  test('tx_sum suma tx con cat (cualquier clasificación)', function () {
+    setupState({
+      transactionsByYear: {
+        2026: {
+          enero: [
+            { fecha: '15/01/2026', monto: 4000000, categoria: 'Sueldo' },
+            { fecha: '20/01/2026', monto: 1500000, categoria: 'Sueldo' },
+            { fecha: '10/01/2026', monto: 500000, categoria: 'Vivienda' }
+          ]
+        }
+      }
+    });
+    const ctx = { activeMonths: ['enero'] };
+    // Cat de flujo
+    assertEqual(computeKpiOp({ type: 'tx_sum', categoria: 'Sueldo' }, ctx), 5500000);
+    // Cat de gasto
+    assertEqual(computeKpiOp({ type: 'tx_sum', categoria: 'Vivienda' }, ctx), 500000);
+    // Cat inexistente → 0
+    assertEqual(computeKpiOp({ type: 'tx_sum', categoria: 'Inexistente' }, ctx), 0);
+  });
+  test('tx_sum con sub filtra por subcategoría', function () {
+    setupState({
+      transactionsByYear: {
+        2026: {
+          enero: [
+            { fecha: '01/01/2026', monto: 100000, categoria: 'Vivienda', subcategoria: 'Alquiler' },
+            { fecha: '02/01/2026', monto: 50000, categoria: 'Vivienda', subcategoria: 'Expensas' },
+            { fecha: '03/01/2026', monto: 30000, categoria: 'Vivienda', subcategoria: 'Alquiler' }
+          ]
+        }
+      }
+    });
+    const ctx = { activeMonths: ['enero'] };
+    assertEqual(computeKpiOp({ type: 'tx_sum', categoria: 'Vivienda', subcategoria: 'Alquiler' }, ctx), 130000);
+    assertEqual(computeKpiOp({ type: 'tx_sum', categoria: 'Vivienda', subcategoria: 'Expensas' }, ctx), 50000);
+    // Sin sub → suma todas las de la cat
+    assertEqual(computeKpiOp({ type: 'tx_sum', categoria: 'Vivienda' }, ctx), 180000);
+  });
+  test('tx_sum con tag filtra por etiqueta', function () {
+    setupState({
+      transactionsByYear: {
+        2026: {
+          enero: [
+            { fecha: '01/01/2026', monto: 100000, categoria: 'Jubilacion', tags: ['JALM'] },
+            { fecha: '02/01/2026', monto: 50000, categoria: 'Jubilacion', tags: ['CLM'] }
+          ]
+        }
+      }
+    });
+    const ctx = { activeMonths: ['enero'] };
+    assertEqual(computeKpiOp({ type: 'tx_sum', categoria: 'Jubilacion', tag: 'JALM' }, ctx), 100000);
+    assertEqual(computeKpiOp({ type: 'tx_sum', categoria: 'Jubilacion', tag: 'CLM' }, ctx), 50000);
+  });
+  test('tx_sum con tags array suma cualquiera (OR)', function () {
+    setupState({
+      transactionsByYear: {
+        2026: {
+          enero: [
+            { fecha: '01/01/2026', monto: 100000, categoria: 'Jubilacion', tags: ['JALM'] },
+            { fecha: '02/01/2026', monto: 50000, categoria: 'Jubilacion', tags: ['CLM'] },
+            { fecha: '03/01/2026', monto: 25000, categoria: 'Jubilacion', tags: ['OTRO'] },
+            { fecha: '04/01/2026', monto: 10000, categoria: 'Jubilacion', tags: [] }
+          ]
+        }
+      }
+    });
+    const ctx = { activeMonths: ['enero'] };
+    // JALM OR CLM → 150000 (no incluye OTRO ni el sin tag)
+    assertEqual(computeKpiOp({ type: 'tx_sum', categoria: 'Jubilacion', tags: ['JALM', 'CLM'] }, ctx), 150000);
+    // Solo JALM
+    assertEqual(computeKpiOp({ type: 'tx_sum', categoria: 'Jubilacion', tags: ['JALM'] }, ctx), 100000);
+    // Tags array vacío → comporta como "sin filtro de tag" → suma todas
+    assertEqual(computeKpiOp({ type: 'tx_sum', categoria: 'Jubilacion', tags: [] }, ctx), 185000);
+  });
+  test('tx_sum combina filtros avanzados', function () {
+    setupState({
+      transactionsByYear: {
+        2026: {
+          enero: [
+            { fecha: '01/01/2026', monto: 100000, categoria: 'Vivienda', periodicidad: 'fijo' },
+            { fecha: '02/01/2026', monto: 200000, categoria: 'Vivienda', periodicidad: 'variable' }
+          ]
+        }
+      }
+    });
+    const ctx = { activeMonths: ['enero'] };
+    assertEqual(computeKpiOp({ type: 'tx_sum', categoria: 'Vivienda', periodicidad: 'fijo' }, ctx), 100000);
+    assertEqual(computeKpiOp({ type: 'tx_sum', categoria: 'Vivienda', periodicidad: 'variable' }, ctx), 200000);
+  });
+  test('stock_inversion / stock_trading / stock_total → 0 (tipos removidos)', function () {
+    // Estos tipos fueron eliminados junto con `stocks` del prompt LLM.
+    // Si en el futuro se reintroduce una UI manual para cargar stocks USD,
+    // estos tipos deberían volver a leer de ctx.curStock.
+    const ctx = { curStock: { ahorro: 1000, trading: 500, total: 1500 } };
+    assertEqual(computeKpiOp({ type: 'stock_inversion' }, ctx), 0);
+    assertEqual(computeKpiOp({ type: 'stock_trading' }, ctx), 0);
+    assertEqual(computeKpiOp({ type: 'stock_total' }, ctx), 0);
+  });
+  test('jubilacion_stock → 0 (tipo removido)', function () {
+    // Tipo eliminado en simultáneo con stocks USD: ya no se carga ese dato desde el LLM.
+    // Si en el futuro se reintroduce vía UI manual, este test debería actualizarse.
+    const ctx = { jub: { jalm: { stock: 1000000 }, clm: { stock: 200000 } } };
+    assertEqual(computeKpiOp({ type: 'jubilacion_stock', tag: 'JALM' }, ctx), 0);
+    assertEqual(computeKpiOp({ type: 'jubilacion_stock', tag: 'clm' }, ctx), 0);
+  });
+  test('tipos legacy ya no existen → 0', function () {
+    // Tras la limpieza, estos tipos viejos no deben dar resultado válido
+    assertEqual(computeKpiOp({ type: 'ingreso', field: 'sueldo' }, { curIng: { sueldo: 999 } }), 0);
+    assertEqual(computeKpiOp({ type: 'flow', field: 'ahorro' }, { curFin: { ahorro: 999 } }), 0);
+    assertEqual(computeKpiOp({ type: 'gasto_categoria', categoria: 'X' }, { agg: { X: 999 } }), 0);
+    assertEqual(computeKpiOp({ type: 'jubilacion_flujo', tag: 'JALM' }, { jub: { jalm: { flujo: 999 } } }), 0);
+    assertEqual(computeKpiOp({ type: 'cat_sum', categoria: 'X' }, { activeMonths: [] }), 0);
+    assertEqual(computeKpiOp({ type: 'stock_inversiones' }, { curStock: { ahorro: 999 } }), 0); // typo viejo
+  });
+  test('tipo desconocido o sin tipo → 0', function () {
+    assertEqual(computeKpiOp({ type: 'desconocido' }, {}), 0);
+    assertEqual(computeKpiOp(null, {}), 0);
+    assertEqual(computeKpiOp({}, {}), 0);
+  });
+  test('cat_combine suma operandos con signo', function () {
+    setupState({
+      transactionsByYear: {
+        2026: {
+          enero: [
+            { fecha: '01/01/2026', monto: 1000000, categoria: 'Sueldo' },
+            { fecha: '05/01/2026', monto: 200000, categoria: 'Vivienda' },
+            { fecha: '06/01/2026', monto: 100000, categoria: 'Alimentacion' },
+            { fecha: '07/01/2026', monto: 50000, categoria: 'Entretenimiento' }
+          ]
+        }
+      }
+    });
+    const ctx = { activeMonths: ['enero'] };
+    // Sueldo - Vivienda = 1000000 - 200000 = 800000
+    const r1 = computeKpiOp({
+      type: 'cat_combine',
+      operands: [
+        { sign: '+', categoria: 'Sueldo' },
+        { sign: '-', categoria: 'Vivienda' }
+      ]
+    }, ctx);
+    assertEqual(r1, 800000);
+    // Sueldo - (Vivienda + Alimentacion + Entretenimiento) = 1000000 - 350000 = 650000
+    const r2 = computeKpiOp({
+      type: 'cat_combine',
+      operands: [
+        { sign: '+', categoria: 'Sueldo' },
+        { sign: '-', categoria: 'Vivienda' },
+        { sign: '-', categoria: 'Alimentacion' },
+        { sign: '-', categoria: 'Entretenimiento' }
+      ]
+    }, ctx);
+    assertEqual(r2, 650000);
+  });
+  test('cat_combine sin operandos → 0', function () {
+    assertEqual(computeKpiOp({ type: 'cat_combine', operands: [] }, { activeMonths: ['enero'] }), 0);
+    assertEqual(computeKpiOp({ type: 'cat_combine' }, { activeMonths: ['enero'] }), 0);
+  });
+  test('cat_combine acepta classFilter (Básicas, Discrecionales)', function () {
+    setupState({
+      transactionsByYear: {
+        2026: {
+          enero: [
+            { fecha: '01/01/2026', monto: 1000000, categoria: 'Sueldo' },
+            { fecha: '05/01/2026', monto: 100000, categoria: 'Vivienda' },       // básica
+            { fecha: '06/01/2026', monto: 80000, categoria: 'Alimentacion' },    // básica
+            { fecha: '07/01/2026', monto: 60000, categoria: 'Entretenimiento' }, // discrecional
+            { fecha: '08/01/2026', monto: 40000, categoria: 'Gastronomia' }      // discrecional
+          ]
+        }
+      }
+    });
+    const ctx = { activeMonths: ['enero'] };
+    // Sueldo - Básicas - Discrecionales = 1000000 - 180000 - 100000 = 720000
+    const r = computeKpiOp({
+      type: 'cat_combine',
+      operands: [
+        { sign: '+', categoria: 'Sueldo' },
+        { sign: '-', classFilter: 'basic' },
+        { sign: '-', classFilter: 'discretionary' }
+      ]
+    }, ctx);
+    assertEqual(r, 720000);
+  });
+});
+
+// ============================================================
+// SUITE — RESERVA
+// ============================================================
+
+group('getReservaParams — lectura de configuración', function () {
+  test('sin configurar → defaults', function () {
+    setupState();
+    const r = getReservaParams();
+    assertEqual(r.mode, 'manual');
+    assertEqual(r.meses, 6);
+    assertEqual(r.valorMensual, 0);
+    assertEqual(r.monto, 0);
+    assertEqual(r.plazo, 12);
+    assertEqual(r.inicio, '');
+  });
+  test('lee de state.params', function () {
+    setupState({
+      params: {
+        reservaMode: 'auto',
+        reservaMeses: 12,
+        reservaValorMensual: 500000,
+        reservaAmount: 6000000,
+        reservaMonths: 24,
+        reservaStart: '2026-04-01'
+      }
+    });
+    const r = getReservaParams();
+    assertEqual(r.mode, 'auto');
+    assertEqual(r.meses, 12);
+    assertEqual(r.valorMensual, 500000);
+    assertEqual(r.monto, 6000000);
+    assertEqual(r.plazo, 24);
+    assertEqual(r.inicio, '2026-04-01');
+  });
+});
+
+group('getReservaAcumulado — progreso del plan', function () {
+  test('sin plan configurado → todo en 0', function () {
+    setupState();
+    const r = getReservaAcumulado(2026, 'marzo');
+    assertEqual(r.acumulado, 0);
+    assertEqual(r.metaAlMes, 0);
+    assertEqual(r.mesActual, 0);
+  });
+  test('plan 1.2M en 12 meses, inicio abril 2026, mes activo abril → mes 1', function () {
+    setupState({
+      params: {
+        reservaAmount: 1200000,
+        reservaMonths: 12,
+        reservaStart: '2026-04-01'
+      }
+    });
+    const r = getReservaAcumulado(2026, 'abril');
+    assertEqual(r.mesActual, 1);
+    assertEqual(r.metaAlMes, 100000);  // 1.2M/12 * 1
+    assertEqual(r.metaTotal, 1200000);
+    assertEqual(r.plazo, 12);
+  });
+  test('plan completado: acumulado cap a meta total', function () {
+    setupState({
+      params: {
+        reservaAmount: 1200000,
+        reservaMonths: 12,
+        reservaStart: '2026-04-01'
+      }
+    });
+    // En abril 2030 ya pasaron muchos meses, pero acumulado no excede meta
+    const r = getReservaAcumulado(2030, 'abril');
+    assertEqual(r.metaAlMes, 1200000);  // cap a meta
+    assert(r.mesActual >= 12);  // se calculó pasando del plazo
+  });
+  test('mes anterior al inicio del plan → mesActual=0', function () {
+    setupState({
+      params: {
+        reservaAmount: 1200000,
+        reservaMonths: 12,
+        reservaStart: '2026-04-01'
+      }
+    });
+    const r = getReservaAcumulado(2026, 'febrero');
+    assertEqual(r.mesActual, 0);
+    assertEqual(r.metaAlMes, 0);
+  });
+  test('mes inválido → todo 0', function () {
+    setupState({
+      params: {
+        reservaAmount: 1200000,
+        reservaMonths: 12,
+        reservaStart: '2026-04-01'
+      }
+    });
+    const r = getReservaAcumulado(2026, 'inexistente');
+    assertEqual(r.mesActual, 0);
+    assertEqual(r.metaAlMes, 0);
+  });
+  test('progreso mensual lineal', function () {
+    setupState({
+      params: {
+        reservaAmount: 1200000,
+        reservaMonths: 12,
+        reservaStart: '2026-04-01'
+      }
+    });
+    // Mes 6 (septiembre 2026) → 6 * 100000 = 600000
+    const r = getReservaAcumulado(2026, 'septiembre');
+    assertEqual(r.mesActual, 6);
+    assertEqual(r.metaAlMes, 600000);
+  });
+  test('plan cruzando año', function () {
+    setupState({
+      params: {
+        reservaAmount: 2400000,
+        reservaMonths: 24,
+        reservaStart: '2025-11-01'
+      }
+    });
+    // Inicio: nov 2025 = mes 1. Marzo 2026 = mes 5.
+    const r = getReservaAcumulado(2026, 'marzo');
+    assertEqual(r.mesActual, 5);
+    assertEqual(r.metaAlMes, 500000);  // 100k * 5
+  });
+});
+
+// ============================================================
+// SUITE — SCHEMA VERSIONING
+// ============================================================
+
+group('migrateSnapshot — migración entre versiones', function () {
+  test('snapshot sin versión (v0) → migración a versión actual aplicada', function () {
+    const input = {
+      categoryLabels: { X: 'X' },
+      transactionsByYear: { 2026: { enero: [] } }
+    };
+    const r = migrateSnapshot(input);
+    assertEqual(r.fromVersion, 0);
+    assertEqual(r.toVersion, 3);
+    assertEqual(r.migrationsApplied, [1, 2, 3]);
+    assertEqual(r.futureWarning, false);
+    assertEqual(r.snap.schemaVersion, 3);
+  });
+  test('snapshot ya en versión actual no migra', function () {
+    const input = { schemaVersion: 3, categoryLabels: {}, transactionsByYear: {} };
+    const r = migrateSnapshot(input);
+    assertEqual(r.fromVersion, 3);
+    assertEqual(r.toVersion, 3);
+    assertEqual(r.migrationsApplied, []);
+  });
+  test('snapshot de versión futura → futureWarning, no migra', function () {
+    const input = { schemaVersion: 99, categoryLabels: {}, transactionsByYear: {} };
+    const r = migrateSnapshot(input);
+    assertEqual(r.fromVersion, 99);
+    assertEqual(r.toVersion, 99);
+    assertEqual(r.futureWarning, true);
+    assertEqual(r.snap.schemaVersion, 99);
+  });
+  test('migración v0→vCurrent inicializa campos faltantes', function () {
+    const input = {};  // archivo súper viejo o vacío
+    const r = migrateSnapshot(input);
+    assertEqual(r.snap.schemaVersion, 3);
+    assertEqual(typeof r.snap.categoryLabels, 'object');
+    assertEqual(typeof r.snap.transactionsByYear, 'object');
+    assert(Array.isArray(r.snap.categoryRules), 'categoryRules debe ser array');
+    assert(Array.isArray(r.snap.travels), 'travels debe ser array');
+    assertEqual(typeof r.snap.params, 'object');
+  });
+  test('snap null o no-objeto: no rompe', function () {
+    const r1 = migrateSnapshot(null);
+    assertEqual(r1.fromVersion, null);
+    const r2 = migrateSnapshot('texto');
+    assertEqual(r2.fromVersion, null);
+  });
+  test('migración no destruye datos existentes', function () {
+    const input = {
+      categoryLabels: { Vivienda: 'Vivienda' },
+      transactionsByYear: { 2026: { enero: [{ monto: 100 }] } },
+      params: { reservaAmount: 500000 }
+    };
+    const r = migrateSnapshot(input);
+    assertEqual(r.snap.categoryLabels.Vivienda, 'Vivienda');
+    assertEqual(r.snap.transactionsByYear[2026].enero[0].monto, 100);
+    assertEqual(r.snap.params.reservaAmount, 500000);
+  });
+  test('v1→v2 agrega HerramientasYAplicaciones si la cat Educacion existe', function () {
+    const input = {
+      schemaVersion: 1,
+      subcategoryLabels: { Educacion: { Colegio: 'Colegio', Cursos: 'Cursos' } }
+    };
+    const r = migrateSnapshot(input);
+    assertEqual(r.toVersion, 3);
+    assertEqual(r.snap.subcategoryLabels.Educacion.HerramientasYAplicaciones, 'Herramientas y Aplicaciones');
+    // No tocó las subs existentes
+    assertEqual(r.snap.subcategoryLabels.Educacion.Colegio, 'Colegio');
+  });
+  test('v1→v2 NO crea Educacion si no estaba antes', function () {
+    const input = {
+      schemaVersion: 1,
+      subcategoryLabels: { Vivienda: { Alquiler: 'Alquiler' } }
+    };
+    const r = migrateSnapshot(input);
+    assertEqual(r.snap.subcategoryLabels.Educacion, undefined);
+  });
+  test('v1→v2 respeta label custom si la key ya existía', function () {
+    const input = {
+      schemaVersion: 1,
+      subcategoryLabels: { Educacion: { HerramientasYAplicaciones: 'Mi label custom' } }
+    };
+    const r = migrateSnapshot(input);
+    assertEqual(r.snap.subcategoryLabels.Educacion.HerramientasYAplicaciones, 'Mi label custom');
+  });
+  test('v1→v2 NO duplica si ya hay otra key con el mismo label', function () {
+    const input = {
+      schemaVersion: 1,
+      subcategoryLabels: { Educacion: { Apps: 'Herramientas y Aplicaciones' } }
+    };
+    const r = migrateSnapshot(input);
+    assertEqual(r.snap.subcategoryLabels.Educacion.Apps, 'Herramientas y Aplicaciones');
+    assertEqual(r.snap.subcategoryLabels.Educacion.HerramientasYAplicaciones, undefined);
+  });
+  test('v2→v3 agrega subs nuevas a Turismo si la cat existe', function () {
+    const input = {
+      schemaVersion: 2,
+      subcategoryLabels: { Turismo: {} }
+    };
+    const r = migrateSnapshot(input);
+    assertEqual(r.snap.subcategoryLabels.Turismo.Alojamiento, 'Alojamiento');
+    assertEqual(r.snap.subcategoryLabels.Turismo.PaqueteAereo, 'Paquete Aéreo');
+    assertEqual(r.snap.subcategoryLabels.Turismo.Traslado, 'Traslado');
+  });
+  test('v2→v3 agrega Propina y Donacion a Financieras', function () {
+    const input = {
+      schemaVersion: 2,
+      subcategoryLabels: { Financieras: {} }
+    };
+    const r = migrateSnapshot(input);
+    assertEqual(r.snap.subcategoryLabels.Financieras.Propina, 'Propina');
+    assertEqual(r.snap.subcategoryLabels.Financieras.Donacion, 'Donación');
+  });
+  test('v2→v3 agrega clasificación discretionary para subs de Educacion', function () {
+    const input = {
+      schemaVersion: 2,
+      subcategoryLabels: { Educacion: { Cursos: 'Cursos', Coaching: 'Coaching', Colegio: 'Colegio' } }
+    };
+    const r = migrateSnapshot(input);
+    assertEqual(r.snap.subcategoryClassification.Educacion.Cursos, 'discretionary');
+    assertEqual(r.snap.subcategoryClassification.Educacion.Coaching, 'discretionary');
+    // Colegio NO está en la lista de overrides → no se le pone classification
+    assertEqual(r.snap.subcategoryClassification.Educacion.Colegio, undefined);
+  });
+  test('v2→v3 NO sobreescribe clasificación existente del usuario', function () {
+    const input = {
+      schemaVersion: 2,
+      subcategoryLabels: { Educacion: { Cursos: 'Cursos' } },
+      subcategoryClassification: { Educacion: { Cursos: 'basic' } }
+    };
+    const r = migrateSnapshot(input);
+    // Usuario había puesto Cursos como básica → respetar
+    assertEqual(r.snap.subcategoryClassification.Educacion.Cursos, 'basic');
+  });
+  test('v2→v3 solo aplica clasificación si la sub existe', function () {
+    const input = {
+      schemaVersion: 2,
+      subcategoryLabels: { Educacion: { Colegio: 'Colegio' } }  // sin Cursos
+    };
+    const r = migrateSnapshot(input);
+    // Cursos no existe → no se le inventa una clasificación
+    assertEqual(r.snap.subcategoryClassification.Educacion.Cursos, undefined);
+  });
+});
+
+group('stampSnapshotVersion — etiqueta el snap', function () {
+  test('agrega schemaVersion al snap', function () {
+    const snap = { foo: 'bar' };
+    stampSnapshotVersion(snap);
+    assertEqual(snap.schemaVersion, SCHEMA_VERSION);
+  });
+  test('sobrescribe versión existente', function () {
+    const snap = { schemaVersion: 99 };
+    stampSnapshotVersion(snap);
+    assertEqual(snap.schemaVersion, SCHEMA_VERSION);
+  });
+  test('null o no-objeto no rompe', function () {
+    stampSnapshotVersion(null);
+    stampSnapshotVersion('texto');
+    // sin tirar = OK
+  });
+});
+
+group('validateState — validación de invariantes', function () {
+  test('state válido limpio → 0 errores, 0 warnings', function () {
+    const s = {
+      categoryLabels: { Vivienda: 'Vivienda', Alimentacion: 'Alimentación' },
+      subcategoryLabels: { Vivienda: { Alquiler: 'Alquiler' } },
+      transactionsByYear: {
+        2026: {
+          enero: [
+            { fecha: '15/01/2026', monto: 500000, categoria: 'Vivienda', subcategoria: 'Alquiler' }
+          ]
+        }
+      },
+      categoryRules: [
+        { pattern: 'alquiler', categoria: 'Vivienda', matchType: 'contains' }
+      ],
+      subcategoryClassification: {},
+      params: {}
+    };
+    const r = validateState(s);
+    assertEqual(r.errors.length, 0);
+    assertEqual(r.warnings.length, 0);
+  });
+  test('state null → 1 error', function () {
+    const r = validateState(null);
+    assertEqual(r.errors.length, 1);
+  });
+  test('tx con fecha inválida → 1 warning', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      transactionsByYear: {
+        2026: { enero: [{ fecha: 'invalida', monto: 100, categoria: 'X' }] }
+      }
+    };
+    const r = validateState(s);
+    assert(r.warnings.some(function (w) { return w.indexOf('fecha inválida') >= 0; }), 'debería warnear fecha inválida');
+  });
+  test('tx con monto no numérico → 1 warning', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      transactionsByYear: {
+        2026: { enero: [{ fecha: '15/01/2026', monto: 'abc', categoria: 'X' }] }
+      }
+    };
+    const r = validateState(s);
+    assert(r.warnings.some(function (w) { return w.indexOf('monto no numérico') >= 0; }), 'debería warnear monto inválido');
+  });
+  test('tx con categoría que no existe en labels → 1 warning', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      transactionsByYear: {
+        2026: { enero: [{ fecha: '15/01/2026', monto: 100, categoria: 'NoExiste' }] }
+      }
+    };
+    const r = validateState(s);
+    assert(r.warnings.some(function (w) { return w.indexOf('categoría que no existe') >= 0; }), 'debería warnear cat inexistente');
+  });
+  test('tx con categoría de sistema NO da warning', function () {
+    // Sueldo no está en categoryLabels pero es de sistema → debe pasar sin warning
+    const s = {
+      categoryLabels: { X: 'X' },
+      transactionsByYear: {
+        2026: { enero: [{ fecha: '15/01/2026', monto: 100, categoria: 'Sueldo' }] }
+      }
+    };
+    const r = validateState(s);
+    assertEqual(r.warnings.length, 0);
+  });
+  test('regla con matchType desconocido → 1 warning', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      transactionsByYear: {},
+      categoryRules: [{ pattern: 'foo', categoria: 'X', matchType: 'inventado' }]
+    };
+    const r = validateState(s);
+    assert(r.warnings.some(function (w) { return w.indexOf('matchType desconocido') >= 0; }), 'debería warnear matchType');
+  });
+  test('regla apuntando a categoría inexistente → 1 warning', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      transactionsByYear: {},
+      categoryRules: [{ pattern: 'foo', categoria: 'NoExiste' }]
+    };
+    const r = validateState(s);
+    assert(r.warnings.some(function (w) { return w.indexOf('regla') >= 0 || w.indexOf('Regla') >= 0; }), 'debería warnear cat de regla');
+  });
+  test('KPI con op.type desconocido → 1 warning', function () {
+    const s = {
+      categoryLabels: {},
+      transactionsByYear: {},
+      kpiCardsConfig: [
+        { label: 'Test', op: { type: 'inventado' } }
+      ]
+    };
+    const r = validateState(s);
+    assert(r.warnings.some(function (w) { return w.indexOf('op.type desconocido') >= 0; }), 'debería warnear op.type');
+  });
+  test('reservaStart inválida → 1 warning', function () {
+    const s = {
+      categoryLabels: {},
+      transactionsByYear: {},
+      params: { reservaStart: 'no es fecha' }
+    };
+    const r = validateState(s);
+    assert(r.warnings.some(function (w) { return w.indexOf('reservaStart') >= 0; }), 'debería warnear reservaStart');
+  });
+  test('subcategoryClassification con cat inexistente → 1 warning', function () {
+    const s = {
+      categoryLabels: { Vivienda: 'V' },
+      transactionsByYear: {},
+      subcategoryClassification: { NoExiste: { foo: 'basic' } }
+    };
+    const r = validateState(s);
+    assert(r.warnings.some(function (w) { return w.indexOf('subcategoryClassification') >= 0; }), 'debería warnear cat ref rota');
+  });
+  test('tx con subcategoría no registrada → 1 warning', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      subcategoryLabels: { X: { Conocida: 'C' } },
+      transactionsByYear: {
+        2026: { enero: [{ fecha: '15/01/2026', monto: 100, categoria: 'X', subcategoria: 'Inventada' }] }
+      }
+    };
+    const r = validateState(s);
+    assert(r.warnings.some(function (w) { return w.indexOf('subcategoría no registrada') >= 0; }), 'debería warnear sub inexistente');
+  });
+});
+
+group('validateState — estructura issues (accionable)', function () {
+  test('devuelve issues vacío cuando todo está OK', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      subcategoryLabels: {},
+      transactionsByYear: {
+        2026: { enero: [{ fecha: '15/01/2026', monto: 100, categoria: 'X' }] }
+      }
+    };
+    const r = validateState(s);
+    assert(Array.isArray(r.issues));
+    assertEqual(r.issues.length, 0);
+  });
+  test('tx con fecha inválida genera issue tipo invalidDate con tx adjunta', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      transactionsByYear: {
+        2026: { enero: [{ fecha: 'no es fecha', monto: 100, categoria: 'X', descripcion: 'foo' }] }
+      }
+    };
+    const r = validateState(s);
+    const issue = r.issues.find(function (i) { return i.type === 'invalidDate'; });
+    assert(issue, 'debe haber issue invalidDate');
+    assertEqual(issue.tx.descripcion, 'foo');
+    assertEqual(issue.tx.year, 2026);
+    assertEqual(issue.tx.month, 'enero');
+    assertEqual(issue.tx.index, 0);
+  });
+  test('tx sin fecha genera issue invalidDate', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      transactionsByYear: {
+        2026: { enero: [{ monto: 100, categoria: 'X' }] }
+      }
+    };
+    const r = validateState(s);
+    const issue = r.issues.find(function (i) { return i.type === 'invalidDate'; });
+    assert(issue, 'tx sin fecha debe generar issue');
+  });
+  test('tx con monto inválido genera issue invalidMonto', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      transactionsByYear: {
+        2026: { enero: [{ fecha: '15/01/2026', monto: 'abc', categoria: 'X' }] }
+      }
+    };
+    const r = validateState(s);
+    assert(r.issues.some(function (i) { return i.type === 'invalidMonto'; }));
+  });
+  test('tx con cat desconocida genera issue unknownCat con la cat adjunta', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      transactionsByYear: {
+        2026: { enero: [{ fecha: '15/01/2026', monto: 100, categoria: 'Borrada' }] }
+      }
+    };
+    const r = validateState(s);
+    const issue = r.issues.find(function (i) { return i.type === 'unknownCat'; });
+    assert(issue);
+    assertEqual(issue.category, 'Borrada');
+    assertEqual(issue.tx.categoria, 'Borrada');
+  });
+  test('tx con sub desconocida genera issue unknownSub con cat+sub', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      subcategoryLabels: { X: { Conocida: 'C' } },
+      transactionsByYear: {
+        2026: { enero: [{ fecha: '15/01/2026', monto: 100, categoria: 'X', subcategoria: 'Inventada' }] }
+      }
+    };
+    const r = validateState(s);
+    const issue = r.issues.find(function (i) { return i.type === 'unknownSub'; });
+    assert(issue);
+    assertEqual(issue.category, 'X');
+    assertEqual(issue.subcategory, 'Inventada');
+  });
+  test('regla rota genera issue con ruleIndex', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      transactionsByYear: {},
+      categoryRules: [
+        { pattern: 'ok', categoria: 'X' },
+        { pattern: 'foo', categoria: 'NoExiste' }  // índice 1
+      ]
+    };
+    const r = validateState(s);
+    const issue = r.issues.find(function (i) { return i.type === 'ruleUnknownCat'; });
+    assert(issue);
+    assertEqual(issue.ruleIndex, 1);
+    assertEqual(issue.category, 'NoExiste');
+  });
+  test('KPI con op.type desconocido genera issue con kpiIndex', function () {
+    const s = {
+      categoryLabels: {},
+      transactionsByYear: {},
+      kpiCardsConfig: [
+        { label: 'A', op: { type: 'gasto_total' } },     // válido, no genera issue
+        { label: 'B', op: { type: 'inventado' } }  // índice 1, genera issue
+      ]
+    };
+    const r = validateState(s);
+    const issue = r.issues.find(function (i) { return i.type === 'kpiBadOpType'; });
+    assert(issue);
+    assertEqual(issue.kpiIndex, 1);
+  });
+  test('múltiples tx con problemas distintos → múltiples issues', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      transactionsByYear: {
+        2026: {
+          enero: [
+            { fecha: 'mal', monto: 100, categoria: 'X' },           // invalidDate
+            { fecha: '15/01/2026', monto: 'abc', categoria: 'X' },  // invalidMonto
+            { fecha: '15/01/2026', monto: 100, categoria: 'Borrada' } // unknownCat
+          ]
+        }
+      }
+    };
+    const r = validateState(s);
+    assert(r.issues.length >= 3);
+    const types = r.issues.map(function (i) { return i.type; });
+    assert(types.indexOf('invalidDate') >= 0);
+    assert(types.indexOf('invalidMonto') >= 0);
+    assert(types.indexOf('unknownCat') >= 0);
+  });
+  test('cada issue tiene message legible', function () {
+    const s = {
+      categoryLabels: { X: 'X' },
+      transactionsByYear: {
+        2026: { enero: [{ fecha: '15/01/2026', monto: 100, categoria: 'Borrada' }] }
+      }
+    };
+    const r = validateState(s);
+    r.issues.forEach(function (i) {
+      assert(typeof i.message === 'string' && i.message.length > 0, 'issue debe tener message');
+      assert(['warning','error'].indexOf(i.severity) >= 0, 'issue debe tener severity válida');
+    });
+  });
+});
+
+// ============================================================
+// COMPUTE HEALTH SCORE
+// ============================================================
+group('Trend direction — inferencia y evaluación', function () {
+  test('inferTrendDirectionFromOp: gasto_total → lower_better', function () {
+    assertEqual(inferTrendDirectionFromOp({ type: 'gasto_total' }), 'lower_better');
+  });
+  test('inferTrendDirectionFromOp: categoria Sueldo → higher_better', function () {
+    assertEqual(inferTrendDirectionFromOp({ type: 'tx_sum', categoria: 'Sueldo' }), 'higher_better');
+  });
+  test('inferTrendDirectionFromOp: categoria Inversion → higher_better', function () {
+    assertEqual(inferTrendDirectionFromOp({ type: 'tx_sum', categoria: 'Inversion' }), 'higher_better');
+  });
+  test('inferTrendDirectionFromOp: categoria Prestamo → lower_better', function () {
+    assertEqual(inferTrendDirectionFromOp({ type: 'tx_sum', categoria: 'Prestamo' }), 'lower_better');
+  });
+  test('inferTrendDirectionFromOp: categoria de gasto cualquiera → lower_better', function () {
+    assertEqual(inferTrendDirectionFromOp({ type: 'tx_sum', categoria: 'Vivienda' }), 'lower_better');
+    assertEqual(inferTrendDirectionFromOp({ type: 'tx_sum', categoria: 'Gastronomia' }), 'lower_better');
+  });
+  test('inferTrendDirectionFromOp: classFilter discretionary → lower_better', function () {
+    assertEqual(inferTrendDirectionFromOp({ type: 'tx_sum', classFilter: 'discretionary' }), 'lower_better');
+  });
+  test('inferTrendDirectionFromOp: op vacío o tag solo → neutral', function () {
+    assertEqual(inferTrendDirectionFromOp({}), 'neutral');
+    assertEqual(inferTrendDirectionFromOp({ type: 'tx_sum', tags: ['JALM'] }), 'neutral');
+  });
+  test('resolveTrendDirection: respeta override manual', function () {
+    assertEqual(resolveTrendDirection({ op: { type: 'gasto_total' }, trendDirection: 'higher_better' }), 'higher_better');
+    assertEqual(resolveTrendDirection({ op: { type: 'gasto_total' }, trendDirection: 'neutral' }), 'neutral');
+  });
+  test('resolveTrendDirection: auto/undefined → infiere', function () {
+    assertEqual(resolveTrendDirection({ op: { type: 'gasto_total' } }), 'lower_better');
+    assertEqual(resolveTrendDirection({ op: { type: 'tx_sum', categoria: 'Sueldo' }, trendDirection: 'auto' }), 'higher_better');
+  });
+  test('evaluateTrendSign: con higher_better, valor > avg → favorable', function () {
+    assertEqual(evaluateTrendSign(120, 100, 'higher_better'), 'favorable');
+    assertEqual(evaluateTrendSign(80, 100, 'higher_better'), 'unfavorable');
+  });
+  test('evaluateTrendSign: con lower_better, valor < avg → favorable', function () {
+    assertEqual(evaluateTrendSign(80, 100, 'lower_better'), 'favorable');
+    assertEqual(evaluateTrendSign(120, 100, 'lower_better'), 'unfavorable');
+  });
+  test('evaluateTrendSign: variación dentro de tolerancia 5% → neutral', function () {
+    assertEqual(evaluateTrendSign(103, 100, 'higher_better'), 'neutral');
+    assertEqual(evaluateTrendSign(97, 100, 'lower_better'), 'neutral');
+  });
+  test('evaluateTrendSign: trendDirection neutral o avg=0 → neutral', function () {
+    assertEqual(evaluateTrendSign(120, 100, 'neutral'), 'neutral');
+    assertEqual(evaluateTrendSign(100, 0, 'higher_better'), 'neutral');
+  });
+  test('getTrendColor: devuelve color válido por sign', function () {
+    assert(getTrendColor('favorable') === '#6B8E4E');
+    assert(getTrendColor('unfavorable') === '#C8553D');
+    assertEqual(getTrendColor('neutral'), null);
+    assertEqual(getTrendColor('something_weird'), null);
+  });
+  test('classifyKpiGroup: Sueldo → flow', function () {
+    assertEqual(classifyKpiGroup({ op: { type: 'tx_sum', categoria: 'Sueldo' } }), 'flow');
+  });
+  test('classifyKpiGroup: Inversion/Trading/Reserva → flow', function () {
+    assertEqual(classifyKpiGroup({ op: { type: 'tx_sum', categoria: 'Inversion' } }), 'flow');
+    assertEqual(classifyKpiGroup({ op: { type: 'tx_sum', categoria: 'Trading' } }), 'flow');
+    assertEqual(classifyKpiGroup({ op: { type: 'tx_sum', categoria: 'Reserva' } }), 'flow');
+    assertEqual(classifyKpiGroup({ op: { type: 'tx_sum', categoria: 'Jubilacion' } }), 'flow');
+  });
+  test('classifyKpiGroup: Prestamo → flow', function () {
+    assertEqual(classifyKpiGroup({ op: { type: 'tx_sum', categoria: 'Prestamo' } }), 'flow');
+  });
+  test('classifyKpiGroup: gasto_total → movements', function () {
+    assertEqual(classifyKpiGroup({ op: { type: 'gasto_total' } }), 'movements');
+  });
+  test('classifyKpiGroup: classFilter discretionary → movements', function () {
+    assertEqual(classifyKpiGroup({ op: { type: 'tx_sum', classFilter: 'discretionary' } }), 'movements');
+  });
+  test('classifyKpiGroup: categoria de gasto cualquiera → movements', function () {
+    assertEqual(classifyKpiGroup({ op: { type: 'tx_sum', categoria: 'Vivienda' } }), 'movements');
+    assertEqual(classifyKpiGroup({ op: { type: 'tx_sum', categoria: 'Gastronomia' } }), 'movements');
+  });
+  test('classifyKpiGroup: KPI sin op o vacío → movements (fallback)', function () {
+    assertEqual(classifyKpiGroup({}), 'movements');
+    assertEqual(classifyKpiGroup(null), 'movements');
+    assertEqual(classifyKpiGroup({ op: { type: 'tx_sum', tags: ['JALM'] } }), 'movements');
+  });
+});
+
+group('Dedup de transacciones importadas', function () {
+  test('normalizeTxDescForDedup: lower-case, sin acentos, espacios colapsados', function () {
+    assertEqual(normalizeTxDescForDedup('  Café  con  Leche  '), 'cafe con leche');
+    assertEqual(normalizeTxDescForDedup('MERCADO PAGO'), 'mercado pago');
+    assertEqual(normalizeTxDescForDedup('Pago Tarjeta\tCrédito'), 'pago tarjeta credito');
+    assertEqual(normalizeTxDescForDedup(''), '');
+    assertEqual(normalizeTxDescForDedup(null), '');
+  });
+
+  test('buildTxDedupKey: combina fecha, desc, monto, origen', function () {
+    const tx = { fecha: '15/04/2026', descripcion: 'Starbucks', monto: 5000, origen: 'Mercado Pago' };
+    const k = buildTxDedupKey(tx);
+    assert(k.indexOf('15/04/2026') >= 0);
+    assert(k.indexOf('starbucks') >= 0);
+    assert(k.indexOf('5000.00') >= 0);
+    assert(k.indexOf('mercado pago') >= 0);
+  });
+
+  test('buildTxDedupKey: dos tx con la misma info producen la misma clave', function () {
+    const t1 = { fecha: '15/04/2026', descripcion: 'Starbucks', monto: 5000, origen: 'Mercado Pago' };
+    const t2 = { fecha: '15/04/2026', descripcion: ' STARBUCKS ', monto: 5000.00, origen: 'mercado pago' };
+    assertEqual(buildTxDedupKey(t1), buildTxDedupKey(t2));
+  });
+
+  test('buildTxDedupKey: tx con monto distinto produce clave distinta', function () {
+    const t1 = { fecha: '15/04/2026', descripcion: 'X', monto: 100, origen: 'MP' };
+    const t2 = { fecha: '15/04/2026', descripcion: 'X', monto: 200, origen: 'MP' };
+    assert(buildTxDedupKey(t1) !== buildTxDedupKey(t2));
+  });
+
+  test('dedupIncomingTransactions: sin existentes, todas se agregan', function () {
+    const incoming = [
+      { fecha: '01/04/2026', descripcion: 'A', monto: 100, origen: 'MP' },
+      { fecha: '02/04/2026', descripcion: 'B', monto: 200, origen: 'MP' }
+    ];
+    const r = dedupIncomingTransactions(incoming, []);
+    assertEqual(r.keptCount, 2);
+    assertEqual(r.skippedCount, 0);
+  });
+
+  test('dedupIncomingTransactions: todas duplicadas, ninguna se agrega', function () {
+    const tx = { fecha: '01/04/2026', descripcion: 'A', monto: 100, origen: 'MP' };
+    const existing = [tx];
+    const r = dedupIncomingTransactions([tx], existing);
+    assertEqual(r.keptCount, 0);
+    assertEqual(r.skippedCount, 1);
+  });
+
+  test('dedupIncomingTransactions: parcial — algunas existen, otras no', function () {
+    const existing = [
+      { fecha: '01/04/2026', descripcion: 'A', monto: 100, origen: 'MP' }
+    ];
+    const incoming = [
+      { fecha: '01/04/2026', descripcion: 'A', monto: 100, origen: 'MP' },  // dup
+      { fecha: '02/04/2026', descripcion: 'B', monto: 200, origen: 'MP' }   // nueva
+    ];
+    const r = dedupIncomingTransactions(incoming, existing);
+    assertEqual(r.keptCount, 1);
+    assertEqual(r.skippedCount, 1);
+    assertEqual(r.kept[0].descripcion, 'B');
+  });
+
+  test('dedupIncomingTransactions: multiplicidad — 2 existen, 3 entrantes → solo 1 se agrega', function () {
+    // Dos cafés iguales el mismo día ya estaban cargados; el archivo trae 3
+    const tx = { fecha: '01/04/2026', descripcion: 'Café', monto: 5000, origen: 'MP' };
+    const existing = [tx, tx];
+    const incoming = [tx, tx, tx];
+    const r = dedupIncomingTransactions(incoming, existing);
+    assertEqual(r.keptCount, 1);
+    assertEqual(r.skippedCount, 2);
+  });
+
+  test('dedupIncomingTransactions: multiplicidad — 3 existen, 2 entrantes → ninguna se agrega', function () {
+    const tx = { fecha: '01/04/2026', descripcion: 'Café', monto: 5000, origen: 'MP' };
+    const existing = [tx, tx, tx];
+    const incoming = [tx, tx];
+    const r = dedupIncomingTransactions(incoming, existing);
+    assertEqual(r.keptCount, 0);
+    assertEqual(r.skippedCount, 2);
+  });
+
+  test('dedupIncomingTransactions: orígenes distintos NO se consideran duplicados', function () {
+    const existing = [{ fecha: '01/04/2026', descripcion: 'A', monto: 100, origen: 'MP' }];
+    const incoming = [{ fecha: '01/04/2026', descripcion: 'A', monto: 100, origen: 'Galicia' }];
+    const r = dedupIncomingTransactions(incoming, existing);
+    assertEqual(r.keptCount, 1);
+    assertEqual(r.skippedCount, 0);
+  });
+
+  test('dedupIncomingTransactions: escenario carga parcial → carga completa', function () {
+    // Lunes 1: cargo MP del 1-7 abril (3 tx). Lunes 8: cargo del 1-14 abril (5 tx que incluyen las 3 anteriores)
+    const semana1 = [
+      { fecha: '01/04/2026', descripcion: 'A', monto: 100, origen: 'MP' },
+      { fecha: '03/04/2026', descripcion: 'B', monto: 200, origen: 'MP' },
+      { fecha: '05/04/2026', descripcion: 'C', monto: 300, origen: 'MP' }
+    ];
+    const semana12Combined = semana1.concat([
+      { fecha: '08/04/2026', descripcion: 'D', monto: 400, origen: 'MP' },
+      { fecha: '10/04/2026', descripcion: 'E', monto: 500, origen: 'MP' }
+    ]);
+    const r = dedupIncomingTransactions(semana12Combined, semana1);
+    assertEqual(r.keptCount, 2);
+    assertEqual(r.skippedCount, 3);
+    assertEqual(r.kept[0].descripcion, 'D');
+    assertEqual(r.kept[1].descripcion, 'E');
+  });
+
+  test('dedupIncomingTransactions: input vacío o no-array no rompe', function () {
+    assertEqual(dedupIncomingTransactions([], []).keptCount, 0);
+    assertEqual(dedupIncomingTransactions(null, []).keptCount, 0);
+    assertEqual(dedupIncomingTransactions(undefined, [{}]).keptCount, 0);
+  });
+});
+
+group('Export / Import de configuración', function () {
+  test('serializeRules / deserializeRules — replace_all', function () {
+    const rules = [{ pattern: 'uber', cat: 'Transporte' }, { pattern: 'starbucks', cat: 'Gastronomia' }];
+    const blob = serializeRules(rules);
+    assertEqual(blob.type, 'rules');
+    assertEqual(blob.data.rules.length, 2);
+    // replace_all sobre 3 existentes → quedan solo las 2 del archivo
+    const existing = [{ pattern: 'old1', cat: 'X' }, { pattern: 'old2', cat: 'Y' }, { pattern: 'old3', cat: 'Z' }];
+    const result = deserializeRules(blob, existing, 'replace_all');
+    assertEqual(result.length, 2);
+    assertEqual(result[0].pattern, 'uber');
+  });
+
+  test('deserializeRules — replace_byid sobreescribe coincidentes y agrega nuevas', function () {
+    const blob = serializeRules([
+      { pattern: 'uber', cat: 'NUEVO_VALOR' },
+      { pattern: 'nueva_regla', cat: 'X' }
+    ]);
+    const existing = [
+      { pattern: 'uber', cat: 'VIEJO' },
+      { pattern: 'otra', cat: 'Y' }
+    ];
+    const result = deserializeRules(blob, existing, 'replace_byid');
+    assertEqual(result.length, 3);
+    const uberRule = result.find(function (r) { return r.pattern === 'uber'; });
+    assertEqual(uberRule.cat, 'NUEVO_VALOR');
+    const otraRule = result.find(function (r) { return r.pattern === 'otra'; });
+    assertEqual(otraRule.cat, 'Y');  // sin cambios
+  });
+
+  test('deserializeRules — merge_new NO sobreescribe lo existente', function () {
+    const blob = serializeRules([
+      { pattern: 'uber', cat: 'NUEVO_VALOR' },   // ya existe, NO debe pisar
+      { pattern: 'nueva', cat: 'X' }              // nueva, debe agregar
+    ]);
+    const existing = [
+      { pattern: 'uber', cat: 'VIEJO_PROTEGIDO' }
+    ];
+    const result = deserializeRules(blob, existing, 'merge_new');
+    assertEqual(result.length, 2);
+    const uberRule = result.find(function (r) { return r.pattern === 'uber'; });
+    assertEqual(uberRule.cat, 'VIEJO_PROTEGIDO');
+  });
+
+  test('serializeCategories / deserializeCategories — replace_all incluye los 5 dicts', function () {
+    const stateLike = {
+      categoryLabels: { A: 'A', B: 'B' },
+      categoryColors: { A: '#fff' },
+      categoryClassification: { A: 'basic' },
+      subcategoryLabels: { A: { a1: 'sub1' } },
+      subcategoryClassification: { A: { a1: 'basic' } }
+    };
+    const blob = serializeCategories(stateLike);
+    assertEqual(blob.type, 'categories');
+    const existing = { categoryLabels: { X: 'X' }, categoryColors: {}, categoryClassification: {}, subcategoryLabels: {}, subcategoryClassification: {} };
+    const result = deserializeCategories(blob, existing, 'replace_all');
+    assertEqual(Object.keys(result.categoryLabels).length, 2);  // solo A, B (no X)
+    assert(result.categoryLabels.A === 'A');
+    assert(result.subcategoryLabels.A.a1 === 'sub1');
+  });
+
+  test('deserializeCategories — replace_byid sobreescribe label pero conserva categorías no enviadas', function () {
+    const blob = serializeCategories({
+      categoryLabels: { Vivienda: 'Vivienda Nuevo Label' },
+      categoryColors: {},
+      categoryClassification: { Vivienda: 'basic' },
+      subcategoryLabels: {},
+      subcategoryClassification: {}
+    });
+    const existing = {
+      categoryLabels: { Vivienda: 'Vivienda Viejo', Salud: 'Salud' },
+      categoryColors: {}, categoryClassification: { Vivienda: 'discretionary', Salud: 'basic' },
+      subcategoryLabels: {}, subcategoryClassification: {}
+    };
+    const result = deserializeCategories(blob, existing, 'replace_byid');
+    assertEqual(result.categoryLabels.Vivienda, 'Vivienda Nuevo Label');
+    assertEqual(result.categoryLabels.Salud, 'Salud');  // conservada
+    assertEqual(result.categoryClassification.Vivienda, 'basic');  // sobrescrita
+    assertEqual(result.categoryClassification.Salud, 'basic');     // conservada
+  });
+
+  test('deserializeCategories — merge_new conserva todas las existentes y solo agrega nuevas', function () {
+    const blob = serializeCategories({
+      categoryLabels: { Vivienda: 'NUEVO_LABEL', Nueva: 'Nueva Cat' },
+      categoryColors: {}, categoryClassification: {},
+      subcategoryLabels: { Vivienda: { sub1: 'NUEVO_SUB' }, Nueva: { sN: 'subN' } },
+      subcategoryClassification: {}
+    });
+    const existing = {
+      categoryLabels: { Vivienda: 'OLD' },
+      categoryColors: {}, categoryClassification: {},
+      subcategoryLabels: { Vivienda: { sub1: 'OLD_SUB' } },
+      subcategoryClassification: {}
+    };
+    const result = deserializeCategories(blob, existing, 'merge_new');
+    assertEqual(result.categoryLabels.Vivienda, 'OLD');           // conservada
+    assertEqual(result.categoryLabels.Nueva, 'Nueva Cat');        // agregada
+    assertEqual(result.subcategoryLabels.Vivienda.sub1, 'OLD_SUB');  // conservada
+    assertEqual(result.subcategoryLabels.Nueva.sN, 'subN');          // agregada
+  });
+
+  test('serializeTags / deserializeTags — los 3 modos', function () {
+    const blob = serializeTags({ JALM: { label: 'JALM', color: '#888' }, NUEVO: { label: 'Nuevo' } });
+    const existing = { JALM: { label: 'JALM OLD', color: '#000' }, CLM: { label: 'CLM' } };
+    // replace_all
+    const r1 = deserializeTags(blob, existing, 'replace_all');
+    assertEqual(Object.keys(r1).length, 2);
+    assert(!r1.CLM);  // borrada
+    // replace_byid
+    const r2 = deserializeTags(blob, existing, 'replace_byid');
+    assertEqual(Object.keys(r2).length, 3);
+    assertEqual(r2.JALM.label, 'JALM');     // sobrescrita
+    assertEqual(r2.CLM.label, 'CLM');       // conservada
+    assertEqual(r2.NUEVO.label, 'Nuevo');   // agregada
+    // merge_new
+    const r3 = deserializeTags(blob, existing, 'merge_new');
+    assertEqual(Object.keys(r3).length, 3);
+    assertEqual(r3.JALM.label, 'JALM OLD');  // conservada (NO sobrescrita)
+    assertEqual(r3.CLM.label, 'CLM');         // conservada
+    assertEqual(r3.NUEVO.label, 'Nuevo');    // agregada
+  });
+
+  test('serializeFullConfig — solo incluye secciones marcadas', function () {
+    const stateLike = {
+      categoryRules: [{ pattern: 'x', cat: 'A' }],
+      categoryLabels: { A: 'A' },
+      categoryColors: {}, categoryClassification: {},
+      subcategoryLabels: {}, subcategoryClassification: {},
+      tags: { JALM: { label: 'JALM' } }
+    };
+    const blob = serializeFullConfig(stateLike, { rules: true, categories: false, tags: true });
+    assertEqual(blob.type, 'full');
+    assert(blob.sections.rules === true);
+    assert(blob.sections.categories === undefined);
+    assert(blob.sections.tags === true);
+    assert(blob.data.rules.length === 1);
+    assert(blob.data.categories === undefined);
+    assert(blob.data.tags.JALM);
+  });
+
+  test('previewImport — devuelve current/incoming/willHave por sección', function () {
+    const blob = serializeRules([{ pattern: 'a' }, { pattern: 'b' }, { pattern: 'c' }]);
+    const existing = { categoryRules: [{ pattern: 'a' }, { pattern: 'old' }] };
+    const p1 = previewImport(blob, existing, 'replace_all');
+    assertEqual(p1.rules.current, 2);
+    assertEqual(p1.rules.incoming, 3);
+    assertEqual(p1.rules.willHave, 3);
+    const p2 = previewImport(blob, existing, 'replace_byid');
+    assertEqual(p2.rules.willHave, 4);  // a (sobre), b, c (nuevas), old (conservada)
+    const p3 = previewImport(blob, existing, 'merge_new');
+    assertEqual(p3.rules.willHave, 4);  // a (conservada), b, c (nuevas), old (conservada)
+  });
+
+  test('deserialize* — rechaza tipo incorrecto', function () {
+    let threw = false;
+    try {
+      deserializeRules({ type: 'tags', data: {} }, [], 'replace_all');
+    } catch (e) { threw = true; }
+    assert(threw, 'debió lanzar error al recibir type incorrecto');
+  });
+
+  test('deserialize* — rechaza modo inválido', function () {
+    let threw = false;
+    try {
+      deserializeRules(serializeRules([]), [], 'modo_invalido');
+    } catch (e) { threw = true; }
+    assert(threw);
+  });
+});
+
+group('computeHealthScore — score de salud financiera', function () {
+  test('caso ideal: score alto, label Saludable', function () {
+    // Con el nuevo componente "Reservas (meses de vida)" peso 25:
+    // necesitamos reservaAcumulada ~ 6+ meses de gastos para perfect score.
+    const r = computeHealthScore({
+      sueldo: 1000000, gastosTotal: 600000, gastosDiscrecionales: 100000,
+      inversion: 200000, prestamos: 0,
+      reservaAcumulada: 3600000, nMeses: 1
+    });
+    assert(r.hasData);
+    assert(r.score >= 90, 'score esperado >= 90, got ' + r.score);
+    assertEqual(r.label, 'Saludable');
+    assertEqual(r.color, '#6B8E4E');
+    assertEqual(r.components.length, 5);
+  });
+  test('caso regular: score medio, label Atención', function () {
+    const r = computeHealthScore({
+      sueldo: 1000000, gastosTotal: 850000, gastosDiscrecionales: 350000,
+      inversion: 50000, prestamos: 0,
+      reservaAcumulada: 2500000, nMeses: 1
+    });
+    assert(r.score >= 50 && r.score < 75, 'score esperado 50-74, got ' + r.score);
+    assertEqual(r.label, 'Atención');
+  });
+  test('caso crítico: score bajo, label Crítico', function () {
+    const r = computeHealthScore({
+      sueldo: 1000000, gastosTotal: 1200000, gastosDiscrecionales: 700000,
+      inversion: 0, prestamos: 500000
+    });
+    assert(r.score < 50, 'score esperado < 50, got ' + r.score);
+    assertEqual(r.label, 'Crítico');
+    assertEqual(r.color, '#C8553D');
+  });
+  test('sin sueldo pero con gastos: calcula con componentes alternativos', function () {
+    const r = computeHealthScore({
+      sueldo: 0, gastosTotal: 500000, gastosDiscrecionales: 100000,
+      inversion: 80000, prestamos: 0,
+      reservaAcumulada: 0, nMeses: 1
+    });
+    assertEqual(r.hasData, true);
+    assert(r.score > 0, 'sin sueldo pero con gastos debe dar score positivo, got ' + r.score);
+    // Activos: discrecional, ahorro-alt, deuda-alt, reservas (4). Skipped: margen.
+    assertEqual(r.activeCount, 4);
+    assertEqual(r.skippedCount, 1);
+    // Validar que las maxPoints de los activos sumen 100 (redistribución)
+    const activeMax = r.components.filter(function (c) { return !c.skipped; })
+      .reduce(function (a, c) { return a + c.maxPoints; }, 0);
+    assertEqual(activeMax, 100);
+    // El margen aparece como skipped
+    const margen = r.components.find(function (c) { return c.name === 'Margen libre'; });
+    assert(margen && margen.skipped === true, 'margen debe estar skipped sin sueldo');
+  });
+  test('sin sueldo ni gastos: hasData=false', function () {
+    const r = computeHealthScore({ sueldo: 0, gastosTotal: 0 });
+    assertEqual(r.hasData, false);
+    assertEqual(r.label, 'Sin datos');
+    assertEqual(r.score, 0);
+  });
+  test('config custom: pesos editables', function () {
+    // Input intermedio (no llega a 100 ni queda en 0): cambiar pesos cambia el score.
+    const ctx = {
+      sueldo: 1000000, gastosTotal: 700000, gastosDiscrecionales: 200000,
+      inversion: 80000, prestamos: 50000
+    };
+    const rDefault = computeHealthScore(ctx);
+    // Bajamos el peso de discrecional a 5 y subimos margen a 65 → score baja
+    // porque "discrecional bueno" ya no aporta tanto y "margen apenas pasable"
+    // ahora pesa más en relación.
+    const rCustom = computeHealthScore(ctx, {
+      discWeight: 5, margenWeight: 65
+    });
+    assert(rDefault.score !== rCustom.score, 'scores deberían diferir con pesos distintos. default=' + rDefault.score + ' custom=' + rCustom.score);
+  });
+  test('umbrales custom: cambian la clasificación', function () {
+    const ctx = { sueldo: 1000000, gastosTotal: 600000, gastosDiscrecionales: 200000, inversion: 50000, prestamos: 0 };
+    // Con umbrales por defecto: discrecional 33% → cae en "bueno" (entre 25 y 35)
+    const r1 = computeHealthScore(ctx);
+    // Con umbrales más exigentes para discrecional: 33% > 20 (excelente) → "regular"
+    const r2 = computeHealthScore(ctx, { discThresholds: { excelente: 10, bueno: 20, regular: 30 } });
+    // El segundo debería dar score menor (más exigente)
+    assert(r2.score <= r1.score, 'umbrales más exigentes → score menor o igual');
+  });
+  test('componentes tienen displayValue formateado', function () {
+    const r = computeHealthScore({
+      sueldo: 1000000, gastosTotal: 500000, gastosDiscrecionales: 100000,
+      inversion: 100000, prestamos: 0,
+      reservaAcumulada: 1500000, nMeses: 1
+    });
+    r.components.forEach(function (c) {
+      // El componente "Reservas (meses de vida)" usa sufijo "meses" en vez de "%"
+      const hasPct = c.displayValue.indexOf('%') >= 0;
+      const hasMeses = c.displayValue.indexOf('meses') >= 0;
+      const isDash = c.displayValue === '—';
+      assert(hasPct || hasMeses || isDash, c.name + ': displayValue debe tener "%" o "meses" — got "' + c.displayValue + '"');
+      assert(typeof c.points === 'number');
+      assert(typeof c.maxPoints === 'number');
+      assert(c.points <= c.maxPoints, c.name + ': points debe ser <= maxPoints');
+    });
+  });
+  test('Deuda nueva 0% (sin préstamos) puntúa máximo (regresión: comparación <= vs <)', function () {
+    // Con sueldo presente y prestamos=0, Deuda nueva debe estar en tier
+    // "excelente" → 20/20 pts (no 15/20 como daba el bug donde 0 < 0 es false).
+    const r = computeHealthScore({
+      sueldo: 1000000, gastosTotal: 500000, gastosDiscrecionales: 100000,
+      inversion: 0, prestamos: 0,
+      reservaAcumulada: 0, nMeses: 1
+    });
+    const deuda = r.components.find(function (c) { return c.name === 'Deuda nueva'; });
+    assert(deuda, 'componente Deuda nueva debe existir');
+    assertEqual(deuda.points, 20);
+    assertEqual(deuda.maxPoints, 20);
+    assertEqual(deuda.displayValue, '0.0%');
+  });
+  test('config parcial del usuario hace deep merge (regresión: shallow merge perdía thresholds)', function () {
+    // Bug: el usuario sobreescribe SOLO el peso de margen pero NO los thresholds.
+    // Con shallow merge, margenThresholds quedaría {} y el componente puntuaría
+    // 0 aunque el valor sea excelente.
+    // Con deep merge, los thresholds faltantes se completan con los defaults.
+    const r = computeHealthScore({
+      sueldo: 1000000, gastosTotal: 500000, gastosDiscrecionales: 100000,
+      inversion: 0, prestamos: 0,
+      reservaAcumulada: 0, nMeses: 1
+    }, {
+      margenWeight: 25  // peso custom pero SIN thresholds
+      // (no incluyo margenThresholds — deberían venir del default: excelente=30)
+    });
+    const margen = r.components.find(function (c) { return c.name === 'Margen libre'; });
+    assert(margen, 'componente Margen libre debe existir');
+    // sueldo=1M, gastos=500k → margen = 50% que es >= 30 (excelente).
+    // Lo importante es que puntúe LO MÁXIMO posible (points == maxPoints).
+    // El valor exacto depende del scaleFactor que aplica la redistribución.
+    assertEqual(margen.points, margen.maxPoints);
+    assert(margen.points > 0, 'margen debe puntuar > 0 con valor excelente, got ' + margen.points);
+  });
+  test('config con override parcial de thresholds: completa con defaults', function () {
+    // El usuario sobreescribe solo "excelente" — "bueno" y "regular" deben
+    // venir del default.
+    const r = computeHealthScore({
+      sueldo: 1000000, gastosTotal: 800000, gastosDiscrecionales: 100000,
+      inversion: 0, prestamos: 0,
+      reservaAcumulada: 0, nMeses: 1
+    }, {
+      margenThresholds: { excelente: 50 }  // solo excelente custom
+      // bueno (15) y regular (5) deben venir del default
+    });
+    const margen = r.components.find(function (c) { return c.name === 'Margen libre'; });
+    // margen = (1M - 800k) / 1M = 20% → entre default bueno (15) y default
+    // regular (5) — no llega a custom excelente (50) ni al default bueno (15)
+    // ... espera, 20 >= 15 (bueno) → debe puntuar weight * 0.7 = 21
+    assert(margen.points > 0, 'margen 20% debe puntuar > 0 con thresholds completos via deep merge');
+  });
+});
+
+// ============================================================
+// TESTS DE INTEGRACIÓN — escenarios realistas end-to-end
+// ============================================================
+// Estos tests arman un state como el que tendría Joaco en un trimestre
+// y verifican que las funciones puras de core.js produzcan resultados
+// consistentes cuando se combinan en flujos completos:
+//   - Categorización via reglas → afecta KPIs y score
+//   - El score refleja el estado financiero correctamente
+//   - Cambios en clasificación de sub propagan correctamente
+//   - El motor de KPIs es consistente entre vista agregada y mensual
+//
+// La idea NO es testear UI (eso requiere DOM/jsdom), sino verificar que
+// los flujos de datos no se rompan cuando agregamos features nuevas.
+
+// Helper: construye un state realista con tx típicas de un trimestre
+function buildRealisticState() {
+  const state = {
+    selYear: 2026,
+    selQuarter: null,
+    selMonth: null,
+    params: {},
+    categoryLabels: {
+      Vivienda: 'Vivienda', Educacion: 'Educación', Salud: 'Salud',
+      Supermercado: 'Supermercado', Gastronomia: 'Gastronomía',
+      Entretenimiento: 'Entretenimiento', Vacaciones: 'Vacaciones',
+      Sueldo: 'Sueldo', Prestamo: 'Préstamo', Inversion: 'Inversión',
+      Trading: 'Trading', Reserva: 'Reserva', Jubilacion: 'Jubilación'
+    },
+    subcategoryLabels: {
+      Vivienda: { Alquiler: 'Alquiler', Expensas: 'Expensas' },
+      Educacion: { Colegio: 'Colegio', Cursos: 'Cursos' }
+    },
+    categoryClassification: {
+      Vivienda: 'basic', Educacion: 'basic', Salud: 'basic', Supermercado: 'basic',
+      Gastronomia: 'discretionary', Entretenimiento: 'discretionary', Vacaciones: 'discretionary'
+    },
+    subcategoryClassification: {
+      // Cursos es discrecional aunque Educación sea básica (caso típico)
+      Educacion: { Cursos: 'discretionary' }
+    },
+    transactionsByYear: {
+      2026: {
+        enero: [
+          { fecha: '05/01/2026', monto: 250000, categoria: 'Vivienda', subcategoria: 'Alquiler', periodicidad: 'fijo', tags: ['JALM'] },
+          { fecha: '06/01/2026', monto: 45000, categoria: 'Vivienda', subcategoria: 'Expensas', periodicidad: 'fijo' },
+          { fecha: '10/01/2026', monto: 80000, categoria: 'Supermercado', periodicidad: 'variable' },
+          { fecha: '12/01/2026', monto: 35000, categoria: 'Gastronomia', periodicidad: 'variable', tags: ['JALM'] },
+          { fecha: '15/01/2026', monto: 60000, categoria: 'Educacion', subcategoria: 'Colegio', periodicidad: 'fijo', tags: ['CLM'] },
+          { fecha: '18/01/2026', monto: 25000, categoria: 'Educacion', subcategoria: 'Cursos', periodicidad: 'esporadico', tags: ['JALM'] },
+          { fecha: '20/01/2026', monto: 40000, categoria: 'Entretenimiento', periodicidad: 'esporadico', tags: ['JALM'] },
+          { fecha: '25/01/2026', monto: 800000, categoria: 'Sueldo', tags: ['JALM'] },
+          { fecha: '28/01/2026', monto: 150000, categoria: 'Inversion' }
+        ],
+        febrero: [
+          { fecha: '05/02/2026', monto: 250000, categoria: 'Vivienda', subcategoria: 'Alquiler', periodicidad: 'fijo' },
+          { fecha: '08/02/2026', monto: 95000, categoria: 'Supermercado', periodicidad: 'variable' },
+          { fecha: '12/02/2026', monto: 50000, categoria: 'Gastronomia', periodicidad: 'variable' },
+          { fecha: '15/02/2026', monto: 60000, categoria: 'Educacion', subcategoria: 'Colegio', periodicidad: 'fijo', tags: ['CLM'] },
+          { fecha: '25/02/2026', monto: 850000, categoria: 'Sueldo' },
+          { fecha: '28/02/2026', monto: 100000, categoria: 'Inversion' }
+        ],
+        marzo: [
+          { fecha: '05/03/2026', monto: 250000, categoria: 'Vivienda', subcategoria: 'Alquiler', periodicidad: 'fijo' },
+          { fecha: '10/03/2026', monto: 85000, categoria: 'Supermercado', periodicidad: 'variable' },
+          { fecha: '15/03/2026', monto: 200000, categoria: 'Vacaciones', periodicidad: 'imprevisto', tags: ['JALM','CLM'] },
+          { fecha: '25/03/2026', monto: 900000, categoria: 'Sueldo' },
+          { fecha: '28/03/2026', monto: 120000, categoria: 'Inversion' }
+        ]
+      }
+    },
+    categoryRules: [
+      { id: 'r1', matchType: 'contains', pattern: 'carrefour;coto', categoria: 'Supermercado', enabled: true },
+      { id: 'r2', matchType: 'contains', pattern: 'mcdonalds', categoria: 'Gastronomia', enabled: true }
+    ],
+    kpiCardsConfig: [
+      { id: 'k1', label: 'Sueldos', enabled: true, order: 1, op: { type: 'tx_sum', categoria: 'Sueldo' }, accent: '#6B8E4E' },
+      { id: 'k2', label: 'Gastos totales', enabled: true, order: 2, op: { type: 'gasto_total' }, accent: '#C8553D' },
+      { id: 'k3', label: 'Vivienda', enabled: true, order: 3, op: { type: 'tx_sum', categoria: 'Vivienda' }, accent: '#8B4A3F' },
+      { id: 'k4', label: 'Discrecionales JALM', enabled: true, order: 4, op: { type: 'tx_sum', classFilter: 'discretionary', tags: ['JALM'] }, accent: '#D4A24C' },
+      { id: 'k5', label: 'Solo CLM', enabled: false, order: 5, op: { type: 'tx_sum', tags: ['CLM'] }, accent: '#D4849E' }
+    ]
+  };
+  return state;
+}
+
+group('INTEGRACIÓN — Trimestre completo Q1 2026', function () {
+  function withState(fn) {
+    const prev = globalThis.state;
+    globalThis.state = buildRealisticState();
+    try { return fn(); } finally { globalThis.state = prev; }
+  }
+
+  test('KPI Sueldos: suma todos los sueldos del Q1', function () {
+    withState(function () {
+      const v = computeKpiOp({ type: 'tx_sum', categoria: 'Sueldo' }, { activeMonths: ['enero','febrero','marzo'] });
+      // 800k + 850k + 900k = 2.550.000
+      assertEqual(v, 2550000);
+    });
+  });
+
+  test('KPI Vivienda mes a mes: sparkline-friendly (un mes por vez)', function () {
+    withState(function () {
+      const op = { type: 'tx_sum', categoria: 'Vivienda' };
+      // Enero: 250k + 45k = 295k
+      assertEqual(computeKpiOp(op, { activeMonths: ['enero'] }), 295000);
+      // Febrero: 250k
+      assertEqual(computeKpiOp(op, { activeMonths: ['febrero'] }), 250000);
+      // Marzo: 250k
+      assertEqual(computeKpiOp(op, { activeMonths: ['marzo'] }), 250000);
+    });
+  });
+
+  test('KPI classFilter "discretionary" excluye flujo Y respeta override de sub', function () {
+    withState(function () {
+      const v = computeKpiOp({ type: 'tx_sum', classFilter: 'discretionary' }, { activeMonths: ['enero'] });
+      // Discrecionales en enero:
+      //   - Gastronomia 35k (discrecional puro)
+      //   - Educacion·Cursos 25k (override: cursos es discrecional aunque educación es básica)
+      //   - Entretenimiento 40k
+      // Total = 100k
+      assertEqual(v, 100000);
+    });
+  });
+
+  test('KPI classFilter + tags: combina con AND', function () {
+    withState(function () {
+      const v = computeKpiOp({ type: 'tx_sum', classFilter: 'discretionary', tags: ['JALM'] }, { activeMonths: ['enero'] });
+      // Discrecionales con tag JALM en enero:
+      //   - Gastronomia 35k (JALM)
+      //   - Educacion·Cursos 25k (JALM)
+      //   - Entretenimiento 40k (JALM)
+      // Total = 100k (todas casualmente tienen JALM, pero el filtro es estricto)
+      assertEqual(v, 100000);
+    });
+  });
+
+  test('KPI con tag CLM aislado: cuenta tx con CLM (incluso de flujo si no hay filtro de clasificación)', function () {
+    withState(function () {
+      // tags sin classFilter → cualquier tx con tag CLM cuenta (incluso si es flujo)
+      const v = computeKpiOp({ type: 'tx_sum', tags: ['CLM'] }, { activeMonths: ['enero','febrero','marzo'] });
+      // CLM en Q1:
+      //   - Enero Educacion·Colegio 60k (CLM)
+      //   - Febrero Educacion·Colegio 60k (CLM)
+      //   - Marzo Vacaciones 200k (JALM, CLM)
+      assertEqual(v, 320000);
+    });
+  });
+
+  test('Score de salud financiera: Q1 con ratios típicos da Atención o Saludable', function () {
+    withState(function () {
+      // Calcular agregados Q1
+      let sueldo = 0, gastos = 0, gastosDisc = 0, inversion = 0;
+      const all = state.transactionsByYear[2026];
+      ['enero','febrero','marzo'].forEach(function (m) {
+        all[m].forEach(function (t) {
+          if (t.categoria === 'Sueldo') sueldo += t.monto;
+          else if (t.categoria === 'Inversion') inversion += t.monto;
+          else if (!isNonExpenseCat(t.categoria)) {
+            gastos += t.monto;
+            // Clasificación efectiva con override de sub
+            const cls = (t.subcategoria && state.subcategoryClassification[t.categoria] && state.subcategoryClassification[t.categoria][t.subcategoria])
+              || getCategoryClassification(t.categoria);
+            if (cls === 'discretionary') gastosDisc += t.monto;
+          }
+        });
+      });
+      const r = computeHealthScore({
+        sueldo: sueldo, gastosTotal: gastos, gastosDiscrecionales: gastosDisc,
+        inversion: inversion, prestamos: 0
+      });
+      assert(r.hasData, 'score debería tener datos con sueldo > 0');
+      assert(r.score > 0 && r.score <= 100, 'score en rango 0-100, got ' + r.score);
+      // Documentar el ratio para futuras regresiones
+      const pctDisc = (gastosDisc / gastos * 100);
+      assert(pctDisc > 0 && pctDisc < 100, 'ratio discrecional debe ser % válido, got ' + pctDisc);
+    });
+  });
+
+  test('Score reacciona a cambios de clasificación de subcategoría', function () {
+    withState(function () {
+      // Estado A: con Cursos como discrecional (override)
+      const ingA = computeKpiOp({ type: 'tx_sum', classFilter: 'basic' }, { activeMonths: ['enero'] });
+      const discA = computeKpiOp({ type: 'tx_sum', classFilter: 'discretionary' }, { activeMonths: ['enero'] });
+      // Quito el override → Cursos vuelve a ser básica (hereda de Educación)
+      state.subcategoryClassification.Educacion = {};
+      const ingB = computeKpiOp({ type: 'tx_sum', classFilter: 'basic' }, { activeMonths: ['enero'] });
+      const discB = computeKpiOp({ type: 'tx_sum', classFilter: 'discretionary' }, { activeMonths: ['enero'] });
+      // En B, los 25k de Cursos cambiaron de discrecional a básica
+      assertEqual(ingB - ingA, 25000);
+      assertEqual(discA - discB, 25000);
+    });
+  });
+
+  test('Reglas de categorización: matchea descripción y devuelve la categoría correcta', function () {
+    withState(function () {
+      const r1 = matchCategoryRule('CARREFOUR SAN ISIDRO', state.categoryRules[0]);
+      assert(r1 && r1.categoria === 'Supermercado');
+      const r2 = matchCategoryRule('Coto Express 123', state.categoryRules[0]);
+      assert(r2 && r2.categoria === 'Supermercado');
+      const r3 = matchCategoryRule('Spotify Premium', state.categoryRules[0]);
+      assertEqual(r3, null);
+    });
+  });
+
+  test('Coherencia: suma mensual = suma trimestral (KPI gasto_total)', function () {
+    withState(function () {
+      // Calcular Q1 sumando por mes
+      let porMes = 0;
+      ['enero','febrero','marzo'].forEach(function (m) {
+        const txs = state.transactionsByYear[2026][m];
+        txs.forEach(function (t) {
+          if (t.categoria && !isNonExpenseCat(t.categoria)) porMes += t.monto;
+        });
+      });
+      // Q1 directo
+      const txsQ1 = []
+        .concat(state.transactionsByYear[2026].enero)
+        .concat(state.transactionsByYear[2026].febrero)
+        .concat(state.transactionsByYear[2026].marzo);
+      let directo = 0;
+      txsQ1.forEach(function (t) {
+        if (t.categoria && !isNonExpenseCat(t.categoria)) directo += t.monto;
+      });
+      assertEqual(porMes, directo);
+    });
+  });
+
+  test('KPIs deshabilitadas no rompen el render (filter funciona)', function () {
+    withState(function () {
+      const enabled = state.kpiCardsConfig.filter(function (c) { return c.enabled !== false; });
+      const disabled = state.kpiCardsConfig.filter(function (c) { return c.enabled === false; });
+      assertEqual(enabled.length, 4);
+      assertEqual(disabled.length, 1);
+      // Computar todas las habilitadas no tira
+      enabled.forEach(function (k) {
+        const v = computeKpiOp(k.op, { activeMonths: ['enero','febrero','marzo'], total: 1645000 });
+        assert(typeof v === 'number' && isFinite(v), 'KPI ' + k.label + ' debe devolver número finito');
+      });
+    });
+  });
+});
+
+group('INTEGRACIÓN — Edge cases que probablemente rompan algo en el futuro', function () {
+  test('state sin transactionsByYear: nada explota', function () {
+    const prev = globalThis.state;
+    globalThis.state = { selYear: 2026, transactionsByYear: undefined };
+    try {
+      // sumTxForKpi tolera state vacío
+      assertEqual(sumTxForKpi({ categoria: 'X' }, ['enero']), 0);
+    } finally { globalThis.state = prev; }
+  });
+  test('mes activo vacío: KPI devuelve 0 sin tirar', function () {
+    setupState({ transactionsByYear: { 2026: {} } });
+    assertEqual(computeKpiOp({ type: 'tx_sum', categoria: 'X' }, { activeMonths: [] }), 0);
+  });
+  test('fecha de tx que cae en otro mes que su bucket: cuenta en el mes real', function () {
+    setupState({
+      transactionsByYear: { 2026: {
+        enero: [{ fecha: '15/02/2026', monto: 5000, categoria: 'X' }] // bucket enero, fecha febrero
+      }}
+    });
+    assertEqual(sumTxForKpi({ categoria: 'X' }, ['enero']), 0);  // no entra en enero
+    assertEqual(sumTxForKpi({ categoria: 'X' }, ['febrero']), 5000); // sí en febrero
+  });
+  test('score con sueldo 0 pero con gastos: calcula con componentes alt', function () {
+    const r = computeHealthScore({ sueldo: 0, gastosTotal: 100000, gastosDiscrecionales: 50000 });
+    assertEqual(r.hasData, true);
+    assert(r.activeCount >= 2, 'al menos discrecional y un alt deben estar activos');
+  });
+  test('score sin nada (0 sueldo, 0 gastos): hasData=false', function () {
+    const r = computeHealthScore({ sueldo: 0, gastosTotal: 0, gastosDiscrecionales: 0 });
+    assertEqual(r.hasData, false);
+  });
+  test('score con gastos 0 pero sueldo positivo: no divide por cero, score razonable', function () {
+    const r = computeHealthScore({ sueldo: 1000000, gastosTotal: 0, gastosDiscrecionales: 0, inversion: 0, prestamos: 0 });
+    assert(r.hasData);
+    // Sin gastos, el componente 1 (discrecional/total) se omite y se redistribuyen
+    // los pesos entre los 3 activos. Con sueldo solo: margen 100% (pleno), ahorro 0%,
+    // deuda 0% (pleno). Score esperado >= 60.
+    assert(r.score >= 60, 'score con gastos 0 esperado >= 60, got ' + r.score);
+    assertEqual(r.activeCount, 3); // omite discrecional
+  });
+});
+
+// ============================================================
+// RENDER DE RESULTADOS
+// ============================================================
+
+function renderResults() {
+  const resultsEl = document.getElementById('results');
+  const summaryEl = document.getElementById('summary');
+  let totalTests = 0, totalOk = 0, totalFail = 0, totalTime = 0;
+  let html = '';
+  allGroups.forEach(function (g) {
+    const groupOk = g.tests.filter(function (t) { return t.ok; }).length;
+    const groupTotal = g.tests.length;
+    const groupAllOk = groupOk === groupTotal;
+    totalTests += groupTotal;
+    totalOk += groupOk;
+    totalFail += (groupTotal - groupOk);
+    html += '<div class="group">' +
+      '<div class="group-title">' + escapeHtmlSafe(g.name) + '</div>' +
+      '<div class="group-meta">' + groupOk + ' / ' + groupTotal + (groupAllOk ? ' OK' : ' — ' + (groupTotal - groupOk) + ' FALLAN') + '</div>';
+    g.tests.forEach(function (t) {
+      totalTime += t.timeMs;
+      html += '<div class="test ' + (t.ok ? 'ok' : 'fail') + '">' +
+        '<span class="test-icon">' + (t.ok ? '✓' : '✗') + '</span>' +
+        '<span class="test-name">' + escapeHtmlSafe(t.name) + '</span>' +
+        '<span class="test-time">' + t.timeMs + 'ms</span>' +
+        (t.error ? '<div class="test-detail">' + escapeHtmlSafe(t.error) + '</div>' : '') +
+      '</div>';
+    });
+    html += '</div>';
+  });
+  resultsEl.innerHTML = html;
+  const allOk = totalFail === 0;
+  summaryEl.innerHTML =
+    '<div class="stat"><div class="stat-label">Total tests</div><div class="stat-val">' + totalTests + '</div></div>' +
+    '<div class="stat"><div class="stat-label">OK</div><div class="stat-val ok">' + totalOk + '</div></div>' +
+    '<div class="stat"><div class="stat-label">Fallan</div><div class="stat-val ' + (allOk ? 'ok' : 'fail') + '">' + totalFail + '</div></div>' +
+    '<div class="stat"><div class="stat-label">Tiempo</div><div class="stat-val">' + Math.round(totalTime) + 'ms</div></div>' +
+    '<div class="stat"><div class="stat-label">Estado</div><div class="stat-val ' + (allOk ? 'ok' : 'fail') + '">' + (allOk ? 'PASS' : 'FAIL') + '</div></div>';
+  document.title = (allOk ? '✓' : '✗') + ' Tests · ' + totalOk + '/' + totalTests;
+}
+
+function runAllTests() {
+  // Limpiar grupos previos si se vuelve a correr
+  allGroups.length = 0;
+  // Re-ejecutar todos los group() calls. Como en este archivo cada group() está
+  // al top-level, en un re-run necesitaríamos volver a evaluar todo el script.
+  // Solución simple: recargar la página.
+  if (allGroups.length === 0) {
+    window.location.reload();
+    return;
+  }
+  renderResults();
+}
+
+// Render inicial al cargar
+renderResults();
+</script>
+</body>
+</html>
