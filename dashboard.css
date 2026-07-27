@@ -5477,7 +5477,7 @@ body[data-exporting="true"] .section-card {
   /* fecha | broker | ticker | cantidad | precio | total (read-only, flex) | delete
      Anchos calibrados para caber cómodos en el modal (~950px de contenido)
      sin generar scroll horizontal. La columna "total" absorbe el sobrante. */
-  grid-template-columns: 120px 140px 120px 90px 90px 1fr 30px !important;
+  grid-template-columns: 120px 140px 130px 100px 100px 1fr 30px !important;
   gap: 6px;
   align-items: center;
   padding: 8px 10px;
@@ -5552,36 +5552,20 @@ body[data-exporting="true"] .section-card {
   font-size: 11px;
   border-top: 1px solid var(--border);
   /* table-layout: fixed hace que los anchos de las columnas sean los
-     definidos en CSS (nth-child abajo), no calculados por el contenido.
-     Esto es CRÍTICO para que la tabla ARS y la tabla USD tengan las
-     mismas columnas alineadas — sin esto, cada tabla calcula anchos
-     independientes según su contenido y se ven desalineadas. */
+     declarados en el <colgroup> que emite buildInvestmentDetailPanel(),
+     no calculados por el contenido. Esto es CRÍTICO para que la tabla ARS
+     y la tabla USD tengan las mismas columnas alineadas — sin esto, cada
+     tabla calcula anchos independientes según su contenido y se ven
+     desalineadas. */
   table-layout: fixed;
 }
-/* Anchos de columnas: cada una lo mínimo necesario para que su contenido
-   quepa. El espacio ganado se transfiere a la columna Descripción (única
-   flexible). Padding lateral mínimo (3px) en cada celda para que las
-   columnas arranquen bien a la izquierda. */
-.investment-detail-table th:nth-child(1),
-.investment-detail-table td:nth-child(1) { width: 20px; }  /* toggle chevron */
-.investment-detail-table th:nth-child(2),
-.investment-detail-table td:nth-child(2) { width: 85px; }  /* Broker/Exchange */
-.investment-detail-table th:nth-child(3),
-.investment-detail-table td:nth-child(3) { width: 60px; }  /* Ticker */
-.investment-detail-table th:nth-child(4),
-.investment-detail-table td:nth-child(4) { width: 380px; }  /* Descripción: ancho explícito grande */
-.investment-detail-table th:nth-child(5),
-.investment-detail-table td:nth-child(5) { width: 85px; }  /* Cantidad */
-.investment-detail-table th:nth-child(6),
-.investment-detail-table td:nth-child(6) { width: 100px; } /* PPC */
-.investment-detail-table th:nth-child(7),
-.investment-detail-table td:nth-child(7) { width: 110px; } /* Invertido */
-.investment-detail-table th:nth-child(8),
-.investment-detail-table td:nth-child(8) { width: 110px; } /* Precio actual */
-.investment-detail-table th:nth-child(9),
-.investment-detail-table td:nth-child(9) { width: 110px; } /* Actualizado */
-.investment-detail-table th:nth-child(10),
-.investment-detail-table td:nth-child(10) { width: 100px; } /* G/P */
+/* Los anchos de columna viven EXCLUSIVAMENTE en el <colgroup> del HTML que
+   genera buildInvestmentDetailPanel() (dashboard.js). No agregar reglas
+   `th/td:nth-child(n) { width }` acá: pisan al colgroup y quedan
+   desincronizadas apenas se toca el orden o el ancho de una columna — que
+   es exactamente lo que pasó antes (Broker 85px vs 140px, Ticker 60px vs
+   70px, Descripción 380px vs 340px). Para cambiar un ancho, editá el
+   <col> correspondiente en dashboard.js. */
 .investment-detail-table th,
 .investment-detail-table td {
   /* Padding lateral 10px para dar buen espacio entre columnas.
