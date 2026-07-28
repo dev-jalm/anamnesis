@@ -3,9 +3,13 @@
 
 # El archivo de datos vive en Google Drive, nunca en el repo.
 # Contiene movimientos bancarios reales: no debe versionarse jamás.
+# La regla es deliberadamente amplia (cualquier .json) y las excepciones se
+# listan una por una: es preferible tener que habilitar un .json a mano que
+# que un export de datos se cuele por un patrón demasiado permisivo.
 *.json
 !package.json
 !.vscode/*.json
+!.claude/settings.json
 
 # Basura del sistema
 Thumbs.db

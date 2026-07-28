@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "permissions": {
+    "allow": [
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git show *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git branch *)",
+      "Bash(git checkout *)",
+      "Bash(git switch *)",
+      "Bash(git merge *)",
+      "Bash(git push origin *)",
+      "Bash(git push -q origin *)",
+      "Bash(git push -u origin *)",
+      "Bash(git ls-files *)",
+      "Bash(git remote -v)",
+      "Bash(git config --get *)",
+      "Bash(git config --local *)",
+      "Bash(git rev-parse *)",
+      "Bash(git stash list *)",
+
+      "Bash(gh auth status *)",
+      "Bash(gh repo view *)",
+      "Bash(gh --version)",
+
+      "Bash(node --check *)",
+      "Bash(npx --version)",
+
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(awk *)",
+      "Bash(sed -n *)",
+      "Bash(cmp *)",
+      "Bash(diff *)",
+      "Bash(find * -name *)",
+      "Bash(echo *)",
+      "Bash(cd *)",
+      "Bash(pwd)",
+      "Bash(date *)",
+
+      "PowerShell(Get-Command *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Select-String *)",
+      "PowerShell(Get-FileHash *)",
+      "PowerShell(Get-NetTCPConnection *)",
+
+      "Read",
+      "Glob",
+      "Grep"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean -fd *)",
+      "Bash(git filter-branch *)",
+      "Bash(gh repo delete *)",
+      "Bash(gh api --method DELETE *)",
+      "Bash(gh api -X DELETE *)",
+      "PowerShell(Remove-Item * -Recurse *)"
+    ]
+  }
+}
