@@ -2086,7 +2086,10 @@ const DEFAULT_KPI_CARDS = [
     hint: { mode: 'text', text: 'ingresos - egresos' } },
 
   // Grilla principal de KPIs — location: 'grid' (default para retrocompat).
-  { id: 'kpi_sueldos',    order: 1, enabled: true, label: 'Sueldos',         icon: 'briefcase',   accent: '#4A8E3F', location: 'grid', op: { type: 'tx_sum', categoria: 'Sueldo' },                  hint: { mode: 'text', text: 'UBIMIA' } },
+  // El hint de Sueldos arranca vacío a propósito: es texto libre para que cada
+  // uno ponga el nombre de su empleador desde Administración → KPIs. No va un
+  // default con un nombre real adentro, que además terminaría publicado.
+  { id: 'kpi_sueldos',    order: 1, enabled: true, label: 'Sueldos',         icon: 'briefcase',   accent: '#4A8E3F', location: 'grid', op: { type: 'tx_sum', categoria: 'Sueldo' },                  hint: { mode: 'text', text: '' } },
   { id: 'kpi_prestamos',  order: 2, enabled: true, label: 'Préstamos',       icon: 'building-2',  accent: '#9BBE7C', location: 'grid', op: { type: 'tx_sum', categoria: 'Prestamo' },                hint: { mode: 'text', text: 'Deuda nueva' } },
   { id: 'kpi_gastos',     order: 3, enabled: true, label: 'Gastos',          icon: 'wallet',      accent: '#7A1F2B', location: 'grid', op: { type: 'gasto_total' },                                  hint: { mode: 'pct_of', op: { type: 'tx_sum', categoria: 'Sueldo' }, suffix: 'del sueldo', decimals: 0 } },
   { id: 'kpi_deudas',     order: 4, enabled: true, label: 'Deudas',          icon: 'credit-card', accent: '#D63B30', location: 'grid', op: { type: 'tx_sum', categoria: 'Deuda' },                   hint: { mode: 'pct_of', op: { type: 'gasto_total' }, suffix: 'del gasto', decimals: 1 } },
@@ -9699,7 +9702,7 @@ function renderKpiEditorHintExtras(d) {
   switch (d.hintMode) {
     case 'text':
       html = '<span class="kpi-editor-field-label">Texto del hint</span>' +
-        '<input type="text" id="kpiHintText" value="' + escapeHtmlSafe(hint.text || '') + '" placeholder="ej: UBIMIA">';
+        '<input type="text" id="kpiHintText" value="' + escapeHtmlSafe(hint.text || '') + '" placeholder="ej: nombre de la empresa">';
       break;
     case 'pct_of':
     case 'ratio': {
