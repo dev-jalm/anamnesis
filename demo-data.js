@@ -337,7 +337,67 @@ function buildDemoSnapshot(mesesAtras) {
     recurringDismissed: [],
     travels: [],
     visibilityPrefs: {},
-    kpiCardsConfig: [],
+    // Configuración de tarjetas KPI propia de la demo. Difiere del default de
+    // la app (DEFAULT_KPI_CARDS en dashboard.js) en tres puntos:
+    //
+    //   - Jubilación va en UNA sola tarjeta. El default trae dos, JALM y CLM,
+    //     separadas por tag; para mostrar el producto a alguien de afuera esa
+    //     distinción no significa nada y ocupa dos lugares.
+    //   - Se agrega Reservas, que en el default no tiene tarjeta propia.
+    //   - Reserva, Jubilación e Inversión van a 'score-right', la columna a la
+    //     derecha del score, en vez de perderse en la grilla de abajo: son los
+    //     tres destinos de ahorro y quedan enfrentados a los componentes del
+    //     score que justamente miden eso.
+    //
+    // Los tres primeros (score-left) y el resto de la grilla se dejan igual que
+    // en el default, así la demo no se despega de lo que ve un usuario real.
+    kpiCardsConfig: [
+      { id: 'kpi_ingresos', order: 1, enabled: true, label: 'Ingresos', icon: 'plus', accent: '#4A8E3F', location: 'score-left',
+        op: { type: 'cat_combine', operands: [
+          { sign: '+', categoria: 'Sueldo' },
+          { sign: '+', categoria: 'Prestamo' }
+        ]},
+        hint: { mode: 'text', text: 'sueldos + préstamos' } },
+      { id: 'kpi_egresos', order: 2, enabled: true, label: 'Egresos', icon: 'minus', accent: '#C8553D', location: 'score-left',
+        op: { type: 'cat_combine', operands: [
+          { sign: '+', classFilter: 'all_expense' },
+          { sign: '+', categoria: 'Inversion' },
+          { sign: '+', categoria: 'Trading' },
+          { sign: '+', categoria: 'Reserva' },
+          { sign: '+', categoria: 'Jubilacion' }
+        ]},
+        hint: { mode: 'none' } },
+      { id: 'kpi_saldo', order: 3, enabled: true, label: 'Saldo', icon: 'wallet', accent: '#6B5B4A', location: 'score-left',
+        op: { type: 'cat_combine', operands: [
+          { sign: '+', categoria: 'Sueldo' },
+          { sign: '+', categoria: 'Prestamo' },
+          { sign: '-', classFilter: 'all_expense' },
+          { sign: '-', categoria: 'Inversion' },
+          { sign: '-', categoria: 'Trading' },
+          { sign: '-', categoria: 'Reserva' },
+          { sign: '-', categoria: 'Jubilacion' }
+        ]},
+        hint: { mode: 'text', text: 'ingresos - egresos' } },
+
+      // Columna derecha del score: los tres destinos de ahorro.
+      { id: 'kpi_reservas', order: 1, enabled: true, label: 'Reservas', icon: 'shield', accent: '#C8873D', location: 'score-right',
+        op: { type: 'tx_sum', categoria: 'Reserva' },
+        hint: { mode: 'pct_of', op: { type: 'tx_sum', categoria: 'Sueldo' }, suffix: 'del sueldo', decimals: 1 } },
+      // Jubilación SIN filtro de tags: suma JALM y CLM juntas.
+      { id: 'kpi_jubilacion', order: 2, enabled: true, label: 'Jubilación', icon: 'umbrella', accent: '#8E7CC3', location: 'score-right',
+        op: { type: 'tx_sum', categoria: 'Jubilacion' },
+        hint: { mode: 'text', text: 'aportes del período' } },
+      { id: 'kpi_inversiones', order: 3, enabled: true, label: 'Inversión', icon: 'piggy-bank', accent: '#8E5A9E', location: 'score-right',
+        op: { type: 'tx_sum', categoria: 'Inversion' },
+        hint: { mode: 'pct_of', op: { type: 'tx_sum', categoria: 'Sueldo' }, suffix: 'del sueldo', decimals: 1 } },
+
+      // Grilla principal.
+      { id: 'kpi_sueldos',   order: 1, enabled: true, label: 'Sueldos',   icon: 'briefcase',   accent: '#4A8E3F', location: 'grid', op: { type: 'tx_sum', categoria: 'Sueldo' },   hint: { mode: 'text', text: '' } },
+      { id: 'kpi_prestamos', order: 2, enabled: true, label: 'Préstamos', icon: 'building-2',  accent: '#9BBE7C', location: 'grid', op: { type: 'tx_sum', categoria: 'Prestamo' }, hint: { mode: 'text', text: 'Deuda nueva' } },
+      { id: 'kpi_gastos',    order: 3, enabled: true, label: 'Gastos',    icon: 'wallet',      accent: '#7A1F2B', location: 'grid', op: { type: 'gasto_total' },                    hint: { mode: 'pct_of', op: { type: 'tx_sum', categoria: 'Sueldo' }, suffix: 'del sueldo', decimals: 0 } },
+      { id: 'kpi_deudas',    order: 4, enabled: true, label: 'Deudas',    icon: 'credit-card', accent: '#D63B30', location: 'grid', op: { type: 'tx_sum', categoria: 'Deuda' },     hint: { mode: 'pct_of', op: { type: 'gasto_total' }, suffix: 'del gasto', decimals: 1 } },
+      { id: 'kpi_trading',   order: 5, enabled: true, label: 'Trading',   icon: 'line-chart',  accent: '#5B4E9E', location: 'grid', op: { type: 'tx_sum', categoria: 'Trading' },   hint: { mode: 'none' } }
+    ],
     loadReminderDismissed: {},
     origins: DEMO_ORIGENES.slice(),
     uploadHistoryByOrigin: {},
