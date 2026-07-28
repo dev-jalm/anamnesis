@@ -4468,7 +4468,12 @@ body[data-exporting="true"] .section-card {
 }
 .health-score-sparkline-svg svg {
   width: 100%;
-  height: 36px;
+  /* Tiene que coincidir con la constante H de buildHealthScoreSparkline()
+     (dashboard.js): el SVG usa preserveAspectRatio="none", así que si difieren
+     el trazo se estira en vertical. La columna izquierda del score tiene aire
+     de sobra —el wrap va con margin-top:auto, pegado abajo— así que el alto
+     extra lo absorbe el hueco que quedaba vacío. */
+  height: 64px;
 }
 .health-score-sparkline-svg:empty {
   display: none;

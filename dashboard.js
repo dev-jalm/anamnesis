@@ -2306,7 +2306,10 @@ function getHealthScoreHistory(anchorYear, anchorMonthIdx, count) {
 // suave. Si un mes no tiene datos (hasData=false) genera un gap (no plotea
 // ese punto).
 function buildHealthScoreSparkline(anchorYear, anchorMonthIdx, count) {
-  const W = 280, H = 40, PAD_X = 4, PAD_Y = 4;
+  // H acompaña al alto de render del CSS (.health-score-sparkline-svg svg).
+  // Como el SVG usa preserveAspectRatio="none", si el viewBox y el alto real
+  // no coinciden el trazo se estira en vertical y el stroke queda deformado.
+  const W = 280, H = 64, PAD_X = 4, PAD_Y = 4;
   const history = getHealthScoreHistory(anchorYear, anchorMonthIdx, count || 6);
   // Si no hay ningún mes con datos, no graficamos
   const withData = history.filter(function (h) { return h.hasData; });
