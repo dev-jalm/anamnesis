@@ -78,7 +78,7 @@ const DEMO_GASTOS = [
 // suma mensual entre en lo que queda del sueldo después de los gastos —
 // aportar más de lo que se cobra dejaría el balance de flujo en rojo.
 const DEMO_APORTES = [
-  { cat: 'Reserva',    tags: null,     monto: 150000, dia: 8,  desc: 'Transferencia a caja de ahorro USD' },
+  { cat: 'Reserva',    tags: null,     monto: 200000, dia: 8,  desc: 'Transferencia a caja de ahorro USD' },
   { cat: 'Inversion',  tags: null,     monto: 220000, dia: 9,  desc: 'Transferencia a Balanz' },
   { cat: 'Trading',    tags: null,     monto: 85000,  dia: 9,  desc: 'Transferencia a Bull Market' },
   { cat: 'Jubilacion', tags: ['JALM'], monto: 95000,  dia: 10, desc: 'Aporte jubilación JALM' },
@@ -203,6 +203,43 @@ function buildDemoSnapshot(mesesAtras) {
         });
       }
     });
+
+    // --- Aguinaldo (SAC): medio sueldo en junio y diciembre ---
+    // Además de ser lo que corresponde en Argentina, resuelve un problema del
+    // dataset: el componente "Reservas (meses de vida)" del score puntúa sobre
+    // la reserva ACUMULADA contra el gasto mensual, y los umbrales son 6 meses
+    // para excelente y 3 para bueno. Con un aporte mensual parejo no hay forma
+    // de juntar eso en 14 meses sin inventar un sueldo irreal. El aguinaldo da
+    // el ingreso extra que permite volcar un monto grande al fondo, que es
+    // además lo que se recomienda hacer con el medio aguinaldo.
+    const esMesDeSac = (mesIdx === 5 || mesIdx === 11);   // junio · diciembre
+    if (esMesDeSac) {
+      const sac = Math.round(sueldo * 0.5 / 1000) * 1000;
+      pushTx(anio, mes, {
+        id: nuevoId(),
+        fecha: fechaAR(anio, mesIdx, 18),
+        descripcion: 'SAC (aguinaldo)',
+        monto: sac,
+        categoria: 'Sueldo',
+        subcategoria: null,
+        periodicidad: 'esporadico',
+        tags: null,
+        origen: 'Banco Galicia'
+      });
+      // El grueso del aguinaldo va al fondo de emergencia; queda un resto
+      // libre para que el mes no cierre justo.
+      pushTx(anio, mes, {
+        id: nuevoId(),
+        fecha: fechaAR(anio, mesIdx, 19),
+        descripcion: 'Refuerzo de reserva con aguinaldo',
+        monto: Math.round(sac * 0.9 / 1000) * 1000,
+        categoria: 'Reserva',
+        subcategoria: null,
+        periodicidad: 'esporadico',
+        tags: null,
+        origen: 'Banco Galicia'
+      });
+    }
 
     // --- Aportes a los destinos de Salud financiera (categorías de flujo) ---
     DEMO_APORTES.forEach(function (ap) {
