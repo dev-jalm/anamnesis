@@ -62,6 +62,29 @@ const DEMO_GASTOS = [
   { cat: 'Extras',        sub: null,           per: 'imprevisto', min: 15000,  max: 90000,  veces: 1, desc: ['Regalo cumpleanos', 'Reparacion', 'Service notebook', 'Veterinaria'] }
 ];
 
+// Aportes mensuales a los destinos de Salud financiera.
+//
+// Estas tx son las que respaldan la fila LÍQUIDO de cada panel. El cálculo es
+// `líquido = suma de tx del destino − total invertido` (ver sumTxByDestinos en
+// dashboard.js), así que sin ellas cada panel muestra el invertido en negativo,
+// como si se hubiera comprado con plata que nunca entró.
+//
+// El match es por categoría de flujo, y jubilación se desambigua por tag:
+//   inversiones → Inversion · trading → Trading · reserva → Reserva
+//   jubilacion_jalm → Jubilacion + tag JALM · jubilacion_clm → Jubilacion + tag CLM
+//
+// Los montos están calibrados con dos criterios: que superen lo invertido en
+// cada destino (queda un remanente sin invertir, que es lo normal), y que la
+// suma mensual entre en lo que queda del sueldo después de los gastos —
+// aportar más de lo que se cobra dejaría el balance de flujo en rojo.
+const DEMO_APORTES = [
+  { cat: 'Reserva',    tags: null,     monto: 150000, dia: 8,  desc: 'Transferencia a caja de ahorro USD' },
+  { cat: 'Inversion',  tags: null,     monto: 220000, dia: 9,  desc: 'Transferencia a Balanz' },
+  { cat: 'Trading',    tags: null,     monto: 85000,  dia: 9,  desc: 'Transferencia a Bull Market' },
+  { cat: 'Jubilacion', tags: ['JALM'], monto: 95000,  dia: 10, desc: 'Aporte jubilación JALM' },
+  { cat: 'Jubilacion', tags: ['CLM'],  monto: 45000,  dia: 10, desc: 'Aporte jubilación CLM' }
+];
+
 // Cartera de CEDEARs para la solapa Salud financiera. Precios en ARS con el
 // PPC por debajo del precio actual, para que la demo muestre ganancia.
 const DEMO_CARTERA = [
@@ -167,17 +190,19 @@ function buildDemoSnapshot(mesesAtras) {
       }
     });
 
-    // --- Ahorro mensual hacia la reserva (categoría de flujo) ---
-    pushTx(anio, mes, {
-      id: nuevoId(),
-      fecha: fechaAR(anio, mesIdx, 8),
-      descripcion: 'Transferencia a caja de ahorro USD',
-      monto: -Math.round(sueldo * 0.12 / 1000) * 1000,
-      categoria: 'Reserva',
-      subcategoria: null,
-      periodicidad: 'fijo',
-      tags: null,
-      origen: 'Banco Galicia'
+    // --- Aportes a los destinos de Salud financiera (categorías de flujo) ---
+    DEMO_APORTES.forEach(function (ap) {
+      pushTx(anio, mes, {
+        id: nuevoId(),
+        fecha: fechaAR(anio, mesIdx, ap.dia),
+        descripcion: ap.desc,
+        monto: -ap.monto,
+        categoria: ap.cat,
+        subcategoria: null,
+        periodicidad: 'fijo',
+        tags: ap.tags ? ap.tags.slice() : null,
+        origen: 'Banco Galicia'
+      });
     });
 
     // --- Presupuesto del mes: se fija por encima del gasto real típico ---
