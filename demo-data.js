@@ -395,8 +395,10 @@ function buildDemoSnapshot(mesesAtras) {
       { id: 'kpi_sueldos',   order: 1, enabled: true, label: 'Sueldos',   icon: 'briefcase',   accent: '#4A8E3F', location: 'grid', op: { type: 'tx_sum', categoria: 'Sueldo' },   hint: { mode: 'text', text: '' } },
       { id: 'kpi_prestamos', order: 2, enabled: true, label: 'Préstamos', icon: 'building-2',  accent: '#9BBE7C', location: 'grid', op: { type: 'tx_sum', categoria: 'Prestamo' }, hint: { mode: 'text', text: 'Deuda nueva' } },
       { id: 'kpi_gastos',    order: 3, enabled: true, label: 'Gastos',    icon: 'wallet',      accent: '#7A1F2B', location: 'grid', op: { type: 'gasto_total' },                    hint: { mode: 'pct_of', op: { type: 'tx_sum', categoria: 'Sueldo' }, suffix: 'del sueldo', decimals: 0 } },
-      { id: 'kpi_deudas',    order: 4, enabled: true, label: 'Deudas',    icon: 'credit-card', accent: '#D63B30', location: 'grid', op: { type: 'tx_sum', categoria: 'Deuda' },     hint: { mode: 'pct_of', op: { type: 'gasto_total' }, suffix: 'del gasto', decimals: 1 } },
-      { id: 'kpi_trading',   order: 5, enabled: true, label: 'Trading',   icon: 'line-chart',  accent: '#5B4E9E', location: 'grid', op: { type: 'tx_sum', categoria: 'Trading' },   hint: { mode: 'none' } }
+      { id: 'kpi_deudas',    order: 4, enabled: true, label: 'Deudas',    icon: 'credit-card', accent: '#D63B30', location: 'grid', op: { type: 'tx_sum', categoria: 'Deuda' },     hint: { mode: 'pct_of', op: { type: 'gasto_total' }, suffix: 'del gasto', decimals: 1 } }
+      // Trading no tiene tarjeta KPI en la demo. Las tx de esa categoría siguen
+      // existiendo (y el panel de Trading en Salud financiera las usa), pero
+      // como tarjeta suelta en la grilla no aportaba nada.
     ],
     loadReminderDismissed: {},
     origins: DEMO_ORIGENES.slice(),
