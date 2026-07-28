@@ -1,0 +1,9 @@
+# La app no tiene index.html: el entry point es dashboard.html (así lo pide la
+# spec y así se abría con doble clic). Para que la raíz del sitio sirva la app
+# sin cambiar el nombre del archivo, se reescribe / → /dashboard.html.
+#
+# El código 200 es una reescritura, no un redirect: la URL en la barra queda
+# limpia (https://.../ en vez de https://.../dashboard.html).
+#
+# Formato soportado por Cloudflare Pages y Netlify.
+/    /dashboard.html    200
