@@ -5,8 +5,8 @@
     "defaultMode": "acceptEdits",
 
     "allow": [
-      "Bash(*)",
-      "PowerShell(*)",
+      "Bash",
+      "PowerShell",
       "Read",
       "Glob",
       "Grep",
