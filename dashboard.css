@@ -2747,13 +2747,6 @@ footer .eyebrow-sources {
   font-size: 10px; color: var(--muted); margin-top: 4px; text-align: right;
 }
 
-footer {
-  margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--grid);
-  display: flex; justify-content: space-between; align-items: center;
-  color: var(--muted); font-size: 11px; flex-wrap: wrap; gap: 12px;
-  font-family: 'JetBrains Mono', monospace;
-}
-
 /* Modal */
 .modal-overlay {
   position: fixed; inset: 0;
@@ -6590,8 +6583,8 @@ body[data-exporting="true"] .section-card {
    Aloja el header (título+logo+pin), los selectores de período
    y los botones utility. Dos modos:
    1. Auto-oculto (default): sidebar fuera de pantalla; se abre
-      con click en hamburger o hover en el borde izquierdo;
-      cierra con click en backdrop o Escape.
+      con hover en el borde izquierdo; cierra con click en
+      backdrop o Escape.
    2. Pineado (state.params.sidebarPinned=true): sidebar fijo
       visible, contenido shifted 260px a la derecha, sin backdrop.
    ============================================================ */
@@ -6772,35 +6765,6 @@ body[data-exporting="true"] .section-card {
   margin-left: 4px;
 }
 
-/* Botón hamburguesa: inline dentro de .period-header-row, alineado al
-   mismo nivel vertical que el título y el sync status. Se oculta cuando
-   el sidebar está abierto o pineado. */
-.sidebar-hamburger {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  background: var(--bg-1, #F5F1E8);
-  border: 1px solid var(--border, #E8DFD0);
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--ink, #2A2520);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 120ms, opacity 200ms, background 120ms;
-  box-shadow: 0 2px 8px rgba(42, 37, 32, 0.08);
-}
-.sidebar-hamburger:hover {
-  background: var(--bg-0, #EFEAD9);
-  transform: scale(1.05);
-}
-/* Cuando el sidebar está abierto o pineado, el hamburger se oculta con
-   display: none (no ocupa espacio, así el título ocupa esa posición). */
-body.sidebar-open .sidebar-hamburger,
-body.sidebar-pinned .sidebar-hamburger {
-  display: none;
-}
-
 /* Franja de hover en el borde izquierdo: al pasar el mouse por ahí
    abre el sidebar (shortcut). Solo activa en modo no-pineado. */
 .sidebar-hover-zone {
@@ -6848,8 +6812,7 @@ body:not(.sidebar-pinned) .main-tab-panel {
 }
 
 /* Cuando no está pineado, el sidebar es overlay. El contenido ocupa
-   todo el ancho disponible (sin padding-left de compensación por el
-   hamburger, que ahora es inline dentro de la fila de encabezado). */
+   todo el ancho disponible, sin padding-left de compensación. */
 
 /* Responsive — mobile: sidebar full-width overlay */
 @media (max-width: 600px) {
@@ -6880,9 +6843,8 @@ body:not(.sidebar-pinned) .main-tab-panel {
   padding: 4px 0 12px 0;
   flex-wrap: wrap;
 }
-/* El título ocupa el espacio central; el hamburger queda a la izquierda
-   y el sync status a la derecha. Todos alineados verticalmente al centro
-   por el align-items: center del row. */
+/* El título ocupa el espacio central y el sync status queda a la derecha,
+   alineados verticalmente al centro por el align-items: center del row. */
 .period-header-row .period-title {
   font-family: 'Fraunces', serif;
   font-size: 22px;

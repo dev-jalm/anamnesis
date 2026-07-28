@@ -15560,8 +15560,8 @@ bindKpiCurrencyToggle();
 // SIDEBAR LATERAL — control de estados
 // ============================================================
 // El sidebar tiene 3 estados posibles:
-//   1. Auto-oculto + cerrado: default. Hamburger visible; hover en el
-//      borde izquierdo o click en hamburger lo abre.
+//   1. Auto-oculto + cerrado: default. Se abre con hover en el borde
+//      izquierdo (no hay botón hamburguesa).
 //   2. Auto-oculto + abierto: overlay con backdrop; click en backdrop
 //      o tecla Escape lo cierra.
 //   3. Pineado: sidebar fijo visible, contenido shifted 260px a la
