@@ -143,10 +143,18 @@ function buildDemoSnapshot(mesesAtras) {
     return String(dia).padStart(2, '0') + '/' + String(mesIdx + 1).padStart(2, '0') + '/' + anio;
   }
 
-  // El sueldo arranca más bajo y sube: en 14 meses de contexto argentino, un
-  // ingreso plano se lee como dato falso. Un escalón anual además le da a la
-  // solapa Evolución algo real que mostrar.
-  const sueldoBase = 2350000;
+  // Sueldo y gastos crecen mes a mes: en 14 meses de contexto argentino, montos
+  // planos se leen como dato falso, y además la solapa Evolución no tendría
+  // ninguna tendencia que dibujar.
+  //
+  // El sueldo sube más rápido que los gastos (2,2% contra 1,7% mensual) a
+  // propósito: así el sobrante mejora con el tiempo y la demo cuenta una
+  // historia de mejora financiera. La base está calibrada para que NINGÚN mes
+  // quede en rojo — con una base más baja, los primeros meses no llegaban a
+  // cubrir gastos + aportes y el balance daba negativo.
+  const sueldoBase = 2800000;
+  const INFL_SUELDO = 1.022;
+  const INFL_GASTOS = 1.017;
 
   for (let k = N - 1; k >= 0; k--) {
     const d = new Date(hoy.getFullYear(), hoy.getMonth() - k, 1);
@@ -154,8 +162,10 @@ function buildDemoSnapshot(mesesAtras) {
     const mesIdx = d.getMonth();
     const mes = DEMO_MESES[mesIdx];
     const diasDelMes = new Date(anio, mesIdx + 1, 0).getDate();
-    // Progresión del sueldo: ~2,2% por mes acumulado sobre la base
-    const sueldo = Math.round(sueldoBase * Math.pow(1.022, N - 1 - k) / 1000) * 1000;
+    // Índice del mes dentro de la serie (0 = el más viejo)
+    const idxMes = N - 1 - k;
+    const sueldo = Math.round(sueldoBase * Math.pow(INFL_SUELDO, idxMes) / 1000) * 1000;
+    const factorGastos = Math.pow(INFL_GASTOS, idxMes);
 
     // --- Ingreso ---
     pushTx(anio, mes, {
@@ -180,7 +190,11 @@ function buildDemoSnapshot(mesesAtras) {
           id: nuevoId(),
           fecha: fechaAR(anio, mesIdx, 1 + Math.floor(rnd() * diasDelMes)),
           descripcion: elegir(g.desc),
-          monto: -entre(g.min, g.max),   // los gastos son negativos
+          // Los montos van SIEMPRE positivos, gastos incluidos. Es la
+          // convención de la app: el signo lo aplica cada operación (el KPI
+          // Saldo hace + Sueldo − all_expense − Inversion…). Cargarlos en
+          // negativo hace que esas restas sumen.
+          monto: Math.round(entre(g.min, g.max) * factorGastos),
           categoria: g.cat,
           subcategoria: g.sub,
           periodicidad: g.per,
@@ -196,7 +210,7 @@ function buildDemoSnapshot(mesesAtras) {
         id: nuevoId(),
         fecha: fechaAR(anio, mesIdx, ap.dia),
         descripcion: ap.desc,
-        monto: -ap.monto,
+        monto: ap.monto,          // positivo, igual que los gastos
         categoria: ap.cat,
         subcategoria: null,
         periodicidad: 'fijo',
