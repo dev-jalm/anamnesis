@@ -13657,6 +13657,31 @@ const driveModalState = { mode: 'open' };
 //     acción y confunde a tryRestoreHandle).
 // ============================================================
 function openDriveModal() {
+  // Desde el modo demo no se conecta Drive directamente: primero hay que
+  // recargar. No es una restricción cosmética, evita dos problemas serios:
+  //
+  //   1. DEMO_MODE seguiría en true y los guards de scheduleSave/saveLocal
+  //      seguirían cortando la persistencia. El usuario conectaría su archivo
+  //      creyendo que guarda, y no se escribiría nada.
+  //   2. El state tiene el dataset ficticio cargado, y applyStateSnapshot
+  //      hidrata con `if (snap.X) state.X = snap.X`: las claves que el archivo
+  //      real no traiga se quedarían con datos de la demo, mezclados con los
+  //      reales y listos para escribirse en el archivo del usuario.
+  //
+  // Recargar deja el state limpio y es lo único que garantiza que no quede
+  // nada del demo dando vueltas. Este reload es previo a conectar, no tiene
+  // nada que ver con el reload post-saveHandle que la nota de arriba prohíbe.
+  if (window.DEMO_MODE) {
+    appConfirm({
+      title: 'Salir del modo demo',
+      eyebrow: 'MODO DEMO ACTIVO',
+      message: 'Estás viendo datos de ejemplo. Para conectar tu Google Drive hay que salir del demo, así no queda nada de la demostración mezclado con tu información real. Se recarga la página y después podés conectar normalmente.',
+      confirmLabel: 'Salir y recargar',
+      cancelLabel: 'Seguir en el demo',
+      icon: 'flask-conical'
+    }, function () { location.reload(); });
+    return;
+  }
   if (!('showOpenFilePicker' in window) || !('showSaveFilePicker' in window)) {
     alert('Tu navegador no soporta el File System Access API. Probá con Chrome o Edge.');
     return;
