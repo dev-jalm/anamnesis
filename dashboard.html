@@ -15,6 +15,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <!-- Funciones puras y constantes compartidas con tests.html. Cargar ANTES del script principal. -->
 <script src="core.js"></script>
+<!-- Generador del dataset de demostración. Depende de las constantes de core.js
+     (SCHEMA_VERSION), así que va después. Solo define window.buildDemoSnapshot:
+     no se ejecuta nada hasta que el usuario aprieta "Ver demo". -->
+<script src="demo-data.js"></script>
 <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
@@ -40,6 +44,13 @@
       <i data-lucide="link" style="width:14px;height:14px"></i>
       Conectar Google Drive
     </button>
+    <!-- Entrada al modo demo: carga un dataset ficticio en memoria para poder
+         recorrer la app sin conectar nada. Pensado para mostrarla como
+         portfolio. No toca Drive ni el archivo real (ver enterDemoMode). -->
+    <button class="drive-required-demo" id="driveRequiredDemoBtn">
+      <i data-lucide="play-circle" style="width:13px;height:13px"></i>
+      Ver demo con datos de ejemplo
+    </button>
     <div class="drive-required-help">
       Tu información queda en tu propio Drive · anamnesis no guarda nada en sus servidores
     </div>
@@ -53,6 +64,14 @@
   <i data-lucide="wifi-off" style="width:13px;height:13px"></i>
   <span>Drive desconectado — los cambios no se están respaldando</span>
   <button id="driveBannerReconnectBtn">Reconectar</button>
+</div>
+<!-- Banner del modo demo. Tiene que ser imposible de pasar por alto: si el
+     usuario creyera que está viendo sus datos reales, podría cargar
+     movimientos encima de un dataset ficticio que nunca se guarda. -->
+<div class="demo-mode-banner hidden" id="demoModeBanner">
+  <i data-lucide="flask-conical" style="width:13px;height:13px"></i>
+  <span><strong>Modo demo</strong> — datos ficticios de ejemplo. Nada de lo que hagas acá se guarda.</span>
+  <button id="demoBannerExitBtn">Salir del demo</button>
 </div>
 
   <!-- ============================================================

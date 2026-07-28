@@ -2086,7 +2086,10 @@ const DEFAULT_KPI_CARDS = [
     hint: { mode: 'text', text: 'ingresos - egresos' } },
 
   // Grilla principal de KPIs — location: 'grid' (default para retrocompat).
-  { id: 'kpi_sueldos',    order: 1, enabled: true, label: 'Sueldos',         icon: 'briefcase',   accent: '#4A8E3F', location: 'grid', op: { type: 'tx_sum', categoria: 'Sueldo' },                  hint: { mode: 'text', text: 'UBIMIA' } },
+  // El hint de Sueldos arranca vacío a propósito: es texto libre para que cada
+  // uno ponga el nombre de su empleador desde Administración → KPIs. No va un
+  // default con un nombre real adentro, que además terminaría publicado.
+  { id: 'kpi_sueldos',    order: 1, enabled: true, label: 'Sueldos',         icon: 'briefcase',   accent: '#4A8E3F', location: 'grid', op: { type: 'tx_sum', categoria: 'Sueldo' },                  hint: { mode: 'text', text: '' } },
   { id: 'kpi_prestamos',  order: 2, enabled: true, label: 'Préstamos',       icon: 'building-2',  accent: '#9BBE7C', location: 'grid', op: { type: 'tx_sum', categoria: 'Prestamo' },                hint: { mode: 'text', text: 'Deuda nueva' } },
   { id: 'kpi_gastos',     order: 3, enabled: true, label: 'Gastos',          icon: 'wallet',      accent: '#7A1F2B', location: 'grid', op: { type: 'gasto_total' },                                  hint: { mode: 'pct_of', op: { type: 'tx_sum', categoria: 'Sueldo' }, suffix: 'del sueldo', decimals: 0 } },
   { id: 'kpi_deudas',     order: 4, enabled: true, label: 'Deudas',          icon: 'credit-card', accent: '#D63B30', location: 'grid', op: { type: 'tx_sum', categoria: 'Deuda' },                   hint: { mode: 'pct_of', op: { type: 'gasto_total' }, suffix: 'del gasto', decimals: 1 } },
@@ -9699,7 +9702,7 @@ function renderKpiEditorHintExtras(d) {
   switch (d.hintMode) {
     case 'text':
       html = '<span class="kpi-editor-field-label">Texto del hint</span>' +
-        '<input type="text" id="kpiHintText" value="' + escapeHtmlSafe(hint.text || '') + '" placeholder="ej: UBIMIA">';
+        '<input type="text" id="kpiHintText" value="' + escapeHtmlSafe(hint.text || '') + '" placeholder="ej: nombre de la empresa">';
       break;
     case 'pct_of':
     case 'ratio': {
@@ -12741,6 +12744,10 @@ function buildStateSnapshot() {
 // Guarda un backup del snapshot crudo en localStorage ANTES de migrarlo, por si
 // la migración rompe algo. Mantiene los últimos 3 backups.
 function saveSnapshotBackup(rawSnap, source) {
+  // En modo demo no se escribe. No alcanza con que el snapshot ficticio sea
+  // inofensivo: como solo se conservan los últimos 3 backups, guardar uno de
+  // la demo EXPULSA un backup real del usuario de la ventana de retención.
+  if (window.DEMO_MODE) return;
   try {
     const key = 'snapshot-backup-' + Date.now();
     const payload = {
@@ -13574,6 +13581,10 @@ function askConflictResolution(handle, externalFile) {
 }
 
 function saveLocal() {
+  // En modo demo no se persiste nada: el snapshot ficticio no puede terminar
+  // en localStorage, porque de ahí se restaura cuando el archivo de Drive
+  // aparece corrupto (ver tryRestoreFromPreWrite) y pisaría datos reales.
+  if (window.DEMO_MODE) return;
   safeSetItem(STORAGE_KEY, JSON.stringify(buildStateSnapshot()));
 }
 
@@ -13586,6 +13597,10 @@ function loadLocal() {
 }
 
 function scheduleSave() {
+  // Guard del modo demo. Va acá arriba y no en cada llamador porque son
+  // decenas los caminos que terminan en scheduleSave(); un guard por borde
+  // se escaparía en el primer camino nuevo que se agregue.
+  if (window.DEMO_MODE) return;
   saveLocal();
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(async function () {
@@ -16530,6 +16545,9 @@ let _autoFetchMepInFlight = false;
 // tickers (no son necesarios para la conversión de KPIs). Después del fetch
 // re-renderiza si el usuario sigue en Ficha Médica.
 function autoFetchMepIfStaleForMedical() {
+  // En modo demo no se sale a la red: ver el comentario en
+  // autoFetchSaludFinancieraIfStale().
+  if (window.DEMO_MODE) return;
   if (_autoFetchMepInFlight) return;
   const mepNeedsUpdate = !isTimestampToday(state.params && state.params.cotizacionMepUpdatedAt);
   if (!mepNeedsUpdate) return;
@@ -16574,6 +16592,18 @@ function autoFetchMepIfStaleForMedical() {
 }
 
 function autoFetchSaludFinancieraIfStale() {
+  // En modo demo NO se dispara el auto-fetch. Tres razones:
+  //   1. Pisa los precios ficticios con precios reales de mercado, y los
+  //      resultados que muestra la demo (ganancia/pérdida por panel) dejan de
+  //      ser los diseñados — con precios reales contra un PPC inventado, la
+  //      cartera puede aparecer en pérdida.
+  //   2. Rompe el determinismo: la demo tiene que verse igual siempre, si no
+  //      las capturas del README dejan de coincidir con lo que se ve.
+  //   3. Es una llamada a servicios de terceros (dolarapi, data912) que el
+  //      visitante nunca pidió, disparada solo por entrar a una solapa.
+  // El botón manual de "actualizar precios" sigue funcionando: ahí la acción
+  // es deliberada y sirve para mostrar que la función existe.
+  if (window.DEMO_MODE) return;
   if (_autoFetchInFlight) return;
 
   const mepNeedsUpdate = !isTimestampToday(state.params && state.params.cotizacionMepUpdatedAt);
@@ -19221,6 +19251,8 @@ document.getElementById('catBudgetOverlay').addEventListener('click', function (
 function bindDriveRequiredOverlay() {
   const connectBtn = document.getElementById('driveRequiredConnectBtn');
   const reconnectBtn = document.getElementById('driveBannerReconnectBtn');
+  const demoBtn = document.getElementById('driveRequiredDemoBtn');
+  const demoExitBtn = document.getElementById('demoBannerExitBtn');
   if (connectBtn && !connectBtn._bound) {
     connectBtn.addEventListener('click', function () {
       // Abre el modal Drive existente para que el user elija archivo
@@ -19234,6 +19266,60 @@ function bindDriveRequiredOverlay() {
     });
     reconnectBtn._bound = true;
   }
+  if (demoBtn && !demoBtn._bound) {
+    demoBtn.addEventListener('click', enterDemoMode);
+    demoBtn._bound = true;
+  }
+  if (demoExitBtn && !demoExitBtn._bound) {
+    // Salir del demo = recargar. Es la forma más segura de volver a un estado
+    // limpio: el snapshot ficticio vive solo en memoria, así que un reload lo
+    // borra por completo sin tener que deshacer nada a mano.
+    demoExitBtn.addEventListener('click', function () { location.reload(); });
+    demoExitBtn._bound = true;
+  }
+}
+
+// ============================================================
+// MODO DEMO — dataset ficticio para mostrar la app sin datos reales
+// ============================================================
+// Regla de oro: en modo demo NO se escribe absolutamente nada. Ni el archivo
+// de Drive ni localStorage. El guard vive dentro de scheduleSave() y saveLocal()
+// (no acá) porque hay muchos caminos que terminan llamando a scheduleSave, y
+// un guard en el borde se escapa tarde o temprano.
+//
+// El riesgo concreto que esto evita: alguien abre el demo en la misma máquina
+// donde usa Anamnesis de verdad, la demo persiste su snapshot ficticio en
+// localStorage bajo STORAGE_KEY, y ese backup pisa los datos reales la próxima
+// vez que el archivo de Drive falle y se intente restaurar desde local.
+function enterDemoMode() {
+  if (typeof buildDemoSnapshot !== 'function') {
+    console.error('demo-data.js no está cargado');
+    return;
+  }
+  // 1) Cortar la persistencia ANTES de tocar el state.
+  window.DEMO_MODE = true;
+
+  // 2) Aplicar el snapshot ficticio y derivar los agregados.
+  const snap = buildDemoSnapshot();
+  applyStateSnapshot(snap);
+  if (typeof recomputeDataByYearFromTxs === 'function') recomputeDataByYearFromTxs();
+
+  // 3) Posicionar el período en el mes actual, que es donde el generador puso
+  //    los datos más recientes. Sin esto la demo podría abrir en un mes vacío.
+  const hoy = new Date();
+  state.selYear = hoy.getFullYear();
+  state.selMonth = MONTHS_ORDER[hoy.getMonth()];
+  state.selQuarter = null;
+
+  // 4) Mostrar la app.
+  hideDriveRequiredOverlay();
+  const banner = document.getElementById('demoModeBanner');
+  if (banner) banner.classList.remove('hidden');
+  const sync = document.getElementById('syncStatusText');
+  if (sync) sync.textContent = 'Modo demo — sin guardar';
+
+  if (typeof renderAll === 'function') renderAll();
+  if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons();
 }
 
 // Oculta el overlay de bloqueo. Llamado tras conexión exitosa con Drive.

@@ -1,0 +1,280 @@
+// demo-data.js — Generador del dataset de demostración
+//
+// Construye un snapshot completo y ficticio, con la MISMA forma que produce
+// buildStateSnapshot(), para poder mostrar la app llena de datos sin exponer
+// información real. Se usa desde el welcome overlay ("Ver demo").
+//
+// Por qué un generador y no un .json estático:
+//   - Las fechas son relativas a hoy. Un snapshot fijo envejece: en seis meses
+//     la demo abriría en un período vacío y se vería rota.
+//   - Pesa ~8 KB de código en vez de ~400 KB de JSON.
+//
+// Por qué es determinista (PRNG con seed fija en vez de Math.random):
+//   El dataset tiene que ser idéntico en cada carga. Si cambiara solo, las
+//   capturas del README dejarían de coincidir con lo que ve el visitante, y
+//   cualquier bug que aparezca en la demo sería irreproducible.
+//
+// IMPORTANTE: nada de acá se persiste. enterDemoMode() en dashboard.js corta
+// el guardado antes de aplicar este snapshot, así que la demo nunca puede
+// pisar el archivo real del usuario.
+
+// ============================================================
+// PRNG determinista (mulberry32) — mismo seed, misma secuencia
+// ============================================================
+function demoRng(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ============================================================
+// CATÁLOGO DE GASTOS
+// Cada entrada define una categoría, sus comercios típicos, el rango de monto
+// y con qué frecuencia aparece por mes. Los importes están calibrados a valores
+// argentinos plausibles para 2026 (post-inflación), porque una demo con montos
+// irreales se nota enseguida y resta credibilidad.
+// ============================================================
+const DEMO_GASTOS = [
+  // --- Básicas ---
+  { cat: 'Vivienda',      sub: 'Alquiler',     per: 'fijo',       min: 620000, max: 620000, veces: 1, desc: ['Alquiler departamento'] },
+  { cat: 'Vivienda',      sub: 'Expensas',     per: 'fijo',       min: 145000, max: 178000, veces: 1, desc: ['Expensas consorcio'] },
+  { cat: 'Vivienda',      sub: 'Servicios',    per: 'variable',   min: 28000,  max: 61000,  veces: 3, desc: ['Edenor', 'Metrogas', 'Aysa', 'Internet fibra'] },
+  { cat: 'Alimentacion',  sub: 'Supermercado', per: 'variable',   min: 42000,  max: 96000,  veces: 4, desc: ['Coto', 'Carrefour', 'Dia', 'Jumbo', 'Chino del barrio'] },
+  { cat: 'Alimentacion',  sub: 'Verduleria',   per: 'variable',   min: 9000,   max: 21000,  veces: 3, desc: ['Verduleria', 'Frutas y verduras', 'Mercado'] },
+  { cat: 'Salud',         sub: 'Prepaga',      per: 'fijo',       min: 187000, max: 187000, veces: 1, desc: ['OSDE 210'] },
+  { cat: 'Salud',         sub: 'Farmacia',     per: 'esporadico', min: 8000,   max: 34000,  veces: 1, desc: ['Farmacity', 'Farmacia del barrio'] },
+  { cat: 'Transporte',    sub: 'Combustible',  per: 'variable',   min: 32000,  max: 58000,  veces: 2, desc: ['YPF', 'Shell', 'Axion'] },
+  { cat: 'Transporte',    sub: 'SUBE',         per: 'variable',   min: 6000,   max: 14000,  veces: 2, desc: ['Carga SUBE'] },
+  { cat: 'Financieras',   sub: 'Comisiones',   per: 'fijo',       min: 4200,   max: 9800,   veces: 1, desc: ['Mantenimiento cuenta', 'Comision transferencia'] },
+  // --- Discrecionales ---
+  { cat: 'Gastronomia',   sub: 'Restaurante',  per: 'variable',   min: 24000,  max: 78000,  veces: 3, desc: ['Parrilla', 'Sushi', 'Cantina', 'Bodegon', 'Pizzeria'] },
+  { cat: 'Gastronomia',   sub: 'Cafe',         per: 'variable',   min: 4500,   max: 11000,  veces: 5, desc: ['Cafe de especialidad', 'Starbucks', 'Panaderia'] },
+  { cat: 'Gastronomia',   sub: 'Delivery',     per: 'variable',   min: 14000,  max: 32000,  veces: 3, desc: ['PedidosYa', 'Rappi'] },
+  { cat: 'Entretenimiento', sub: 'Salidas',    per: 'esporadico', min: 18000,  max: 65000,  veces: 2, desc: ['Cine', 'Teatro', 'Recital', 'Bar'] },
+  { cat: 'Membresias',    sub: 'Streaming',    per: 'fijo',       min: 7200,   max: 15400,  veces: 3, desc: ['Netflix', 'Spotify', 'Max', 'Disney+'] },
+  { cat: 'Membresias',    sub: 'Gimnasio',     per: 'fijo',       min: 38000,  max: 38000,  veces: 1, desc: ['Gimnasio'] },
+  { cat: 'Indumentaria',  sub: null,           per: 'esporadico', min: 35000,  max: 145000, veces: 1, desc: ['Zara', 'Uniqlo', 'Local de ropa', 'Zapatillas'] },
+  { cat: 'CuidadoPersonal', sub: null,         per: 'esporadico', min: 12000,  max: 38000,  veces: 1, desc: ['Peluqueria', 'Perfumeria'] },
+  { cat: 'Extras',        sub: null,           per: 'imprevisto', min: 15000,  max: 90000,  veces: 1, desc: ['Regalo cumpleanos', 'Reparacion', 'Service notebook', 'Veterinaria'] }
+];
+
+// Cartera de CEDEARs para la solapa Salud financiera. Precios en ARS con el
+// PPC por debajo del precio actual, para que la demo muestre ganancia.
+const DEMO_CARTERA = [
+  { ticker: 'SPY',  desc: 'SPDR S&P 500 ETF Trust',  broker: 'BALANZ',      cant: 42,  ppc: 21400, actual: 28650, destino: 'inversiones' },
+  { ticker: 'AAPL', desc: 'Apple Inc.',              broker: 'BALANZ',      cant: 65,  ppc: 12800, actual: 16240, destino: 'inversiones' },
+  { ticker: 'MSFT', desc: 'Microsoft Corporation',   broker: 'NEXO',        cant: 28,  ppc: 19600, actual: 24180, destino: 'inversiones' },
+  { ticker: 'GOOGL',desc: 'Alphabet Inc.',           broker: 'NEXO',        cant: 35,  ppc: 15200, actual: 17890, destino: 'inversiones' },
+  { ticker: 'NVDA', desc: 'NVIDIA Corporation',      broker: 'BULL_MARKET', cant: 18,  ppc: 31500, actual: 46700, destino: 'trading' },
+  { ticker: 'MELI', desc: 'MercadoLibre Inc.',       broker: 'BALANZ',      cant: 12,  ppc: 42000, actual: 51300, destino: 'trading' },
+  { ticker: 'KO',   desc: 'The Coca-Cola Company',   broker: 'BALANZ',      cant: 80,  ppc: 8900,  actual: 10450, destino: 'jubilacion_jalm' },
+  { ticker: 'JNJ',  desc: 'Johnson & Johnson',       broker: 'NEXO',        cant: 45,  ppc: 11200, actual: 12980, destino: 'jubilacion_jalm' },
+  { ticker: 'VOO',  desc: 'Vanguard S&P 500 ETF',    broker: 'BALANZ',      cant: 30,  ppc: 18700, actual: 23400, destino: 'jubilacion_clm' },
+  { ticker: 'GOLD', desc: 'Barrick Gold Corporation',broker: 'BULL_MARKET', cant: 55,  ppc: 6800,  actual: 8120,  destino: 'reserva' }
+];
+
+const DEMO_MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const DEMO_ORIGENES = ['Mercado Pago', 'Banco Galicia', 'Efectivo'];
+
+// Labels visibles de las subcategorías. Las keys van sin acento (como las
+// genera la app), pero el texto que se muestra sí los lleva.
+const DEMO_SUB_LABELS = {
+  Alquiler: 'Alquiler', Expensas: 'Expensas', Servicios: 'Servicios',
+  Supermercado: 'Supermercado', Verduleria: 'Verdulería',
+  Prepaga: 'Prepaga', Farmacia: 'Farmacia',
+  Combustible: 'Combustible', SUBE: 'SUBE',
+  Comisiones: 'Comisiones', Restaurante: 'Restaurante',
+  Cafe: 'Café', Delivery: 'Delivery', Salidas: 'Salidas',
+  Streaming: 'Streaming', Gimnasio: 'Gimnasio'
+};
+
+// ============================================================
+// GENERADOR PRINCIPAL
+// ============================================================
+// Devuelve un snapshot con la misma forma que buildStateSnapshot().
+// mesesAtras: cuántos meses hacia atrás generar (default 14, así hay varios
+// trimestres completos y la solapa Evolución tiene con qué dibujar tendencias).
+function buildDemoSnapshot(mesesAtras) {
+  const N = mesesAtras || 14;
+  const rnd = demoRng(20260727);          // seed fija → dataset reproducible
+  const hoy = new Date();
+
+  const transactionsByYear = {};
+  const budgetByYear = {};
+  let seq = 0;
+
+  // Helpers locales
+  function entre(min, max) { return Math.round(min + rnd() * (max - min)); }
+  function elegir(arr) { return arr[Math.floor(rnd() * arr.length)]; }
+  function nuevoId() { seq++; return 'tx_demo_' + seq.toString(36).padStart(4, '0'); }
+  function pushTx(anio, mes, tx) {
+    if (!transactionsByYear[anio]) transactionsByYear[anio] = {};
+    if (!transactionsByYear[anio][mes]) transactionsByYear[anio][mes] = [];
+    transactionsByYear[anio][mes].push(tx);
+  }
+  function fechaAR(anio, mesIdx, dia) {
+    return String(dia).padStart(2, '0') + '/' + String(mesIdx + 1).padStart(2, '0') + '/' + anio;
+  }
+
+  // El sueldo arranca más bajo y sube: en 14 meses de contexto argentino, un
+  // ingreso plano se lee como dato falso. Un escalón anual además le da a la
+  // solapa Evolución algo real que mostrar.
+  const sueldoBase = 2350000;
+
+  for (let k = N - 1; k >= 0; k--) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - k, 1);
+    const anio = d.getFullYear();
+    const mesIdx = d.getMonth();
+    const mes = DEMO_MESES[mesIdx];
+    const diasDelMes = new Date(anio, mesIdx + 1, 0).getDate();
+    // Progresión del sueldo: ~2,2% por mes acumulado sobre la base
+    const sueldo = Math.round(sueldoBase * Math.pow(1.022, N - 1 - k) / 1000) * 1000;
+
+    // --- Ingreso ---
+    pushTx(anio, mes, {
+      id: nuevoId(),
+      fecha: fechaAR(anio, mesIdx, 5),
+      descripcion: 'Acreditacion de haberes',
+      monto: sueldo,
+      categoria: 'Sueldo',
+      subcategoria: null,
+      periodicidad: 'fijo',
+      tags: null,
+      origen: 'Banco Galicia'
+    });
+
+    // --- Gastos ---
+    DEMO_GASTOS.forEach(function (g) {
+      // Los esporádicos/imprevistos no caen todos los meses
+      const salteo = (g.per === 'esporadico' || g.per === 'imprevisto') && rnd() > 0.55;
+      if (salteo) return;
+      for (let i = 0; i < g.veces; i++) {
+        pushTx(anio, mes, {
+          id: nuevoId(),
+          fecha: fechaAR(anio, mesIdx, 1 + Math.floor(rnd() * diasDelMes)),
+          descripcion: elegir(g.desc),
+          monto: -entre(g.min, g.max),   // los gastos son negativos
+          categoria: g.cat,
+          subcategoria: g.sub,
+          periodicidad: g.per,
+          tags: null,
+          origen: elegir(DEMO_ORIGENES)
+        });
+      }
+    });
+
+    // --- Ahorro mensual hacia la reserva (categoría de flujo) ---
+    pushTx(anio, mes, {
+      id: nuevoId(),
+      fecha: fechaAR(anio, mesIdx, 8),
+      descripcion: 'Transferencia a caja de ahorro USD',
+      monto: -Math.round(sueldo * 0.12 / 1000) * 1000,
+      categoria: 'Reserva',
+      subcategoria: null,
+      periodicidad: 'fijo',
+      tags: null,
+      origen: 'Banco Galicia'
+    });
+
+    // --- Presupuesto del mes: se fija por encima del gasto real típico ---
+    if (!budgetByYear[anio]) budgetByYear[anio] = {};
+    budgetByYear[anio][mes] = {
+      Vivienda: 820000, Alimentacion: 340000, Salud: 230000,
+      Transporte: 130000, Financieras: 12000,
+      Gastronomia: 240000, Entretenimiento: 90000,
+      Membresias: 80000, Indumentaria: 120000,
+      CuidadoPersonal: 45000, Extras: 90000
+    };
+  }
+
+  // ============================================================
+  // Inversiones: una compra por ticker, fechada hacia atrás para que
+  // "días invertidos" muestre algo razonable.
+  // ============================================================
+  const investmentEntries = [];
+  const tickerInfo = {};
+  DEMO_CARTERA.forEach(function (p, i) {
+    const f = new Date(hoy.getFullYear(), hoy.getMonth() - (3 + (i % 9)), 10 + (i % 15));
+    investmentEntries.push({
+      id: 'inv_demo_' + i,
+      fecha: f.getFullYear() + '-' + String(f.getMonth() + 1).padStart(2, '0') + '-' + String(f.getDate()).padStart(2, '0'),
+      broker: p.broker,
+      ticker: p.ticker,
+      cantidad: p.cant,
+      precio: p.ppc,
+      total: p.cant * p.ppc,
+      destino: p.destino,
+      moneda: 'ARS',
+      createdAt: f.getTime()
+    });
+    tickerInfo[p.ticker] = {
+      descripcion: p.desc,
+      precioActual: p.actual,
+      moneda: 'ARS',
+      lastUpdate: new Date().toISOString()
+    };
+  });
+
+  const snap = {
+    schemaVersion: (typeof SCHEMA_VERSION !== 'undefined' ? SCHEMA_VERSION : 3),
+    version: (typeof STATE_VERSION !== 'undefined' ? STATE_VERSION : 4),
+    savedAt: new Date().toISOString(),
+    _demo: true,                    // marca para que la app sepa que no es real
+    dataByYear: {},                 // lo recalcula recomputeDataByYearFromTxs()
+    ingresosByYear: {},
+    flowsByYear: {},
+    stocksByYear: {},
+    dailyBalancesByYear: {},
+    transactionsByYear: transactionsByYear,
+    jubilacionJalmByYear: {},
+    jubilacionClmByYear: {},
+    budgetByYear: budgetByYear,
+    // Los labels tienen que venir COMPLETOS, igual que en un snapshot real.
+    // applyStateSnapshot() solo rellena las categorías de flujo (NON_EXPENSE_CATS),
+    // no las de gasto: si mandáramos {} acá, no quedaría ninguna categoría de
+    // gasto y renderAnatomyByCategory() rompe al no poder elegir una para el
+    // drill-down (displayLabel queda undefined → .toUpperCase() sobre undefined).
+    categoryLabels: (typeof INITIAL_CATEGORY_LABELS !== 'undefined')
+      ? Object.assign({}, INITIAL_CATEGORY_LABELS)
+      : {},
+    categoryClassification: {},
+    // { categoria: { subKey: label } } — se arma desde el catálogo de gastos
+    // para que las subcategorías se vean con acentos en vez de la key cruda.
+    subcategoryLabels: (function () {
+      const m = {};
+      DEMO_GASTOS.forEach(function (g) {
+        if (!g.sub) return;
+        if (!m[g.cat]) m[g.cat] = {};
+        m[g.cat][g.sub] = DEMO_SUB_LABELS[g.sub] || g.sub;
+      });
+      return m;
+    })(),
+    subcategoryClassification: {},
+    taglabels: {},
+    paymentMethodOverrides: {},
+    categoryRules: [],
+    params: { diasBajo: 5, periFugaPct: 30, learnRulesMonths: 6, cotizacionMep: 1285, sidebarPinned: false },
+    recurringDismissed: [],
+    travels: [],
+    visibilityPrefs: {},
+    kpiCardsConfig: [],
+    loadReminderDismissed: {},
+    origins: DEMO_ORIGENES.slice(),
+    uploadHistoryByOrigin: {},
+    investmentEntries: investmentEntries,
+    tickerInfo: tickerInfo,
+    txIncludedInBudget: {}
+  };
+
+  return snap;
+}
+
+// Exponer en window para dashboard.js (mismo patrón que core.js: sin módulos,
+// sin build step, todo global).
+if (typeof window !== 'undefined') {
+  window.buildDemoSnapshot = buildDemoSnapshot;
+}
