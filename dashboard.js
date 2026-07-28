@@ -19334,10 +19334,17 @@ function enterDemoMode() {
 
   // 3) Posicionar el período en el mes actual, que es donde el generador puso
   //    los datos más recientes. Sin esto la demo podría abrir en un mes vacío.
+  //
+  //    El trimestre TIENE que quedar seteado al que contiene ese mes, no en
+  //    null ni en 'TODOS': renderSelectors() solo llena el desplegable de meses
+  //    cuando hay un trimestre concreto elegido. Con el trimestre vacío, los
+  //    selectores mostraban "Todos / Todos" mientras el dashboard renderizaba
+  //    julio — el estado real y lo que decía la barra lateral no coincidían.
   const hoy = new Date();
+  const mesIdx = hoy.getMonth();
   state.selYear = hoy.getFullYear();
-  state.selMonth = MONTHS_ORDER[hoy.getMonth()];
-  state.selQuarter = null;
+  state.selQuarter = QUARTER_ORDER[Math.floor(mesIdx / 3)];
+  state.selMonth = MONTHS_ORDER[mesIdx];
 
   // 4) Mostrar la app.
   hideDriveRequiredOverlay();
@@ -19346,6 +19353,9 @@ function enterDemoMode() {
   const sync = document.getElementById('syncStatusText');
   if (sync) sync.textContent = 'Modo demo — sin guardar';
 
+  // Redibujar los desplegables del sidebar para que reflejen el período que
+  // acabamos de fijar. renderAll() no los toca: se renderizan aparte.
+  if (typeof renderSelectors === 'function') renderSelectors();
   if (typeof renderAll === 'function') renderAll();
   if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons();
 }
