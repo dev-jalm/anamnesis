@@ -5339,8 +5339,12 @@ const INVESTMENT_DESTINOS = [
   { key: 'reserva',         label: 'Reserva' }
 ];
 
-// Render botones source dinámicamente
+// Render de los botones de origen del wizard viejo (MP / Galicia / Manual /
+// Inversión). Ya no hay contenedor #sourceBtns: el modal unificado elige entre
+// "archivo" e "ingreso manual", y para archivo el banco se detecta leyéndolo.
+// La función se conserva como no-op para no romper a sus llamadores.
 function renderSourceButtons() {
+  if (!sourceBtns) return;
   sourceBtns.innerHTML = SOURCES.map(function (s) {
     return '<button class="source-btn ' + (state.uploadSource === s ? 'active' : '') + '" data-src="' + s + '">' + SOURCE_DISPLAY[s] + '</button>';
   }).join('');
@@ -5355,6 +5359,23 @@ function renderSourceButtons() {
 function openModal() {
   modal.classList.remove('hidden');
   goToStep(1);
+  // Modal unificado: mover los formularios a la pantalla única (una sola vez),
+  // bindear los selectores y arrancar sin nada elegido, para que el usuario
+  // decida qué cargar.
+  reorganizarModalCarga();
+  bindModalCargaUnificado();
+  Array.from(document.querySelectorAll('.load-kind-btn')).forEach(function (b) {
+    b.classList.remove('active');
+  });
+  ['loadPaneFile', 'loadPaneManual', 'loadPaneManualMovs', 'loadPaneManualInv'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+  const fileStatusReset = document.getElementById('fileImportStatus');
+  if (fileStatusReset) { fileStatusReset.className = 'alert-box hidden'; fileStatusReset.innerHTML = ''; }
+  const fallbackReset = document.getElementById('jsonFallbackBlock');
+  if (fallbackReset) fallbackReset.open = false;
+
   uploadError.classList.add('hidden');
   uploadSuccess.classList.add('hidden');
   jsonInput.value = '';
@@ -5435,6 +5456,149 @@ function renderUploadHistoryPanel() {
 function closeModal() {
   modal.classList.add('hidden');
 }
+// ============================================================
+// MODAL DE CARGA — pantalla única
+// ============================================================
+// Antes era un wizard de 3 pasos: elegir origen → Siguiente → prompt del LLM →
+// Siguiente → pegar/cargar. Ahora se elige qué cargar y el control aparece
+// abajo, en la misma pantalla.
+//
+// Los formularios NO se reescribieron: se MUEVEN los nodos que ya existían en
+// los pasos 2 y 3 a los paneles de la pantalla única. Al mover el mismo nodo
+// del DOM (y no clonarlo ni regenerar el HTML) los listeners ya bindeados
+// siguen funcionando: viven en el nodo, no en su posición en el árbol.
+let _modalCargaReorganizado = false;
+function reorganizarModalCarga() {
+  if (_modalCargaReorganizado) return;
+  const paneFile = document.getElementById('loadPaneFile');
+  const paneMovs = document.getElementById('loadPaneManualMovs');
+  const paneInv  = document.getElementById('loadPaneManualInv');
+  if (!paneFile || !paneMovs || !paneInv) return;
+
+  const mover = function (id, destino) {
+    const el = document.getElementById(id);
+    if (el && destino) destino.appendChild(el);
+    return el;
+  };
+
+  // Panel ARCHIVO: el recuadro de subida, el historial de cargas y, plegado,
+  // el camino viejo por LLM (prompt + textarea + botón de importar).
+  mover('uploadHistoryPanel', paneFile);
+  mover('fileImportBlock', paneFile);
+  const fallback = document.getElementById('jsonFallbackBlock');
+  if (fallback) {
+    paneFile.appendChild(fallback);
+    // El bloque del prompt del paso 2 pasa a vivir dentro del <details>: sigue
+    // siendo la vía para PDFs y bancos sin parser, pero deja de ser el camino
+    // principal. Su botón "Ya tengo el JSON" ya no tiene sentido acá.
+    const promptBlock = document.getElementById('step2FileMode');
+    if (promptBlock) {
+      fallback.insertBefore(promptBlock, fallback.firstElementChild.nextSibling);
+      promptBlock.classList.remove('hidden');
+      const nextBtn = document.getElementById('step2NextBtn');
+      if (nextBtn) nextBtn.style.display = 'none';
+      const backBtn = document.getElementById('step2BackBtn');
+      if (backBtn) backBtn.style.display = 'none';
+    }
+    mover('uploadError', fallback);
+    mover('uploadSuccess', fallback);
+    const importBtn = document.getElementById('importJsonBtn');
+    if (importBtn) {
+      const wrap = document.createElement('div');
+      wrap.className = 'modal-actions';
+      wrap.appendChild(importBtn);
+      fallback.appendChild(wrap);
+    }
+  }
+
+  // Paneles de ingreso manual
+  const manualMode = mover('step2ManualMode', paneMovs);
+  if (manualMode) manualMode.classList.remove('hidden');
+  const invMode = mover('step2InvestmentMode', paneInv);
+  if (invMode) invMode.classList.remove('hidden');
+
+  // Los contenedores viejos quedan vacíos: se ocultan para que no dejen aire.
+  ['step2', 'step3'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+
+  _modalCargaReorganizado = true;
+}
+
+// Muestra el panel que corresponde y marca el botón activo.
+function seleccionarTipoDeCarga(kind) {
+  reorganizarModalCarga();
+  Array.from(document.querySelectorAll('#loadKindBtns .load-kind-btn')).forEach(function (b) {
+    b.classList.toggle('active', b.getAttribute('data-load-kind') === kind);
+  });
+  const paneFile = document.getElementById('loadPaneFile');
+  const paneManual = document.getElementById('loadPaneManual');
+  if (paneFile) paneFile.classList.toggle('hidden', kind !== 'file');
+  if (paneManual) paneManual.classList.toggle('hidden', kind !== 'manual');
+
+  if (kind === 'file') {
+    // El origen (Mercado Pago o Galicia) se detecta al leer el archivo, así que
+    // acá no hay nada que elegir. Se deja 'MP' como valor por defecto para el
+    // historial de cargas y el prompt del fallback.
+    state.uploadSource = 'MP';
+    if (typeof renderUploadHistoryPanel === 'function') renderUploadHistoryPanel();
+  } else if (kind === 'manual') {
+    // Ningún subtipo preseleccionado: que el usuario elija.
+    Array.from(document.querySelectorAll('#manualKindBtns .load-kind-btn')).forEach(function (b) {
+      b.classList.remove('active');
+    });
+    ['loadPaneManualMovs', 'loadPaneManualInv'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+// Segundo nivel, sólo para ingreso manual: movimientos o inversiones.
+function seleccionarTipoManual(kind) {
+  Array.from(document.querySelectorAll('#manualKindBtns .load-kind-btn')).forEach(function (b) {
+    b.classList.toggle('active', b.getAttribute('data-manual-kind') === kind);
+  });
+  const movs = document.getElementById('loadPaneManualMovs');
+  const inv  = document.getElementById('loadPaneManualInv');
+  if (movs) movs.classList.toggle('hidden', kind !== 'movimientos');
+  if (inv)  inv.classList.toggle('hidden', kind !== 'inversiones');
+
+  if (kind === 'movimientos') {
+    // 'Efectivo' es la key interna del origen manual (se muestra como "Manual")
+    state.uploadSource = 'Efectivo';
+    if (manualState.rows.length === 0) addManualRow();
+    else renderManualList();
+  } else if (kind === 'inversiones') {
+    state.uploadSource = 'Inversion';
+    if (investmentState.rows.length === 0) addInvestmentRow();
+    else renderInvestmentList();
+    populateInvestmentDestinoSel();
+    const monedaSel = document.getElementById('investmentMonedaSel');
+    if (monedaSel) monedaSel.value = investmentState.moneda || 'ARS';
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function bindModalCargaUnificado() {
+  const kindBtns = document.getElementById('loadKindBtns');
+  if (!kindBtns || kindBtns._bound) return;
+  kindBtns.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-load-kind]');
+    if (btn) seleccionarTipoDeCarga(btn.getAttribute('data-load-kind'));
+  });
+  const manualBtns = document.getElementById('manualKindBtns');
+  if (manualBtns) {
+    manualBtns.addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-manual-kind]');
+      if (btn) seleccionarTipoManual(btn.getAttribute('data-manual-kind'));
+    });
+  }
+  kindBtns._bound = true;
+}
+
 function goToStep(n) {
   step1.classList.add('hidden');
   step2.classList.add('hidden');
@@ -6093,7 +6257,10 @@ if (uploadBtn) {
 }
 modalCloseBtn.addEventListener('click', closeModal);
 cancelBtn.addEventListener('click', closeModal);
-step1NextBtn.addEventListener('click', function () { goToStep(2); });
+// El botón "Siguiente" del paso 1 desapareció con el modal unificado: al elegir
+// qué cargar, el control aparece en la misma pantalla. Se mantiene el guard por
+// si alguna variante del HTML todavía lo trae.
+if (step1NextBtn) step1NextBtn.addEventListener('click', function () { goToStep(2); });
 step2NextBtn.addEventListener('click', function () { goToStep(3); });
 step2BackBtn.addEventListener('click', function () { goToStep(1); });
 step3BackBtn.addEventListener('click', function () { goToStep(2); });
