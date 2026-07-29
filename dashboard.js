@@ -2832,8 +2832,10 @@ function drillDownKpi(kpiId) {
   }
   mainMovState.cardFilter = cf;
   // Reseteamos filterType y searchQuery para que el cardFilter sea el criterio
-  // dominante (no queremos arrastrar un filtro previo del usuario).
-  mainMovState.filterType = 'all';
+  // dominante (no queremos arrastrar un filtro previo del usuario). El tipo se
+  // deriva del propio filtro: si apunta solo a categorías de flujo hay que
+  // pasar a 'flow', porque 'all' las excluye y la lista quedaría vacía.
+  applyMovFilterTypeForCardFilter(cf);
   mainMovState.searchQuery = '';
   const searchInput = document.getElementById('movSearchInput');
   if (searchInput) searchInput.value = '';
@@ -16011,6 +16013,36 @@ function buildPanelSparkline(entries) {
 // (y tag, si aplica) que corresponde a uno o varios destinos de inversión.
 // Mismo patrón que drillDownKpi(): arma un cardFilter, lo aplica al estado
 // global de movimientos, cambia de solapa y scrollea arriba.
+// Decide qué valor del selector "tipo de categorías" corresponde a un
+// cardFilter, y lo aplica también al <select> del DOM.
+//
+// El problema que resuelve: el filtro 'all' NO significa "sin filtrar", quiere
+// decir básicas + discrecionales, y deja afuera las categorías de flujo. Al
+// navegar a Historia clínica con un filtro de tarjeta que apunta a flujo
+// (Reserva, Inversión, Trading, Jubilación), el 'all' vaciaba la lista: el
+// usuario aterrizaba en una tabla sin filas y el selector diciendo "Todas".
+//
+// Además sincroniza el <select>: cambiar solo el state deja la UI mintiendo
+// sobre el filtro que está aplicado.
+function applyMovFilterTypeForCardFilter(cf) {
+  const cats = [];
+  if (cf && cf.categoria) cats.push(cf.categoria);
+  if (cf && Array.isArray(cf.operands)) {
+    cf.operands.forEach(function (o) { if (o && o.categoria) cats.push(o.categoria); });
+  }
+  // Sin categorías explícitas (filtros por clase, ej. "todo el gasto") → 'all'.
+  // Si TODAS las categorías del filtro son de flujo → 'flow'. Si hay mezcla,
+  // 'all' es lo correcto: el criterio dominante son los gastos.
+  const soloFlujo = cats.length > 0 && cats.every(function (c) {
+    return NON_EXPENSE_CATS.indexOf(c) >= 0;
+  });
+  const tipo = soloFlujo ? 'flow' : 'all';
+  mainMovState.filterType = tipo;
+  const sel = document.getElementById('movFilterTypeSel');
+  if (sel) sel.value = tipo;
+  return tipo;
+}
+
 function gotoMovementsForDestinos(destinos) {
   if (!destinos || destinos.length === 0) return;
   // Determinar cat + tags según el destino. Como cada panel mapea a una
@@ -16028,7 +16060,9 @@ function gotoMovementsForDestinos(destinos) {
   // Aplicar el filtro y limpiar otros (mismo patrón que drillDownKpi)
   if (typeof mainMovState !== 'undefined') {
     mainMovState.cardFilter = cf;
-    mainMovState.filterType = 'all';
+    // Los 5 destinos mapean a categorías de flujo, así que esto siempre
+    // resuelve a 'flow'. Va por el helper igual, para no duplicar la lógica.
+    applyMovFilterTypeForCardFilter(cf);
     mainMovState.searchQuery = '';
     const searchInput = document.getElementById('movSearchInput');
     if (searchInput) searchInput.value = '';
