@@ -2113,11 +2113,20 @@ function ensureKpiCardsConfig() {
   // actualizado a la nueva paleta, sobre todo para usuarios que ya tienen
   // state guardado de versiones anteriores. Solo sincronizamos los KPIs
   // default — no tocamos KPIs personalizados creados por el usuario.
-  const defaultIds = {};
-  DEFAULT_KPI_CARDS.forEach(function (d) { defaultIds[d.id] = d.accent; });
-  state.kpiCardsConfig.forEach(function (card) {
-    if (card && defaultIds[card.id]) card.accent = defaultIds[card.id];
-  });
+  //
+  // Corre UNA sola vez, marcada con params.kpiPaletteMigrated. Antes se
+  // ejecutaba en cada carga y pisaba el accent incondicionalmente, así que el
+  // color de las tarjetas default era imposible de cambiar: se revertía al
+  // recargar, incluso editándolo desde Administración → KPIs.
+  if (!state.params) state.params = {};
+  if (!state.params.kpiPaletteMigrated) {
+    const defaultIds = {};
+    DEFAULT_KPI_CARDS.forEach(function (d) { defaultIds[d.id] = d.accent; });
+    state.kpiCardsConfig.forEach(function (card) {
+      if (card && defaultIds[card.id]) card.accent = defaultIds[card.id];
+    });
+    state.params.kpiPaletteMigrated = true;
+  }
   // Migración de location: los KPIs sin campo location se les asigna 'grid'
   // por default; los 3 IDs de la columna del score (ingresos/egresos/saldo)
   // se migran a 'score-left' si no lo tenían.

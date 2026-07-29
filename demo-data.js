@@ -333,7 +333,20 @@ function buildDemoSnapshot(mesesAtras) {
     taglabels: {},
     paymentMethodOverrides: {},
     categoryRules: [],
-    params: { diasBajo: 5, periFugaPct: 30, learnRulesMonths: 6, cotizacionMep: 1285, sidebarPinned: false },
+    // viewMode 'resumen' arranca la Ficha médica en la vista compacta: para
+    // alguien que entra por primera vez, la vista completa es demasiada
+    // información de golpe.
+    // kpiPaletteMigrated y scoreLeftCardsInitialized van en true para que
+    // ensureKpiCardsConfig() no toque la configuración de KPIs de la demo:
+    // sin esas marcas pisaría los accent con los de DEFAULT_KPI_CARDS y
+    // agregaría las tarjetas default de la columna izquierda por duplicado.
+    params: {
+      diasBajo: 5, periFugaPct: 30, learnRulesMonths: 6,
+      cotizacionMep: 1285, sidebarPinned: false,
+      viewMode: 'resumen',
+      kpiPaletteMigrated: true,
+      scoreLeftCardsInitialized: true
+    },
     recurringDismissed: [],
     travels: [],
     visibilityPrefs: {},
@@ -352,13 +365,17 @@ function buildDemoSnapshot(mesesAtras) {
     // Los tres primeros (score-left) y el resto de la grilla se dejan igual que
     // en el default, así la demo no se despega de lo que ve un usuario real.
     kpiCardsConfig: [
-      { id: 'kpi_ingresos', order: 1, enabled: true, label: 'Ingresos', icon: 'plus', accent: '#4A8E3F', location: 'score-left',
+      // Los tres de la columna izquierda van en gris neutro (#454545) y con
+      // chartMode 'hidden'. Son totales agregados: en el gráfico de evolución
+      // aplastan la escala contra el resto de las series, y su color propio
+      // competía con el de las categorías. Siguen visibles como tarjetas.
+      { id: 'kpi_ingresos', order: 1, enabled: true, label: 'Ingresos', icon: 'plus', accent: '#454545', location: 'score-left', chartMode: 'hidden',
         op: { type: 'cat_combine', operands: [
           { sign: '+', categoria: 'Sueldo' },
           { sign: '+', categoria: 'Prestamo' }
         ]},
         hint: { mode: 'text', text: 'sueldos + préstamos' } },
-      { id: 'kpi_egresos', order: 2, enabled: true, label: 'Egresos', icon: 'minus', accent: '#C8553D', location: 'score-left',
+      { id: 'kpi_egresos', order: 2, enabled: true, label: 'Egresos', icon: 'minus', accent: '#454545', location: 'score-left', chartMode: 'hidden',
         op: { type: 'cat_combine', operands: [
           { sign: '+', classFilter: 'all_expense' },
           { sign: '+', categoria: 'Inversion' },
@@ -367,7 +384,7 @@ function buildDemoSnapshot(mesesAtras) {
           { sign: '+', categoria: 'Jubilacion' }
         ]},
         hint: { mode: 'none' } },
-      { id: 'kpi_saldo', order: 3, enabled: true, label: 'Saldo', icon: 'wallet', accent: '#6B5B4A', location: 'score-left',
+      { id: 'kpi_saldo', order: 3, enabled: true, label: 'Saldo', icon: 'wallet', accent: '#454545', location: 'score-left', chartMode: 'hidden',
         op: { type: 'cat_combine', operands: [
           { sign: '+', categoria: 'Sueldo' },
           { sign: '+', categoria: 'Prestamo' },
