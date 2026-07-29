@@ -2373,6 +2373,98 @@ group('INTEGRACIÓN — Trimestre completo Q1 2026', function () {
 // los formatos reales (encabezados, separadores, formato de fecha e importe)
 // pero ningún dato es de una cuenta real.
 
+group('txCompareKey — dedup que sobrevive a las ediciones del usuario', function () {
+  test('sin _importKey usa la clave compuesta de siempre', function () {
+    const tx = { fecha: '01/07/2026', descripcion: 'Pago QR', monto: 1000, origen: 'Mercado Pago' };
+    assertEqual(txCompareKey(tx), buildTxDedupKey(tx));
+  });
+  test('con _importKey, esa clave manda sobre los campos actuales', function () {
+    const tx = { fecha: '09/09/2026', descripcion: 'otra cosa', monto: 99, origen: 'x', _importKey: 'ref|Mercado Pago|abc123' };
+    assertEqual(txCompareKey(tx), 'ref|Mercado Pago|abc123');
+  });
+  test('editar descripción, monto Y fecha no cambia la clave', function () {
+    const original = { fecha: '01/07/2026', descripcion: 'Pago QR Comercio', monto: 1000, origen: 'Banco Galicia' };
+    const key = buildTxDedupKey(original);
+    const editada = { fecha: '05/07/2026', descripcion: 'Supermercado', monto: 1500, origen: 'Banco Galicia', _importKey: key };
+    assertEqual(txCompareKey(editada), key);
+  });
+  test('la tx editada se reconoce como duplicado al reimportar', function () {
+    const key = buildTxDedupKey({ fecha: '01/07/2026', descripcion: 'Pago QR', monto: 1000, origen: 'MP' });
+    // Lo que ya está guardado, con las ediciones del usuario aplicadas
+    const existente = [{ fecha: '03/07/2026', descripcion: 'Corregido a mano', monto: 1234, origen: 'MP', _importKey: key }];
+    // Lo que vuelve a llegar del mismo resumen
+    const entrante = [{ fecha: '01/07/2026', descripcion: 'Pago QR', monto: 1000, origen: 'MP', _importKey: key }];
+    const r = dedupIncomingTransactions(entrante, existente);
+    assertEqual(r.keptCount, 0);
+    assertEqual(r.skippedCount, 1);
+  });
+  test('sin _importKey la tx editada SÍ se duplicaría (regresión que esto evita)', function () {
+    const existente = [{ fecha: '03/07/2026', descripcion: 'Corregido a mano', monto: 1234, origen: 'MP' }];
+    const entrante = [{ fecha: '01/07/2026', descripcion: 'Pago QR', monto: 1000, origen: 'MP' }];
+    const r = dedupIncomingTransactions(entrante, existente);
+    assertEqual(r.keptCount, 1, 'sin la clave de importación no hay forma de reconocerla');
+  });
+  test('respeta la multiplicidad: 4 SUBE iguales el mismo día', function () {
+    const base = { fecha: '01/07/2026', descripcion: 'Pago SUBE', monto: 5000, origen: 'MP' };
+    const key = buildTxDedupKey(base);
+    const cuatro = [1,2,3,4].map(function () { return Object.assign({}, base, { _importKey: key }); });
+    // Ya hay 2 guardadas: entran solo las 2 que faltan
+    const r = dedupIncomingTransactions(cuatro, cuatro.slice(0, 2));
+    assertEqual(r.keptCount, 2);
+    assertEqual(r.skippedCount, 2);
+  });
+});
+
+group('agruparTransaccionesPorMes — lotes por mes y clave de importación', function () {
+  test('separa un resumen que cruza dos meses', function () {
+    const lotes = agruparTransaccionesPorMes([
+      { fecha: '30/06/2026', descripcion: 'a', monto: 1, origen: 'MP' },
+      { fecha: '01/07/2026', descripcion: 'b', monto: 2, origen: 'MP' }
+    ]);
+    assertEqual(lotes.length, 2);
+    assertEqual(lotes[0].month, 'junio');
+    assertEqual(lotes[1].month, 'julio');
+  });
+  test('devuelve los lotes en orden cronológico', function () {
+    const lotes = agruparTransaccionesPorMes([
+      { fecha: '01/07/2026', descripcion: 'b', monto: 2, origen: 'MP' },
+      { fecha: '15/01/2026', descripcion: 'a', monto: 1, origen: 'MP' }
+    ]);
+    assertEqual(lotes.map(function (l) { return l.month; }), ['enero', 'julio']);
+  });
+  test('usa la referencia del banco como clave cuando viene', function () {
+    const lotes = agruparTransaccionesPorMes([
+      { fecha: '01/07/2026', descripcion: 'x', monto: 1, origen: 'Mercado Pago', referencia: '165759587167' }
+    ]);
+    assertEqual(lotes[0].transactions[0]._importKey, 'ref|Mercado Pago|165759587167');
+  });
+  test('sin referencia cae en la clave compuesta', function () {
+    const lotes = agruparTransaccionesPorMes([
+      { fecha: '01/07/2026', descripcion: 'Pago luz', monto: 100, origen: 'Banco Galicia' }
+    ]);
+    assertEqual(lotes[0].transactions[0]._importKey,
+                '01/07/2026|pago luz|100.00|banco galicia');
+  });
+  test('las tx entran sin categoría, para que las asignen las reglas', function () {
+    const lotes = agruparTransaccionesPorMes([
+      { fecha: '01/07/2026', descripcion: 'x', monto: 1, origen: 'MP' }
+    ]);
+    assertEqual(lotes[0].transactions[0].categoria, null);
+  });
+  test('descarta fechas inválidas sin explotar', function () {
+    const lotes = agruparTransaccionesPorMes([
+      { fecha: 'no-es-fecha', descripcion: 'x', monto: 1, origen: 'MP' },
+      { fecha: '01/07/2026', descripcion: 'y', monto: 2, origen: 'MP' }
+    ]);
+    assertEqual(lotes.length, 1);
+    assertEqual(lotes[0].transactions.length, 1);
+  });
+  test('entrada vacía o nula devuelve array vacío', function () {
+    assertEqual(agruparTransaccionesPorMes([]).length, 0);
+    assertEqual(agruparTransaccionesPorMes(null).length, 0);
+  });
+});
+
 group('parseCsv — CSV según RFC 4180', function () {
   test('separa celdas y filas simples', function () {
     assertEqual(parseCsv('a,b\nc,d', ','), [['a','b'],['c','d']]);
