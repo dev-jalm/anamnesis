@@ -13917,11 +13917,18 @@ async function connectDrive() {
     driveHandle = handle;
     await saveHandle(handle);
 
-    if (mode === 'save') {
-      // Modo "crear archivo": showSaveFilePicker permite tanto crear nuevo como
-      // sobrescribir existente. Para distinguir, leemos el handle SIN tratar
-      // vacío como corrupción (porque un archivo recién creado por el picker
-      // estará efectivamente vacío y eso NO es corrupción).
+    // Cualquier modo que no sea 'open' es "crear archivo". Se compara así y no
+    // por igualdad con un valor puntual porque antes decía `mode === 'save'`
+    // mientras el botón del modal manda data-drive-mode="create": nunca
+    // coincidía, y crear un archivo nuevo terminaba cayendo en el flujo de
+    // abrir. Ahí el archivo recién creado —vacío por definición— se leía como
+    // corrupto y disparaba la recuperación desde localStorage, que además de
+    // confundir podía meterle al archivo nuevo datos de otra sesión.
+    if (mode !== 'open') {
+      // showSaveFilePicker permite tanto crear nuevo como sobrescribir uno
+      // existente. Para distinguir, leemos el handle SIN tratar vacío como
+      // corrupción (un archivo recién creado por el picker está vacío y eso
+      // NO es corrupción).
       let existing = null;
       try {
         const file = await handle.getFile();
