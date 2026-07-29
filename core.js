@@ -2121,6 +2121,48 @@ function parseGaliciaRows(filas) {
   return { transactions: transactions, errores: errores };
 }
 
+// Agrupa transacciones planas (las que devuelven los parsers) en lotes por
+// año y mes, que es lo que espera mergeParsedData(): un objeto por mes con
+// year, month y sus transactions.
+//
+// Hace falta porque un resumen puede cruzar meses — un período "del 25/06 al
+// 25/07" cae en dos. Sin agrupar, todas las tx entrarían al mes de la primera
+// fila.
+//
+// Las tx salen con `categoria: null`: la asignan después las reglas y el
+// aprendizaje por historial, igual que con el flujo del LLM.
+function agruparTransaccionesPorMes(transactions) {
+  const porMes = {};
+  (transactions || []).forEach(function (t) {
+    if (!t || !t.fecha) return;
+    const m = String(t.fecha).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) return;
+    const year = parseInt(m[3], 10);
+    const month = MONTHS_ORDER[parseInt(m[2], 10) - 1];
+    if (!month) return;
+    const clave = year + '-' + month;
+    if (!porMes[clave]) porMes[clave] = { year: year, month: month, transactions: [] };
+    porMes[clave].transactions.push({
+      fecha: t.fecha,
+      descripcion: t.descripcion || '',
+      monto: t.monto,
+      categoria: null,
+      subcategoria: null,
+      origen: t.origen || '',
+      // Se propagan para que la UI pueda mostrarlos en el reporte de import.
+      // mergeParsedData no los usa.
+      _esIngreso: !!t.esIngreso,
+      _interno: !!t.interno,
+      _tipoOperacion: t.tipoOperacion || ''
+    });
+  });
+  // Orden cronológico de los lotes, para que el reporte se lea de viejo a nuevo
+  return Object.keys(porMes).sort(function (a, b) {
+    const A = porMes[a], B = porMes[b];
+    return (A.year - B.year) || (MONTHS_ORDER.indexOf(A.month) - MONTHS_ORDER.indexOf(B.month));
+  }).map(function (k) { return porMes[k]; });
+}
+
 // ============================================================
 // EXPORT — para Node.js (testing fuera del browser)
 // ============================================================
@@ -2129,6 +2171,7 @@ if (typeof module !== 'undefined' && module.exports) {
     // parsers de resúmenes
     parseCsv, detectarSeparadorCsv, fechaResumenAIso,
     esMovimientoInternoMp, parseMercadoPagoCsv, parseGaliciaRows,
+    agruparTransaccionesPorMes,
     // constants
     NON_EXPENSE_CATS, NON_COUNTABLE_FLOW_CATS, BASIC_CATS, DISCRETIONARY_CATS, MONTHS_ORDER, SCHEMA_VERSION,
     HEALTH_SCORE_DEFAULTS,

@@ -6320,6 +6320,125 @@ function extractJSON(text) {
   return JSON.parse(cleaned.substring(start, end + 1));
 }
 
+// ============================================================
+// IMPORTACIÓN DIRECTA DE RESÚMENES (CSV / XLSX)
+// ============================================================
+// Reemplaza el flujo de "copiá el prompt → pegalo en un LLM → pegá el JSON".
+// El usuario sube el archivo tal como lo baja del banco y listo.
+//
+// Los parsers viven en core.js (puros y testeados); acá está lo que no se
+// puede testear sin navegador: leer el archivo y, para Excel, cargar SheetJS.
+
+// SheetJS se carga BAJO DEMANDA, la primera vez que alguien sube un .xlsx.
+// Son varios cientos de KB y la mayoría de las sesiones no importan nada:
+// meterlo en el <head> penalizaría cada arranque de la app por una función
+// que se usa una vez por mes.
+let _sheetJsPromise = null;
+function cargarSheetJs() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (_sheetJsPromise) return _sheetJsPromise;
+  _sheetJsPromise = new Promise(function (resolve, reject) {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = function () {
+      if (window.XLSX) resolve(window.XLSX);
+      else reject(new Error('SheetJS cargó pero no expuso XLSX'));
+    };
+    s.onerror = function () {
+      _sheetJsPromise = null;   // permitir reintento si fue un corte de red
+      reject(new Error('No se pudo cargar el lector de Excel. Revisá tu conexión.'));
+    };
+    document.head.appendChild(s);
+  });
+  return _sheetJsPromise;
+}
+
+// Lee un .xlsx y devuelve sus filas como array de arrays, en el mismo formato
+// que produce parseCsv(). Así parseGaliciaRows() no sabe si los datos vinieron
+// de un Excel o de un CSV.
+function leerFilasDeExcel(arrayBuffer) {
+  return cargarSheetJs().then(function (XLSX) {
+    const wb = XLSX.read(arrayBuffer, { type: 'array' });
+    const hoja = wb.Sheets[wb.SheetNames[0]];
+    // header:1 devuelve filas como arrays; raw:false fuerza strings, que es lo
+    // que esperan los parsers (los importes vienen en formato AR y no queremos
+    // que SheetJS los convierta a número con su propia interpretación).
+    return XLSX.utils.sheet_to_json(hoja, { header: 1, raw: false, defval: '' });
+  });
+}
+
+// Detecta de qué banco es el archivo mirando su contenido, no el nombre.
+// El usuario elige el origen en el paso 1 del modal, pero si sube el archivo
+// equivocado conviene avisarle antes de importar cualquier cosa.
+function detectarOrigenResumen(filas) {
+  const texto = norm((filas || []).slice(0, 10).map(function (f) { return (f || []).join(' '); }).join(' '));
+  if (texto.indexOf('release_date') >= 0 || texto.indexOf('transaction_net_amount') >= 0) return 'MP';
+  if (texto.indexOf('banco galicia') >= 0 || (texto.indexOf('movimiento') >= 0 && texto.indexOf('debito') >= 0)) return 'Galicia';
+  return null;
+}
+
+// Orquesta todo: archivo → filas → parser → lotes por mes → mergeParsedData.
+// Devuelve un resumen para mostrarle al usuario.
+async function importarArchivoResumen(file) {
+  const nombre = (file.name || '').toLowerCase();
+  const esExcel = /\.xlsx?$/.test(nombre);
+
+  let filas, resultado;
+  if (esExcel) {
+    const buf = await file.arrayBuffer();
+    filas = await leerFilasDeExcel(buf);
+  } else {
+    const texto = await file.text();
+    filas = parseCsv(texto, detectarSeparadorCsv(texto));
+  }
+
+  const origen = detectarOrigenResumen(filas);
+  if (!origen) {
+    throw new Error('No reconocí el formato del archivo. Esperaba un CSV de Mercado Pago o un Excel de Banco Galicia.');
+  }
+
+  if (origen === 'MP') {
+    // El parser de MP trabaja sobre el texto crudo, no sobre filas ya partidas
+    const texto = esExcel ? '' : await file.text();
+    if (esExcel) throw new Error('El resumen de Mercado Pago se exporta en CSV, no en Excel.');
+    resultado = parseMercadoPagoCsv(texto);
+  } else {
+    resultado = parseGaliciaRows(filas);
+  }
+
+  if (resultado.transactions.length === 0) {
+    throw new Error(resultado.errores[0] || 'El archivo no tenía movimientos para importar.');
+  }
+
+  // Un resumen puede cruzar meses: se importa un lote por cada uno.
+  const lotes = agruparTransaccionesPorMes(resultado.transactions);
+  const meses = [];
+  let totalNuevas = 0, totalOmitidas = 0;
+
+  lotes.forEach(function (lote) {
+    const parsed = {
+      year: lote.year,
+      month: lote.month,
+      transactions: lote.transactions,
+      origen: origen === 'MP' ? 'Mercado Pago' : 'Banco Galicia'
+    };
+    mergeParsedData(parsed);
+    meses.push(MONTH_LABELS[lote.month] + ' ' + lote.year);
+    totalNuevas += (parsed._dedupKept || 0);
+    totalOmitidas += (parsed._dedupSkipped || 0);
+  });
+
+  return {
+    origen: origen === 'MP' ? 'Mercado Pago' : 'Banco Galicia',
+    meses: meses,
+    leidas: resultado.transactions.length,
+    nuevas: totalNuevas,
+    omitidas: totalOmitidas,
+    internas: resultado.transactions.filter(function (t) { return t.interno; }).length,
+    errores: resultado.errores
+  };
+}
+
 function mergeParsedData(parsed) {
   if (!parsed.year || !parsed.month) throw new Error('JSON debe incluir year y month');
   const year = parsed.year;
@@ -15567,6 +15686,66 @@ async function exportActiveTab(format) {
   }
 }
 
+// Bindea el bloque de subida de archivo del paso 3 del modal de carga.
+function bindStatementFileImport() {
+  const btn = document.getElementById('statementFileBtn');
+  const input = document.getElementById('statementFileInput');
+  const status = document.getElementById('fileImportStatus');
+  const drop = document.getElementById('fileImportDrop');
+  if (!btn || !input || btn._bound) return;
+
+  function mostrar(clase, html) {
+    if (!status) return;
+    status.className = 'alert-box ' + clase;
+    status.innerHTML = html;
+  }
+
+  async function procesar(file) {
+    if (!file) return;
+    mostrar('', '<strong>Leyendo</strong> ' + escapeHtmlSafe(file.name) + '…');
+    try {
+      const r = await importarArchivoResumen(file);
+      const partes = [
+        '<strong>¡Importado!</strong> ' + r.origen + ' · ' + r.meses.join(', '),
+        r.leidas + ' movimiento' + (r.leidas === 1 ? '' : 's') + ' leído' + (r.leidas === 1 ? '' : 's')
+      ];
+      if (r.nuevas || r.omitidas) {
+        partes.push(r.nuevas + ' nuev' + (r.nuevas === 1 ? 'o' : 'os') +
+                    (r.omitidas ? ' · ' + r.omitidas + ' ya existente' + (r.omitidas === 1 ? '' : 's') : ''));
+      }
+      if (r.internas) partes.push(r.internas + ' movimiento' + (r.internas === 1 ? '' : 's') + ' interno' + (r.internas === 1 ? '' : 's'));
+      if (r.errores.length) partes.push('<span style="color:var(--red)">' + r.errores.length + ' fila(s) con problemas</span>');
+      mostrar('success', partes.join(' · '));
+
+      initSelectors();
+      renderAll();
+      if (typeof renderMainMovements === 'function') renderMainMovements();
+      if (typeof renderUploadHistoryPanel === 'function') renderUploadHistoryPanel();
+    } catch (e) {
+      mostrar('error', '<strong>Error:</strong> ' + escapeHtmlSafe(String(e && e.message || e)));
+    }
+    input.value = '';   // permitir volver a elegir el mismo archivo
+  }
+
+  btn.addEventListener('click', function () { input.click(); });
+  input.addEventListener('change', function () { procesar(input.files && input.files[0]); });
+
+  // Arrastrar y soltar sobre el recuadro
+  if (drop) {
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('dragging'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('dragging'); });
+    });
+    drop.addEventListener('drop', function (e) {
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) procesar(f);
+    });
+  }
+  btn._bound = true;
+}
+
 function bindExportMenu() {
   const btn = document.getElementById('exportBtn');
   const menu = document.getElementById('exportMenu');
@@ -15757,6 +15936,7 @@ applyViewMode();
 
 // Export menu (PNG / PDF) — bindeo del dropdown
 bindExportMenu();
+bindStatementFileImport();
 
 // Botones de grupo (Flujo / Movimientos) en Evolución de KPIs
 bindKpiEvoGroupButtons();

@@ -2115,7 +2115,7 @@
         <span class="step-sep done"></span>
         <span class="step-dot active">3</span>
       </div>
-      <div class="step-title">Pegá el JSON que te devolvió Claude</div>
+      <div class="step-title">Cargá el resumen</div>
       <div class="upload-history-panel hidden" id="uploadHistoryPanel">
         <div class="upload-history-header">
           <i data-lucide="history" style="width:13px;height:13px"></i>
@@ -2123,9 +2123,29 @@
         </div>
         <div class="upload-history-list" id="uploadHistoryList"></div>
       </div>
-      <div class="form-block">
-        <textarea id="jsonInput" placeholder='Pegá aquí el JSON devuelto por Claude.ai, algo como:\n\n{\n  "year": 2026,\n  "month": "abril",\n  "categories": { ... },\n  ...\n}' style="width:100%;min-height:200px;font-family:monospace;font-size:12px;padding:12px;background:var(--bg-1);border:1px solid var(--grid);border-radius:8px;color:var(--ink);resize:vertical"></textarea>
+      <!-- VÍA RÁPIDA: subir el archivo tal como lo baja el banco.
+           Mercado Pago exporta .csv y Galicia .xlsx; ambos se parsean acá
+           mismo, sin pasar por un LLM. El bloque de pegar JSON queda abajo
+           como alternativa para PDFs o bancos sin parser propio. -->
+      <div class="form-block" id="fileImportBlock">
+        <div class="file-import-drop" id="fileImportDrop">
+          <input type="file" id="statementFileInput" accept=".csv,.xlsx,.xls" hidden>
+          <i data-lucide="file-up" style="width:20px;height:20px"></i>
+          <div class="file-import-texts">
+            <span class="file-import-title">Subí el resumen del banco</span>
+            <span class="file-import-hint" id="fileImportHint">CSV de Mercado Pago o Excel de Banco Galicia</span>
+          </div>
+          <button type="button" class="upload-btn" id="statementFileBtn">ELEGIR ARCHIVO</button>
+        </div>
+        <div class="alert-box hidden" id="fileImportStatus"></div>
       </div>
+
+      <details class="json-fallback" id="jsonFallbackBlock">
+        <summary>¿Tu banco no está en la lista? Importar pegando JSON</summary>
+        <div class="form-block">
+          <textarea id="jsonInput" placeholder='Pegá aquí el JSON devuelto por Claude.ai, algo como:\n\n{\n  "year": 2026,\n  "month": "abril",\n  "categories": { ... },\n  ...\n}' style="width:100%;min-height:200px;font-family:monospace;font-size:12px;padding:12px;background:var(--bg-1);border:1px solid var(--grid);border-radius:8px;color:var(--ink);resize:vertical"></textarea>
+        </div>
+      </details>
       <div class="alert-box error hidden" id="uploadError"></div>
       <div class="alert-box success hidden" id="uploadSuccess"></div>
       <div class="modal-actions">
