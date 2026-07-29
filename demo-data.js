@@ -81,10 +81,10 @@ const DEMO_APORTES = [
   { cat: 'Reserva',    tags: null,     monto: 200000, dia: 8,  desc: 'Transferencia a caja de ahorro USD' },
   { cat: 'Inversion',  tags: null,     monto: 220000, dia: 9,  desc: 'Transferencia a Balanz' },
   { cat: 'Trading',    tags: null,     monto: 85000,  dia: 9,  desc: 'Transferencia a Bull Market' },
-  { cat: 'Jubilacion', tags: ['JALM'], monto: 95000,  dia: 10, desc: 'Aporte jubilación JALM' },
-  // La descripción usa el label visible (CLAUDE), no la key del tag (CLM),
-  // para que no queden los dos nombres mezclados en la misma fila.
-  { cat: 'Jubilacion', tags: ['CLM'],  monto: 45000,  dia: 10, desc: 'Aporte jubilación CLAUDE' }
+  // Una sola jubilación en la demo: la separación JALM/CLM es una distinción
+  // personal de quien usa la app y no le dice nada a un visitante. El aporte
+  // absorbe lo que antes iba repartido entre las dos (95.000 + 45.000).
+  { cat: 'Jubilacion', tags: ['JALM'], monto: 140000, dia: 10, desc: 'Aporte jubilación' }
 ];
 
 // Cartera de CEDEARs para la solapa Salud financiera. Precios en ARS con el
@@ -98,7 +98,9 @@ const DEMO_CARTERA = [
   { ticker: 'MELI', desc: 'MercadoLibre Inc.',       broker: 'BALANZ',      cant: 12,  ppc: 42000, actual: 51300, destino: 'trading' },
   { ticker: 'KO',   desc: 'The Coca-Cola Company',   broker: 'BALANZ',      cant: 80,  ppc: 8900,  actual: 10450, destino: 'jubilacion_jalm' },
   { ticker: 'JNJ',  desc: 'Johnson & Johnson',       broker: 'NEXO',        cant: 45,  ppc: 11200, actual: 12980, destino: 'jubilacion_jalm' },
-  { ticker: 'VOO',  desc: 'Vanguard S&P 500 ETF',    broker: 'BALANZ',      cant: 30,  ppc: 18700, actual: 23400, destino: 'jubilacion_clm' },
+  // VOO pasa a jubilacion_jalm: la demo tiene un solo panel de jubilación y el
+  // de CLM no se muestra, así que una posición ahí quedaría invisible.
+  { ticker: 'VOO',  desc: 'Vanguard S&P 500 ETF',    broker: 'BALANZ',      cant: 30,  ppc: 18700, actual: 23400, destino: 'jubilacion_jalm' },
   { ticker: 'GOLD', desc: 'Barrick Gold Corporation',broker: 'BULL_MARKET', cant: 55,  ppc: 6800,  actual: 8120,  destino: 'reserva' }
 ];
 

@@ -17236,11 +17236,20 @@ function renderMainAssets() {
     const tradingPanel = buildInvestmentDetailPanel(['trading'], 'Trading');
     if (tradingPanel) tradingEl.insertAdjacentHTML('beforeend', tradingPanel);
   }
+  // La demo trabaja con una sola jubilación: no tiene sentido mostrarle a un
+  // visitante la separación JALM/CLM, que es una distinción personal de quien
+  // usa la app. Se oculta el panel CLM y el de JALM pasa a llamarse solo
+  // "Jubilación", porque sin el otro al lado la sigla no desambigua nada.
+  // Con Drive conectado no cambia nada: siguen los dos paneles con sus siglas.
+  const demoUnaSolaJubilacion = !!window.DEMO_MODE;
   if (jalmEl) {
-    const jalmPanel = buildInvestmentDetailPanel(['jubilacion_jalm'], 'Jubilación JALM');
+    const jalmPanel = buildInvestmentDetailPanel(
+      ['jubilacion_jalm'],
+      demoUnaSolaJubilacion ? 'Jubilación' : 'Jubilación JALM'
+    );
     if (jalmPanel) jalmEl.insertAdjacentHTML('beforeend', jalmPanel);
   }
-  if (clmEl) {
+  if (clmEl && !demoUnaSolaJubilacion) {
     const clmPanel = buildInvestmentDetailPanel(['jubilacion_clm'], 'Jubilación CLM');
     if (clmPanel) clmEl.insertAdjacentHTML('beforeend', clmPanel);
   }
