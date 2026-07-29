@@ -19357,6 +19357,12 @@ function enterDemoMode() {
   // acabamos de fijar. renderAll() no los toca: se renderizan aparte.
   if (typeof renderSelectors === 'function') renderSelectors();
   if (typeof renderAll === 'function') renderAll();
+  // setMainTab() no es solo marcar la solapa activa: es lo que reparte la
+  // clase .tab-visible entre los toggles contextuales del header (moneda
+  // ARS/USD, Resumen/Completa, vista de saldos). Sin esta llamada ninguno
+  // recibe la clase y quedan todos ocultos, aunque la solapa se vea bien.
+  // Mismo orden que el arranque normal con Drive: renderAll → setMainTab.
+  if (typeof setMainTab === 'function') setMainTab('medical');
   if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons();
 }
 
