@@ -238,6 +238,16 @@ function getLastBusinessDay(year, monthIdx) {
 // Si el mes es futuro o aún en curso, no fetchea.
 // Devuelve una Promise<number|null>.
 function fetchBnaCloseRate(year, month) {
+  // En modo demo no se sale a la red. Es la tercera fuente de fetch que hay
+  // que cortar, además de los auto-fetch de MEP y precios: esta se dispara al
+  // cambiar de período, no al entrar a una solapa, así que no aparecía en las
+  // pruebas hechas sobre la vista mensual.
+  //
+  // Sin el guard, la demo hace llamadas a argentinadatos.com que el visitante
+  // nunca pidió, solo por navegar entre trimestres. Devolver null hace que se
+  // use la tabla BNA_VENTA_CLOSE hardcodeada, que es el mismo camino que sigue
+  // la app cuando está sin conexión.
+  if (window.DEMO_MODE) return Promise.resolve(null);
   const monthIdx = MONTH_INDEX[month];
   if (monthIdx === undefined) return Promise.resolve(null);
   // No fetchear meses futuros o en curso
