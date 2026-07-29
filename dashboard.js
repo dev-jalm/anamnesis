@@ -2191,6 +2191,25 @@ function renderKpiHint(hint, value, ctx) {
 // distinto al state.selYear (necesario para sparkline que mira meses pasados).
 // Devuelve { sueldo, prestamos, gastosTotal, gastosDiscrecionales, inversion }
 // listo para pasar a computeHealthScore.
+// Convierte un color hex (#RRGGBB o #RGB) a rgba() con la opacidad pedida.
+// Se usa para derivar el borde y el relleno de una serie del gráfico a partir
+// de un único color base, sin tener que hardcodear el rgba de cada variante.
+// Si el valor no es un hex reconocible se devuelve tal cual: así un
+// 'rgba(...)' o un nombre de color siguen funcionando como fallback.
+function hexToRgba(hex, alpha) {
+  if (typeof hex !== 'string') return hex;
+  let h = hex.trim();
+  if (h.charAt(0) !== '#') return h;
+  h = h.slice(1);
+  // Forma corta #RGB → #RRGGBB
+  if (h.length === 3) h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
+  if (h.length !== 6) return hex;
+  const n = parseInt(h, 16);
+  if (isNaN(n)) return hex;
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
+}
+
 function buildHealthScoreCtxForMonths(months, year) {
   year = year || state.selYear;
   const byYear = state.transactionsByYear && state.transactionsByYear[year];
@@ -3582,12 +3601,28 @@ function renderKpiEvoChart(d) {
       return null;
     }
   });
+  // Color de la serie = el del rating actual del score, el mismo que usa la
+  // tarjeta grande de Salud Financiera (verde Saludable / dorado Atención /
+  // rojo Crítico). computeHealthScore() ya lo devuelve en result.color, así que
+  // no hay que replicar los umbrales acá. Antes era un dorado fijo que no
+  // coincidía con la tarjeta salvo cuando el rating justo era "Atención".
+  //
+  // Se calcula sobre el período completo, no mes a mes: la serie es una sola y
+  // necesita un color único, el mismo que el usuario está viendo en la tarjeta.
+  let scoreColor = '#8B7355';   // fallback: dorado neutro del tema
+  try {
+    const scoreCtxTotal = buildHealthScoreCtxForMonths(months, state.selYear);
+    const resTotal = computeHealthScore(scoreCtxTotal, (state.params && state.params.healthScore) || {});
+    if (resTotal && resTotal.color) scoreColor = resTotal.color;
+  } catch (e) { /* se queda el fallback */ }
+  // El área de fondo va translúcida para no tapar las barras que quedan
+  // delante. hexToRgba está definido para esto.
   datasets.push({
     type: 'line',
     label: 'Salud Financiera',
     data: scoreValues,
-    borderColor: 'rgba(139, 115, 85, 0.8)',
-    backgroundColor: 'rgba(139, 115, 85, 0.15)',
+    borderColor: hexToRgba(scoreColor, 0.8),
+    backgroundColor: hexToRgba(scoreColor, 0.15),
     borderWidth: 1.5,
     pointRadius: 2,
     pointHoverRadius: 4,
