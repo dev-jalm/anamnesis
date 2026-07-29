@@ -2018,7 +2018,11 @@
         <div id="loadPaneManualInv" class="hidden"></div>
       </div>
 
-      <div class="modal-actions">
+      <!-- Cerrar arranca oculto. Los formularios de ingreso manual traen sus
+           propios botones (GUARDAR), así que un Cerrar suelto ahí abajo sólo
+           agrega ruido. Se muestra cuando termina una importación de archivo,
+           que es el único caso donde no hay otro botón que cierre el paso. -->
+      <div class="modal-actions hidden" id="loadModalCloseRow">
         <button class="btn-cancel" id="cancelBtn">Cerrar</button>
       </div>
     </div>

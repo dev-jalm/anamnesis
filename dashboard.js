@@ -5375,6 +5375,9 @@ function openModal() {
   if (fileStatusReset) { fileStatusReset.className = 'alert-box hidden'; fileStatusReset.innerHTML = ''; }
   const fallbackReset = document.getElementById('jsonFallbackBlock');
   if (fallbackReset) fallbackReset.open = false;
+  // Cerrar vuelve a esconderse en cada apertura: aparece cuando hay una
+  // importación hecha, no antes.
+  mostrarCerrarModalCarga(false);
 
   uploadError.classList.add('hidden');
   uploadSuccess.classList.add('hidden');
@@ -5394,16 +5397,15 @@ function openModal() {
     importBtnReset.innerHTML = '<i data-lucide="check" style="width:14px;height:14px"></i> IMPORTAR DATOS';
     delete importBtnReset.dataset.role;
   }
-  const step3BackReset = document.getElementById('step3BackBtn');
-  if (step3BackReset) step3BackReset.style.display = '';
+  // Los "Atrás" de los formularios ya no se muestran: reorganizarModalCarga()
+  // los oculta porque el wizard de pasos desapareció. Antes acá se los volvía a
+  // mostrar en cada apertura, que es lo que los hacía reaparecer.
   // Ídem para el botón de carga manual (Efectivo)
   const saveManualReset = document.getElementById('saveManualBtn');
   if (saveManualReset) {
     saveManualReset.innerHTML = '<i data-lucide="save" style="width:14px;height:14px"></i> GUARDAR';
     delete saveManualReset.dataset.role;
   }
-  const step2BackManualReset = document.getElementById('step2BackBtnManual');
-  if (step2BackManualReset) step2BackManualReset.style.display = '';
   // Tambien limpiar el alert-box de éxito manual ("manualSuccess")
   const manualSuccessReset = document.getElementById('manualSuccess');
   if (manualSuccessReset) manualSuccessReset.classList.add('hidden');
@@ -5523,7 +5525,23 @@ function reorganizarModalCarga() {
     if (el) el.classList.add('hidden');
   });
 
+  // Los botones "Atrás" de los formularios navegaban entre pasos del wizard.
+  // Ya no hay pasos: el selector de arriba queda siempre visible y cambiar de
+  // tipo de carga es un click. Un "Atrás" que no lleva a ningún lado confunde.
+  ['step2BackBtnManual', 'step2InvestmentBackBtn', 'step3BackBtn'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
   _modalCargaReorganizado = true;
+}
+
+// Muestra u oculta la fila del botón Cerrar. Sólo tiene sentido cuando el
+// usuario terminó de importar un archivo: los formularios manuales ya traen su
+// propio GUARDAR, que cierra el paso.
+function mostrarCerrarModalCarga(visible) {
+  const row = document.getElementById('loadModalCloseRow');
+  if (row) row.classList.toggle('hidden', !visible);
 }
 
 // Muestra el panel que corresponde y marca el botón activo.
@@ -15928,6 +15946,8 @@ function bindStatementFileImport() {
       if (r.internas) partes.push(r.internas + ' movimiento' + (r.internas === 1 ? '' : 's') + ' interno' + (r.internas === 1 ? '' : 's'));
       if (r.errores.length) partes.push('<span style="color:var(--red)">' + r.errores.length + ' fila(s) con problemas</span>');
       mostrar('success', partes.join(' · '));
+      // Recién ahora aparece Cerrar: ya hay algo hecho que cerrar.
+      if (typeof mostrarCerrarModalCarga === 'function') mostrarCerrarModalCarga(true);
 
       initSelectors();
       renderAll();
