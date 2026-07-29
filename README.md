@@ -29,13 +29,15 @@ anamnesis parte de tres decisiones opuestas:
 | **Ficha médica** — KPIs, score y distribución del gasto | **Salud financiera** — cartera por destino, con líquido e invertido |
 -->
 
-_Capturas pendientes — mientras tanto, la forma más rápida de verlo es entrar al modo demo (ver abajo)._
+**▶ Probalo en vivo: [anamnesis-7zs.pages.dev](https://anamnesis-7zs.pages.dev/)** — entrá con "Ver demo con datos de ejemplo", no hace falta conectar nada.
+
+_Capturas pendientes._
 
 ## Probarlo
 
 No hace falta instalar nada ni tener datos propios: abrí `dashboard.html` y hacé clic en **"Ver demo con datos de ejemplo"**.
 
-Eso carga un dataset ficticio de 583 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios y una cartera de 10 CEDEARs— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`, ni sale a la red.
+Eso carga un dataset ficticio de 589 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios y una cartera de 10 CEDEARs— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`, ni sale a la red.
 
 Para usarlo con datos reales necesitás Chrome o Edge (la File System Access API no está en Firefox ni Safari) y servirlo por HTTP o abrirlo como archivo local.
 
