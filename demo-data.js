@@ -103,6 +103,25 @@ const DEMO_CARTERA = [
 const DEMO_MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DEMO_ORIGENES = ['Mercado Pago', 'Banco Galicia', 'Efectivo'];
 
+// Categorías de flujo. Se declaran acá y no se toma NON_EXPENSE_CATS de core.js
+// para que el generador siga siendo autónomo (se usa también desde scripts que
+// no cargan core.js).
+const DEMO_CATS_FLUJO = ['Sueldo','Prestamo','Reserva','Inversion','Trading','Jubilacion','DevolucionCapital'];
+const DEMO_CATS_INGRESO = ['Sueldo','Prestamo'];
+
+// Saldo objetivo por trimestre de 2026, como fracción del ingreso del mes.
+// El saldo es ingresos − gastos − aportes de flujo.
+//
+// La progresión 0% → 10% → 20% es deliberada: hace que el score de salud
+// financiera mejore trimestre a trimestre, que es lo que se quiere mostrar en
+// la demo. Sin esto el saldo quedaba parejo y el score plano.
+//
+// 2025 no se toca: los meses viejos quedan con su variación natural, que sirve
+// de contraste contra la mejora de 2026.
+const DEMO_SALDO_OBJETIVO = {
+  2026: { 0: 0.01, 1: 0.10, 2: 0.20 }   // 0=Q1, 1=Q2, 2=Q3
+};
+
 // Labels visibles de las subcategorías. Las keys van sin acento (como las
 // genera la app), pero el texto que se muestra sí los lleva.
 const DEMO_SUB_LABELS = {
@@ -255,6 +274,42 @@ function buildDemoSnapshot(mesesAtras) {
         origen: 'Banco Galicia'
       });
     });
+
+    // --- Ajuste del saldo al objetivo del trimestre ---
+    // Con todas las tx del mes ya generadas, se calcula el saldo resultante y
+    // se escalan los GASTOS para llevarlo al objetivo. Se tocan los gastos y no
+    // los ingresos ni los aportes porque son la variable que realmente se mueve
+    // mes a mes: el sueldo y el plan de ahorro son fijos.
+    //
+    // El escalado es proporcional sobre todas las tx de gasto del mes, así que
+    // la composición por categoría no cambia — solo el nivel general.
+    const objetivoTrim = DEMO_SALDO_OBJETIVO[anio] && DEMO_SALDO_OBJETIVO[anio][Math.floor(mesIdx / 3)];
+    if (objetivoTrim !== undefined && objetivoTrim !== null) {
+      const lista = transactionsByYear[anio][mes] || [];
+      let ingresos = 0, gastos = 0, flujoSalida = 0;
+      lista.forEach(function (t) {
+        const m = Number(t.monto) || 0;
+        if (DEMO_CATS_INGRESO.indexOf(t.categoria) >= 0) ingresos += m;
+        else if (DEMO_CATS_FLUJO.indexOf(t.categoria) >= 0) flujoSalida += m;
+        else gastos += m;
+      });
+      // Objetivo sobre el ingreso del mes, no sobre el sueldo base: en junio y
+      // diciembre entra el aguinaldo, y calcularlo sobre el básico obligaría a
+      // inflar los gastos de esos meses para "gastar" el extra.
+      const saldoObjetivo = ingresos * objetivoTrim;
+      const gastoNecesario = ingresos - flujoSalida - saldoObjetivo;
+      if (gastos > 0 && gastoNecesario > 0) {
+        // Clamp defensivo: un factor disparatado significaría que el objetivo
+        // no entra con estos ingresos, y es preferible un saldo impreciso a un
+        // dataset con gastos irreales.
+        const factor = Math.min(Math.max(gastoNecesario / gastos, 0.5), 2);
+        lista.forEach(function (t) {
+          if (DEMO_CATS_FLUJO.indexOf(t.categoria) < 0) {
+            t.monto = Math.round((Number(t.monto) || 0) * factor);
+          }
+        });
+      }
+    }
 
     // --- Presupuesto del mes: se fija por encima del gasto real típico ---
     if (!budgetByYear[anio]) budgetByYear[anio] = {};
