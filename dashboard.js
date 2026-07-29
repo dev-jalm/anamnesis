@@ -15703,34 +15703,6 @@ function bindStatementFileImport() {
   async function procesar(file) {
     if (!file) return;
 
-    // Asegurar el permiso de ESCRITURA de Drive ANTES de leer el archivo.
-    //
-    // requestPermission() del File System Access API exige "user activation":
-    // un gesto reciente del usuario. Acá todavía lo tenemos, porque este código
-    // corre dentro del evento change del input. Después no: leer el archivo es
-    // asíncrono y encima scheduleSave() espera 800 ms de debounce, así que
-    // cuando el guardado llegaba a pedir el permiso la activación ya se había
-    // consumido. El pedido fallaba, saveToFile devolvía false y la app marcaba
-    // Drive como desconectado — justo después de una importación, que es el
-    // peor momento para dejar de respaldar.
-    //
-    // Pidiéndolo acá queda 'granted' y el guardado posterior lo encuentra
-    // concedido sin necesidad de activación.
-    if (driveHandle) {
-      let permisoOk = false;
-      try { permisoOk = await verifyPermission(driveHandle, true); } catch (e) { permisoOk = false; }
-      if (!permisoOk) {
-        // No importamos a ciegas: si no vamos a poder guardar, es mejor que el
-        // usuario lo sepa ANTES de cargar 127 movimientos que sólo viven en
-        // memoria y se pierden al cerrar la pestaña.
-        mostrar('error', '<strong>Falta permiso de escritura sobre el archivo de Drive.</strong> ' +
-          'Volvé a apretar ELEGIR ARCHIVO y aceptá el pedido de permiso del navegador; ' +
-          'así la importación queda respaldada.');
-        input.value = '';
-        return;
-      }
-    }
-
     mostrar('', '<strong>Leyendo</strong> ' + escapeHtmlSafe(file.name) + '…');
     try {
       const r = await importarArchivoResumen(file);
@@ -15754,13 +15726,40 @@ function bindStatementFileImport() {
       // Guardado INMEDIATO, sin esperar el debounce de 800 ms de scheduleSave().
       // Una importación mete decenas de movimientos de una: dejarlos esperando
       // en memoria es la peor ventana posible para que se cierre la pestaña.
-      // El permiso ya quedó concedido arriba, así que esto no necesita gesto.
+      //
+      // Puede fallar por permisos y no es un error de la app: Chrome NO persiste
+      // el permiso de escritura entre sesiones. Al reabrir, el handle se
+      // restaura desde IndexedDB pero su permiso queda en 'prompt' hasta que el
+      // usuario lo vuelva a conceder, y requestPermission() sólo funciona con un
+      // gesto del usuario. Ni el evento change del input sirve: la activación se
+      // consumió al abrir el selector de archivos.
+      //
+      // Por eso no se pide el permiso por adelantado ni se bloquea la
+      // importación: se importa igual y, si el guardado falla, se ofrece un
+      // botón. Ese click es el gesto que hace posible pedir el permiso.
       if (driveHandle && !window.DEMO_MODE) {
         const guardado = await saveToFile(driveHandle);
         if (!guardado) {
-          mostrar('error', '<strong>Se importó, pero no se pudo guardar en Drive.</strong> ' +
-            'Los movimientos están cargados en esta sesión. Reconectá desde el botón de Drive ' +
-            'y guardá con Ctrl+S antes de cerrar la pestaña.');
+          mostrar('error',
+            '<strong>Se importó, pero falta tu permiso para escribir en Drive.</strong> ' +
+            'Los ' + r.leidas + ' movimientos están cargados en esta sesión. ' +
+            'Apretá el botón para autorizarlo y guardar.' +
+            '<div style="margin-top:10px"><button type="button" class="upload-btn" id="fileImportAuthBtn">' +
+            'AUTORIZAR Y GUARDAR</button></div>');
+          const authBtn = document.getElementById('fileImportAuthBtn');
+          if (authBtn) {
+            authBtn.addEventListener('click', async function () {
+              // Acá sí hay user activation: es un click directo del usuario.
+              const ok = await saveToFile(driveHandle);
+              if (ok) {
+                mostrar('success', '<strong>Guardado.</strong> Los ' + r.leidas +
+                  ' movimientos quedaron respaldados en Drive.');
+              } else {
+                mostrar('error', '<strong>No se pudo guardar.</strong> Probá reconectar el ' +
+                  'archivo desde el botón de Drive del panel lateral.');
+              }
+            });
+          }
         }
       }
     } catch (e) {
