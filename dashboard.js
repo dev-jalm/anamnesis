@@ -15702,6 +15702,35 @@ function bindStatementFileImport() {
 
   async function procesar(file) {
     if (!file) return;
+
+    // Asegurar el permiso de ESCRITURA de Drive ANTES de leer el archivo.
+    //
+    // requestPermission() del File System Access API exige "user activation":
+    // un gesto reciente del usuario. Acá todavía lo tenemos, porque este código
+    // corre dentro del evento change del input. Después no: leer el archivo es
+    // asíncrono y encima scheduleSave() espera 800 ms de debounce, así que
+    // cuando el guardado llegaba a pedir el permiso la activación ya se había
+    // consumido. El pedido fallaba, saveToFile devolvía false y la app marcaba
+    // Drive como desconectado — justo después de una importación, que es el
+    // peor momento para dejar de respaldar.
+    //
+    // Pidiéndolo acá queda 'granted' y el guardado posterior lo encuentra
+    // concedido sin necesidad de activación.
+    if (driveHandle) {
+      let permisoOk = false;
+      try { permisoOk = await verifyPermission(driveHandle, true); } catch (e) { permisoOk = false; }
+      if (!permisoOk) {
+        // No importamos a ciegas: si no vamos a poder guardar, es mejor que el
+        // usuario lo sepa ANTES de cargar 127 movimientos que sólo viven en
+        // memoria y se pierden al cerrar la pestaña.
+        mostrar('error', '<strong>Falta permiso de escritura sobre el archivo de Drive.</strong> ' +
+          'Volvé a apretar ELEGIR ARCHIVO y aceptá el pedido de permiso del navegador; ' +
+          'así la importación queda respaldada.');
+        input.value = '';
+        return;
+      }
+    }
+
     mostrar('', '<strong>Leyendo</strong> ' + escapeHtmlSafe(file.name) + '…');
     try {
       const r = await importarArchivoResumen(file);
@@ -15721,6 +15750,19 @@ function bindStatementFileImport() {
       renderAll();
       if (typeof renderMainMovements === 'function') renderMainMovements();
       if (typeof renderUploadHistoryPanel === 'function') renderUploadHistoryPanel();
+
+      // Guardado INMEDIATO, sin esperar el debounce de 800 ms de scheduleSave().
+      // Una importación mete decenas de movimientos de una: dejarlos esperando
+      // en memoria es la peor ventana posible para que se cierre la pestaña.
+      // El permiso ya quedó concedido arriba, así que esto no necesita gesto.
+      if (driveHandle && !window.DEMO_MODE) {
+        const guardado = await saveToFile(driveHandle);
+        if (!guardado) {
+          mostrar('error', '<strong>Se importó, pero no se pudo guardar en Drive.</strong> ' +
+            'Los movimientos están cargados en esta sesión. Reconectá desde el botón de Drive ' +
+            'y guardá con Ctrl+S antes de cerrar la pestaña.');
+        }
+      }
     } catch (e) {
       mostrar('error', '<strong>Error:</strong> ' + escapeHtmlSafe(String(e && e.message || e)));
     }
