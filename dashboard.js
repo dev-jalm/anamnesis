@@ -17707,12 +17707,24 @@ function updateMainMovSummary(items, allTxs) {
     count += 1;
     total += m;
   });
-  // FLUJO: usa allTxs (todas las tx del período, sin filtrar).
-  // Fórmula: Sueldo + Préstamo − (resto de cats DE FLUJO).
-  // Solo se consideran las tx cuya categoría está en NON_EXPENSE_CATS
-  // (categorías de flujo). Las básicas y discrecionales NO participan en
-  // este cálculo — son gastos, no movimientos de flujo.
-  (allTxs || items || []).forEach(function (item) {
+  // FLUJO: fórmula Sueldo + Préstamo − (resto de cats DE FLUJO). Solo se
+  // consideran las tx cuya categoría está en NON_EXPENSE_CATS; las básicas y
+  // discrecionales no participan — son gastos, no movimientos de flujo.
+  //
+  // Qué conjunto se usa depende de CÓMO se llegó al listado:
+  //
+  //   - Sin filtro de tarjeta (el caso normal, moviendo el selector de tipo):
+  //     se usa allTxs, o sea todas las tx del período. Es a propósito — pasar
+  //     de "Todas" a "Básicas" no tiene por qué mover el balance de flujo.
+  //
+  //   - Con cardFilter activo (viniste de un drill-down: la celda LÍQUIDO de
+  //     Salud financiera o el monto de una tarjeta KPI): se usan las tx
+  //     filtradas. Ahí pediste ver un subconjunto puntual, y un totalizador
+  //     que sume las otras categorías de flujo no se corresponde con lo que
+  //     estás viendo en pantalla.
+  const hayCardFilter = (typeof mainMovState !== 'undefined') && !!mainMovState.cardFilter;
+  const fuenteFlujo = hayCardFilter ? (items || []) : (allTxs || items || []);
+  fuenteFlujo.forEach(function (item) {
     if (!item || !item.tx) return;
     const ch = item.change || {};
     const effCat = ch.categoria !== undefined ? ch.categoria : item.tx.categoria;
