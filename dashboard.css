@@ -6841,12 +6841,19 @@ body[data-exporting="true"] .section-card {
 .sidebar-utility-buttons .export-menu-wrap {
   position: relative;
 }
+/* En el sidebar el menú se despliega HACIA ABAJO, ocupando el ancho de la
+   columna. No puede abrir hacia el costado: el sidebar tiene overflow-x
+   hidden, así que todo lo que se pase de sus 260px queda recortado. Abriendo
+   a la derecha (left:100% + 180px de menú) el menú terminaba en ~403px y se
+   cortaba entero — el click funcionaba, pero no se veía nada.
+   Hacia abajo queda dentro del ancho y el overflow-y del sidebar es auto, así
+   que si no entra se puede scrollear. */
 .sidebar-utility-buttons .export-menu {
-  /* En el sidebar el menú abre a la derecha del botón para no cortarse */
-  left: 100%;
-  top: 0;
-  right: auto;
-  margin-left: 4px;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  margin-left: 0;
+  min-width: 0;
 }
 
 /* Franja de hover en el borde izquierdo: al pasar el mouse por ahí

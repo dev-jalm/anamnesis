@@ -82,7 +82,9 @@ const DEMO_APORTES = [
   { cat: 'Inversion',  tags: null,     monto: 220000, dia: 9,  desc: 'Transferencia a Balanz' },
   { cat: 'Trading',    tags: null,     monto: 85000,  dia: 9,  desc: 'Transferencia a Bull Market' },
   { cat: 'Jubilacion', tags: ['JALM'], monto: 95000,  dia: 10, desc: 'Aporte jubilación JALM' },
-  { cat: 'Jubilacion', tags: ['CLM'],  monto: 45000,  dia: 10, desc: 'Aporte jubilación CLM' }
+  // La descripción usa el label visible (CLAUDE), no la key del tag (CLM),
+  // para que no queden los dos nombres mezclados en la misma fila.
+  { cat: 'Jubilacion', tags: ['CLM'],  monto: 45000,  dia: 10, desc: 'Aporte jubilación CLAUDE' }
 ];
 
 // Cartera de CEDEARs para la solapa Salud financiera. Precios en ARS con el
@@ -385,7 +387,14 @@ function buildDemoSnapshot(mesesAtras) {
       return m;
     })(),
     subcategoryClassification: {},
-    taglabels: {},
+    // Se cambia el LABEL de la etiqueta CLM, no su key. La key 'CLM' es la que
+    // llevan las tx en su array de tags y la que usa sumTxByDestinos() para
+    // separar la jubilación CLM de la JALM: renombrarla desengancharía el panel
+    // de sus movimientos. El label es lo único que se ve en pantalla.
+    taglabels: {
+      JALM: { label: 'JALM',   color: '#8B8680' },
+      CLM:  { label: 'CLAUDE', color: '#D4849E' }
+    },
     paymentMethodOverrides: {},
     categoryRules: [],
     // viewMode 'resumen' arranca la Ficha médica en la vista compacta: para
