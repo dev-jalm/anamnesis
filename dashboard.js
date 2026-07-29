@@ -17707,21 +17707,21 @@ function updateMainMovSummary(items, allTxs) {
     count += 1;
     total += m;
   });
-  // FLUJO: fórmula Sueldo + Préstamo − (resto de cats DE FLUJO). Solo se
-  // consideran las tx cuya categoría está en NON_EXPENSE_CATS; las básicas y
-  // discrecionales no participan — son gastos, no movimientos de flujo.
+  // FLUJO: el bloque tiene DOS modos, según qué categorías estén a la vista.
   //
-  // Qué conjunto se usa depende de CÓMO se llegó al listado:
+  //   BALANCE (sin filtro de tarjeta) — Sueldo + Préstamo − el resto del flujo.
+  //     Se calcula sobre allTxs, todas las tx de flujo del período. Es a
+  //     propósito: mover el selector de tipo entre Todas / Básicas / De flujo
+  //     no tiene por qué alterar el balance.
   //
-  //   - Sin filtro de tarjeta (el caso normal, moviendo el selector de tipo):
-  //     se usa allTxs, o sea todas las tx del período. Es a propósito — pasar
-  //     de "Todas" a "Básicas" no tiene por qué mover el balance de flujo.
+  //   SUMA (con cardFilter activo) — total simple de lo que se está viendo.
+  //     Con el listado filtrado a una sola categoría de flujo, restar no
+  //     significa nada: no hay balance entre entradas y salidas cuando solo
+  //     hay una de las dos. Restar dejaba a Reserva en -$3.036.000 mientras el
+  //     grupo de arriba mostraba +$3.036.000 por las mismas 8 tx.
   //
-  //   - Con cardFilter activo (viniste de un drill-down: la celda LÍQUIDO de
-  //     Salud financiera o el monto de una tarjeta KPI): se usan las tx
-  //     filtradas. Ahí pediste ver un subconjunto puntual, y un totalizador
-  //     que sume las otras categorías de flujo no se corresponde con lo que
-  //     estás viendo en pantalla.
+  // En ambos casos participan solo las categorías de NON_EXPENSE_CATS; las
+  // básicas y discrecionales quedan fuera — son gastos, no flujo.
   const hayCardFilter = (typeof mainMovState !== 'undefined') && !!mainMovState.cardFilter;
   const fuenteFlujo = hayCardFilter ? (items || []) : (allTxs || items || []);
   fuenteFlujo.forEach(function (item) {
@@ -17735,12 +17735,15 @@ function updateMainMovSummary(items, allTxs) {
     // discrecionales quedan fuera del cálculo del bloque Flujo.
     if (!effCat || NON_EXPENSE_CATS.indexOf(effCat) < 0) return;
     flowCount += 1;
-    if (FLOW_INCOME.indexOf(effCat) >= 0) {
-      // Sueldo y Préstamo suman
+    if (hayCardFilter) {
+      // Modo SUMA: todo suma, sin importar la categoría.
+      flowBalance += Math.abs(m);
+    } else if (FLOW_INCOME.indexOf(effCat) >= 0) {
+      // Modo BALANCE: Sueldo y Préstamo suman.
       flowBalance += Math.abs(m);
     } else {
-      // Cualquier OTRA categoría de flujo (Reserva, Inversion, Trading,
-      // Jubilacion, DevolucionCapital, etc.) resta.
+      // Modo BALANCE: cualquier OTRA categoría de flujo (Reserva, Inversion,
+      // Trading, Jubilacion, DevolucionCapital, etc.) resta.
       flowBalance -= Math.abs(m);
     }
   });
