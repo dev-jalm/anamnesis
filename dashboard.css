@@ -5713,6 +5713,14 @@ body[data-exporting="true"] .section-card {
   outline: none;
   box-sizing: border-box;
 }
+/* La descripción del activo se muestra siempre en mayúsculas. Va por CSS y no
+   transformando el dato: así aplica también a lo que llega de data912 al
+   actualizar precios y a cualquier descripción ya guardada, sin reescribir
+   nada en el archivo del usuario. Lo que se escribe en el input se guarda tal
+   cual se tipeó; solo cambia cómo se ve. */
+.inv-desc-input {
+  text-transform: uppercase;
+}
 .inv-desc-input:hover,
 .inv-price-input:hover {
   border-color: var(--border);

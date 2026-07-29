@@ -16235,13 +16235,15 @@ function buildInvestmentDetailPanel(destinos, title) {
   // se renderiza en la última columna de la fila.
   function headerTotalRow(label, prefix, liquido, inv, act, vari, chartHtml, opts) {
     opts = opts || {};
-    const invDisp = prefix + fmt(Math.abs(inv));
-    const actDisp = (act !== null) ? prefix + fmt(Math.abs(act)) : '<span class="inv-na">—</span>';
+    // Espacio después del símbolo monetario ("$ 1.234,56"), igual que el PPC
+    // de la tabla. Es el formato que usa todo el panel.
+    const invDisp = prefix + ' ' + fmt(Math.abs(inv));
+    const actDisp = (act !== null) ? prefix + ' ' + fmt(Math.abs(act)) : '<span class="inv-na">—</span>';
     const cls = vari.abs === null ? '' : (vari.abs > 0 ? 'inv-gp-positive' : (vari.abs < 0 ? 'inv-gp-negative' : ''));
     const sign = vari.abs === null ? '' : (vari.abs > 0 ? '+' : (vari.abs < 0 ? '-' : ''));
     const varDisp = vari.abs === null
       ? '<span class="inv-na">—</span>'
-      : sign + prefix + fmt(Math.abs(vari.abs)) + ' <span class="inv-header-pct">(' + sign + Math.abs(vari.pct).toFixed(2) + '%)</span>';
+      : sign + prefix + ' ' + fmt(Math.abs(vari.abs)) + ' <span class="inv-header-pct">(' + sign + Math.abs(vari.pct).toFixed(2) + '%)</span>';
     // Líquido: si es null mostramos "—". Si es negativo, rojo (invertiste más
     // que lo aportado — inconsistencia entre tx cargadas y portfolio).
     // Si tiene valor (fila ARS+USD), la celda es clickeable: lleva a Historia
@@ -16250,7 +16252,7 @@ function buildInvestmentDetailPanel(destinos, title) {
     const liqSign = (liquido === null) ? '' : (liquido < 0 ? '-' : '');
     const liqDisp = (liquido === null)
       ? '<span class="inv-na">—</span>'
-      : liqSign + prefix + fmt(Math.abs(liquido));
+      : liqSign + prefix + ' ' + fmt(Math.abs(liquido));
     const liqClickable = (liquido !== null);
     const liqCell = liqClickable
       ? '<span class="inv-header-total-cell inv-header-cell-liq inv-liq-clickable" data-action="goto-mov-liquido" data-destinos="' + escapeHtmlSafe((opts.destinos || []).join(',')) + '" title="Ver movimientos en Historia clínica">' +
@@ -16318,7 +16320,7 @@ function buildInvestmentDetailPanel(destinos, title) {
   const cotizacionLine =
     '<div class="inv-header-cotizacion">' +
       '<span class="inv-header-cotizacion-label">Cotización MEP usada:</span>' +
-      '<span class="inv-header-cotizacion-value">$' + fmt(cotizacionMep) + ' / USD</span>' +
+      '<span class="inv-header-cotizacion-value">$ ' + fmt(cotizacionMep) + ' / USD</span>' +
       '<button class="inv-mep-refresh-btn" data-action="refresh-mep" title="Actualizar cotización MEP desde dolarapi.com">' +
         '<i data-lucide="refresh-cw" style="width:10px;height:10px"></i>' +
       '</button>' +
@@ -16421,12 +16423,12 @@ function buildInvestmentDetailPanel(destinos, title) {
         '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(tk) + '" value="' + escapeHtmlSafe(descripcion).replace(/"/g, '&quot;') + '" placeholder="ej: SPDR S&P 500 ETF"></td>' +
         '<td class="num">' + (g.cantidadTotal < 0 ? '-' : '') + fmt(Math.abs(g.cantidadTotal)) + '</td>' +
         '<td class="num">' + monedaPrefix + ' ' + new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(g.ppc) + '</td>' +
-        '<td class="num">' + (invertido < 0 ? '-' : '') + monedaPrefix + fmt(Math.abs(invertido)) + '</td>' +
+        '<td class="num">' + (invertido < 0 ? '-' : '') + monedaPrefix + ' ' + fmt(Math.abs(invertido)) + '</td>' +
         '<td class="num"><input type="text" inputmode="decimal" class="inv-price-input" data-ticker="' + escapeHtmlSafe(tk) + '" value="' + (precioActual !== null ? formatInputAR(precioActual) : '') + '" title="' + escapeHtmlSafe(lastUpdateDisplay) + '"></td>' +
-        '<td class="num ' + gpClass + '">' + (actualizado !== null ? monedaPrefix + fmt(actualizado) : '<span class="inv-na">—</span>') + '</td>' +
+        '<td class="num ' + gpClass + '">' + (actualizado !== null ? monedaPrefix + ' ' + fmt(actualizado) : '<span class="inv-na">—</span>') + '</td>' +
         '<td class="num ' + gpClass + '">' +
           (gp !== null
-            ? gpSign + monedaPrefix + fmt(Math.abs(gp)) + '<div class="inv-gp-pct">' + gpSign + Math.abs(gpPct).toFixed(2) + '%</div>'
+            ? gpSign + monedaPrefix + ' ' + fmt(Math.abs(gp)) + '<div class="inv-gp-pct">' + gpSign + Math.abs(gpPct).toFixed(2) + '%</div>'
             : '<span class="inv-na">—</span>') +
         '</td>' +
       '</tr>' +
