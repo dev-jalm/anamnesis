@@ -13775,9 +13775,19 @@ async function loadFromFile(handle) {
 // Si el archivo del disco está roto (vacío o JSON inválido), tratamos de
 // restaurar desde el pre-write backup que dejamos antes de la última escritura.
 function tryRestoreFromPreWrite(handle, reason) {
+  // Un archivo VACÍO no está corrupto: es lo que queda cuando se acaba de crear
+  // y todavía no se escribió nada. Merece otro tono que un JSON roto, sobre
+  // todo porque este aviso salta en cada arranque hasta que el archivo tenga
+  // contenido.
+  const estaVacio = /vac[íi]o/i.test(String(reason || ''));
+
   let raw = null;
   try { raw = localStorage.getItem(PRE_WRITE_KEY); } catch (e) {}
+
   if (!raw) {
+    // Sin backup y vacío: no hay nada que recuperar ni nada que se haya
+    // perdido. Es el arranque normal de un archivo recién creado.
+    if (estaVacio) return null;
     appConfirm({
       title: 'No se pudo leer el archivo',
       eyebrow: 'ERROR DE LECTURA',
@@ -13788,17 +13798,44 @@ function tryRestoreFromPreWrite(handle, reason) {
     }, function () {});
     return null;
   }
+
   let parsed;
   try { parsed = JSON.parse(raw); } catch (e) { return null; }
-  // Pre-write contiene el snapshot CRUDO (no envuelto). Ya viene listo para applyStateSnapshot.
+
+  // El callback corre con el click del usuario, o sea CON user activation: es la
+  // única oportunidad de pedir permiso de escritura y dejar el archivo con
+  // contenido. Antes el aviso pedía apretar Ctrl+S a mano y, si el usuario no
+  // lo hacía, el archivo seguía vacío y el mismo cartel volvía en cada
+  // arranque. Guardar acá corta ese loop.
+  const alConfirmar = function () {
+    if (driveHandle && typeof saveToFile === 'function') {
+      saveToFile(driveHandle);
+    }
+  };
+
+  if (estaVacio) {
+    appConfirm({
+      title: 'El archivo estaba vacío',
+      eyebrow: 'RECUPERACIÓN AUTOMÁTICA',
+      message: 'El archivo conectado no tenía contenido — pasa cuando se creó recién o cuando un guardado quedó a medias. ' +
+        'Recuperamos el último estado que teníamos guardado localmente, así que tu dashboard debería verse igual que la última vez. ' +
+        'Al confirmar lo escribimos en el archivo para que quede al día.',
+      confirmLabel: 'Guardar y continuar',
+      cancelLabel: null,
+      icon: 'shield-check'
+    }, alConfirmar);
+    return parsed;
+  }
+
   appConfirm({
     title: 'Archivo restaurado desde backup',
     eyebrow: 'RECUPERACIÓN AUTOMÁTICA',
-    message: 'El archivo conectado estaba corrupto (' + reason + '). Restauramos automáticamente el último estado válido que teníamos en localStorage. Tu dashboard debería verse igual que la última vez. Conviene guardar ahora (Cmd/Ctrl+S) para reescribir el archivo limpio.',
-    confirmLabel: 'Entendido',
+    message: 'El archivo conectado estaba corrupto (' + reason + '). Restauramos automáticamente el último estado válido que teníamos en localStorage. ' +
+      'Tu dashboard debería verse igual que la última vez. Al confirmar reescribimos el archivo limpio.',
+    confirmLabel: 'Guardar y continuar',
     cancelLabel: null,
     icon: 'shield-check'
-  }, function () {});
+  }, alConfirmar);
   return parsed;
 }
 
