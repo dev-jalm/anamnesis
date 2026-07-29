@@ -2366,6 +2366,184 @@ group('INTEGRACIÓN — Trimestre completo Q1 2026', function () {
   });
 });
 
+// ============================================================
+// PARSERS DE RESÚMENES BANCARIOS
+// ============================================================
+// Todas las filas de estos tests son INVENTADAS. Reproducen la estructura de
+// los formatos reales (encabezados, separadores, formato de fecha e importe)
+// pero ningún dato es de una cuenta real.
+
+group('parseCsv — CSV según RFC 4180', function () {
+  test('separa celdas y filas simples', function () {
+    assertEqual(parseCsv('a,b\nc,d', ','), [['a','b'],['c','d']]);
+  });
+  test('respeta el separador punto y coma', function () {
+    assertEqual(parseCsv('a;b\nc;d', ';'), [['a','b'],['c','d']]);
+  });
+  test('campo entre comillas con el separador adentro', function () {
+    assertEqual(parseCsv('"uno,dos",tres', ','), [['uno,dos','tres']]);
+  });
+  test('SALTO DE LÍNEA dentro de comillas no corta la fila', function () {
+    // Este es el caso del campo Movimiento de Galicia
+    assertEqual(parseCsv('"linea1\nlinea2",x', ','), [['linea1\nlinea2','x']]);
+  });
+  test('comilla escapada como doble comilla', function () {
+    assertEqual(parseCsv('"di ""hola""",x', ','), [['di "hola"','x']]);
+  });
+  test('CRLF se normaliza a LF', function () {
+    assertEqual(parseCsv('a,b\r\nc,d', ','), [['a','b'],['c','d']]);
+  });
+  test('última fila sin salto de línea final', function () {
+    assertEqual(parseCsv('a,b', ','), [['a','b']]);
+  });
+  test('celdas vacías se conservan', function () {
+    assertEqual(parseCsv('a,,c', ','), [['a','','c']]);
+  });
+  test('texto vacío devuelve array vacío', function () {
+    assertEqual(parseCsv('', ','), []);
+  });
+});
+
+group('detectarSeparadorCsv — punto y coma vs coma', function () {
+  test('detecta punto y coma (Mercado Pago)', function () {
+    assertEqual(detectarSeparadorCsv('a;b;c\n1;2;3'), ';');
+  });
+  test('detecta coma (Excel exportado)', function () {
+    assertEqual(detectarSeparadorCsv('a,b,c\n1,2,3'), ',');
+  });
+  test('con importes en formato AR gana el punto y coma', function () {
+    // "1.234,56" tiene comas que no son separadores: el conteo igual debe ganar ;
+    assertEqual(detectarSeparadorCsv('f;desc;monto\n01-07-2026;x;-1.234,56'), ';');
+  });
+});
+
+group('fechaResumenAIso — normalización de fechas', function () {
+  test('dd/mm/aaaa (Galicia) se conserva', function () {
+    assertEqual(fechaResumenAIso('27/07/2026'), '27/07/2026');
+  });
+  test('dd-mm-aaaa (Mercado Pago) pasa a barras', function () {
+    assertEqual(fechaResumenAIso('01-07-2026'), '01/07/2026');
+  });
+  test('un dígito se rellena con cero', function () {
+    assertEqual(fechaResumenAIso('1-7-2026'), '01/07/2026');
+  });
+  test('formato no reconocido devuelve null', function () {
+    assertEqual(fechaResumenAIso('2026-07-01'), null);
+    assertEqual(fechaResumenAIso('hola'), null);
+    assertEqual(fechaResumenAIso(''), null);
+  });
+});
+
+group('parseMercadoPagoCsv — export de Mercado Pago', function () {
+  // Estructura real: bloque de resumen, línea en blanco, y recién ahí la tabla
+  const CSV = [
+    'INITIAL_BALANCE;CREDITS;DEBITS;FINAL_BALANCE',
+    '1.000,00;5.000,00;-3.000,00;3.000,00',
+    '',
+    'RELEASE_DATE;TRANSACTION_TYPE;REFERENCE_ID;TRANSACTION_NET_AMOUNT;PARTIAL_BALANCE',
+    '01-07-2026;Pago con QR Comercio Uno;111;-1.500,50;2.000,00',
+    '02-07-2026;Transferencia recibida Alguien;222;5.000,00;7.000,00',
+    '03-07-2026;Dinero reservado Vacaciones;333;-1.499,50;5.500,50'
+  ].join('\n');
+
+  test('encuentra la tabla después del bloque de resumen', function () {
+    assertEqual(parseMercadoPagoCsv(CSV).transactions.length, 3);
+  });
+  test('no reporta errores con un archivo bien formado', function () {
+    assertEqual(parseMercadoPagoCsv(CSV).errores.length, 0);
+  });
+  test('los montos se guardan SIEMPRE positivos', function () {
+    const txs = parseMercadoPagoCsv(CSV).transactions;
+    assert(txs.every(function (t) { return t.monto > 0; }), 'ningún monto puede ser negativo');
+    assertEqual(txs[0].monto, 1500.5);
+  });
+  test('el signo del CSV define ingreso vs egreso', function () {
+    const txs = parseMercadoPagoCsv(CSV).transactions;
+    assertEqual(txs[0].esIngreso, false);
+    assertEqual(txs[1].esIngreso, true);
+  });
+  test('marca los movimientos internos (cajitas)', function () {
+    const txs = parseMercadoPagoCsv(CSV).transactions;
+    assertEqual(txs[2].interno, true);
+    assertEqual(txs[0].interno, false);
+  });
+  test('normaliza la fecha a dd/mm/aaaa', function () {
+    assertEqual(parseMercadoPagoCsv(CSV).transactions[0].fecha, '01/07/2026');
+  });
+  test('asigna el origen Mercado Pago', function () {
+    assertEqual(parseMercadoPagoCsv(CSV).transactions[0].origen, 'Mercado Pago');
+  });
+  test('archivo que no es de MP: error claro, sin explotar', function () {
+    const r = parseMercadoPagoCsv('cualquier;cosa\n1;2');
+    assertEqual(r.transactions.length, 0);
+    assert(r.errores.length > 0, 'debe reportar el error');
+  });
+  test('una fila con fecha inválida no tumba el resto', function () {
+    const roto = CSV + '\nFECHA-MALA;Algo;444;-100,00;0,00';
+    const r = parseMercadoPagoCsv(roto);
+    assertEqual(r.transactions.length, 3);
+    assertEqual(r.errores.length, 1);
+  });
+});
+
+group('parseGaliciaRows — extracto de Banco Galicia', function () {
+  // Débito y Crédito en columnas separadas; el débito ya viene negativo
+  const FILAS = [
+    ['Banco Galicia - Caja Ahorro Pesos', '', '', '', '', ''],
+    ['Nro. de Cuenta: ...0000000', '', '', '', '', ''],
+    ['Fecha Actual: 29/7/2026', '', '', '', '', ''],
+    ['Hora Actual: 16:15', '', '', '', '', ''],
+    ['Intervalo de Consulta: del 01/07/2026 al 30/07/2026', '', '', '', '', ''],
+    ['Fecha', 'Movimiento', 'Débito', 'Crédito', 'Saldo Parcial', 'Comentarios'],
+    ['27/07/2026', ' PAGO DE SERVICIOS\n COMERCIO EJEMPLO\n 0001', '-1.234,56', '0,00', '100,00', ''],
+    ['26/07/2026', ' SIST. NAC. DE PAGOS - HABERES\n EMPRESA EJEMPLO\n', '0,00', '900.000,00', '1.334,56', ''],
+    ['25/07/2026', ' TRANSF. CTAS PROPIAS\n Titular Ejemplo\n', '-500,00', '0,00', '434,56', ''],
+    ['24/07/2026', ' SIN IMPORTE\n', '0,00', '0,00', '434,56', '']
+  ];
+
+  test('encuentra los encabezados salteando el bloque de metadatos', function () {
+    assertEqual(parseGaliciaRows(FILAS).transactions.length, 3);
+  });
+  test('descarta las filas con importe cero', function () {
+    const descs = parseGaliciaRows(FILAS).transactions.map(function (t) { return t.descripcion; });
+    assert(!descs.some(function (d) { return d.indexOf('SIN IMPORTE') >= 0; }), 'la fila en cero no debe entrar');
+  });
+  test('el débito se guarda positivo y marcado como egreso', function () {
+    const t = parseGaliciaRows(FILAS).transactions[0];
+    assertEqual(t.monto, 1234.56);
+    assertEqual(t.esIngreso, false);
+  });
+  test('el crédito se marca como ingreso', function () {
+    const t = parseGaliciaRows(FILAS).transactions[1];
+    assertEqual(t.monto, 900000);
+    assertEqual(t.esIngreso, true);
+  });
+  test('la primera línea del movimiento queda como tipoOperacion', function () {
+    assertEqual(parseGaliciaRows(FILAS).transactions[0].tipoOperacion, 'PAGO DE SERVICIOS');
+    assertEqual(parseGaliciaRows(FILAS).transactions[1].tipoOperacion, 'SIST. NAC. DE PAGOS - HABERES');
+  });
+  test('la descripción junta tipo y detalle en una línea', function () {
+    assertEqual(parseGaliciaRows(FILAS).transactions[0].descripcion,
+                'PAGO DE SERVICIOS · COMERCIO EJEMPLO · 0001');
+  });
+  test('marca como interna la transferencia entre cuentas propias', function () {
+    assertEqual(parseGaliciaRows(FILAS).transactions[2].interno, true);
+    assertEqual(parseGaliciaRows(FILAS).transactions[0].interno, false);
+  });
+  test('asigna el origen Banco Galicia', function () {
+    assertEqual(parseGaliciaRows(FILAS).transactions[0].origen, 'Banco Galicia');
+  });
+  test('sin fila de encabezados: error claro', function () {
+    const r = parseGaliciaRows([['cualquier','cosa']]);
+    assertEqual(r.transactions.length, 0);
+    assert(r.errores.length > 0, 'debe reportar el error');
+  });
+  test('entrada vacía o inválida no explota', function () {
+    assertEqual(parseGaliciaRows([]).transactions.length, 0);
+    assertEqual(parseGaliciaRows(null).transactions.length, 0);
+  });
+});
+
 group('INTEGRACIÓN — Edge cases que probablemente rompan algo en el futuro', function () {
   test('state sin transactionsByYear: nada explota', function () {
     const prev = globalThis.state;

@@ -1916,10 +1916,219 @@ function computeHealthScore(ctx, config) {
 }
 
 // ============================================================
+// PARSERS DE RESÚMENES BANCARIOS
+// ============================================================
+// Reemplazan el flujo manual de "copiá este prompt, pegalo en un LLM, pegá
+// el JSON de vuelta". El del LLM sigue existiendo como fallback para PDFs y
+// bancos sin parser propio.
+//
+// Todo lo de acá es PURO: recibe texto o filas y devuelve transacciones. La
+// lectura del archivo (FileReader, SheetJS) vive en dashboard.js, así estas
+// funciones se pueden testear en tests.html sin tocar el DOM.
+
+// Parser CSV según RFC 4180. Hace falta uno de verdad y no un split():
+// el campo "Movimiento" del extracto de Galicia trae SALTOS DE LÍNEA dentro
+// de comillas, y las comillas internas se escapan duplicándolas ("").
+// Devuelve un array de filas, cada una array de celdas (strings sin trim).
+function parseCsv(texto, separador) {
+  const sep = separador || ',';
+  const filas = [];
+  let fila = [];
+  let celda = '';
+  let enComillas = false;
+  const s = String(texto || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (enComillas) {
+      if (ch === '"') {
+        // Comilla duplicada = comilla literal; si no, cierra el campo
+        if (s[i + 1] === '"') { celda += '"'; i++; }
+        else enComillas = false;
+      } else {
+        celda += ch;
+      }
+      continue;
+    }
+    if (ch === '"') { enComillas = true; continue; }
+    if (ch === sep) { fila.push(celda); celda = ''; continue; }
+    if (ch === '\n') { fila.push(celda); filas.push(fila); fila = []; celda = ''; continue; }
+    celda += ch;
+  }
+  // Última celda/fila si el archivo no termina en salto de línea
+  if (celda !== '' || fila.length > 0) { fila.push(celda); filas.push(fila); }
+  return filas;
+}
+
+// Detecta el separador de un CSV contando cuál aparece más en las primeras
+// líneas. Mercado Pago usa ';' y un Excel exportado a CSV suele usar ','.
+function detectarSeparadorCsv(texto) {
+  const muestra = String(texto || '').split('\n').slice(0, 10).join('\n');
+  const puntoYComa = (muestra.match(/;/g) || []).length;
+  const coma = (muestra.match(/,/g) || []).length;
+  return puntoYComa > coma ? ';' : ',';
+}
+
+// Normaliza una fecha de resumen a dd/mm/aaaa, el formato interno de las tx.
+// Acepta los dos separadores que usan estos bancos: 27/07/2026 y 01-07-2026.
+function fechaResumenAIso(valor) {
+  const m = String(valor || '').trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (!m) return null;
+  return m[1].padStart(2, '0') + '/' + m[2].padStart(2, '0') + '/' + m[3];
+}
+
+// Movimientos internos de Mercado Pago: mover plata a/desde una "cajita" no
+// es ingreso ni gasto, es plata que sigue siendo del usuario. Se importan sin
+// categoría para que queden visibles pero no sumen en ningún totalizador.
+const MP_PATRONES_INTERNOS = ['dinero reservado', 'dinero retirado'];
+
+function esMovimientoInternoMp(descripcion) {
+  const d = norm(descripcion);
+  return MP_PATRONES_INTERNOS.some(function (p) { return d.indexOf(p) === 0; });
+}
+
+// ── Mercado Pago ────────────────────────────────────────────
+// El CSV trae dos bloques: un resumen de 2 líneas (INITIAL_BALANCE...) y
+// después la tabla real, cuyo encabezado arranca con RELEASE_DATE. Se busca
+// esa fila en vez de asumir que está en la posición 4, porque el bloque de
+// arriba puede cambiar de tamaño entre exportaciones.
+//
+// El importe viene en UNA columna con signo: negativo es egreso. El monto se
+// guarda SIEMPRE positivo (convención de la app) y el signo solo decide si la
+// tx es ingreso o gasto.
+function parseMercadoPagoCsv(texto) {
+  const filas = parseCsv(texto, detectarSeparadorCsv(texto));
+  const errores = [];
+  const transactions = [];
+
+  let idxEncabezado = -1;
+  for (let i = 0; i < filas.length; i++) {
+    if (norm((filas[i][0] || '')).indexOf('release_date') === 0) { idxEncabezado = i; break; }
+  }
+  if (idxEncabezado < 0) {
+    return { transactions: [], errores: ['No se encontró la fila de encabezados (RELEASE_DATE). ¿Es un export de Mercado Pago?'] };
+  }
+
+  const cols = filas[idxEncabezado].map(function (c) { return norm(c); });
+  const iFecha = cols.indexOf('release_date');
+  const iDesc  = cols.indexOf('transaction_type');
+  const iMonto = cols.indexOf('transaction_net_amount');
+
+  if (iFecha < 0 || iDesc < 0 || iMonto < 0) {
+    return { transactions: [], errores: ['Faltan columnas obligatorias en el CSV de Mercado Pago.'] };
+  }
+
+  for (let i = idxEncabezado + 1; i < filas.length; i++) {
+    const f = filas[i];
+    if (!f || f.length === 0) continue;
+    const crudoFecha = (f[iFecha] || '').trim();
+    if (!crudoFecha) continue;
+
+    const fecha = fechaResumenAIso(crudoFecha);
+    if (!fecha) { errores.push('Fila ' + (i + 1) + ': fecha no reconocida (' + crudoFecha + ')'); continue; }
+
+    const montoCrudo = parseNumberAr((f[iMonto] || '').trim());
+    if (montoCrudo === null || isNaN(montoCrudo)) {
+      errores.push('Fila ' + (i + 1) + ': importe no reconocido (' + (f[iMonto] || '') + ')');
+      continue;
+    }
+    const descripcion = (f[iDesc] || '').trim().replace(/\s+/g, ' ');
+
+    transactions.push({
+      fecha: fecha,
+      descripcion: descripcion,
+      monto: Math.abs(montoCrudo),
+      esIngreso: montoCrudo > 0,
+      interno: esMovimientoInternoMp(descripcion),
+      origen: 'Mercado Pago'
+    });
+  }
+  return { transactions: transactions, errores: errores };
+}
+
+// ── Banco Galicia ───────────────────────────────────────────
+// Recibe las filas YA extraídas del archivo (array de arrays). El .xlsx lo
+// abre dashboard.js; acá solo se transforma, para que sea testeable.
+//
+// Dos particularidades del formato:
+//   - Débito y Crédito son columnas SEPARADAS, y las dos traen valor siempre
+//     (la que no aplica viene en 0,00). El débito además ya viene negativo.
+//   - El campo Movimiento es multilínea: la PRIMERA línea es el tipo de
+//     operación (PAGO DE SERVICIOS, CUOTA DE PRESTAMO, COMPRA DEBITO...) y las
+//     siguientes el detalle (comercio, CUIT, tarjeta). Se arma la descripción
+//     como "TIPO · detalle" porque el tipo es lo que mejor categoriza, y el
+//     detalle es lo que identifica el comercio.
+function parseGaliciaRows(filas) {
+  const errores = [];
+  const transactions = [];
+
+  let idxEncabezado = -1;
+  for (let i = 0; i < (filas || []).length; i++) {
+    const primera = norm((filas[i] && filas[i][0]) || '');
+    if (primera === 'fecha') { idxEncabezado = i; break; }
+  }
+  if (idxEncabezado < 0) {
+    return { transactions: [], errores: ['No se encontró la fila de encabezados (Fecha). ¿Es un extracto de Banco Galicia?'] };
+  }
+
+  const cols = filas[idxEncabezado].map(function (c) { return norm(c); });
+  const iFecha   = cols.indexOf('fecha');
+  const iMov     = cols.indexOf('movimiento');
+  const iDebito  = cols.indexOf('debito');
+  const iCredito = cols.indexOf('credito');
+
+  if (iFecha < 0 || iMov < 0 || (iDebito < 0 && iCredito < 0)) {
+    return { transactions: [], errores: ['Faltan columnas obligatorias en el extracto de Galicia.'] };
+  }
+
+  for (let i = idxEncabezado + 1; i < filas.length; i++) {
+    const f = filas[i];
+    if (!f || f.length === 0) continue;
+    const crudoFecha = String(f[iFecha] || '').trim();
+    if (!crudoFecha) continue;
+
+    const fecha = fechaResumenAIso(crudoFecha);
+    if (!fecha) { errores.push('Fila ' + (i + 1) + ': fecha no reconocida (' + crudoFecha + ')'); continue; }
+
+    const debito  = iDebito  >= 0 ? (parseNumberAr(String(f[iDebito]  || '').trim()) || 0) : 0;
+    const credito = iCredito >= 0 ? (parseNumberAr(String(f[iCredito] || '').trim()) || 0) : 0;
+    // La columna con valor distinto de cero manda. Si las dos están en cero la
+    // fila no aporta nada (suele ser un separador o un total).
+    const monto = Math.abs(debito) > 0 ? Math.abs(debito) : Math.abs(credito);
+    if (monto === 0) continue;
+
+    const lineas = String(f[iMov] || '').split('\n')
+      .map(function (l) { return l.trim(); })
+      .filter(Boolean);
+    const tipo = lineas[0] || '';
+    const detalle = lineas.slice(1).join(' · ');
+    const descripcion = (detalle ? (tipo + ' · ' + detalle) : tipo).replace(/\s+/g, ' ').trim();
+
+    transactions.push({
+      fecha: fecha,
+      descripcion: descripcion,
+      monto: monto,
+      esIngreso: Math.abs(credito) > 0 && Math.abs(debito) === 0,
+      // El tipo separado sirve para las reglas de categorización automática:
+      // "CUOTA DE PRESTAMO" o "PAGO DE SERVICIOS" clasifican mucho mejor que
+      // el texto libre del comercio.
+      tipoOperacion: tipo,
+      interno: norm(tipo).indexOf('transf. ctas propias') === 0 ||
+               norm(tipo).indexOf('transf ctas propias') === 0,
+      origen: 'Banco Galicia'
+    });
+  }
+  return { transactions: transactions, errores: errores };
+}
+
+// ============================================================
 // EXPORT — para Node.js (testing fuera del browser)
 // ============================================================
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
+    // parsers de resúmenes
+    parseCsv, detectarSeparadorCsv, fechaResumenAIso,
+    esMovimientoInternoMp, parseMercadoPagoCsv, parseGaliciaRows,
     // constants
     NON_EXPENSE_CATS, NON_COUNTABLE_FLOW_CATS, BASIC_CATS, DISCRETIONARY_CATS, MONTHS_ORDER, SCHEMA_VERSION,
     HEALTH_SCORE_DEFAULTS,
