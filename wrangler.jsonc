@@ -1,0 +1,22 @@
+{
+  // Configuración para desplegar Anamnesis en Cloudflare como sitio estático.
+  //
+  // Va por Workers con "static assets" y no por Pages porque las cuentas
+  // nuevas de Cloudflare ya no ofrecen el flujo de Pages: al importar un
+  // repositorio, el panel lleva directamente a Workers.
+  //
+  // No hay código de Worker: sin "main", Cloudflare sirve únicamente los
+  // archivos de "assets". No hay build step — el proyecto es HTML, CSS y JS
+  // planos, así que el Build command del panel tiene que quedar VACÍO.
+  "name": "anamnesis",
+  "compatibility_date": "2026-07-28",
+
+  "assets": {
+    // Todo el repositorio. No hay carpeta de build que apuntar.
+    "directory": "./",
+
+    // Una URL desconocida devuelve el index.html en vez de un 404 crudo.
+    // Como index.html redirige al dashboard, cualquier ruta termina en la app.
+    "not_found_handling": "single-page-application"
+  }
+}

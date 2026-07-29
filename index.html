@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>anamnesis</title>
+<!-- El entry point real de la app es dashboard.html (así lo pide la spec y así
+     se abre con doble clic en local). Este index.html existe solo para que la
+     raíz del sitio publicado lleve a la app.
+
+     Por qué un redirect y no `_redirects`: esa regla la interpreta Cloudflare
+     Pages, pero el despliegue va por Workers con static assets, donde no
+     aplica. Un meta refresh funciona en cualquier host, sin depender de
+     features del proveedor.
+
+     El <script> de abajo hace lo mismo pero sin dejar entrada en el historial,
+     así el botón Atrás del navegador no queda en un loop entre / y
+     /dashboard.html. El <meta> queda como respaldo si el JS está deshabilitado. -->
+<meta http-equiv="refresh" content="0; url=dashboard.html">
+<script>location.replace('dashboard.html');</script>
+<style>
+  body {
+    margin: 0; min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: #17130F; color: #C2BFB8;
+    font-family: system-ui, sans-serif; font-size: 14px;
+  }
+</style>
+</head>
+<body>
+  <p>Abriendo <a href="dashboard.html" style="color:#D4A24C">anamnesis</a>…</p>
+</body>
+</html>
