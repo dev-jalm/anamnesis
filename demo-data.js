@@ -397,14 +397,21 @@ function buildDemoSnapshot(mesesAtras) {
         hint: { mode: 'text', text: 'ingresos - egresos' } },
 
       // Columna derecha del score: los tres destinos de ahorro.
-      { id: 'kpi_reservas', order: 1, enabled: true, label: 'Reservas', icon: 'shield', accent: '#C8873D', location: 'score-right',
+      //
+      // chartMode 'bar' en las tres: van como barras apiladas y no como líneas
+      // de tendencia. Son los tres componentes del ahorro del mes, así que
+      // apiladas se lee de una el total ahorrado y cuánto aportó cada destino;
+      // como líneas sueltas hay que sumarlas a ojo. El auto-detector las
+      // mandaba a línea porque solo arma stacks con categorías de gasto, y
+      // estas son de flujo.
+      { id: 'kpi_reservas', order: 1, enabled: true, label: 'Reservas', icon: 'shield', accent: '#C8873D', location: 'score-right', chartMode: 'bar',
         op: { type: 'tx_sum', categoria: 'Reserva' },
         hint: { mode: 'pct_of', op: { type: 'tx_sum', categoria: 'Sueldo' }, suffix: 'del sueldo', decimals: 1 } },
       // Jubilación SIN filtro de tags: suma JALM y CLM juntas.
-      { id: 'kpi_jubilacion', order: 2, enabled: true, label: 'Jubilación', icon: 'umbrella', accent: '#8E7CC3', location: 'score-right',
+      { id: 'kpi_jubilacion', order: 2, enabled: true, label: 'Jubilación', icon: 'umbrella', accent: '#8E7CC3', location: 'score-right', chartMode: 'bar',
         op: { type: 'tx_sum', categoria: 'Jubilacion' },
         hint: { mode: 'text', text: 'aportes del período' } },
-      { id: 'kpi_inversiones', order: 3, enabled: true, label: 'Inversión', icon: 'piggy-bank', accent: '#8E5A9E', location: 'score-right',
+      { id: 'kpi_inversiones', order: 3, enabled: true, label: 'Inversión', icon: 'piggy-bank', accent: '#8E5A9E', location: 'score-right', chartMode: 'bar',
         op: { type: 'tx_sum', categoria: 'Inversion' },
         hint: { mode: 'pct_of', op: { type: 'tx_sum', categoria: 'Sueldo' }, suffix: 'del sueldo', decimals: 1 } },
 
