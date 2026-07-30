@@ -5433,8 +5433,14 @@ function renderUploadHistoryPanel() {
   list.innerHTML = origins.map(function (orig) {
     const h = hist[orig];
     const date = h.timestamp ? new Date(h.timestamp) : null;
+    // Con la hora además de la fecha: importando varias veces el mismo día
+    // —cosa habitual cuando se prueban rangos que se solapan— la fecha sola no
+    // permite distinguir qué carga fue la última.
+    // hour12:false fuerza 24 horas. Sin eso, es-AR devuelve "04:42 p. m.",
+    // que además de largo choca con el resto de las horas del dashboard.
     const fechaStr = date
-      ? date.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
+      ? date.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) +
+        ', ' + date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }) + ' hs'
       : '';
     // "abril 2026" cuando viene year/month, si no solo el origen
     let periodStr = '';

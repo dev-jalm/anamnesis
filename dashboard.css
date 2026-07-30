@@ -4913,12 +4913,17 @@ body[data-exporting="true"] .section-card {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
+/* Ícono a la izquierda ocupando el alto de las dos líneas de texto, con el
+   título arriba y el detalle abajo. Se resuelve con grid y no envolviendo el
+   texto en un div extra: el ícono simplemente abarca las dos filas. */
 .load-kind-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 13px;
+  row-gap: 2px;
+  align-items: center;
+  padding: 13px 16px;
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -4929,14 +4934,25 @@ body[data-exporting="true"] .section-card {
   transition: border-color 140ms, background 140ms;
 }
 .load-kind-btn:hover { border-color: var(--accent); }
-.load-kind-btn > i { color: var(--muted-2); margin-bottom: 2px; }
+.load-kind-btn > i,
+.load-kind-btn > svg {
+  grid-column: 1;
+  grid-row: 1 / span 2;   /* alto de las dos filas de texto */
+  width: 30px;
+  height: 30px;
+  color: var(--muted-2);
+  align-self: center;
+}
+.load-kind-btn .load-kind-title { grid-column: 2; grid-row: 1; }
+.load-kind-btn .load-kind-hint  { grid-column: 2; grid-row: 2; }
 /* Seleccionado: el borde y el ícono en accent marcan dónde está parado el
    usuario, porque los paneles se abren debajo y no hay pasos que lo indiquen. */
 .load-kind-btn.active {
   border-color: var(--accent);
   background: rgba(212, 162, 76, 0.08);
 }
-.load-kind-btn.active > i { color: var(--accent); }
+.load-kind-btn.active > i,
+.load-kind-btn.active > svg { color: var(--accent); }
 .load-kind-title {
   font-size: 12px;
   font-weight: 600;
