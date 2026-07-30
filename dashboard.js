@@ -5749,19 +5749,22 @@ function renderManualList() {
       placeholderText: '— Categoría —',
       excludeFlow: false
     });
+    // Todos los campos en UNA sola línea. El monto va como type="text" y no
+    // como number: number no admite el formato con separador de miles que se
+    // aplica al perder el foco (el navegador lo considera valor inválido y
+    // deja el input vacío). El parseo se hace con parseInputAR, que ya entiende
+    // tanto 1.234,56 como 1234.56.
     return '<div class="manual-row manual-row-extended" data-id="' + r.id + '">' +
       '<div class="manual-row-main">' +
         '<input type="date" data-field="fecha" value="' + r.fecha + '" title="Fecha">' +
         '<input type="text" data-field="descripcion" placeholder="Descripción" value="' + (r.descripcion ? r.descripcion.replace(/"/g, '&quot;') : '') + '">' +
-        '<input type="number" inputmode="decimal" data-field="monto" placeholder="Monto" value="' + (r.monto || '') + '" min="0" step="0.01">' +
-        '<button class="manual-row-delete" data-action="delete-row" title="Borrar fila">' +
-          '<i data-lucide="trash-2" style="width:13px;height:13px"></i>' +
-        '</button>' +
-      '</div>' +
-      '<div class="manual-row-extras">' +
+        '<input type="text" inputmode="decimal" data-field="monto" placeholder="Monto" title="Monto" value="' + (r.monto ? formatInputAR(parseAmount(String(r.monto))) : '') + '">' +
         '<select data-field="catSub" title="Categoría / Subcategoría" class="manual-extra-field manual-extra-cat">' + catSubOptions + '</select>' +
         '<select data-field="periodicidad" title="Periodicidad" class="manual-extra-field">' + buildPeriOptions(r.periodicidad) + '</select>' +
         '<select data-field="formaPago" title="Forma de pago" class="manual-extra-field">' + buildPagoOptions(r.formaPago) + '</select>' +
+        '<button class="manual-row-delete" data-action="delete-row" title="Borrar fila">' +
+          '<i data-lucide="trash-2" style="width:13px;height:13px"></i>' +
+        '</button>' +
       '</div>' +
       '<div class="manual-row-tags-row">' +
         '<span class="manual-tags-label">Etiquetas</span>' +
@@ -5785,6 +5788,25 @@ function renderManualList() {
         const field = input.getAttribute('data-field');
         if (row) row[field] = e.target.value;
       });
+      // Monto: al perder el foco se muestra con separador de miles. Mientras se
+      // tipea NO se reformatea, porque reescribir el value moviendo el cursor
+      // mientras alguien escribe es molesto. El valor guardado en el state
+      // queda con el mismo texto formateado, y parseAmount() lo interpreta sin
+      // problema al guardar (entiende 1.234,56 y 1234.56).
+      if (input.getAttribute('data-field') === 'monto') {
+        input.addEventListener('blur', function () {
+          if (input.value.trim() === '') return;
+          // parseAmount y NO parseInputAR: parseInputAR asume formato argentino
+          // estricto y lee el punto como separador de miles, así que "1234567.89"
+          // se convertía en 123.456.789. parseAmount desambigua por contexto —
+          // un solo punto con dos decimales a la derecha es decimal— y acepta
+          // tanto 1.234,56 como 1234.56.
+          const n = parseAmount(input.value);
+          if (n === null || isNaN(n)) return;
+          input.value = formatInputAR(n);
+          if (row) row.monto = input.value;
+        });
+      }
     });
     // Chips de etiquetas: toggle al click
     Array.from(rowEl.querySelectorAll('.manual-tag-chip')).forEach(function (chip) {
@@ -5866,13 +5888,21 @@ function brokerLabel(key) {
 function addInvestmentRow() {
   const today = new Date();
   const ymd = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  // Destino y moneda son POR FILA, no del lote: así una misma carga puede
+  // mezclar activos en pesos y en dólares, y repartirlos entre inversiones,
+  // trading, jubilación y reserva sin tener que guardar varias veces.
+  // Se heredan de la última fila para no re-elegirlos en cada renglón cuando
+  // se cargan varios activos del mismo destino, que es el caso habitual.
+  const ultima = investmentState.rows[investmentState.rows.length - 1];
   investmentState.rows.push({
     id: 'inv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
     fecha: ymd,
-    broker: 'BALANZ',  // default; el usuario puede cambiar en el selector
+    broker: (ultima && ultima.broker) || 'BALANZ',
     ticker: '',
     cantidad: '',
-    precio: ''
+    precio: '',
+    destino: (ultima && ultima.destino) || investmentState.destino || '',
+    moneda: (ultima && ultima.moneda) || investmentState.moneda || 'ARS'
   });
   renderInvestmentList();
 }
@@ -5888,14 +5918,17 @@ function renderInvestmentList() {
     if (totalEl) totalEl.textContent = 'Total: ' + investmentCurrencySymbol() + '0';
     return;
   }
-  let batchTotal = 0;
+  // Totales SEPARADOS por moneda: sumar pesos con dólares daría un número sin
+  // significado, y desde que la moneda es por fila un lote puede tener las dos.
+  const totalPorMoneda = { ARS: 0, USD: 0 };
   list.innerHTML = investmentState.rows.map(function (r) {
     const cant = parseFloat(r.cantidad) || 0;
     const prec = parseFloat(r.precio) || 0;
     const total = cant * prec;
-    batchTotal += total;
+    const mon = (r.moneda === 'USD') ? 'USD' : 'ARS';
+    totalPorMoneda[mon] += total;
     const totalStr = (total !== 0)
-      ? (total < 0 ? '-' : '') + investmentCurrencySymbol() + fmt(Math.abs(total))
+      ? (total < 0 ? '-' : '') + investmentRowSymbol(r) + fmt(Math.abs(total))
       : '—';
     // Mostrar cantidad y precio con formato AR (1.234,56). El value en
     // r.cantidad/r.precio se guarda como número limpio (sin puntos); el formato
@@ -5915,6 +5948,19 @@ function renderInvestmentList() {
       '<input type="text" data-field="ticker" placeholder="SPY" title="Ticker del activo (ej: SPY, AAPL, GGAL)" value="' + (r.ticker ? r.ticker.replace(/"/g, '&quot;') : '') + '" style="text-transform:uppercase">' +
       '<input type="text" inputmode="decimal" data-field="cantidad" placeholder="Cant." title="Cantidad de nominales" value="' + cantDisplay + '">' +
       '<input type="text" inputmode="decimal" data-field="precio" placeholder="Precio" value="' + precDisplay + '">' +
+      // Destino y moneda por fila: permiten mezclar ARS y USD, y varios
+      // destinos, en una sola carga.
+      '<select data-field="destino" class="inv-row-destino" title="Destino del activo">' +
+        '<option value="">— Destino —</option>' +
+        INVESTMENT_DESTINOS.map(function (d) {
+          return '<option value="' + d.key + '"' + (r.destino === d.key ? ' selected' : '') + '>' + d.label + '</option>';
+        }).join('') +
+      '</select>' +
+      '<select data-field="moneda" class="inv-row-moneda" title="Moneda del activo">' +
+        ['ARS', 'USD'].map(function (m) {
+          return '<option value="' + m + '"' + ((r.moneda || 'ARS') === m ? ' selected' : '') + '>' + m + '</option>';
+        }).join('') +
+      '</select>' +
       '<span class="investment-row-total mono" title="Cantidad × Precio">' + totalStr + '</span>' +
       '<button class="manual-row-delete" data-action="delete-row" title="Borrar fila">' +
         '<i data-lucide="trash-2" style="width:13px;height:13px"></i>' +
@@ -5922,7 +5968,17 @@ function renderInvestmentList() {
     '</div>';
   }).join('');
   if (counter) counter.textContent = investmentState.rows.length + (investmentState.rows.length === 1 ? ' activo' : ' activos');
-  if (totalEl) totalEl.textContent = 'Total: ' + (batchTotal < 0 ? '-' : '') + investmentCurrencySymbol() + fmt(Math.abs(batchTotal));
+  // Se muestran los totales de cada moneda que tenga algo cargado.
+  if (totalEl) {
+    const partes = [];
+    if (totalPorMoneda.ARS !== 0) {
+      partes.push((totalPorMoneda.ARS < 0 ? '-' : '') + '$' + fmt(Math.abs(totalPorMoneda.ARS)));
+    }
+    if (totalPorMoneda.USD !== 0) {
+      partes.push((totalPorMoneda.USD < 0 ? '-' : '') + 'US$' + fmt(Math.abs(totalPorMoneda.USD)));
+    }
+    totalEl.textContent = 'Total: ' + (partes.length ? partes.join(' · ') : '$0');
+  }
 
   // Bindings por fila
   Array.from(list.querySelectorAll('.investment-row')).forEach(function (rowEl) {
@@ -6014,18 +6070,16 @@ function investmentCurrencySymbol() {
   return (investmentState.moneda === 'USD') ? 'US$' : '$';
 }
 
-function validateAndSaveInvestmentRows() {
-  // Sincronizar destino y moneda (por si los selectores no dispararon change)
-  const destinoSel = document.getElementById('investmentDestinoSel');
-  const monedaSel = document.getElementById('investmentMonedaSel');
-  if (destinoSel) investmentState.destino = destinoSel.value || '';
-  if (monedaSel) investmentState.moneda = monedaSel.value || 'ARS';
+// Símbolo de una fila puntual. Desde que la moneda es por fila, el símbolo del
+// lote ya no sirve para los importes individuales.
+function investmentRowSymbol(row) {
+  return ((row && row.moneda) === 'USD') ? 'US$' : '$';
+}
 
-  // Validación: destino obligatorio + cada fila completa
+function validateAndSaveInvestmentRows() {
+  // El destino y la moneda ahora se validan POR FILA (ver abajo): ya no hay un
+  // valor de lote que aplique a todos los activos.
   const errors = [];
-  if (!investmentState.destino) {
-    errors.push('Falta elegir el destino del batch.');
-  }
   if (investmentState.rows.length === 0) {
     errors.push('Agregá al menos un activo.');
   }
@@ -6038,6 +6092,7 @@ function validateAndSaveInvestmentRows() {
       }
     }
     if (!r.fecha) { errors.push('Fila ' + (idx + 1) + ': falta fecha.'); markInvalid('fecha'); }
+    if (!r.destino) { errors.push('Fila ' + (idx + 1) + ': falta elegir el destino.'); markInvalid('destino'); }
     if (!r.ticker || !r.ticker.trim()) { errors.push('Fila ' + (idx + 1) + ': falta ticker.'); markInvalid('ticker'); }
     const cant = parseFloat(r.cantidad);
     if (!r.cantidad || isNaN(cant) || cant === 0) {
@@ -6069,8 +6124,10 @@ function validateAndSaveInvestmentRows() {
       cantidad: cant,
       precio: prec,
       total: cant * prec,
-      destino: investmentState.destino,
-      moneda: investmentState.moneda,
+      // Cada fila lleva su propio destino y moneda: una misma carga puede
+      // mezclar pesos y dólares, y repartirse entre varios destinos.
+      destino: r.destino,
+      moneda: (r.moneda === 'USD') ? 'USD' : 'ARS',
       createdAt: now
     });
   });
@@ -6089,7 +6146,18 @@ function validateAndSaveInvestmentRows() {
   if (typeof renderMainAssets === 'function') renderMainAssets();
 
   // UX: mostrar success y morphar el botón a "CERRAR" (igual que el flujo manual)
-  appAlert('Se guardaron ' + investmentState.rows.length + ' activo' + (investmentState.rows.length === 1 ? '' : 's') + ' en el destino "' + (INVESTMENT_DESTINOS.find(function (d) { return d.key === investmentState.destino; }) || {}).label + '".');
+  // El resumen enumera los destinos que se tocaron: con destino por fila, una
+  // sola carga puede haber ido a varios.
+  const destinosCargados = [];
+  investmentState.rows.forEach(function (r) {
+    const lbl = (INVESTMENT_DESTINOS.find(function (d) { return d.key === r.destino; }) || {}).label;
+    if (lbl && destinosCargados.indexOf(lbl) < 0) destinosCargados.push(lbl);
+  });
+  appAlert('Se guardaron ' + investmentState.rows.length + ' activo' +
+    (investmentState.rows.length === 1 ? '' : 's') +
+    (destinosCargados.length === 1
+      ? ' en el destino "' + destinosCargados[0] + '".'
+      : ' en los destinos: ' + destinosCargados.join(', ') + '.'));
   // Reset del state para próxima carga
   investmentState.rows = [];
   closeModal();

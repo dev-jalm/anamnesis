@@ -1958,7 +1958,9 @@
 
 <!-- MODAL -->
 <div class="modal-overlay hidden" id="modalOverlay">
-  <div class="modal-card" style="max-width:780px">
+  <!-- Ancho grande: la carga manual pone fecha, descripción, monto, categoría,
+       periodicidad y forma de pago en una sola línea, y con 780px no entraban. -->
+  <div class="modal-card" style="max-width:1180px">
     <div class="modal-header">
       <div>
         <div class="modal-eyebrow">NUEVA CARGA</div>
@@ -2097,9 +2099,13 @@
       <div id="step2InvestmentMode" class="hidden">
         <div class="step-title">Cargar inversiones</div>
         <div class="info-box" style="margin-bottom:14px">
-          <div class="info-text">Ingresá los activos en los que invertiste. Estas entradas <strong>no se contabilizan como transacciones</strong> — se guardan como detalle del portfolio y aparecen en la solapa <strong>Salud financiera</strong> dentro del destino que elijas. Podés agregar más filas con el botón <strong>+ AGREGAR FILA</strong>.</div>
+          <div class="info-text">Ingresá los activos en los que invertiste. Estas entradas <strong>no se contabilizan como transacciones</strong> — se guardan como detalle del portfolio y aparecen en la solapa <strong>Salud financiera</strong> dentro del destino que elijas. Cada fila lleva su propio <strong>destino</strong> y <strong>moneda</strong>, así que podés mezclar pesos y dólares, y varios destinos, en una misma carga. Podés agregar más filas con el botón <strong>+ AGREGAR FILA</strong>.</div>
         </div>
-        <div class="investment-batch-controls">
+        <!-- Los selectores de destino y moneda del lote quedaron obsoletos: ahora
+             cada fila tiene los suyos. Se dejan en el DOM porque
+             populateInvestmentDestinoSel() y varios handlers los referencian,
+             pero ocultos. -->
+        <div class="investment-batch-controls" hidden>
           <div class="investment-batch-field">
             <span class="period-label">Destino</span>
             <select id="investmentDestinoSel" class="period-select">
