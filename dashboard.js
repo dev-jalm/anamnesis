@@ -409,9 +409,38 @@ const state = {
 const SOURCE_DISPLAY = {
   'MP': 'Mercado Pago',
   'Galicia': 'Banco Galicia',
-  'Efectivo': 'Manual',
-  'Inversion': 'Inversión'
+  // Nombres largos y explícitos: en el panel de últimas cargas conviven con los
+  // dos bancos, y "Manual" o "Inversión" a secas no decían de qué eran.
+  'Efectivo': 'Ingreso manual de movimientos',
+  'Inversion': 'Ingreso manual de inversiones'
 };
+
+// Cuántas cargas se recuerdan por origen en el panel de últimas cargas.
+const UPLOAD_HISTORY_MAX = 3;
+
+// Registra una carga en el historial del origen.
+//
+// El historial pasó de guardar UNA carga por origen (un objeto que se pisaba en
+// cada import) a guardar las últimas UPLOAD_HISTORY_MAX, en un array ordenado
+// de más nueva a más vieja. Sirve para ver si un mes se cargó en varias tandas.
+//
+// Los archivos guardados con el formato viejo traen un objeto suelto: se
+// normaliza a array al leerlo, sin migración destructiva.
+function registrarCargaEnHistorial(originKey, datos) {
+  if (!originKey) return;
+  if (!state.uploadHistoryByOrigin) state.uploadHistoryByOrigin = {};
+  const previo = state.uploadHistoryByOrigin[originKey];
+  const lista = Array.isArray(previo) ? previo.slice() : (previo ? [previo] : []);
+  lista.unshift(datos);
+  state.uploadHistoryByOrigin[originKey] = lista.slice(0, UPLOAD_HISTORY_MAX);
+}
+
+// Devuelve siempre un array, venga del formato viejo o del nuevo.
+function cargasDelOrigen(originKey) {
+  const v = (state.uploadHistoryByOrigin || {})[originKey];
+  if (!v) return [];
+  return Array.isArray(v) ? v : [v];
+}
 const SOURCES = ['MP', 'Galicia', 'Efectivo', 'Inversion'];
 const SOURCE_LETTER = {
   'MP': 'M',
@@ -5419,19 +5448,19 @@ function renderUploadHistoryPanel() {
   const panel = document.getElementById('uploadHistoryPanel');
   const list = document.getElementById('uploadHistoryList');
   if (!panel || !list) return;
-  const hist = state.uploadHistoryByOrigin || {};
-  const origins = Object.keys(hist);
-  if (origins.length === 0) {
+
+  // Una columna FIJA por origen, en el orden de SOURCES. Se muestran siempre las
+  // cuatro aunque alguna esté vacía: la posición de cada origen no cambia entre
+  // aperturas, así se encuentra de un vistazo. Apiladas en una sola lista, con
+  // 3 cargas por origen, eran hasta 12 filas.
+  const hayAlguna = SOURCES.some(function (k) { return cargasDelOrigen(k).length > 0; });
+  if (!hayAlguna) {
     panel.classList.add('hidden');
     return;
   }
   panel.classList.remove('hidden');
-  // Ordenar por timestamp descendente (la más reciente arriba)
-  origins.sort(function (a, b) {
-    return (hist[b].timestamp || 0) - (hist[a].timestamp || 0);
-  });
-  list.innerHTML = origins.map(function (orig) {
-    const h = hist[orig];
+
+  function formatearCarga(h) {
     const date = h.timestamp ? new Date(h.timestamp) : null;
     // Con la hora además de la fecha: importando varias veces el mismo día
     // —cosa habitual cuando se prueban rangos que se solapan— la fecha sola no
@@ -5439,25 +5468,41 @@ function renderUploadHistoryPanel() {
     // hour12:false fuerza 24 horas. Sin eso, es-AR devuelve "04:42 p. m.",
     // que además de largo choca con el resto de las horas del dashboard.
     const fechaStr = date
-      ? date.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) +
-        ', ' + date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }) + ' hs'
+      ? date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }) +
+        ' ' + date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
       : '';
-    // "abril 2026" cuando viene year/month, si no solo el origen
     let periodStr = '';
     if (h.year && h.month) {
       const monthLabel = (typeof MONTH_LABELS === 'object' && MONTH_LABELS[h.month])
         ? MONTH_LABELS[h.month] : h.month;
       periodStr = monthLabel + ' ' + h.year;
     }
-    // Movimientos
     let movStr = '';
     if (typeof h.kept === 'number') {
       movStr = h.kept + ' mov';
-      if (h.skipped > 0) movStr += ' (' + h.skipped + ' omitido' + (h.skipped === 1 ? '' : 's') + ')';
+      if (h.skipped > 0) movStr += ' · ' + h.skipped + ' omitido' + (h.skipped === 1 ? '' : 's');
     }
-    return '<div class="upload-history-item">' +
-      '<span class="uh-origen">' + escapeHtmlSafe(orig) + (periodStr ? ' · ' + escapeHtmlSafe(periodStr) : '') + '</span>' +
-      '<span class="uh-meta">' + escapeHtmlSafe(fechaStr) + (movStr ? ' · ' + escapeHtmlSafe(movStr) : '') + '</span>' +
+    return '<div class="uh-carga">' +
+      '<span class="uh-fecha">' + escapeHtmlSafe(fechaStr) + '</span>' +
+      '<span class="uh-detalle">' +
+        (periodStr ? escapeHtmlSafe(periodStr) : '') +
+        (periodStr && movStr ? ' · ' : '') +
+        (movStr ? escapeHtmlSafe(movStr) : '') +
+      '</span>' +
+    '</div>';
+  }
+
+  list.innerHTML = SOURCES.map(function (key) {
+    const cargas = cargasDelOrigen(key)
+      .slice()
+      .sort(function (a, b) { return (b.timestamp || 0) - (a.timestamp || 0); })
+      .slice(0, UPLOAD_HISTORY_MAX);
+    const cuerpo = cargas.length
+      ? cargas.map(formatearCarga).join('')
+      : '<div class="uh-vacio">Sin cargas</div>';
+    return '<div class="uh-col">' +
+      '<div class="uh-col-titulo">' + escapeHtmlSafe(SOURCE_DISPLAY[key] || key) + '</div>' +
+      cuerpo +
     '</div>';
   }).join('');
 }
@@ -6134,13 +6179,12 @@ function validateAndSaveInvestmentRows() {
   scheduleSave();
 
   // Tracking de la carga
-  if (!state.uploadHistoryByOrigin) state.uploadHistoryByOrigin = {};
-  state.uploadHistoryByOrigin['Inversion'] = {
+  registrarCargaEnHistorial('Inversion', {
     timestamp: now,
     kept: investmentState.rows.length,
     skipped: 0,
     total: investmentState.rows.length
-  };
+  });
 
   // Re-render de Salud Financiera si está visible (el detalle de activos aparece ahí)
   if (typeof renderMainAssets === 'function') renderMainAssets();
@@ -6306,13 +6350,12 @@ function validateAndSaveManualRows() {
   }
 
   // Tracking de la carga
-  if (!state.uploadHistoryByOrigin) state.uploadHistoryByOrigin = {};
-  state.uploadHistoryByOrigin['Efectivo'] = {
+  registrarCargaEnHistorial('Efectivo', {
     timestamp: Date.now(),
     kept: totalKept,
     skipped: totalSkipped,
     total: manualState.rows.length
-  };
+  });
 
   // OK
   okBox.classList.remove('hidden');
@@ -6808,16 +6851,20 @@ function mergeParsedData(parsed) {
   // TRACKING de la carga: guardamos timestamp + estadísticas por origen para
   // que el modal pueda mostrar "Última carga de Mercado Pago: 8 de abril,
   // 23 nuevos (12 ya existentes)". Persiste en el state.
-  if (!state.uploadHistoryByOrigin) state.uploadHistoryByOrigin = {};
-  const originKey = parsed.origen || state.uploadSource || 'desconocido';
-  state.uploadHistoryByOrigin[originKey] = {
+  // El origen viene como nombre visible ("Mercado Pago") desde el import de
+  // archivos, pero el panel indexa por key ('MP'). Se normaliza acá.
+  const originRaw = parsed.origen || state.uploadSource || 'desconocido';
+  const originKey = Object.keys(SOURCE_DISPLAY).find(function (k) {
+    return k === originRaw || SOURCE_DISPLAY[k] === originRaw;
+  }) || originRaw;
+  registrarCargaEnHistorial(originKey, {
     timestamp: Date.now(),
     year: year,
     month: month,
     kept: parsed._dedupKept || 0,
     skipped: parsed._dedupSkipped || 0,
     total: (parsed.transactions || []).length
-  };
+  });
 }
 
 importJsonBtn.addEventListener('click', function () {

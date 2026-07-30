@@ -4677,27 +4677,58 @@ body[data-exporting="true"] .section-card {
   text-transform: uppercase;
   margin-bottom: 8px;
 }
+/* Una columna por origen, con sus últimas cargas debajo. En una sola lista
+   apilada, 3 cargas por cada uno de los 4 orígenes daban hasta 12 filas. */
 .upload-history-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.uh-col {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
+  min-width: 0;
 }
-.upload-history-item {
+.uh-col-titulo {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  /* Los nombres largos ("Ingreso manual de movimientos") se parten en dos
+     líneas en vez de recortarse: el origen es justamente lo que hay que leer. */
+  line-height: 1.35;
+}
+.uh-carga {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
-.upload-history-item .uh-origen {
-  font-weight: 600;
-  color: var(--ink);
-}
-.upload-history-item .uh-meta {
+.uh-fecha {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.uh-detalle {
+  font-size: 10.5px;
   color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.uh-vacio {
+  font-size: 10.5px;
+  color: var(--muted-2);
+  font-style: italic;
+}
+@media (max-width: 760px) {
+  .upload-history-list { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ===== COLUMNA DEL MES EN CURSO =====
