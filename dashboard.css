@@ -3374,6 +3374,45 @@ footer .eyebrow-sources {
      visualmente). Los grids fijos ya están dimensionados para caber. */
   overflow-x: hidden;
 }
+
+/* ===== Pie de una lista editable (movimientos e inversiones) =====
+   Los dos paneles cargan filas y muestran el mismo pie: el botón de agregar a
+   la izquierda y los totales a la derecha. Estaban escritos con estilos inline
+   distintos en cada uno y se fueron separando — botones de clases distintas,
+   el contador de uno en monoespaciada y el del otro no, el total en otro cuerpo
+   y otro color. Las reglas viven acá para que los dos pies sean el mismo pie.
+   Cualquier lista editable que se agregue después usa estas clases. */
+.list-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.list-footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+/* Contador y total comparten cuerpo y familia; el total se distingue por color
+   e intensidad, no por tamaño. */
+.list-footer-count,
+.list-footer-total {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.list-footer-count { color: var(--muted); }
+.list-footer-sep { color: var(--muted-2); font-size: 11px; }
+.list-footer-total { color: var(--ink); font-weight: 600; }
+
+/* Estado vacío de una lista editable. */
+.list-empty {
+  padding: 30px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}
 .manual-row {
   display: grid;
   grid-template-columns: 120px minmax(260px, 1fr) 100px 150px 30px;

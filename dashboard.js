@@ -5758,7 +5758,7 @@ function renderManualList() {
   const counter = document.getElementById('manualRowsCount');
   if (!list) return;
   if (manualState.rows.length === 0) {
-    list.innerHTML = '<div style="padding:30px 20px;text-align:center;color:var(--muted);font-size:12px">No hay filas. Hacé click en + AGREGAR FILA para empezar.</div>';
+    list.innerHTML = '<div class="list-empty">No hay filas. Hacé click en + AGREGAR FILA para empezar.</div>';
     if (counter) counter.textContent = '0 filas';
     return;
   }
@@ -5937,7 +5937,7 @@ function renderInvestmentList() {
   const totalEl = document.getElementById('investmentBatchTotal');
   if (!list) return;
   if (investmentState.rows.length === 0) {
-    list.innerHTML = '<div style="padding:30px 20px;text-align:center;color:var(--muted);font-size:12px">No hay activos. Hacé click en + AGREGAR FILA para empezar.</div>';
+    list.innerHTML = '<div class="list-empty">No hay activos. Hacé click en + AGREGAR FILA para empezar.</div>';
     if (counter) counter.textContent = '0 activos';
     if (totalEl) totalEl.textContent = 'Total: $ 0';
     return;

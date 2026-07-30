@@ -2074,12 +2074,14 @@
           <div class="info-text">Ingresá uno o varios movimientos a mano. Podés agregar más filas con el botón <strong>+ AGREGAR FILA</strong>.</div>
         </div>
         <div class="manual-list" id="manualMovementsList"></div>
-        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="list-footer">
           <button class="upload-btn csv-btn" id="addManualRowBtn">
             <i data-lucide="plus" style="width:13px;height:13px"></i>
             AGREGAR FILA
           </button>
-          <span id="manualRowsCount" class="mono" style="font-size:11px;color:var(--muted)"></span>
+          <div class="list-footer-meta">
+            <span id="manualRowsCount" class="list-footer-count"></span>
+          </div>
         </div>
         <div class="alert-box error hidden" id="manualError" style="margin-top:12px"></div>
         <div class="alert-box success hidden" id="manualSuccess" style="margin-top:12px"></div>
@@ -2103,15 +2105,15 @@
         </div>
         <div class="manual-list-wrap" style="margin-top:14px">
           <div class="manual-list" id="investmentRowsList"></div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
-            <button class="btn-cancel" id="investmentAddRowBtn">
-              <i data-lucide="plus" style="width:14px;height:14px"></i>
+          <div class="list-footer">
+            <button class="upload-btn csv-btn" id="investmentAddRowBtn">
+              <i data-lucide="plus" style="width:13px;height:13px"></i>
               AGREGAR FILA
             </button>
-            <div style="display:flex;gap:14px;align-items:center">
-              <span style="font-size:11px;color:var(--muted)" id="investmentRowsCount">0 activos</span>
-              <span style="font-size:11px;color:var(--muted)">·</span>
-              <span class="mono" style="font-size:12px;color:var(--ink)" id="investmentBatchTotal">Total: $0</span>
+            <div class="list-footer-meta">
+              <span class="list-footer-count" id="investmentRowsCount">0 activos</span>
+              <span class="list-footer-sep">·</span>
+              <span class="list-footer-total" id="investmentBatchTotal">Total: $ 0</span>
             </div>
           </div>
         </div>
