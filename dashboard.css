@@ -4703,24 +4703,25 @@ body[data-exporting="true"] .section-card {
      líneas en vez de recortarse: el origen es justamente lo que hay que leer. */
   line-height: 1.35;
 }
-.uh-carga {
+/* Cada carga en UNA línea: fecha, separador y conteo de movimientos. */
+.uh-carga { min-width: 0; }
+.uh-linea {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-.uh-fecha {
+  align-items: baseline;
+  gap: 5px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--ink);
+  font-size: 10.5px;
   white-space: nowrap;
 }
-.uh-detalle {
-  font-size: 10.5px;
+.uh-fecha { color: var(--ink); flex: 0 0 auto; }
+.uh-sep { color: var(--muted-2); flex: 0 0 auto; }
+/* Si la ventana se angosta más de lo previsto, que el conteo se recorte con
+   puntos suspensivos en vez de cortarse a mitad de un dígito. */
+.uh-mov {
   color: var(--muted);
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .uh-vacio {
   font-size: 10.5px;

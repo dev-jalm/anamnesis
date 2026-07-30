@@ -5477,17 +5477,35 @@ function renderUploadHistoryPanel() {
         ? MONTH_LABELS[h.month] : h.month;
       periodStr = monthLabel + ' ' + h.year;
     }
+    // "50 (55)" = 50 movimientos guardados de 55 leídos del archivo. La
+    // diferencia son los que ya existían y el dedup descartó.
+    // Sin la palabra "mov": medido en la columna (179px con la ventana en
+    // 894px), "120 (135) mov" mide 186px y se corta, mientras que sin ella
+    // hasta el caso de 4 dígitos entra en 174px. El encabezado de la columna ya
+    // dice el origen y el tooltip aclara qué es cada número.
     let movStr = '';
     if (typeof h.kept === 'number') {
-      movStr = h.kept + ' mov';
-      if (h.skipped > 0) movStr += ' · ' + h.skipped + ' omitido' + (h.skipped === 1 ? '' : 's');
+      movStr = String(h.kept);
+      if (typeof h.total === 'number' && h.total !== h.kept) movStr += ' (' + h.total + ')';
     }
-    return '<div class="uh-carga">' +
-      '<span class="uh-fecha">' + escapeHtmlSafe(fechaStr) + '</span>' +
-      '<span class="uh-detalle">' +
-        (periodStr ? escapeHtmlSafe(periodStr) : '') +
-        (periodStr && movStr ? ' · ' : '') +
-        (movStr ? escapeHtmlSafe(movStr) : '') +
+    // Todo en una línea: fecha y hora, separador, y el conteo. El período y el
+    // desglose completo van al tooltip — no entran sin partir la línea en dos,
+    // y el dato que se consulta de un vistazo es cuándo fue la última carga.
+    let conteoStr = '';
+    if (typeof h.kept === 'number') {
+      conteoStr = h.kept + ' guardados';
+      if (typeof h.total === 'number') conteoStr += ' de ' + h.total + ' leídos';
+    }
+    const tooltip = [
+      periodStr,
+      conteoStr,
+      (h.skipped > 0 ? h.skipped + ' ya existente' + (h.skipped === 1 ? '' : 's') : '')
+    ].filter(Boolean).join(' · ');
+
+    return '<div class="uh-carga" title="' + escapeHtmlSafe(tooltip) + '">' +
+      '<span class="uh-linea">' +
+        '<span class="uh-fecha">' + escapeHtmlSafe(fechaStr) + '</span>' +
+        (movStr ? '<span class="uh-sep">·</span><span class="uh-mov">' + escapeHtmlSafe(movStr) + '</span>' : '') +
       '</span>' +
     '</div>';
   }
