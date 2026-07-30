@@ -2101,25 +2101,6 @@
         <div class="info-box" style="margin-bottom:14px">
           <div class="info-text">Ingresá los activos en los que invertiste. Estas entradas <strong>no se contabilizan como transacciones</strong> — se guardan como detalle del portfolio y aparecen en la solapa <strong>Salud financiera</strong> dentro del destino que elijas. Cada fila lleva su propio <strong>destino</strong> y <strong>moneda</strong>, así que podés mezclar pesos y dólares, y varios destinos, en una misma carga. Podés agregar más filas con el botón <strong>+ AGREGAR FILA</strong>.</div>
         </div>
-        <!-- Los selectores de destino y moneda del lote quedaron obsoletos: ahora
-             cada fila tiene los suyos. Se dejan en el DOM porque
-             populateInvestmentDestinoSel() y varios handlers los referencian,
-             pero ocultos. -->
-        <div class="investment-batch-controls" hidden>
-          <div class="investment-batch-field">
-            <span class="period-label">Destino</span>
-            <select id="investmentDestinoSel" class="period-select">
-              <option value="">— Elegir destino —</option>
-            </select>
-          </div>
-          <div class="investment-batch-field">
-            <span class="period-label">Moneda</span>
-            <select id="investmentMonedaSel" class="period-select">
-              <option value="ARS">ARS</option>
-              <option value="USD">USD</option>
-            </select>
-          </div>
-        </div>
         <div class="manual-list-wrap" style="margin-top:14px">
           <div class="manual-list" id="investmentRowsList"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">

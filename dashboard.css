@@ -5713,20 +5713,6 @@ body[data-exporting="true"] .section-card {
 }
 
 /* ===== Carga de inversiones (modal cuando source = 'Inversion') ===== */
-.investment-batch-controls {
-  display: grid;
-  grid-template-columns: 1fr 200px;
-  gap: 12px;
-  padding: 12px 14px;
-  background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-.investment-batch-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
 .investment-row {
   display: grid !important;
   /* fecha | broker | ticker | cantidad | precio | total (read-only, flex) | delete

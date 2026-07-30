@@ -5415,8 +5415,6 @@ function openModal() {
   manualState.rows = [];
   // Reset investment state también
   investmentState.rows = [];
-  investmentState.destino = '';
-  investmentState.moneda = 'ARS';
   renderSourceButtons();
   // Resetear estado de botones step3 por si quedaron en "modo cerrar" de una
   // importación anterior. (El botón cambia de IMPORTAR DATOS a CERRAR cuando
@@ -5662,9 +5660,6 @@ function seleccionarTipoManual(kind) {
     state.uploadSource = 'Inversion';
     if (investmentState.rows.length === 0) addInvestmentRow();
     else renderInvestmentList();
-    populateInvestmentDestinoSel();
-    const monedaSel = document.getElementById('investmentMonedaSel');
-    if (monedaSel) monedaSel.value = investmentState.moneda || 'ARS';
   }
   if (window.lucide) lucide.createIcons();
 }
@@ -5726,11 +5721,6 @@ function goToStep(n) {
       } else {
         renderInvestmentList();
       }
-      // Popular el selector de destino (idempotente)
-      populateInvestmentDestinoSel();
-      // Sincronizar moneda visible con el state
-      const monedaSel = document.getElementById('investmentMonedaSel');
-      if (monedaSel) monedaSel.value = investmentState.moneda || 'ARS';
     } else {
       fileMode.classList.remove('hidden');
       manualMode.classList.add('hidden');
@@ -5902,35 +5892,6 @@ function renderManualList() {
 // NO se contabilizan como tx. Solo se persisten como detalle del portfolio
 // y se muestran en Salud financiera filtradas por destino.
 
-function populateInvestmentDestinoSel() {
-  const sel = document.getElementById('investmentDestinoSel');
-  if (!sel) return;
-  // Solo poblar la primera vez
-  if (sel._populated) {
-    sel.value = investmentState.destino || '';
-    return;
-  }
-  let html = '<option value="">— Elegir destino —</option>';
-  INVESTMENT_DESTINOS.forEach(function (d) {
-    html += '<option value="' + d.key + '">' + d.label + '</option>';
-  });
-  sel.innerHTML = html;
-  sel._populated = true;
-  sel.value = investmentState.destino || '';
-  sel.addEventListener('change', function (e) {
-    investmentState.destino = e.target.value || '';
-  });
-  // Moneda
-  const monedaSel = document.getElementById('investmentMonedaSel');
-  if (monedaSel && !monedaSel._bound) {
-    monedaSel.addEventListener('change', function (e) {
-      investmentState.moneda = e.target.value || 'ARS';
-      renderInvestmentList();   // refrescar el total del batch (símbolo de moneda)
-    });
-    monedaSel._bound = true;
-  }
-}
-
 // Brokers/exchanges disponibles al cargar un movimiento de inversión.
 // Cada uno tiene un color distintivo que se usa como fondo tanto en el
 // selector del form como en la celda de la tabla agrupada por ticker.
@@ -5964,8 +5925,8 @@ function addInvestmentRow() {
     ticker: '',
     cantidad: '',
     precio: '',
-    destino: (ultima && ultima.destino) || investmentState.destino || '',
-    moneda: (ultima && ultima.moneda) || investmentState.moneda || 'ARS'
+    destino: (ultima && ultima.destino) || '',
+    moneda: (ultima && ultima.moneda) || 'ARS'
   });
   renderInvestmentList();
 }
@@ -5978,21 +5939,12 @@ function renderInvestmentList() {
   if (investmentState.rows.length === 0) {
     list.innerHTML = '<div style="padding:30px 20px;text-align:center;color:var(--muted);font-size:12px">No hay activos. Hacé click en + AGREGAR FILA para empezar.</div>';
     if (counter) counter.textContent = '0 activos';
-    if (totalEl) totalEl.textContent = 'Total: ' + investmentCurrencySymbol() + '0';
+    if (totalEl) totalEl.textContent = 'Total: $ 0';
     return;
   }
-  // Totales SEPARADOS por moneda: sumar pesos con dólares daría un número sin
-  // significado, y desde que la moneda es por fila un lote puede tener las dos.
-  const totalPorMoneda = { ARS: 0, USD: 0 };
   list.innerHTML = investmentState.rows.map(function (r) {
-    const cant = parseFloat(r.cantidad) || 0;
-    const prec = parseFloat(r.precio) || 0;
-    const total = cant * prec;
-    const mon = (r.moneda === 'USD') ? 'USD' : 'ARS';
-    totalPorMoneda[mon] += total;
-    const totalStr = (total !== 0)
-      ? (total < 0 ? '-' : '') + investmentRowSymbol(r) + fmt(Math.abs(total))
-      : '—';
+    const total = (parseFloat(r.cantidad) || 0) * (parseFloat(r.precio) || 0);
+    const totalStr = (total !== 0) ? fmtImporteInv(total, investmentRowSymbol(r)) : '—';
     // Mostrar cantidad y precio con formato AR (1.234,56). El value en
     // r.cantidad/r.precio se guarda como número limpio (sin puntos); el formato
     // es solo para mostrar. Al input type="text" + inputmode="decimal" le agregamos
@@ -6030,18 +5982,7 @@ function renderInvestmentList() {
       '</button>' +
     '</div>';
   }).join('');
-  if (counter) counter.textContent = investmentState.rows.length + (investmentState.rows.length === 1 ? ' activo' : ' activos');
-  // Se muestran los totales de cada moneda que tenga algo cargado.
-  if (totalEl) {
-    const partes = [];
-    if (totalPorMoneda.ARS !== 0) {
-      partes.push((totalPorMoneda.ARS < 0 ? '-' : '') + '$' + fmt(Math.abs(totalPorMoneda.ARS)));
-    }
-    if (totalPorMoneda.USD !== 0) {
-      partes.push((totalPorMoneda.USD < 0 ? '-' : '') + 'US$' + fmt(Math.abs(totalPorMoneda.USD)));
-    }
-    totalEl.textContent = 'Total: ' + (partes.length ? partes.join(' · ') : '$0');
-  }
+  actualizarTotalesInversion();
 
   // Bindings por fila
   Array.from(list.querySelectorAll('.investment-row')).forEach(function (rowEl) {
@@ -6084,24 +6025,11 @@ function renderInvestmentList() {
           }
         }
         input.classList.remove('invalid');
-        // Si cambió cantidad o precio, refrescamos solo el total de esta fila
-        // y el batch total — sin re-renderizar toda la lista (mantiene foco).
-        if (field === 'cantidad' || field === 'precio') {
-          const cant = parseFloat(row.cantidad) || 0;
-          const prec = parseFloat(row.precio) || 0;
-          const total = cant * prec;
-          const totalSpan = rowEl.querySelector('.investment-row-total');
-          if (totalSpan) {
-            totalSpan.textContent = (total !== 0)
-              ? (total < 0 ? '-' : '') + investmentCurrencySymbol() + fmt(Math.abs(total))
-              : '—';
-          }
-          // Recalcular batch total
-          let bt = 0;
-          investmentState.rows.forEach(function (rr) {
-            bt += (parseFloat(rr.cantidad) || 0) * (parseFloat(rr.precio) || 0);
-          });
-          if (totalEl) totalEl.textContent = 'Total: ' + (bt < 0 ? '-' : '') + investmentCurrencySymbol() + fmt(Math.abs(bt));
+        // Se recalcula en cada tecla, no al perder el foco. Y también cuando
+        // cambia 'moneda': mueve el importe de una columna de moneda a la otra,
+        // así que los totales dejan de ser los que estaban mostrados.
+        if (field === 'cantidad' || field === 'precio' || field === 'moneda') {
+          actualizarTotalesInversion();
         }
       });
       // Reformatear con puntos cuando el usuario sale del campo (blur).
@@ -6129,14 +6057,47 @@ function renderInvestmentList() {
   if (window.lucide) lucide.createIcons();
 }
 
-function investmentCurrencySymbol() {
-  return (investmentState.moneda === 'USD') ? 'US$' : '$';
-}
-
-// Símbolo de una fila puntual. Desde que la moneda es por fila, el símbolo del
-// lote ya no sirve para los importes individuales.
+// Símbolo de una fila puntual. Desde que la moneda es por fila, no hay un
+// símbolo de lote que sirva para los importes individuales.
 function investmentRowSymbol(row) {
   return ((row && row.moneda) === 'USD') ? 'US$' : '$';
+}
+
+// Importe con el símbolo SEPARADO del número: "$ 1.000", "US$ 153.036". Pegados
+// ("US$153.036") el símbolo se lee como parte de la cifra.
+function fmtImporteInv(monto, simbolo) {
+  return (monto < 0 ? '-' : '') + simbolo + ' ' + fmt(Math.abs(monto));
+}
+
+// Recalcula el total de cada fila y los totales del lote, y los escribe en el
+// DOM sin re-renderizar la lista (re-renderizar mientras se tipea perdería el
+// foco). Es el ÚNICO lugar donde se hace esta cuenta: antes el render y el
+// handler de input la duplicaban, y la copia del handler sumaba pesos con
+// dólares en un solo número y usaba el símbolo del lote para todas las filas.
+function actualizarTotalesInversion() {
+  const totalPorMoneda = { ARS: 0, USD: 0 };
+  investmentState.rows.forEach(function (r) {
+    const total = (parseFloat(r.cantidad) || 0) * (parseFloat(r.precio) || 0);
+    totalPorMoneda[(r.moneda === 'USD') ? 'USD' : 'ARS'] += total;
+    const rowEl = document.querySelector('.investment-row[data-id="' + r.id + '"]');
+    const totalSpan = rowEl && rowEl.querySelector('.investment-row-total');
+    if (totalSpan) {
+      totalSpan.textContent = (total !== 0) ? fmtImporteInv(total, investmentRowSymbol(r)) : '—';
+    }
+  });
+  const counter = document.getElementById('investmentRowsCount');
+  if (counter) {
+    counter.textContent = investmentState.rows.length + (investmentState.rows.length === 1 ? ' activo' : ' activos');
+  }
+  // Un total por cada moneda que tenga algo cargado: sumar pesos con dólares
+  // daría un número sin significado, y un lote puede tener las dos.
+  const totalEl = document.getElementById('investmentBatchTotal');
+  if (totalEl) {
+    const partes = [];
+    if (totalPorMoneda.ARS !== 0) partes.push(fmtImporteInv(totalPorMoneda.ARS, '$'));
+    if (totalPorMoneda.USD !== 0) partes.push(fmtImporteInv(totalPorMoneda.USD, 'US$'));
+    totalEl.textContent = 'Total: ' + (partes.length ? partes.join('  ·  ') : '$ 0');
+  }
 }
 
 function validateAndSaveInvestmentRows() {
