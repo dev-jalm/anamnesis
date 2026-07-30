@@ -5910,8 +5910,10 @@ function renderInvestmentList() {
           return '<option value="' + b.key + '"' + ((r.broker || 'BALANZ') === b.key ? ' selected' : '') + '>' + b.label + '</option>';
         }).join('') +
       '</select>' +
-      '<input type="text" data-field="ticker" placeholder="Ticker (ej: SPY)" value="' + (r.ticker ? r.ticker.replace(/"/g, '&quot;') : '') + '" style="text-transform:uppercase">' +
-      '<input type="text" inputmode="decimal" data-field="cantidad" placeholder="Cantidad" value="' + cantDisplay + '">' +
+      // Los placeholders son cortos porque las columnas miden 5 caracteres. La
+      // explicación se mueve al title, que aparece como tooltip al pasar el mouse.
+      '<input type="text" data-field="ticker" placeholder="SPY" title="Ticker del activo (ej: SPY, AAPL, GGAL)" value="' + (r.ticker ? r.ticker.replace(/"/g, '&quot;') : '') + '" style="text-transform:uppercase">' +
+      '<input type="text" inputmode="decimal" data-field="cantidad" placeholder="Cant." title="Cantidad de nominales" value="' + cantDisplay + '">' +
       '<input type="text" inputmode="decimal" data-field="precio" placeholder="Precio" value="' + precDisplay + '">' +
       '<span class="investment-row-total mono" title="Cantidad × Precio">' + totalStr + '</span>' +
       '<button class="manual-row-delete" data-action="delete-row" title="Borrar fila">' +

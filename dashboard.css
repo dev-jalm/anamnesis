@@ -5664,7 +5664,20 @@ body[data-exporting="true"] .section-card {
   /* fecha | broker | ticker | cantidad | precio | total (read-only, flex) | delete
      Anchos calibrados para caber cómodos en el modal (~950px de contenido)
      sin generar scroll horizontal. La columna "total" absorbe el sobrante. */
-  grid-template-columns: 120px 140px 130px 100px 100px 1fr 30px !important;
+  /* Ticker y Cantidad se dimensionan para 5 caracteres. Se usa `ch` —el ancho
+     de un carácter en la fuente del elemento— más el padding lateral de los
+     inputs (6px por lado) y sus bordes, en vez de un valor fijo en px: así el
+     ancho sigue siendo el correcto si cambia el tamaño de fuente.
+     El espacio que se libera lo absorbe la columna Total, que es 1fr. */
+  grid-template-columns:
+    120px                 /* fecha */
+    140px                 /* broker */
+    calc(5ch + 16px)      /* ticker */
+    calc(5ch + 16px)      /* cantidad */
+    100px                 /* precio */
+    1fr                   /* total (absorbe el sobrante) */
+    30px                  /* eliminar */
+    !important;
   gap: 6px;
   align-items: center;
   padding: 8px 10px;
