@@ -6502,16 +6502,32 @@ function cerrarModalPlantillas() {
   actualizarHintImportacion();
 }
 
+// Las plantillas vigentes en ORDEN DE PRESENTACIÓN: primero las incorporadas
+// —en el orden en que las trae la app, usando la versión editada si la hay— y
+// después las que creó el usuario, en el orden en que las fue creando.
+//
+// No sirve el orden de plantillasDisponibles(), que pone las propias adelante
+// porque así ganan en la detección: con ese orden, editarle algo a Mercado Pago
+// lo hacía saltar al principio de la lista.
+function plantillasParaMostrar() {
+  const propias = state.bankTemplates || [];
+  const porId = function (id) {
+    return propias.find(function (p) { return p.id === id; });
+  };
+  const incorporadas = PLANTILLAS_BUILTIN.map(function (b) { return porId(b.id) || b; });
+  const soloPropias = propias.filter(function (p) { return !plantillaBuiltin(p.id); });
+  return incorporadas.concat(soloPropias);
+}
+
 // El hint bajo "Subí el resumen del banco" nombra lo que la app sabe leer. Si
 // se agrega una entidad, tiene que aparecer ahí o el usuario no se entera de
-// que ya puede subir ese archivo.
+// que ya puede subir ese archivo. Se listan TODAS, sin cortar: el hint existe
+// justamente para poder confirmar de un vistazo que el banco que se va a subir
+// está configurado, y un "y 3 más" obligaba a abrir el customizador para eso.
 function actualizarHintImportacion() {
   const hint = document.getElementById('fileImportHint');
   if (!hint) return;
-  const nombres = plantillasDisponibles().map(function (p) { return p.nombre; });
-  hint.textContent = nombres.length > 3
-    ? nombres.slice(0, 3).join(', ') + ' y ' + (nombres.length - 3) + ' más'
-    : nombres.join(', ');
+  hint.textContent = plantillasParaMostrar().map(function (p) { return p.nombre; }).join(', ');
 }
 
 function mostrarListaPlantillas() {
@@ -6528,7 +6544,7 @@ function mostrarListaPlantillas() {
   const propias = state.bankTemplates || [];
   // Una fila por formato vigente. Si el usuario editó una incorporada, se
   // muestra SU versión, no la del código: es la que se está usando.
-  cont.innerHTML = plantillasDisponibles().map(function (p) {
+  cont.innerHTML = plantillasParaMostrar().map(function (p) {
     const original = plantillaBuiltin(p.id);
     const esIncorporada = !!original && !!p.builtin;   // la del código, sin tocar
     const esModificada = !!original && !p.builtin;     // incorporada con cambios
