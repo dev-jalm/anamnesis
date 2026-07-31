@@ -16303,10 +16303,8 @@ async function exportActiveTab(format) {
   const panel = getActiveMainTabPanel();
   if (!panel) return;
 
-  // Cerrar el menú de export
-  const menu = document.getElementById('exportMenu');
-  if (menu) menu.classList.add('hidden');
-
+  // El menú de export no hace falta cerrarlo a mano: se abre por hover y la
+  // regla body[data-exporting] lo saca de la captura.
   // Marcar el body para que los CSS de "exporting" se apliquen
   document.body.setAttribute('data-exporting', 'true');
   // Disable temporal de los botones del menú para evitar doble-click
@@ -16497,28 +16495,21 @@ function bindStatementFileImport() {
   btn._bound = true;
 }
 
+// El menú se abre y se cierra por CSS al pasar el mouse por el wrap, igual que
+// el de Administración. Acá sólo quedan los handlers de los ítems: el toggle por
+// click y el "click afuera cierra" se fueron con el menú flotante — un submenú
+// en flujo de dos ítems no necesita estado, y mantener las dos mecánicas a la
+// vez hacía que un click dejara el menú tildado en oculto contra el hover.
 function bindExportMenu() {
-  const btn = document.getElementById('exportBtn');
   const menu = document.getElementById('exportMenu');
-  if (!btn || !menu || btn._bound) return;
-  btn.addEventListener('click', function (e) {
-    e.stopPropagation();
-    menu.classList.toggle('hidden');
-  });
-  // Click fuera cierra el menú
-  document.addEventListener('click', function (e) {
-    if (!menu.classList.contains('hidden')) {
-      if (!e.target.closest('.export-menu-wrap')) menu.classList.add('hidden');
-    }
-  });
-  // Items
+  if (!menu || menu._bound) return;
   Array.from(menu.querySelectorAll('.export-menu-item')).forEach(function (item) {
     item.addEventListener('click', function () {
       const fmt = item.getAttribute('data-export-format');
       exportActiveTab(fmt);
     });
   });
-  btn._bound = true;
+  menu._bound = true;
 }
 
 // ================= TABS PRINCIPALES =================

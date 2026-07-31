@@ -137,31 +137,34 @@
         <i data-lucide="hard-drive" style="width:14px;height:14px"></i>
         <span id="driveBtnText">CONECTAR DRIVE</span>
       </button>
-      <div class="export-menu-wrap">
+      <!-- Exportar y Administración son el mismo control: un botón que
+           despliega sus acciones debajo al pasar el mouse. Comparten
+           .sidebar-submenu-wrap / .sidebar-submenu / .sidebar-submenu-item. -->
+      <div class="sidebar-submenu-wrap">
         <button class="upload-btn csv-btn btn-icon-only" id="exportBtn" title="Exportar la solapa actual a PNG o PDF">
           <i data-lucide="download" style="width:14px;height:14px"></i>
           <span>EXPORTAR</span>
         </button>
-        <div class="export-menu hidden" id="exportMenu" role="menu">
-          <button type="button" class="export-menu-item" data-export-format="png" role="menuitem">
+        <div class="sidebar-submenu export-menu" id="exportMenu" role="menu">
+          <button type="button" class="sidebar-submenu-item export-menu-item" data-export-format="png" role="menuitem">
             <i data-lucide="image" style="width:13px;height:13px"></i>
-            PNG (imagen)
+            PNG (IMAGEN)
           </button>
-          <button type="button" class="export-menu-item" data-export-format="pdf" role="menuitem">
+          <button type="button" class="sidebar-submenu-item export-menu-item" data-export-format="pdf" role="menuitem">
             <i data-lucide="file-text" style="width:13px;height:13px"></i>
-            PDF (A4 vertical)
+            PDF (A4)
           </button>
         </div>
       </div>
-      <div class="sidebar-admin-wrap">
+      <div class="sidebar-submenu-wrap">
         <button class="upload-btn csv-btn btn-icon-only" id="categoriesBtn" title="Administración de movimientos y categorías">
           <i data-lucide="settings" style="width:14px;height:14px"></i>
           <span>ADMINISTRACIÓN</span>
         </button>
         <!-- Submenú: acciones destructivas u otras acciones globales.
              Se despliega al pasar el mouse sobre el wrap. -->
-        <div class="sidebar-admin-submenu" id="sidebarAdminSubmenu" role="menu">
-          <button type="button" class="sidebar-admin-item" id="deleteDataBtn" role="menuitem" title="Borrar datos del período seleccionado">
+        <div class="sidebar-submenu" id="sidebarAdminSubmenu" role="menu">
+          <button type="button" class="sidebar-submenu-item danger" id="deleteDataBtn" role="menuitem" title="Borrar datos del período seleccionado">
             <i data-lucide="trash-2" style="width:13px;height:13px"></i>
             BORRAR DATOS
           </button>

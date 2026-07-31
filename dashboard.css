@@ -4312,46 +4312,10 @@ footer .eyebrow-sources {
 }
 
 /* ===== EXPORT MENU (PNG / PDF) ===== */
-.export-menu-wrap {
-  position: relative;
-  display: inline-block;
-}
-.export-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  min-width: 180px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(42, 37, 32, 0.15);
-  padding: 4px;
-  z-index: 200;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.export-menu.hidden { display: none; }
-.export-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  font-family: 'Inter', system-ui;
-  font-size: 12px;
-  color: var(--ink);
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.12s;
-}
-.export-menu-item:hover { background: var(--bg-1); }
-.export-menu-item:disabled {
-  opacity: 0.5;
-  cursor: wait;
-}
+/* El menú de exportar vive sólo en el sidebar y usa .sidebar-submenu, igual que
+   el de Administración. Sus reglas propias (position: absolute, min-width 180px,
+   tipografía Inter) se borraron: eran las que lo sacaban del alto del panel y
+   disparaban la barra de scroll, y las que lo hacían ver distinto de su gemelo. */
 
 /* Modo "exportando": ocultar el top-bar y los controles flotantes para que la
    captura se vea limpia. Se aplica via body[data-exporting="true"]. */
@@ -7267,7 +7231,7 @@ body[data-exporting="true"] .section-card {
   border-top: 1px solid var(--border, #E8DFD0);
 }
 .sidebar-utility-buttons .upload-btn,
-.sidebar-utility-buttons .export-menu-wrap {
+.sidebar-utility-buttons .sidebar-submenu-wrap {
   width: 100%;
 }
 /* Dentro del sidebar los botones muestran texto SIEMPRE (aunque tengan
@@ -7291,23 +7255,6 @@ body[data-exporting="true"] .section-card {
   white-space: nowrap;
   font-size: 11px;
   letter-spacing: 0.5px;
-}
-.sidebar-utility-buttons .export-menu-wrap {
-  position: relative;
-}
-/* En el sidebar el menú se despliega HACIA ABAJO, ocupando el ancho de la
-   columna. No puede abrir hacia el costado: el sidebar tiene overflow-x
-   hidden, así que todo lo que se pase de sus 260px queda recortado. Abriendo
-   a la derecha (left:100% + 180px de menú) el menú terminaba en ~403px y se
-   cortaba entero — el click funcionaba, pero no se veía nada.
-   Hacia abajo queda dentro del ancho y el overflow-y del sidebar es auto, así
-   que si no entra se puede scrollear. */
-.sidebar-utility-buttons .export-menu {
-  left: 0;
-  right: 0;
-  top: calc(100% + 4px);
-  margin-left: 0;
-  min-width: 0;
 }
 
 /* Franja de hover en el borde izquierdo: al pasar el mouse por ahí
@@ -7569,16 +7516,24 @@ body:not(.sidebar-pinned) .main-tab-panel {
    Aparece al pasar el mouse sobre el wrap. Contiene acciones
    secundarias como "Borrar datos".
    ============================================================ */
-.sidebar-admin-wrap {
+/* ===== Submenús del sidebar (Exportar, Administración) =====
+   Los dos botones despliegan una lista de acciones debajo. Comparten estas
+   reglas: son el mismo control y tienen que verse y comportarse igual.
+   Se despliegan EN FLUJO, no en absolute: dentro del sidebar, un menú
+   posicionado se salía del alto disponible y aparecía la barra de scroll
+   vertical. En flujo empuja lo que tiene abajo y el panel no scrollea. */
+.sidebar-submenu-wrap {
   position: relative;
 }
-/* El submenu aparece al hover del wrap. Usamos display: block al hover
-   en lugar de removeChild + hidden porque queremos la transición suave. */
-.sidebar-admin-wrap:hover .sidebar-admin-submenu {
-  display: block;
+/* Aparece al hover del wrap. display: block al hover en lugar de togglear una
+   clase por JS: es un menú de dos ítems, no necesita estado. */
+.sidebar-submenu-wrap:hover .sidebar-submenu {
+  display: flex;
 }
-.sidebar-admin-submenu {
+.sidebar-submenu {
   display: none;
+  flex-direction: column;
+  gap: 2px;
   margin-top: 6px;
   padding: 6px;
   background: var(--bg-1);
@@ -7586,10 +7541,10 @@ body:not(.sidebar-pinned) .main-tab-panel {
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(42, 37, 32, 0.10);
 }
-.sidebar-admin-submenu.hidden {
+.sidebar-submenu.hidden {
   display: none;
 }
-.sidebar-admin-item {
+.sidebar-submenu-item {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -7602,12 +7557,24 @@ body:not(.sidebar-pinned) .main-tab-panel {
   font-size: 10px;
   letter-spacing: 1px;
   font-weight: 600;
-  color: var(--red-2, #C8553D);
+  color: var(--ink);
   cursor: pointer;
   transition: background 120ms, color 120ms;
   text-align: left;
+  white-space: nowrap;
 }
-.sidebar-admin-item:hover {
+.sidebar-submenu-item:hover {
+  background: var(--card);
+}
+.sidebar-submenu-item:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+/* Variante destructiva: borrar datos. */
+.sidebar-submenu-item.danger {
+  color: var(--red-2, #C8553D);
+}
+.sidebar-submenu-item.danger:hover {
   background: rgba(200, 85, 61, 0.08);
   color: var(--red-2, #C8553D);
 }
