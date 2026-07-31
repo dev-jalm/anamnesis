@@ -18633,15 +18633,18 @@ function renderMainMovCardFilterBar() {
 //   items   → tx filtradas por el selector (para bloque MOVIMIENTOS)
 //   allTxs  → tx COMPLETAS del período sin filtrar (para bloque FLUJO)
 //
-// El bloque FLUJO se calcula SIEMPRE con allTxs para que sea consistente
-// independientemente de qué filtro esté aplicado. Si se usara `items`, al
-// elegir "Todas" en el selector (que ahora excluye tx de flujo) el balance
-// perdería los sueldos/préstamos.
+// El bloque FLUJO se calcula con allTxs y no con items, para que el balance no
+// cambie al mover el selector de tipo. Pero sólo se MUESTRA cuando hay alguna
+// tx de flujo a la vista: con "Todas" (que excluye el flujo del listado), o con
+// "Básicas" o "Discrecionales", el bloque mostraba un balance de movimientos
+// que no estaban en pantalla — un número imposible de verificar contra la
+// grilla que tenía al lado.
 function updateMainMovSummary(items, allTxs) {
   const countEl = document.getElementById('mainMovCount');
   const totalEl = document.getElementById('mainMovTotal');
   const flowCountEl = document.getElementById('mainMovFlowCount');
   const flowTotalEl = document.getElementById('mainMovFlowTotal');
+  const flowBlockEl = document.getElementById('mainMovFlowBlock');
   if (!countEl || !totalEl) return;
   // Fórmula del balance de flujo (según pedido del usuario):
   //   Balance flujo = (Sueldo + Préstamo) − (todo el resto DE FLUJO)
@@ -18715,6 +18718,19 @@ function updateMainMovSummary(items, allTxs) {
   const signMov = total < 0 ? '-' : '';
   totalEl.textContent = signMov + '$' + fmt(Math.abs(total));
   totalEl.style.color = total < 0 ? 'var(--red)' : (total > 0 ? 'var(--green)' : 'var(--ink)');
+  // ¿Hay alguna tx de flujo EN EL LISTADO? Se mira `items` (lo que se está
+  // viendo) y no allTxs (lo que hay en el período). Se pregunta por el
+  // contenido y no por el valor del selector para que valga también con el
+  // filtro de tarjeta y con la búsqueda, sin tener que enumerar los casos.
+  const hayFlujoALaVista = (items || []).some(function (item) {
+    if (!item || !item.tx) return false;
+    const ch = item.change || {};
+    const effCat = ch.categoria !== undefined ? ch.categoria : item.tx.categoria;
+    return !!effCat && NON_EXPENSE_CATS.indexOf(effCat) >= 0 &&
+           NON_COUNTABLE_FLOW_CATS.indexOf(effCat) < 0;
+  });
+  if (flowBlockEl) flowBlockEl.style.display = hayFlujoALaVista ? '' : 'none';
+
   // Render bloque FLUJO (solo si los elementos están presentes — backward compat)
   if (flowCountEl && flowTotalEl) {
     flowCountEl.textContent = String(flowCount) + (flowCount === 1 ? ' tx' : ' tx');

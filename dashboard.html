@@ -293,7 +293,10 @@
       <span class="cat-modal-status" id="mainMovStatus">Sin cambios pendientes</span>
       <div style="display:flex;align-items:center;gap:14px">
         <div id="mainMovSummary" class="main-mov-summary">
-          <div class="main-mov-summary-block" title="Balance de flujo: (Sueldo + Préstamo) − (Reserva + Inversión + Trading + Devolución de capital + Jubilación y demás categorías de flujo). Solo incluye tx de categorías DE FLUJO — básicas y discrecionales quedan fuera. Se calcula sobre TODAS las tx del período, sin importar el filtro superior.">
+          <!-- Se oculta cuando el listado no tiene ninguna tx de flujo a la
+               vista (ver updateMainMovSummary): un balance de movimientos que
+               no están en pantalla no se puede verificar contra nada. -->
+          <div class="main-mov-summary-block" id="mainMovFlowBlock" title="Balance de flujo: (Sueldo + Préstamo) − (Reserva + Inversión + Trading + Devolución de capital + Jubilación y demás categorías de flujo). Solo incluye tx de categorías DE FLUJO — básicas y discrecionales quedan fuera.">
             <div class="main-mov-summary-label">Flujo</div>
             <div class="main-mov-summary-count mono" id="mainMovFlowCount">0</div>
             <div class="main-mov-summary-value mono" id="mainMovFlowTotal">$0</div>
