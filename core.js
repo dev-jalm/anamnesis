@@ -17,11 +17,14 @@
 // personal (entra plata). NO confundir con "Deuda → Prestamo" que es subcategoría
 // de gasto básico para las cuotas que pagás del préstamo (sale plata).
 //
-// La categoría "DevolucionCapital" es especial: clasifica tx pero NO se
-// contabiliza en ningún totalizador (balance, KPIs, gasto total, score). Se
-// usa para etiquetar movimientos que conceptualmente son devolución de
-// capital (alguien me devuelve plata que presté, recibo el principal de un
-// préstamo otorgado, etc.) y no representan ingreso ni egreso real.
+// "DevolucionCapital" es la plata con la que se DEVUELVE el capital de un
+// préstamo tomado: sale del bolsillo, igual que Reserva o Inversión, así que
+// RESTA en el balance de flujo. El interés de esa misma cuota no va acá — va
+// como gasto básico en "Deuda", que es donde corresponde: el interés es el
+// costo del préstamo, el capital es la deuda que se cancela.
+//
+// Antes estaba documentada al revés ("alguien me devuelve plata que presté") y
+// por eso quedó excluida de los balances. Es lo contrario: es un egreso.
 // Antes se llamaba "Transferencias"; la migración del label se hace al cargar
 // el state en applySnapshot.
 const NON_EXPENSE_CATS = ['Reserva', 'Inversion', 'Trading', 'DevolucionCapital', 'Jubilacion', 'Sueldo', 'Prestamo'];
@@ -29,7 +32,11 @@ const NON_EXPENSE_CATS = ['Reserva', 'Inversion', 'Trading', 'DevolucionCapital'
 // Categorías de flujo que NO se contabilizan en NINGÚN totalizador (balance,
 // KPIs, gasto total, score, sumas). Sirven para clasificar visualmente sin
 // afectar números. Cualquier suma de tx debe filtrar estas categorías.
-const NON_COUNTABLE_FLOW_CATS = ['DevolucionCapital'];
+//
+// Hoy está VACÍA: la única que contenía era DevolucionCapital, que sí es un
+// egreso real. Se mantiene el mecanismo porque la necesidad —clasificar sin
+// mover números— es legítima y va a volver a aparecer.
+const NON_COUNTABLE_FLOW_CATS = [];
 
 // Clasificación por defecto para categorías "tradicionales" de gasto.
 // El usuario puede overridear via state.categoryClassification[catKey].

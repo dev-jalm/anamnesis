@@ -2636,6 +2636,53 @@ group('parseGaliciaRows — extracto de Banco Galicia', function () {
   });
 });
 
+group('Categorías de flujo — qué entra, qué sale y qué no es gasto', function () {
+  // El balance de flujo es (Sueldo + Préstamo) − (todo el resto de flujo).
+  // Sueldo es lo cobrado por trabajo y Préstamo es deuda nueva tomada: entran.
+  // Reserva, Inversión, Trading y Jubilación son plata destinada a esos fines, y
+  // Devolución de capital es plata con la que se cancela deuda: salen.
+  const ENTRAN = ['Sueldo', 'Prestamo'];
+  const SALEN = ['Reserva', 'Inversion', 'Trading', 'Jubilacion', 'DevolucionCapital'];
+
+  test('todas las categorías de flujo están en NON_EXPENSE_CATS', function () {
+    ENTRAN.concat(SALEN).forEach(function (c) {
+      assert(NON_EXPENSE_CATS.indexOf(c) >= 0, c + ' debe ser categoría de flujo');
+    });
+  });
+  test('NON_EXPENSE_CATS no tiene ninguna categoría de más', function () {
+    // Si mañana se agrega una, hay que decidir si entra o sale: este test
+    // obliga a esa decisión en vez de dejarla caer en el lado "sale" por
+    // descarte, que es como Devolución de capital quedó fuera del balance.
+    assertEqual(NON_EXPENSE_CATS.slice().sort().join(','),
+                ENTRAN.concat(SALEN).sort().join(','));
+  });
+  test('las de flujo NO son gastos básicos ni discrecionales', function () {
+    ENTRAN.concat(SALEN).forEach(function (c) {
+      assert(BASIC_CATS.indexOf(c) < 0, c + ' no puede ser gasto básico');
+      assert(DISCRETIONARY_CATS.indexOf(c) < 0, c + ' no puede ser discrecional');
+    });
+  });
+  test('Devolución de capital SÍ se contabiliza: es plata que sale', function () {
+    // Estuvo en NON_COUNTABLE_FLOW_CATS, documentada al revés ("alguien me
+    // devuelve plata que presté"), y por eso no restaba en ningún balance.
+    assert(NON_COUNTABLE_FLOW_CATS.indexOf('DevolucionCapital') < 0,
+           'no puede estar entre las que no se contabilizan');
+  });
+  test('la salida del balance se deriva de NON_EXPENSE_CATS, no de una lista suelta', function () {
+    const derivada = NON_EXPENSE_CATS.filter(function (c) {
+      return ENTRAN.indexOf(c) < 0 && NON_COUNTABLE_FLOW_CATS.indexOf(c) < 0;
+    });
+    assertEqual(derivada.slice().sort().join(','), SALEN.slice().sort().join(','));
+  });
+  test('Prestamo (flujo, entra) no se confunde con Deuda (gasto básico)', function () {
+    // La cuota de un préstamo se parte en dos: el capital va a Devolución de
+    // capital (flujo) y el interés a Deuda (gasto básico).
+    assert(NON_EXPENSE_CATS.indexOf('Prestamo') >= 0, 'Prestamo es flujo');
+    assert(BASIC_CATS.indexOf('Deuda') >= 0, 'Deuda es gasto básico');
+    assert(NON_EXPENSE_CATS.indexOf('Deuda') < 0, 'Deuda no puede ser flujo');
+  });
+});
+
 group('parseNumeroConFormato — importes según el formato de la entidad', function () {
   test('AR: punto de miles, coma decimal', function () {
     assertEqual(parseNumeroConFormato('1.234,56', 'AR'), 1234.56);

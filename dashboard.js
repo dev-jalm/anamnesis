@@ -21,6 +21,16 @@ const INITIAL_CATEGORY_LABELS = {
   Reserva: 'Reserva', Inversion: 'Inversión', Trading: 'Trading', DevolucionCapital: 'Devolución de capital', Jubilacion: 'Jubilación', Sueldo: 'Sueldo', Prestamo: 'Préstamo'
 };
 
+// La fórmula del balance de flujo, en UN solo lugar. Estaba escrita a mano en
+// tres textos distintos —el tooltip del totalizador, el de la tabla anual y los
+// comentarios— y los tres decían cosas diferentes sobre si Devolución de
+// capital entraba o no. Un tooltip que promete una cuenta que el código no hace
+// es peor que no tener tooltip.
+const FORMULA_BALANCE_FLUJO =
+  '(Sueldo + Préstamo) − (Reserva + Inversión + Trading + Jubilación + Devolución de capital). ' +
+  'Sueldo y Préstamo entran plata; el resto la saca. Solo incluye categorías DE FLUJO — ' +
+  'básicas y discrecionales quedan fuera.';
+
 const ICON_MAP = {
   Vivienda: 'home',
   Alimentacion: 'shopping-cart',
@@ -18662,12 +18672,11 @@ function updateMainMovSummary(items, allTxs) {
   const flowTotalEl = document.getElementById('mainMovFlowTotal');
   const flowBlockEl = document.getElementById('mainMovFlowBlock');
   if (!countEl || !totalEl) return;
-  // Fórmula del balance de flujo (según pedido del usuario):
-  //   Balance flujo = (Sueldo + Préstamo) − (todo el resto DE FLUJO)
-  // "Todo el resto de flujo" son las categorías de NON_EXPENSE_CATS que
-  // NO sean Sueldo ni Préstamo (típicamente: Reserva, Inversion, Trading,
-  // Jubilacion, DevolucionCapital, y cualquier otra futura cat de flujo).
-  // NO incluye básicas ni discrecionales (esas son "gastos", no "flujo").
+  // Balance flujo = (Sueldo + Préstamo) − (todo el resto DE FLUJO).
+  // Sueldo es lo cobrado por trabajo; Préstamo es deuda nueva tomada: los dos
+  // meten plata. El resto —Reserva, Inversión, Trading, Jubilación y Devolución
+  // de capital— la saca. NO incluye básicas ni discrecionales (son "gastos", no
+  // "flujo"); el interés de una cuota de préstamo va como gasto básico en Deuda.
   const FLOW_INCOME = ['Sueldo', 'Prestamo'];
   let count = 0;
   let total = 0;
@@ -18724,8 +18733,9 @@ function updateMainMovSummary(items, allTxs) {
       // Modo BALANCE: Sueldo y Préstamo suman.
       flowBalance += Math.abs(m);
     } else {
-      // Modo BALANCE: cualquier OTRA categoría de flujo (Reserva, Inversion,
-      // Trading, Jubilacion, DevolucionCapital, etc.) resta.
+      // Modo BALANCE: cualquier OTRA categoría de flujo resta — Reserva,
+      // Inversión, Trading y Jubilación son plata destinada a esos fines, y
+      // Devolución de capital es plata con la que se cancela deuda. Todas salen.
       flowBalance -= Math.abs(m);
     }
   });
@@ -18745,7 +18755,10 @@ function updateMainMovSummary(items, allTxs) {
     return !!effCat && NON_EXPENSE_CATS.indexOf(effCat) >= 0 &&
            NON_COUNTABLE_FLOW_CATS.indexOf(effCat) < 0;
   });
-  if (flowBlockEl) flowBlockEl.style.display = hayFlujoALaVista ? '' : 'none';
+  if (flowBlockEl) {
+    flowBlockEl.style.display = hayFlujoALaVista ? '' : 'none';
+    flowBlockEl.setAttribute('title', 'Balance de flujo: ' + FORMULA_BALANCE_FLUJO);
+  }
 
   // Render bloque FLUJO (solo si los elementos están presentes — backward compat)
   if (flowCountEl && flowTotalEl) {
@@ -19869,12 +19882,19 @@ function renderMainBudget() {
     // ¿Esta es la tabla de flujo? El subtotal del flujo NO es la suma simple
     // de todas las cats — es un balance neto:
     //   (ingresos de flujo) - (destinos no-gasto)
-    //   = (Sueldo + Prestamo) - (Inversion + Jubilacion + Reserva + Trading)
+    //   = (Sueldo + Prestamo) - (Inversion + Jubilacion + Reserva + Trading + DevolucionCapital)
     // En las otras tablas (básicas / discrecionales) el subtotal sigue siendo
     // la suma simple, que tiene sentido para gastos del mismo "signo".
+    //
+    // Las listas se derivan de NON_EXPENSE_CATS en vez de escribirse a mano:
+    // enumerada aparte, la salida se quedó sin DevolucionCapital y esa
+    // categoría desapareció del balance sin que nada lo señalara. Así, agregar
+    // una categoría de flujo nueva la incluye automáticamente.
     const isFlowTable = wrapId === 'mainBudgetAnnualWrapSystem';
     const FLOW_INCOME = ['Sueldo', 'Prestamo'];
-    const FLOW_OUTFLOW = ['Inversion', 'Jubilacion', 'Reserva', 'Trading'];
+    const FLOW_OUTFLOW = NON_EXPENSE_CATS.filter(function (c) {
+      return FLOW_INCOME.indexOf(c) < 0 && NON_COUNTABLE_FLOW_CATS.indexOf(c) < 0;
+    });
     // Helper: suma del mes según el signo. Para tablas no-flujo, suma todo positivo.
     function netForMonth(m) {
       if (isFlowTable) {
@@ -19979,10 +19999,8 @@ function renderMainBudget() {
       }
     });
     // Subtotal: para flujo es el balance neto; para las otras tablas es la suma simple
-    const subtotalLabel = isFlowTable
-      ? 'Balance flujo'  // (Sueldo + Préstamo) − (Inversión + Jubilación + Reserva + Trading)
-      : 'Subtotal ' + sectionLabel;
-    html += '<tr class="subtotal-row' + (isFlowTable ? ' balance-row' : '') + '"' + (isFlowTable ? ' title="(Sueldo + Préstamo) − (Inversión + Jubilación + Reserva + Trading)"' : '') + '><td class="cat-col">' + subtotalLabel + '</td>';
+    const subtotalLabel = isFlowTable ? 'Balance flujo' : 'Subtotal ' + sectionLabel;
+    html += '<tr class="subtotal-row' + (isFlowTable ? ' balance-row' : '') + '"' + (isFlowTable ? ' title="' + FORMULA_BALANCE_FLUJO + '"' : '') + '><td class="cat-col">' + subtotalLabel + '</td>';
     let secB = 0, secR = 0;
     // Guardamos los netos por mes (los necesitamos otra vez para el saldo)
     const flowNetByMonth = {};
