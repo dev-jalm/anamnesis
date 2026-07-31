@@ -1956,6 +1956,166 @@
   </div>
 </div>
 
+<!-- FORMATOS DE IMPORTACIÓN — customizador de plantillas de resumen bancario.
+     Deja definir un banco nuevo sin tocar código: se sube un archivo de ejemplo,
+     se marca cuál es la fila de encabezados y se dice qué columna es cada cosa.
+     El preview de abajo muestra el resultado real antes de guardar. -->
+<!-- z-index 200: appConfirm usa 250 y tiene que poder aparecer encima de este
+     modal (se usa para confirmar el borrado de un formato). -->
+<div class="modal-overlay hidden" id="plantillasOverlay" style="z-index:200">
+  <div class="modal-card" style="max-width:1100px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#D4A24C">IMPORTACIÓN</div>
+        <h2 id="plantillasTitulo">Formatos de importación</h2>
+      </div>
+      <button class="modal-close" id="plantillasCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+
+    <!-- ── LISTA ── -->
+    <div id="plantillasLista">
+      <div class="info-box" style="margin-bottom:14px">
+        <div class="info-text">Cada formato describe cómo viene armado el archivo de una entidad: qué columna trae la fecha, cuál el importe, en qué formato están los números. Mercado Pago y Banco Galicia ya vienen configurados. Si tu banco exporta distinto, agregá el suyo y sus resúmenes se van a importar igual que los otros.</div>
+      </div>
+      <div class="plantilla-list" id="plantillaListaItems"></div>
+      <div class="list-footer">
+        <button class="upload-btn csv-btn" id="plantillaNuevaBtn">
+          <i data-lucide="plus" style="width:13px;height:13px"></i>
+          NUEVO FORMATO
+        </button>
+        <div class="list-footer-meta">
+          <span class="list-footer-count" id="plantillaCount"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── EDITOR ── -->
+    <div id="plantillasEditor" class="hidden">
+      <div class="plant-paso">
+        <div class="plant-paso-num">1</div>
+        <div class="plant-paso-cuerpo">
+          <div class="plant-paso-titulo">Subí un archivo de ejemplo</div>
+          <div class="plant-paso-hint">Un resumen cualquiera de esa entidad. No se importa nada: sólo se lee para ver cómo está armado.</div>
+          <div class="file-import-drop" id="plantEjemploDrop" style="margin-top:10px">
+            <input type="file" id="plantEjemploInput" accept=".csv,.xlsx,.xls" hidden>
+            <i data-lucide="file-up" style="width:20px;height:20px"></i>
+            <div class="file-import-texts">
+              <span class="file-import-title" id="plantEjemploTitulo">Elegí un archivo de ejemplo</span>
+              <span class="file-import-hint" id="plantEjemploHint">CSV o Excel</span>
+            </div>
+            <button type="button" class="upload-btn" id="plantEjemploBtn">ELEGIR ARCHIVO</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="plant-paso hidden" id="plantPaso2">
+        <div class="plant-paso-num">2</div>
+        <div class="plant-paso-cuerpo">
+          <div class="plant-paso-titulo">Marcá la fila de los títulos</div>
+          <div class="plant-paso-hint">La que tiene los nombres de las columnas. Arriba suele haber datos de la cuenta que no son parte de la tabla.</div>
+          <div class="plant-tabla-wrap">
+            <table class="plant-tabla" id="plantTablaPreview"></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="plant-paso hidden" id="plantPaso3">
+        <div class="plant-paso-num">3</div>
+        <div class="plant-paso-cuerpo">
+          <div class="plant-paso-titulo">Decí qué es cada columna</div>
+          <div class="plant-campos">
+            <div class="plant-campo">
+              <label class="rule-label">Nombre de la entidad</label>
+              <input type="text" class="period-select" id="plantNombre" placeholder="ej: Banco Nación">
+            </div>
+            <div class="plant-campo">
+              <label class="rule-label">Columna de la fecha</label>
+              <select class="period-select" id="plantColFecha"></select>
+            </div>
+            <div class="plant-campo">
+              <label class="rule-label">Columna de la descripción</label>
+              <select class="period-select" id="plantColDesc"></select>
+            </div>
+            <div class="plant-campo">
+              <label class="rule-label">Cómo viene el importe</label>
+              <select class="period-select" id="plantModeloImporte">
+                <option value="firmado">En una columna, con signo</option>
+                <option value="debito-credito">En dos columnas: débito y crédito</option>
+              </select>
+            </div>
+            <div class="plant-campo" id="plantCampoMonto">
+              <label class="rule-label">Columna del importe</label>
+              <select class="period-select" id="plantColMonto"></select>
+            </div>
+            <div class="plant-campo hidden" id="plantCampoDebito">
+              <label class="rule-label">Columna del débito</label>
+              <select class="period-select" id="plantColDebito"></select>
+            </div>
+            <div class="plant-campo hidden" id="plantCampoCredito">
+              <label class="rule-label">Columna del crédito</label>
+              <select class="period-select" id="plantColCredito"></select>
+            </div>
+            <div class="plant-campo">
+              <label class="rule-label">Formato de la fecha</label>
+              <select class="period-select" id="plantFormatoFecha">
+                <option value="dd/mm/aaaa">Día primero — 27/07/2026</option>
+                <option value="mm/dd/aaaa">Mes primero — 07/27/2026</option>
+                <option value="aaaa-mm-dd">Año primero — 2026-07-27</option>
+              </select>
+            </div>
+            <div class="plant-campo">
+              <label class="rule-label">Formato de los números</label>
+              <select class="period-select" id="plantFormatoNumero">
+                <option value="AR">1.234,56 — coma decimal</option>
+                <option value="US">1,234.56 — punto decimal</option>
+              </select>
+            </div>
+            <div class="plant-campo">
+              <label class="rule-label">Columna de referencia <span class="rule-label-hint">(opcional)</span></label>
+              <select class="period-select" id="plantColRef"></select>
+            </div>
+            <div class="plant-campo plant-campo-ancho">
+              <label class="rule-label">
+                Ignorar las filas que digan <span class="rule-label-hint">(opcional, separadas con <code>;</code> — sirve para totales y encabezados repetidos)</span>
+              </label>
+              <input type="text" class="period-select" id="plantFilasIgnoradas" placeholder="ej: total del periodo; saldo final">
+            </div>
+            <div class="plant-campo plant-campo-ancho">
+              <label class="rule-label plant-check">
+                <input type="checkbox" id="plantMultilinea">
+                La descripción trae varias líneas y la primera es el tipo de operación
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="plant-paso hidden" id="plantPaso4">
+        <div class="plant-paso-num">4</div>
+        <div class="plant-paso-cuerpo">
+          <div class="plant-paso-titulo">Revisá cómo queda</div>
+          <div class="plant-paso-hint">Los primeros movimientos leídos con esta configuración. Si algo no cuadra, corregí arriba.</div>
+          <div id="plantResultado"></div>
+        </div>
+      </div>
+
+      <div class="alert-box error hidden" id="plantErrores" style="margin-top:12px"></div>
+      <div class="modal-actions" style="margin-top:14px">
+        <button class="btn-cancel" id="plantCancelarBtn">
+          <i data-lucide="arrow-left" style="width:12px;height:12px"></i>
+          Volver
+        </button>
+        <button class="upload-btn" id="plantGuardarBtn">
+          <i data-lucide="save" style="width:14px;height:14px"></i>
+          GUARDAR FORMATO
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL -->
 <div class="modal-overlay hidden" id="modalOverlay">
   <!-- Ancho grande: la carga manual pone fecha, descripción, monto, categoría,
@@ -2162,6 +2322,10 @@
           <button type="button" class="upload-btn" id="statementFileBtn">ELEGIR ARCHIVO</button>
         </div>
         <div class="alert-box hidden" id="fileImportStatus"></div>
+        <button type="button" class="link-btn" id="abrirPlantillasBtn">
+          <i data-lucide="settings-2" style="width:12px;height:12px"></i>
+          ¿Tu banco no está? Configurá el formato de su archivo
+        </button>
       </div>
 
       <details class="json-fallback" id="jsonFallbackBlock">

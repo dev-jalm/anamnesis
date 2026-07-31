@@ -753,13 +753,33 @@ function buildTxDedupKey(tx) {
   return fecha + '|' + desc + '|' + monto + '|' + origen;
 }
 
+// Clave a usar para comparar una tx contra un resumen que se está importando.
+//
+// Si la tx trae `_importKey`, se la respeta: es la clave que tenía en el
+// archivo del que salió, guardada al importarla. Esto la vuelve inmune a las
+// ediciones posteriores del usuario.
+//
+// El problema que resuelve: buildTxDedupKey() se calcula sobre fecha,
+// descripción y monto, así que corregir cualquiera de los tres cambiaba la
+// clave. Al volver a subir el mismo resumen —cosa habitual, porque los
+// extractos se piden por rangos que se solapan— la tx editada ya no se
+// reconocía y entraba duplicada. Y corregir descripciones es exactamente lo
+// que uno hace después de importar.
+//
+// La categoría nunca estuvo en la clave, así que recategorizar siempre fue
+// seguro.
+function txCompareKey(tx) {
+  if (tx && tx._importKey) return tx._importKey;
+  return buildTxDedupKey(tx);
+}
+
 // Cuenta cuántas veces aparece cada clave en un array de tx.
 // Devuelve { key: count, ... }
 function countTxByDedupKey(txs) {
   const counts = {};
   if (!Array.isArray(txs)) return counts;
   txs.forEach(function (t) {
-    const k = buildTxDedupKey(t);
+    const k = txCompareKey(t);
     counts[k] = (counts[k] || 0) + 1;
   });
   return counts;
@@ -782,7 +802,7 @@ function dedupIncomingTransactions(incomingTxs, existingTxs) {
   const kept = [];
   const skipped = [];
   incomingTxs.forEach(function (tx) {
-    const key = buildTxDedupKey(tx);
+    const key = txCompareKey(tx);
     seenIncoming[key] = (seenIncoming[key] || 0) + 1;
     const totalInExisting = existingCounts[key] || 0;
     // La N-ésima tx con esta clave en incoming se considera duplicado si
@@ -1987,138 +2007,328 @@ function esMovimientoInternoMp(descripcion) {
   return MP_PATRONES_INTERNOS.some(function (p) { return d.indexOf(p) === 0; });
 }
 
-// ── Mercado Pago ────────────────────────────────────────────
-// El CSV trae dos bloques: un resumen de 2 líneas (INITIAL_BALANCE...) y
-// después la tabla real, cuyo encabezado arranca con RELEASE_DATE. Se busca
-// esa fila en vez de asumir que está en la posición 4, porque el bloque de
-// arriba puede cambiar de tamaño entre exportaciones.
+// ============================================================
+// MOTOR DE PLANTILLAS DE RESUMEN
+// ============================================================
+// Los parsers de Mercado Pago y Galicia eran el mismo algoritmo con constantes
+// distintas: buscar la fila de encabezados, mapear columnas por nombre, y
+// recorrer el resto. Acá vive ese algoritmo una sola vez, y cada banco es una
+// PLANTILLA: un objeto de datos, no código.
 //
-// El importe viene en UNA columna con signo: negativo es egreso. El monto se
-// guarda SIEMPRE positivo (convención de la app) y el signo solo decide si la
-// tx es ingreso o gasto.
-function parseMercadoPagoCsv(texto) {
-  const filas = parseCsv(texto, detectarSeparadorCsv(texto));
+// Eso permite que el usuario defina bancos nuevos desde la app sin tocar el
+// código, y de paso vuelve indistinto que el archivo sea CSV o XLSX: los dos
+// llegan acá convertidos en filas.
+//
+// Forma de una plantilla (ver PLANTILLAS_BUILTIN abajo para ejemplos reales):
+//   nombre           nombre visible de la entidad ("Banco Galicia")
+//   formato          'csv' | 'xlsx' — informativo; el motor trabaja con filas
+//   columnas         { fecha, descripcion, monto | debito+credito, referencia }
+//                    los valores son los TÍTULOS de las columnas en el archivo
+//   modeloImporte    'firmado'         una columna con signo (negativo = egreso)
+//                    'debito-credito'  dos columnas, la que no aplica viene en 0
+//   formatoFecha     'dd/mm/aaaa' | 'mm/dd/aaaa' | 'aaaa-mm-dd'
+//   formatoNumero    'AR' (1.234,56) | 'US' (1,234.56)
+//   descripcionMultilinea  true si el campo trae varias líneas: la primera es el
+//                    tipo de operación y el resto el detalle
+//   patronesInternos textos que, al principio de la descripción, marcan un
+//                    movimiento interno (plata que sigue siendo del usuario)
+//   filasIgnoradas   textos que, si aparecen en la fila, la descartan (totales,
+//                    encabezados repetidos por página)
+
+// Números según el formato declarado. parseNumberAr no sirve para el formato
+// US: "1,234.56" tiene coma Y punto, así que lo lee como es-AR y devuelve
+// 1.23456 — un error de tres órdenes de magnitud.
+function parseNumeroConFormato(valor, formato) {
+  if (valor === null || valor === undefined) return null;
+  let s = String(valor).trim();
+  if (!s) return 0;
+  // Importe entre paréntesis = negativo. Es habitual en exports contables.
+  let negativo = false;
+  const par = s.match(/^\((.*)\)$/);
+  if (par) { negativo = true; s = par[1].trim(); }
+  // Sacar símbolos de moneda y espacios (incluido el no-rompible de Excel).
+  s = s.replace(/[$ \s]/g, '').replace(/^(ar|us|u\$s|usd|ars)\$?/i, '');
+  // Una celda vacía es un cero legítimo (la columna de débito cuando el
+  // movimiento fue un crédito). Una celda CON TEXTO no: parseNumberAr devuelve
+  // 0 para lo que no puede leer, que en un campo editable está bien pero acá
+  // convertiría un importe ilegible en un movimiento de $0 sin avisar. Con null
+  // el motor lo reporta como error de esa fila y no la importa.
+  if (!s) return 0;
+  if (!/\d/.test(s)) return null;
+  if (s.charAt(0) === '-') { negativo = !negativo; s = s.slice(1); }
+  let n;
+  if (String(formato).toUpperCase() === 'US') {
+    n = parseFloat(s.replace(/,/g, ''));
+  } else {
+    n = parseNumberAr(s);
+  }
+  if (n === null || isNaN(n)) return null;
+  return negativo ? -Math.abs(n) : n;
+}
+
+// Fecha según el formato declarado, siempre a dd/mm/aaaa (el formato interno).
+// Acepta '/' y '-' indistintamente como separador: los bancos mezclan los dos
+// incluso dentro del mismo archivo.
+function parseFechaConFormato(valor, formato) {
+  // SheetJS con raw:false devuelve strings, pero si alguna celda llega como
+  // Date (otra fuente, otra config) no hay razón para rechazarla.
+  if (valor instanceof Date && !isNaN(valor)) {
+    return String(valor.getDate()).padStart(2, '0') + '/' +
+           String(valor.getMonth() + 1).padStart(2, '0') + '/' + valor.getFullYear();
+  }
+  const s = String(valor || '').trim();
+  if (!s) return null;
+  const f = String(formato || 'dd/mm/aaaa').toLowerCase();
+  if (f === 'aaaa-mm-dd') {
+    const m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if (!m) return null;
+    return m[3].padStart(2, '0') + '/' + m[2].padStart(2, '0') + '/' + m[1];
+  }
+  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (!m) return null;
+  // La única diferencia entre dd/mm y mm/dd es cuál de los dos grupos es el día.
+  const dia = (f === 'mm/dd/aaaa') ? m[2] : m[1];
+  const mes = (f === 'mm/dd/aaaa') ? m[1] : m[2];
+  const d = parseInt(dia, 10), ms = parseInt(mes, 10);
+  if (d < 1 || d > 31 || ms < 1 || ms > 12) return null;
+  return String(d).padStart(2, '0') + '/' + String(ms).padStart(2, '0') + '/' + m[3];
+}
+
+// Columnas que la plantilla necesita sí o sí. Se usan para encontrar la fila de
+// encabezados y para validar una plantilla que arma el usuario.
+function columnasRequeridasPlantilla(p) {
+  const c = (p && p.columnas) || {};
+  const req = [];
+  if (c.fecha) req.push(c.fecha);
+  if (c.descripcion) req.push(c.descripcion);
+  if (p && p.modeloImporte === 'debito-credito') {
+    // Alcanza con una de las dos: hay bancos que sólo mandan la que aplica.
+    if (c.debito) req.push(c.debito);
+    else if (c.credito) req.push(c.credito);
+  } else if (c.monto) {
+    req.push(c.monto);
+  }
+  return req;
+}
+
+// Busca la fila de encabezados: la primera cuyas celdas contengan TODAS las
+// columnas requeridas. Se busca en vez de asumir una posición fija porque
+// arriba de la tabla suele haber un bloque de metadatos de tamaño variable
+// (Galicia trae 5 líneas, Mercado Pago un resumen de 2 que puede cambiar).
+//
+// Devuelve { idx, mapa } donde mapa lleva de nombre lógico a índice de columna.
+function buscarEncabezadoPlantilla(filas, plantilla) {
+  const requeridas = columnasRequeridasPlantilla(plantilla).map(norm);
+  if (requeridas.length === 0) return null;
+  const limite = Math.min((filas || []).length, 60);
+  for (let i = 0; i < limite; i++) {
+    const fila = filas[i];
+    if (!fila || !fila.length) continue;
+    const celdas = fila.map(function (c) { return norm(String(c || '').trim()); });
+    const tieneTodas = requeridas.every(function (r) { return celdas.indexOf(r) >= 0; });
+    if (!tieneTodas) continue;
+    const c = plantilla.columnas || {};
+    const idxDe = function (nombre) {
+      return nombre ? celdas.indexOf(norm(nombre)) : -1;
+    };
+    return {
+      idx: i,
+      mapa: {
+        fecha: idxDe(c.fecha),
+        descripcion: idxDe(c.descripcion),
+        monto: idxDe(c.monto),
+        debito: idxDe(c.debito),
+        credito: idxDe(c.credito),
+        referencia: idxDe(c.referencia)
+      }
+    };
+  }
+  return null;
+}
+
+// Parser genérico. Recibe las filas ya extraídas del archivo (array de arrays)
+// y una plantilla, y devuelve { transactions, errores } con la misma forma que
+// devolvían los parsers escritos a mano.
+function parseResumenConPlantilla(filas, plantilla) {
   const errores = [];
   const transactions = [];
+  if (!plantilla) return { transactions: [], errores: ['Falta la plantilla del archivo.'] };
 
-  let idxEncabezado = -1;
-  for (let i = 0; i < filas.length; i++) {
-    if (norm((filas[i][0] || '')).indexOf('release_date') === 0) { idxEncabezado = i; break; }
-  }
-  if (idxEncabezado < 0) {
-    return { transactions: [], errores: ['No se encontró la fila de encabezados (RELEASE_DATE). ¿Es un export de Mercado Pago?'] };
-  }
-
-  const cols = filas[idxEncabezado].map(function (c) { return norm(c); });
-  const iFecha = cols.indexOf('release_date');
-  const iDesc  = cols.indexOf('transaction_type');
-  const iMonto = cols.indexOf('transaction_net_amount');
-
-  if (iFecha < 0 || iDesc < 0 || iMonto < 0) {
-    return { transactions: [], errores: ['Faltan columnas obligatorias en el CSV de Mercado Pago.'] };
+  const enc = buscarEncabezadoPlantilla(filas, plantilla);
+  if (!enc) {
+    const faltan = columnasRequeridasPlantilla(plantilla).join(', ');
+    return {
+      transactions: [],
+      errores: ['No se encontró la fila de encabezados (' + faltan + '). ¿El archivo es de ' + (plantilla.nombre || 'esta entidad') + '?']
+    };
   }
 
-  for (let i = idxEncabezado + 1; i < filas.length; i++) {
+  const m = enc.mapa;
+  const fmtNum = plantilla.formatoNumero || 'AR';
+  const fmtFecha = plantilla.formatoFecha || 'dd/mm/aaaa';
+  const debitoCredito = plantilla.modeloImporte === 'debito-credito';
+  const ignoradas = (plantilla.filasIgnoradas || []).map(norm).filter(Boolean);
+  const internos = (plantilla.patronesInternos || []).map(norm).filter(Boolean);
+  const celda = function (fila, i) { return i >= 0 ? String(fila[i] == null ? '' : fila[i]).trim() : ''; };
+
+  for (let i = enc.idx + 1; i < filas.length; i++) {
     const f = filas[i];
     if (!f || f.length === 0) continue;
-    const crudoFecha = (f[iFecha] || '').trim();
-    if (!crudoFecha) continue;
 
-    const fecha = fechaResumenAIso(crudoFecha);
+    // Filas de total, subtotal o encabezado repetido: se descartan sin ruido.
+    if (ignoradas.length) {
+      const textoFila = norm(f.join(' '));
+      if (ignoradas.some(function (p) { return textoFila.indexOf(p) >= 0; })) continue;
+    }
+
+    const crudoFecha = celda(f, m.fecha);
+    // Sin fecha no hay movimiento. Se saltea en silencio: son las filas en
+    // blanco y los pies de tabla, no errores del usuario.
+    if (!crudoFecha) continue;
+    const fecha = parseFechaConFormato(f[m.fecha], fmtFecha);
     if (!fecha) { errores.push('Fila ' + (i + 1) + ': fecha no reconocida (' + crudoFecha + ')'); continue; }
 
-    const montoCrudo = parseNumberAr((f[iMonto] || '').trim());
-    if (montoCrudo === null || isNaN(montoCrudo)) {
-      errores.push('Fila ' + (i + 1) + ': importe no reconocido (' + (f[iMonto] || '') + ')');
-      continue;
+    let monto, esIngreso;
+    if (debitoCredito) {
+      const debito = parseNumeroConFormato(celda(f, m.debito), fmtNum) || 0;
+      const credito = parseNumeroConFormato(celda(f, m.credito), fmtNum) || 0;
+      // La columna con valor distinto de cero manda. Si las dos están en cero
+      // la fila no aporta nada (suele ser un separador o un total).
+      monto = Math.abs(debito) > 0 ? Math.abs(debito) : Math.abs(credito);
+      if (monto === 0) continue;
+      esIngreso = Math.abs(credito) > 0 && Math.abs(debito) === 0;
+    } else {
+      const crudo = parseNumeroConFormato(celda(f, m.monto), fmtNum);
+      if (crudo === null || isNaN(crudo)) {
+        errores.push('Fila ' + (i + 1) + ': importe no reconocido (' + celda(f, m.monto) + ')');
+        continue;
+      }
+      // El monto se guarda SIEMPRE positivo (convención de la app); el signo
+      // sólo decide si la tx es ingreso o gasto.
+      monto = Math.abs(crudo);
+      esIngreso = crudo > 0;
     }
-    const descripcion = (f[iDesc] || '').trim().replace(/\s+/g, ' ');
 
-    transactions.push({
+    // Descripción. Si el campo es multilínea, la primera línea es el tipo de
+    // operación y las siguientes el detalle: se arma "TIPO · detalle" porque el
+    // tipo es lo que mejor categoriza y el detalle lo que identifica al comercio.
+    const crudoDesc = String(f[m.descripcion] == null ? '' : f[m.descripcion]);
+    let descripcion, tipoOperacion = '';
+    if (plantilla.descripcionMultilinea) {
+      const lineas = crudoDesc.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+      tipoOperacion = lineas[0] || '';
+      const detalle = lineas.slice(1).join(' · ');
+      descripcion = (detalle ? (tipoOperacion + ' · ' + detalle) : tipoOperacion);
+    } else {
+      descripcion = crudoDesc;
+    }
+    descripcion = descripcion.replace(/\s+/g, ' ').trim();
+
+    const descNorm = norm(descripcion);
+    const tx = {
       fecha: fecha,
       descripcion: descripcion,
-      monto: Math.abs(montoCrudo),
-      esIngreso: montoCrudo > 0,
-      interno: esMovimientoInternoMp(descripcion),
-      origen: 'Mercado Pago'
-    });
+      monto: monto,
+      esIngreso: esIngreso,
+      // Los patrones se comparan contra el ARRANQUE de la descripción, no en
+      // cualquier posición: "dinero reservado" al principio es un movimiento a
+      // una cajita, pero mencionado en medio del detalle de un pago no lo es.
+      interno: internos.some(function (p) { return descNorm.indexOf(p) === 0; }),
+      origen: plantilla.nombre || 'Desconocido'
+    };
+    // El tipo separado sirve para las reglas de categorización automática:
+    // "CUOTA DE PRESTAMO" clasifica mucho mejor que el texto libre del comercio.
+    if (tipoOperacion) tx.tipoOperacion = tipoOperacion;
+    // Identificador propio del banco: único y estable entre exportaciones, así
+    // que es una clave de dedup mucho mejor que fecha+descripción+monto.
+    const ref = celda(f, m.referencia);
+    if (ref) tx.referencia = ref;
+    transactions.push(tx);
   }
   return { transactions: transactions, errores: errores };
 }
 
-// ── Banco Galicia ───────────────────────────────────────────
-// Recibe las filas YA extraídas del archivo (array de arrays). El .xlsx lo
-// abre dashboard.js; acá solo se transforma, para que sea testeable.
-//
-// Dos particularidades del formato:
-//   - Débito y Crédito son columnas SEPARADAS, y las dos traen valor siempre
-//     (la que no aplica viene en 0,00). El débito además ya viene negativo.
-//   - El campo Movimiento es multilínea: la PRIMERA línea es el tipo de
-//     operación (PAGO DE SERVICIOS, CUOTA DE PRESTAMO, COMPRA DEBITO...) y las
-//     siguientes el detalle (comercio, CUIT, tarjeta). Se arma la descripción
-//     como "TIPO · detalle" porque el tipo es lo que mejor categoriza, y el
-//     detalle es lo que identifica el comercio.
-function parseGaliciaRows(filas) {
+// Plantillas que vienen con la app. El usuario puede agregar las suyas desde el
+// customizador; se guardan en state.bankTemplates con la misma forma.
+const PLANTILLAS_BUILTIN = [
+  {
+    id: 'MP',
+    nombre: 'Mercado Pago',
+    formato: 'csv',
+    columnas: {
+      fecha: 'RELEASE_DATE',
+      descripcion: 'TRANSACTION_TYPE',
+      monto: 'TRANSACTION_NET_AMOUNT',
+      referencia: 'REFERENCE_ID'
+    },
+    modeloImporte: 'firmado',
+    formatoFecha: 'dd/mm/aaaa',
+    formatoNumero: 'AR',
+    descripcionMultilinea: false,
+    // Mover plata a/desde una "cajita" no es ingreso ni gasto.
+    patronesInternos: MP_PATRONES_INTERNOS,
+    filasIgnoradas: [],
+    builtin: true
+  },
+  {
+    id: 'Galicia',
+    nombre: 'Banco Galicia',
+    formato: 'xlsx',
+    columnas: {
+      fecha: 'Fecha',
+      descripcion: 'Movimiento',
+      debito: 'Débito',
+      credito: 'Crédito'
+    },
+    modeloImporte: 'debito-credito',
+    formatoFecha: 'dd/mm/aaaa',
+    formatoNumero: 'AR',
+    descripcionMultilinea: true,
+    patronesInternos: ['transf. ctas propias', 'transf ctas propias'],
+    filasIgnoradas: [],
+    builtin: true
+  }
+];
+
+// Elige la plantilla que le corresponde a un archivo: la primera que encuentre
+// su fila de encabezados. Reemplaza a la detección por palabras sueltas, que no
+// escalaba — con veinte plantillas, "movimiento" y "debito" los tienen todas.
+function detectarPlantilla(filas, plantillas) {
+  const lista = plantillas && plantillas.length ? plantillas : PLANTILLAS_BUILTIN;
+  for (let i = 0; i < lista.length; i++) {
+    if (buscarEncabezadoPlantilla(filas, lista[i])) return lista[i];
+  }
+  return null;
+}
+
+// Valida una plantilla armada por el usuario. Devuelve array de errores (vacío
+// si está bien), para mostrarlos antes de dejar guardar.
+function validarPlantilla(p) {
   const errores = [];
-  const transactions = [];
-
-  let idxEncabezado = -1;
-  for (let i = 0; i < (filas || []).length; i++) {
-    const primera = norm((filas[i] && filas[i][0]) || '');
-    if (primera === 'fecha') { idxEncabezado = i; break; }
+  if (!p || !String(p.nombre || '').trim()) errores.push('Poné el nombre de la entidad.');
+  const c = (p && p.columnas) || {};
+  if (!String(c.fecha || '').trim()) errores.push('Falta indicar la columna de la fecha.');
+  if (!String(c.descripcion || '').trim()) errores.push('Falta indicar la columna de la descripción.');
+  if (p && p.modeloImporte === 'debito-credito') {
+    if (!String(c.debito || '').trim() && !String(c.credito || '').trim()) {
+      errores.push('Con débito y crédito separados, indicá al menos una de las dos columnas.');
+    }
+  } else if (!String(c.monto || '').trim()) {
+    errores.push('Falta indicar la columna del importe.');
   }
-  if (idxEncabezado < 0) {
-    return { transactions: [], errores: ['No se encontró la fila de encabezados (Fecha). ¿Es un extracto de Banco Galicia?'] };
-  }
+  return errores;
+}
 
-  const cols = filas[idxEncabezado].map(function (c) { return norm(c); });
-  const iFecha   = cols.indexOf('fecha');
-  const iMov     = cols.indexOf('movimiento');
-  const iDebito  = cols.indexOf('debito');
-  const iCredito = cols.indexOf('credito');
+// ── Wrappers de los parsers originales ──────────────────────
+// Se mantienen porque son la API que usan los tests y el resto del código. Ya
+// no tienen lógica propia: eligen su plantilla y llaman al motor.
+function parseMercadoPagoCsv(texto) {
+  const filas = parseCsv(texto, detectarSeparadorCsv(texto));
+  return parseResumenConPlantilla(filas, PLANTILLAS_BUILTIN[0]);
+}
 
-  if (iFecha < 0 || iMov < 0 || (iDebito < 0 && iCredito < 0)) {
-    return { transactions: [], errores: ['Faltan columnas obligatorias en el extracto de Galicia.'] };
-  }
-
-  for (let i = idxEncabezado + 1; i < filas.length; i++) {
-    const f = filas[i];
-    if (!f || f.length === 0) continue;
-    const crudoFecha = String(f[iFecha] || '').trim();
-    if (!crudoFecha) continue;
-
-    const fecha = fechaResumenAIso(crudoFecha);
-    if (!fecha) { errores.push('Fila ' + (i + 1) + ': fecha no reconocida (' + crudoFecha + ')'); continue; }
-
-    const debito  = iDebito  >= 0 ? (parseNumberAr(String(f[iDebito]  || '').trim()) || 0) : 0;
-    const credito = iCredito >= 0 ? (parseNumberAr(String(f[iCredito] || '').trim()) || 0) : 0;
-    // La columna con valor distinto de cero manda. Si las dos están en cero la
-    // fila no aporta nada (suele ser un separador o un total).
-    const monto = Math.abs(debito) > 0 ? Math.abs(debito) : Math.abs(credito);
-    if (monto === 0) continue;
-
-    const lineas = String(f[iMov] || '').split('\n')
-      .map(function (l) { return l.trim(); })
-      .filter(Boolean);
-    const tipo = lineas[0] || '';
-    const detalle = lineas.slice(1).join(' · ');
-    const descripcion = (detalle ? (tipo + ' · ' + detalle) : tipo).replace(/\s+/g, ' ').trim();
-
-    transactions.push({
-      fecha: fecha,
-      descripcion: descripcion,
-      monto: monto,
-      esIngreso: Math.abs(credito) > 0 && Math.abs(debito) === 0,
-      // El tipo separado sirve para las reglas de categorización automática:
-      // "CUOTA DE PRESTAMO" o "PAGO DE SERVICIOS" clasifican mucho mejor que
-      // el texto libre del comercio.
-      tipoOperacion: tipo,
-      interno: norm(tipo).indexOf('transf. ctas propias') === 0 ||
-               norm(tipo).indexOf('transf ctas propias') === 0,
-      origen: 'Banco Galicia'
-    });
-  }
-  return { transactions: transactions, errores: errores };
+function parseGaliciaRows(filas) {
+  return parseResumenConPlantilla(filas || [], PLANTILLAS_BUILTIN[1]);
 }
 
 // Agrupa transacciones planas (las que devuelven los parsers) en lotes por
@@ -2142,6 +2352,14 @@ function agruparTransaccionesPorMes(transactions) {
     if (!month) return;
     const clave = year + '-' + month;
     if (!porMes[clave]) porMes[clave] = { year: year, month: month, transactions: [] };
+    // Clave de importación: queda guardada en la tx para que el dedup la
+    // reconozca aunque el usuario después corrija fecha, descripción o monto.
+    // Si el resumen trae un identificador propio del banco (el REFERENCE_ID de
+    // Mercado Pago) se usa ese, que es único y estable; si no, la clave
+    // compuesta de siempre.
+    const importKey = t.referencia
+      ? ('ref|' + (t.origen || '') + '|' + t.referencia)
+      : buildTxDedupKey({ fecha: t.fecha, descripcion: t.descripcion, monto: t.monto, origen: t.origen });
     porMes[clave].transactions.push({
       fecha: t.fecha,
       descripcion: t.descripcion || '',
@@ -2149,6 +2367,7 @@ function agruparTransaccionesPorMes(transactions) {
       categoria: null,
       subcategoria: null,
       origen: t.origen || '',
+      _importKey: importKey,
       // Se propagan para que la UI pueda mostrarlos en el reporte de import.
       // mergeParsedData no los usa.
       _esIngreso: !!t.esIngreso,
@@ -2171,7 +2390,12 @@ if (typeof module !== 'undefined' && module.exports) {
     // parsers de resúmenes
     parseCsv, detectarSeparadorCsv, fechaResumenAIso,
     esMovimientoInternoMp, parseMercadoPagoCsv, parseGaliciaRows,
-    agruparTransaccionesPorMes,
+    agruparTransaccionesPorMes, txCompareKey,
+    // motor de plantillas de resumen
+    parseNumeroConFormato, parseFechaConFormato,
+    columnasRequeridasPlantilla, buscarEncabezadoPlantilla,
+    parseResumenConPlantilla, detectarPlantilla, validarPlantilla,
+    PLANTILLAS_BUILTIN,
     // constants
     NON_EXPENSE_CATS, NON_COUNTABLE_FLOW_CATS, BASIC_CATS, DISCRETIONARY_CATS, MONTHS_ORDER, SCHEMA_VERSION,
     HEALTH_SCORE_DEFAULTS,

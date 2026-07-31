@@ -315,6 +315,12 @@ const state = {
   // destino ∈ { 'inversiones' | 'jubilacion_jalm' | 'jubilacion_clm' | 'reserva' }
   // moneda ∈ { 'ARS' | 'USD' }
   investmentEntries: [],
+  // Formatos de importación definidos por el usuario: describen la estructura
+  // del archivo de un banco que no viene con plantilla incorporada. Misma forma
+  // que PLANTILLAS_BUILTIN (ver el motor en core.js). Van primero en la lista de
+  // detección, así una plantilla propia puede pisar una incorporada si el banco
+  // cambió el formato de su export.
+  bankTemplates: [],
   // Información de mercado por ticker. Compartida entre todas las entradas del
   // mismo símbolo (ej. si cargaste 5 compras de SPY, la descripción y el precio
   // actual son comunes a las 5). Editables manualmente desde el panel de Salud
@@ -414,6 +420,15 @@ const SOURCE_DISPLAY = {
   'Efectivo': 'Ingreso manual de movimientos',
   'Inversion': 'Ingreso manual de inversiones'
 };
+
+// Nombre visible de un origen. SOURCE_DISPLAY sólo cubre los cuatro fijos; las
+// entidades que define el usuario traen el suyo en la plantilla.
+function nombreDeOrigen(key) {
+  if (SOURCE_DISPLAY[key]) return SOURCE_DISPLAY[key];
+  const p = (state.bankTemplates || []).concat(PLANTILLAS_BUILTIN)
+    .find(function (t) { return t.id === key || t.nombre === key; });
+  return (p && p.nombre) || key;
+}
 
 // Cuántas cargas se recuerdan por origen en el panel de últimas cargas.
 const UPLOAD_HISTORY_MAX = 3;
@@ -5451,7 +5466,8 @@ function renderUploadHistoryPanel() {
   // cuatro aunque alguna esté vacía: la posición de cada origen no cambia entre
   // aperturas, así se encuentra de un vistazo. Apiladas en una sola lista, con
   // 3 cargas por origen, eran hasta 12 filas.
-  const hayAlguna = SOURCES.some(function (k) { return cargasDelOrigen(k).length > 0; });
+  const claves = SOURCES.concat((state.bankTemplates || []).map(function (p) { return p.id || p.nombre; }));
+  const hayAlguna = claves.some(function (k) { return k && cargasDelOrigen(k).length > 0; });
   if (!hayAlguna) {
     panel.classList.add('hidden');
     return;
@@ -5508,7 +5524,16 @@ function renderUploadHistoryPanel() {
     '</div>';
   }
 
-  list.innerHTML = SOURCES.map(function (key) {
+  // A las cuatro columnas fijas se suman las entidades que definió el usuario
+  // que ya tengan alguna carga. El grid es de 4 columnas, así que una quinta
+  // entidad baja a una segunda fila sola.
+  const columnas = SOURCES.slice();
+  (state.bankTemplates || []).forEach(function (p) {
+    const k = p.id || p.nombre;
+    if (k && columnas.indexOf(k) < 0 && cargasDelOrigen(k).length > 0) columnas.push(k);
+  });
+
+  list.innerHTML = columnas.map(function (key) {
     const cargas = cargasDelOrigen(key)
       .slice()
       .sort(function (a, b) { return (b.timestamp || 0) - (a.timestamp || 0); })
@@ -5517,7 +5542,7 @@ function renderUploadHistoryPanel() {
       ? cargas.map(formatearCarga).join('')
       : '<div class="uh-vacio">Sin cargas</div>';
     return '<div class="uh-col">' +
-      '<div class="uh-col-titulo">' + escapeHtmlSafe(SOURCE_DISPLAY[key] || key) + '</div>' +
+      '<div class="uh-col-titulo">' + escapeHtmlSafe(nombreDeOrigen(key)) + '</div>' +
       cuerpo +
     '</div>';
   }).join('');
@@ -6650,45 +6675,563 @@ function leerFilasDeExcel(arrayBuffer) {
   });
 }
 
-// Detecta de qué banco es el archivo mirando su contenido, no el nombre.
-// El usuario elige el origen en el paso 1 del modal, pero si sube el archivo
-// equivocado conviene avisarle antes de importar cualquier cosa.
-function detectarOrigenResumen(filas) {
-  const texto = norm((filas || []).slice(0, 10).map(function (f) { return (f || []).join(' '); }).join(' '));
-  if (texto.indexOf('release_date') >= 0 || texto.indexOf('transaction_net_amount') >= 0) return 'MP';
-  if (texto.indexOf('banco galicia') >= 0 || (texto.indexOf('movimiento') >= 0 && texto.indexOf('debito') >= 0)) return 'Galicia';
-  return null;
+// Convierte un archivo (CSV o XLSX) en filas. Es el único lugar que sabe de
+// formatos: de acá para abajo todo trabaja con filas, así que una plantilla
+// funciona igual con los dos.
+async function leerFilasDeArchivo(file) {
+  const esExcel = /\.xlsx?$/.test((file.name || '').toLowerCase());
+  if (esExcel) {
+    return leerFilasDeExcel(await file.arrayBuffer());
+  }
+  const texto = await file.text();
+  return parseCsv(texto, detectarSeparadorCsv(texto));
 }
 
-// Orquesta todo: archivo → filas → parser → lotes por mes → mergeParsedData.
-// Devuelve un resumen para mostrarle al usuario.
+// Todas las plantillas disponibles: primero las que armó el usuario, para que
+// pueda pisar una incorporada si su banco cambió el formato del export.
+function plantillasDisponibles() {
+  return (state.bankTemplates || []).concat(PLANTILLAS_BUILTIN);
+}
+
+// ============================================================
+// CUSTOMIZADOR DE FORMATOS DE IMPORTACIÓN
+// ============================================================
+// Deja definir la estructura del archivo de un banco sin tocar código. El flujo
+// es: subir un ejemplo → marcar la fila de títulos → decir qué es cada columna →
+// ver el resultado antes de guardar.
+//
+// El preview es la parte importante: mapear columnas a ciegas es adivinar, y un
+// error acá (el formato de fecha, sobre todo) no se nota hasta que hay meses de
+// movimientos mal cargados.
+
+// Borrador que se está editando. Fuera del state porque no se persiste hasta
+// que el usuario guarda.
+let plantillaEditor = null;
+
+function nuevoBorradorPlantilla() {
+  return {
+    id: 'tpl_' + Date.now().toString(36),
+    nombre: '',
+    formato: 'csv',
+    columnas: { fecha: '', descripcion: '', monto: '', debito: '', credito: '', referencia: '' },
+    modeloImporte: 'firmado',
+    formatoFecha: 'dd/mm/aaaa',
+    formatoNumero: 'AR',
+    descripcionMultilinea: false,
+    patronesInternos: [],
+    filasIgnoradas: [],
+    // Sólo mientras se edita: las filas del archivo de ejemplo y cuál es la de
+    // encabezados. No se guardan.
+    _filas: null,
+    _idxEncabezado: -1
+  };
+}
+
+function abrirModalPlantillas() {
+  const ov = document.getElementById('plantillasOverlay');
+  if (!ov) return;
+  mostrarListaPlantillas();
+  ov.classList.remove('hidden');
+  if (window.lucide) lucide.createIcons();
+}
+
+function cerrarModalPlantillas() {
+  const ov = document.getElementById('plantillasOverlay');
+  if (ov) ov.classList.add('hidden');
+  plantillaEditor = null;
+  // El hint del panel de importación nombra las entidades configuradas.
+  actualizarHintImportacion();
+}
+
+// El hint bajo "Subí el resumen del banco" nombra lo que la app sabe leer. Si
+// se agrega una entidad, tiene que aparecer ahí o el usuario no se entera de
+// que ya puede subir ese archivo.
+function actualizarHintImportacion() {
+  const hint = document.getElementById('fileImportHint');
+  if (!hint) return;
+  const nombres = plantillasDisponibles().map(function (p) { return p.nombre; });
+  hint.textContent = nombres.length > 3
+    ? nombres.slice(0, 3).join(', ') + ' y ' + (nombres.length - 3) + ' más'
+    : nombres.join(', ');
+}
+
+function mostrarListaPlantillas() {
+  const lista = document.getElementById('plantillasLista');
+  const editor = document.getElementById('plantillasEditor');
+  const titulo = document.getElementById('plantillasTitulo');
+  if (!lista || !editor) return;
+  lista.classList.remove('hidden');
+  editor.classList.add('hidden');
+  if (titulo) titulo.textContent = 'Formatos de importación';
+  plantillaEditor = null;
+
+  const cont = document.getElementById('plantillaListaItems');
+  const propias = state.bankTemplates || [];
+  const todas = propias.concat(PLANTILLAS_BUILTIN);
+  cont.innerHTML = todas.map(function (p) {
+    const cols = p.columnas || {};
+    const detalle = [
+      (p.modeloImporte === 'debito-credito' ? 'débito/crédito' : 'importe con signo'),
+      p.formatoFecha || 'dd/mm/aaaa',
+      (p.formatoNumero === 'US' ? '1,234.56' : '1.234,56')
+    ].join(' · ');
+    return '<div class="plantilla-item" data-id="' + escapeHtmlSafe(p.id) + '">' +
+      '<div class="plantilla-item-textos">' +
+        '<div class="plantilla-item-nombre">' + escapeHtmlSafe(p.nombre) + '</div>' +
+        '<div class="plantilla-item-detalle">' + escapeHtmlSafe(detalle) + '</div>' +
+      '</div>' +
+      (p.builtin
+        ? '<span class="plantilla-badge">INCORPORADO</span>'
+        : '<button class="btn-cancel" data-accion="editar">Editar</button>' +
+          '<button class="manual-row-delete" data-accion="borrar" title="Borrar formato">' +
+            '<i data-lucide="trash-2" style="width:13px;height:13px"></i>' +
+          '</button>') +
+    '</div>';
+  }).join('');
+
+  const count = document.getElementById('plantillaCount');
+  if (count) {
+    count.textContent = propias.length === 0
+      ? 'Sólo los incorporados'
+      : propias.length + (propias.length === 1 ? ' formato propio' : ' formatos propios');
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function abrirEditorPlantilla(id) {
+  const lista = document.getElementById('plantillasLista');
+  const editor = document.getElementById('plantillasEditor');
+  const titulo = document.getElementById('plantillasTitulo');
+  if (!lista || !editor) return;
+
+  const existente = (state.bankTemplates || []).find(function (p) { return p.id === id; });
+  if (existente) {
+    // Copia profunda: si el usuario cancela, el original queda intacto.
+    plantillaEditor = JSON.parse(JSON.stringify(existente));
+    plantillaEditor._filas = null;
+    plantillaEditor._idxEncabezado = -1;
+  } else {
+    plantillaEditor = nuevoBorradorPlantilla();
+  }
+
+  lista.classList.add('hidden');
+  editor.classList.remove('hidden');
+  if (titulo) titulo.textContent = existente ? ('Editar ' + existente.nombre) : 'Nuevo formato de importación';
+
+  // Volcar el borrador a los controles.
+  const set = function (id2, val) { const el = document.getElementById(id2); if (el) el.value = val; };
+  set('plantNombre', plantillaEditor.nombre || '');
+  set('plantModeloImporte', plantillaEditor.modeloImporte || 'firmado');
+  set('plantFormatoFecha', plantillaEditor.formatoFecha || 'dd/mm/aaaa');
+  set('plantFormatoNumero', plantillaEditor.formatoNumero || 'AR');
+  set('plantFilasIgnoradas', (plantillaEditor.filasIgnoradas || []).join('; '));
+  const chk = document.getElementById('plantMultilinea');
+  if (chk) chk.checked = !!plantillaEditor.descripcionMultilinea;
+
+  // Los pasos 2-4 aparecen recién cuando hay un archivo de ejemplo: sin las
+  // columnas reales, los selectores estarían vacíos.
+  ['plantPaso2', 'plantPaso3', 'plantPaso4'].forEach(function (p) {
+    const el = document.getElementById(p);
+    if (el) el.classList.add('hidden');
+  });
+  const t = document.getElementById('plantEjemploTitulo');
+  if (t) t.textContent = 'Elegí un archivo de ejemplo';
+  const err = document.getElementById('plantErrores');
+  if (err) err.classList.add('hidden');
+  aplicarModeloImporteEnEditor();
+  if (window.lucide) lucide.createIcons();
+}
+
+// Muestra u oculta las columnas de importe según el modelo elegido: con dos
+// columnas separadas no tiene sentido pedir una sola, y al revés.
+function aplicarModeloImporteEnEditor() {
+  const modelo = (document.getElementById('plantModeloImporte') || {}).value || 'firmado';
+  const dc = modelo === 'debito-credito';
+  const toggle = function (id, visible) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', !visible);
+  };
+  toggle('plantCampoMonto', !dc);
+  toggle('plantCampoDebito', dc);
+  toggle('plantCampoCredito', dc);
+}
+
+// Lee el archivo de ejemplo y adivina cuál es la fila de encabezados, para que
+// el caso normal no requiera clickear nada.
+async function cargarEjemploPlantilla(file) {
+  if (!plantillaEditor) return;
+  const err = document.getElementById('plantErrores');
+  try {
+    const filas = await leerFilasDeArchivo(file);
+    if (!filas || !filas.length) throw new Error('El archivo no tiene filas.');
+    plantillaEditor._filas = filas;
+    plantillaEditor.formato = /\.xlsx?$/.test((file.name || '').toLowerCase()) ? 'xlsx' : 'csv';
+    plantillaEditor._idxEncabezado = adivinarFilaEncabezado(filas);
+    const t = document.getElementById('plantEjemploTitulo');
+    if (t) t.textContent = file.name;
+    const h = document.getElementById('plantEjemploHint');
+    if (h) h.textContent = filas.length + ' filas leídas';
+    if (err) err.classList.add('hidden');
+    ['plantPaso2', 'plantPaso3', 'plantPaso4'].forEach(function (p) {
+      const el = document.getElementById(p);
+      if (el) el.classList.remove('hidden');
+    });
+    renderTablaEjemploPlantilla();
+    poblarSelectoresColumnas();
+    renderPreviewPlantilla();
+  } catch (e) {
+    if (err) {
+      err.classList.remove('hidden');
+      err.innerHTML = '<strong>No pude leer el archivo:</strong> ' + escapeHtmlSafe(e.message || String(e));
+    }
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+// La fila de títulos es la que tiene más celdas con texto corto y distinto
+// entre sí. Es una heurística: el usuario puede corregirla con un click, que es
+// justo por qué el paso 2 existe.
+function adivinarFilaEncabezado(filas) {
+  let mejor = 0, mejorPuntaje = -1;
+  const limite = Math.min(filas.length, 30);
+  for (let i = 0; i < limite; i++) {
+    const f = filas[i] || [];
+    const textos = f.map(function (c) { return String(c == null ? '' : c).trim(); }).filter(Boolean);
+    if (textos.length < 2) continue;
+    const distintos = new Set(textos.map(norm)).size;
+    // Penaliza las celdas largas (un título no es una descripción) y las que
+    // son números (esos son datos, no encabezados).
+    const cortos = textos.filter(function (t) { return t.length <= 24 && !/^-?[\d.,]+$/.test(t); }).length;
+    const puntaje = distintos + cortos * 2 - (textos.length - cortos);
+    if (puntaje > mejorPuntaje) { mejorPuntaje = puntaje; mejor = i; }
+  }
+  return mejor;
+}
+
+function renderTablaEjemploPlantilla() {
+  const tabla = document.getElementById('plantTablaPreview');
+  if (!tabla || !plantillaEditor || !plantillaEditor._filas) return;
+  const filas = plantillaEditor._filas.slice(0, 14);
+  tabla.innerHTML = filas.map(function (f, i) {
+    const celdas = (f || []).slice(0, 12).map(function (c) {
+      // Los saltos de línea se muestran con ⏎ para que se vea que el campo es
+      // multilínea — es lo que decide el checkbox del paso 3.
+      const txt = String(c == null ? '' : c).replace(/\n/g, ' ⏎ ').trim();
+      return '<td title="' + escapeHtmlSafe(txt) + '">' + escapeHtmlSafe(txt.slice(0, 60)) + '</td>';
+    }).join('');
+    const esEnc = i === plantillaEditor._idxEncabezado;
+    return '<tr class="' + (esEnc ? 'es-encabezado' : '') + '" data-fila="' + i + '">' +
+      '<td class="plant-tabla-num">' + (i + 1) + '</td>' + celdas +
+    '</tr>';
+  }).join('');
+}
+
+// Los selectores de columna se llenan con los títulos REALES del archivo: el
+// usuario elige de una lista en vez de tipear nombres que tienen que coincidir
+// exactamente.
+function poblarSelectoresColumnas() {
+  if (!plantillaEditor || !plantillaEditor._filas) return;
+  const enc = plantillaEditor._filas[plantillaEditor._idxEncabezado] || [];
+  const nombres = enc.map(function (c, i) {
+    const t = String(c == null ? '' : c).trim();
+    return t || ('(columna ' + (i + 1) + ')');
+  });
+  const campos = [
+    ['plantColFecha', 'fecha', false],
+    ['plantColDesc', 'descripcion', false],
+    ['plantColMonto', 'monto', false],
+    ['plantColDebito', 'debito', false],
+    ['plantColCredito', 'credito', false],
+    ['plantColRef', 'referencia', true]
+  ];
+  campos.forEach(function (c) {
+    const sel = document.getElementById(c[0]);
+    if (!sel) return;
+    const actual = (plantillaEditor.columnas || {})[c[1]] || '';
+    let html = c[2] ? '<option value="">— ninguna —</option>' : '<option value="">— elegir —</option>';
+    nombres.forEach(function (n) {
+      html += '<option value="' + escapeHtmlSafe(n) + '"' + (n === actual ? ' selected' : '') + '>' + escapeHtmlSafe(n) + '</option>';
+    });
+    sel.innerHTML = html;
+    sel.value = actual;
+  });
+  autocompletarColumnasPorNombre(nombres);
+}
+
+// Preselecciona por nombre lo que sea obvio. Ahorra los clicks del caso típico
+// sin quitarle al usuario la decisión: todo queda editable.
+function autocompletarColumnasPorNombre(nombres) {
+  const cols = plantillaEditor.columnas || (plantillaEditor.columnas = {});
+  const buscar = function (claves) {
+    return nombres.find(function (n) {
+      const nn = norm(n);
+      return claves.some(function (k) { return nn === k || nn.indexOf(k) === 0; });
+    }) || '';
+  };
+  if (!cols.fecha) cols.fecha = buscar(['fecha', 'date', 'release_date', 'f. valor']);
+  if (!cols.descripcion) cols.descripcion = buscar(['movimiento', 'descripcion', 'concepto', 'detalle', 'description', 'transaction_type']);
+  if (!cols.monto) cols.monto = buscar(['importe', 'monto', 'amount', 'transaction_net_amount']);
+  if (!cols.debito) cols.debito = buscar(['debito', 'debe', 'debit']);
+  if (!cols.credito) cols.credito = buscar(['credito', 'haber', 'credit']);
+  if (!cols.referencia) cols.referencia = buscar(['reference_id', 'referencia', 'comprobante', 'nro. operacion']);
+  // Si el archivo trae débito y crédito separados, ese es el modelo correcto
+  // aunque el borrador arranque en 'firmado'.
+  if (cols.debito && cols.credito && !cols.monto) plantillaEditor.modeloImporte = 'debito-credito';
+
+  const set = function (id, val) { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  set('plantColFecha', cols.fecha);
+  set('plantColDesc', cols.descripcion);
+  set('plantColMonto', cols.monto);
+  set('plantColDebito', cols.debito);
+  set('plantColCredito', cols.credito);
+  set('plantColRef', cols.referencia);
+  const mi = document.getElementById('plantModeloImporte');
+  if (mi) mi.value = plantillaEditor.modeloImporte || 'firmado';
+  aplicarModeloImporteEnEditor();
+
+  // Si la descripción elegida trae saltos de línea, el archivo es multilínea.
+  if (cols.descripcion && plantillaEditor._filas) {
+    const enc = plantillaEditor._filas[plantillaEditor._idxEncabezado] || [];
+    const idx = enc.map(function (c) { return norm(String(c || '').trim()); }).indexOf(norm(cols.descripcion));
+    if (idx >= 0) {
+      const hayMultilinea = plantillaEditor._filas
+        .slice(plantillaEditor._idxEncabezado + 1, plantillaEditor._idxEncabezado + 15)
+        .some(function (f) { return String((f || [])[idx] || '').indexOf('\n') >= 0; });
+      if (hayMultilinea) {
+        plantillaEditor.descripcionMultilinea = true;
+        const chk = document.getElementById('plantMultilinea');
+        if (chk) chk.checked = true;
+      }
+    }
+  }
+}
+
+// Lee los controles al borrador. Se llama en cada cambio, así el preview de
+// abajo siempre refleja lo que hay en pantalla.
+function leerEditorAPlantilla() {
+  if (!plantillaEditor) return;
+  const val = function (id) { const el = document.getElementById(id); return el ? el.value : ''; };
+  plantillaEditor.nombre = val('plantNombre').trim();
+  plantillaEditor.modeloImporte = val('plantModeloImporte');
+  plantillaEditor.formatoFecha = val('plantFormatoFecha');
+  plantillaEditor.formatoNumero = val('plantFormatoNumero');
+  plantillaEditor.columnas = {
+    fecha: val('plantColFecha'),
+    descripcion: val('plantColDesc'),
+    monto: val('plantColMonto'),
+    debito: val('plantColDebito'),
+    credito: val('plantColCredito'),
+    referencia: val('plantColRef')
+  };
+  const chk = document.getElementById('plantMultilinea');
+  plantillaEditor.descripcionMultilinea = !!(chk && chk.checked);
+  plantillaEditor.filasIgnoradas = val('plantFilasIgnoradas')
+    .split(';').map(function (s) { return s.trim(); }).filter(Boolean);
+}
+
+// El preview: corre el motor de verdad con la config actual y muestra las
+// primeras transacciones. Es lo que permite darse cuenta de que la fecha está
+// invertida (03/04 leído como 4 de marzo) antes de importar nada.
+function renderPreviewPlantilla() {
+  const cont = document.getElementById('plantResultado');
+  if (!cont || !plantillaEditor) return;
+  leerEditorAPlantilla();
+
+  const faltantes = validarPlantilla(plantillaEditor);
+  if (faltantes.length) {
+    cont.innerHTML = '<div class="list-empty">Completá los campos de arriba para ver el resultado.</div>';
+    return;
+  }
+  const r = parseResumenConPlantilla(plantillaEditor._filas || [], plantillaEditor);
+  if (!r.transactions.length) {
+    cont.innerHTML = '<div class="list-empty">' +
+      escapeHtmlSafe(r.errores[0] || 'Con esta configuración no se leyó ningún movimiento.') +
+      '</div>';
+    return;
+  }
+  const muestra = r.transactions.slice(0, 6);
+  cont.innerHTML =
+    '<div class="plant-preview-wrap">' +
+      muestra.map(function (t) {
+        return '<div class="plant-preview-tx">' +
+          '<span>' + escapeHtmlSafe(t.fecha) + '</span>' +
+          '<span class="plant-preview-desc" title="' + escapeHtmlSafe(t.descripcion) + '">' + escapeHtmlSafe(t.descripcion) + '</span>' +
+          // Con DECIMALES, a diferencia del resto de la app: acá el punto es
+          // justamente verificar que el formato numérico se leyó bien, y
+          // redondeando, 1.234,56 y 1.234,56789 se ven igual.
+          '<span class="plant-preview-monto">' + (t.esIngreso ? '+' : '−') + ' ' +
+            new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(t.monto) +
+          '</span>' +
+          '<span class="plant-preview-tipo" style="color:' + (t.esIngreso ? '#6B8E4E' : 'var(--muted)') + '">' +
+            (t.esIngreso ? 'INGRESO' : 'EGRESO') + '</span>' +
+        '</div>';
+      }).join('') +
+    '</div>' +
+    '<div class="list-footer">' +
+      '<span class="list-footer-count">' + r.transactions.length + ' movimientos leídos' +
+        (r.errores.length ? ' · ' + r.errores.length + ' fila' + (r.errores.length === 1 ? '' : 's') + ' con problemas' : '') +
+      '</span>' +
+    '</div>';
+}
+
+function guardarPlantillaEditada() {
+  if (!plantillaEditor) return;
+  leerEditorAPlantilla();
+  const err = document.getElementById('plantErrores');
+  const errores = validarPlantilla(plantillaEditor);
+
+  // Nombres repetidos: el origen de las tx es el nombre, así que dos formatos
+  // con el mismo nombre mezclarían movimientos de entidades distintas.
+  const chocado = plantillasDisponibles().find(function (p) {
+    return p.id !== plantillaEditor.id && norm(p.nombre) === norm(plantillaEditor.nombre);
+  });
+  if (chocado) errores.push('Ya hay un formato que se llama "' + chocado.nombre + '". Poné otro nombre.');
+
+  if (errores.length) {
+    if (err) {
+      err.classList.remove('hidden');
+      err.innerHTML = '<strong>Falta completar:</strong><br>' +
+        errores.map(function (e) { return escapeHtmlSafe(e); }).join('<br>');
+    }
+    return;
+  }
+
+  // Las filas del ejemplo no se persisten: son del archivo que se usó para
+  // configurar, no parte del formato.
+  const limpia = JSON.parse(JSON.stringify(plantillaEditor));
+  delete limpia._filas;
+  delete limpia._idxEncabezado;
+
+  if (!Array.isArray(state.bankTemplates)) state.bankTemplates = [];
+  const idx = state.bankTemplates.findIndex(function (p) { return p.id === limpia.id; });
+  if (idx >= 0) state.bankTemplates[idx] = limpia;
+  else state.bankTemplates.push(limpia);
+
+  scheduleSave();
+  mostrarListaPlantillas();
+  actualizarHintImportacion();
+}
+
+function borrarPlantilla(id) {
+  const p = (state.bankTemplates || []).find(function (t) { return t.id === id; });
+  if (!p) return;
+  appConfirm({
+    title: 'Borrar formato',
+    message: 'Se va a borrar el formato "' + p.nombre + '". Los movimientos que ya importaste con él no se tocan, pero no vas a poder importar archivos nuevos de esa entidad hasta volver a configurarlo.',
+    confirmLabel: 'BORRAR',
+    danger: true
+  }, function (ok) {
+    if (!ok) return;
+    state.bankTemplates = (state.bankTemplates || []).filter(function (t) { return t.id !== id; });
+    scheduleSave();
+    mostrarListaPlantillas();
+    actualizarHintImportacion();
+  });
+}
+
+function bindModalPlantillas() {
+  const ov = document.getElementById('plantillasOverlay');
+  if (!ov || ov._bound) return;
+  ov._bound = true;
+
+  const abrir = document.getElementById('abrirPlantillasBtn');
+  if (abrir) abrir.addEventListener('click', abrirModalPlantillas);
+  const cerrar = document.getElementById('plantillasCloseBtn');
+  if (cerrar) cerrar.addEventListener('click', cerrarModalPlantillas);
+  // Click en el fondo cierra, igual que el resto de los modales.
+  ov.addEventListener('click', function (e) { if (e.target === ov) cerrarModalPlantillas(); });
+
+  const nueva = document.getElementById('plantillaNuevaBtn');
+  if (nueva) nueva.addEventListener('click', function () { abrirEditorPlantilla(null); });
+
+  const items = document.getElementById('plantillaListaItems');
+  if (items) {
+    items.addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-accion]');
+      if (!btn) return;
+      const id = btn.closest('.plantilla-item').getAttribute('data-id');
+      if (btn.getAttribute('data-accion') === 'editar') abrirEditorPlantilla(id);
+      else borrarPlantilla(id);
+    });
+  }
+
+  const volver = document.getElementById('plantCancelarBtn');
+  if (volver) volver.addEventListener('click', mostrarListaPlantillas);
+  const guardar = document.getElementById('plantGuardarBtn');
+  if (guardar) guardar.addEventListener('click', guardarPlantillaEditada);
+
+  // Archivo de ejemplo: botón, click en la zona y drag & drop.
+  const input = document.getElementById('plantEjemploInput');
+  const drop = document.getElementById('plantEjemploDrop');
+  const btnArchivo = document.getElementById('plantEjemploBtn');
+  if (btnArchivo && input) btnArchivo.addEventListener('click', function () { input.click(); });
+  if (input) {
+    input.addEventListener('change', function () {
+      if (input.files && input.files[0]) cargarEjemploPlantilla(input.files[0]);
+      input.value = '';
+    });
+  }
+  if (drop) {
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('dragging'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('dragging'); });
+    });
+    drop.addEventListener('drop', function (e) {
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) cargarEjemploPlantilla(f);
+    });
+  }
+
+  // Elegir la fila de encabezados en la tabla de ejemplo.
+  const tabla = document.getElementById('plantTablaPreview');
+  if (tabla) {
+    tabla.addEventListener('click', function (e) {
+      const tr = e.target.closest('tr[data-fila]');
+      if (!tr || !plantillaEditor) return;
+      plantillaEditor._idxEncabezado = parseInt(tr.getAttribute('data-fila'), 10);
+      // Al cambiar de fila los títulos son otros, así que el mapeo anterior deja
+      // de tener sentido: se limpia y se vuelve a autocompletar.
+      plantillaEditor.columnas = { fecha: '', descripcion: '', monto: '', debito: '', credito: '', referencia: '' };
+      renderTablaEjemploPlantilla();
+      poblarSelectoresColumnas();
+      renderPreviewPlantilla();
+    });
+  }
+
+  // Cualquier cambio en el formulario refresca el preview.
+  const editor = document.getElementById('plantillasEditor');
+  if (editor) {
+    editor.addEventListener('input', function (e) {
+      if (!e.target.closest('.plant-campos')) return;
+      if (e.target.id === 'plantModeloImporte') aplicarModeloImporteEnEditor();
+      renderPreviewPlantilla();
+    });
+    editor.addEventListener('change', function (e) {
+      if (!e.target.closest('.plant-campos')) return;
+      if (e.target.id === 'plantModeloImporte') aplicarModeloImporteEnEditor();
+      renderPreviewPlantilla();
+    });
+  }
+}
+
+// Orquesta todo: archivo → filas → motor de plantillas → lotes por mes →
+// mergeParsedData. Devuelve un resumen para mostrarle al usuario.
 async function importarArchivoResumen(file) {
-  const nombre = (file.name || '').toLowerCase();
-  const esExcel = /\.xlsx?$/.test(nombre);
+  const filas = await leerFilasDeArchivo(file);
 
-  let filas, resultado;
-  if (esExcel) {
-    const buf = await file.arrayBuffer();
-    filas = await leerFilasDeExcel(buf);
-  } else {
-    const texto = await file.text();
-    filas = parseCsv(texto, detectarSeparadorCsv(texto));
+  // De qué entidad es el archivo se decide por su CONTENIDO, no por el nombre
+  // ni por lo que haya elegido el usuario: si sube el archivo equivocado
+  // conviene avisarle antes de importar cualquier cosa.
+  const plantilla = detectarPlantilla(filas, plantillasDisponibles());
+  if (!plantilla) {
+    const conocidas = plantillasDisponibles().map(function (p) { return p.nombre; }).join(', ');
+    throw new Error('No reconocí el formato del archivo. Entidades configuradas: ' + conocidas +
+                    '. Podés agregar la tuya desde "Formatos de importación".');
   }
 
-  const origen = detectarOrigenResumen(filas);
-  if (!origen) {
-    throw new Error('No reconocí el formato del archivo. Esperaba un CSV de Mercado Pago o un Excel de Banco Galicia.');
-  }
-
-  if (origen === 'MP') {
-    // El parser de MP trabaja sobre el texto crudo, no sobre filas ya partidas
-    const texto = esExcel ? '' : await file.text();
-    if (esExcel) throw new Error('El resumen de Mercado Pago se exporta en CSV, no en Excel.');
-    resultado = parseMercadoPagoCsv(texto);
-  } else {
-    resultado = parseGaliciaRows(filas);
-  }
-
+  const resultado = parseResumenConPlantilla(filas, plantilla);
   if (resultado.transactions.length === 0) {
     throw new Error(resultado.errores[0] || 'El archivo no tenía movimientos para importar.');
   }
@@ -6703,7 +7246,7 @@ async function importarArchivoResumen(file) {
       year: lote.year,
       month: lote.month,
       transactions: lote.transactions,
-      origen: origen === 'MP' ? 'Mercado Pago' : 'Banco Galicia'
+      origen: plantilla.nombre
     };
     mergeParsedData(parsed);
     meses.push(MONTH_LABELS[lote.month] + ' ' + lote.year);
@@ -6712,7 +7255,8 @@ async function importarArchivoResumen(file) {
   });
 
   return {
-    origen: origen === 'MP' ? 'Mercado Pago' : 'Banco Galicia',
+    origen: plantilla.nombre,
+    plantillaId: plantilla.id,
     meses: meses,
     leidas: resultado.transactions.length,
     nuevas: totalNuevas,
@@ -6835,7 +7379,9 @@ function mergeParsedData(parsed) {
   const originRaw = parsed.origen || state.uploadSource || 'desconocido';
   const originKey = Object.keys(SOURCE_DISPLAY).find(function (k) {
     return k === originRaw || SOURCE_DISPLAY[k] === originRaw;
-  }) || originRaw;
+  }) || (plantillasDisponibles().find(function (p) {
+    return p.id === originRaw || p.nombre === originRaw;
+  }) || {}).id || originRaw;
   registrarCargaEnHistorial(originKey, {
     timestamp: Date.now(),
     year: year,
@@ -13194,6 +13740,9 @@ function buildStateSnapshot() {
     loadReminderDismissed: state.loadReminderDismissed,
     origins: state.origins,
     uploadHistoryByOrigin: state.uploadHistoryByOrigin,
+    // Formatos de importación que definió el usuario (bancos sin plantilla
+    // incorporada). Los builtin NO se guardan: viven en el código.
+    bankTemplates: state.bankTemplates,
     // Inversiones cargadas desde el modal "Cargar movimientos → Inversión"
     investmentEntries: state.investmentEntries,
     // Info de mercado por ticker (descripción + precio actual editables)
@@ -13369,6 +13918,7 @@ function applyStateSnapshot(snap) {
   if (snap.uploadHistoryByOrigin && typeof snap.uploadHistoryByOrigin === 'object') {
     state.uploadHistoryByOrigin = snap.uploadHistoryByOrigin;
   }
+  if (Array.isArray(snap.bankTemplates)) state.bankTemplates = snap.bankTemplates;
   if (Array.isArray(snap.investmentEntries)) state.investmentEntries = snap.investmentEntries;
   if (snap.tickerInfo && typeof snap.tickerInfo === 'object') state.tickerInfo = snap.tickerInfo;
   if (snap.txIncludedInBudget && typeof snap.txIncludedInBudget === 'object') state.txIncludedInBudget = snap.txIncludedInBudget;
@@ -16311,6 +16861,10 @@ applyViewMode();
 // Export menu (PNG / PDF) — bindeo del dropdown
 bindExportMenu();
 bindStatementFileImport();
+
+// Customizador de formatos de importación (plantillas de resumen bancario)
+bindModalPlantillas();
+actualizarHintImportacion();
 
 // Botones de grupo (Flujo / Movimientos) en Evolución de KPIs
 bindKpiEvoGroupButtons();

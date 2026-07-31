@@ -2636,6 +2636,214 @@ group('parseGaliciaRows — extracto de Banco Galicia', function () {
   });
 });
 
+group('parseNumeroConFormato — importes según el formato de la entidad', function () {
+  test('AR: punto de miles, coma decimal', function () {
+    assertEqual(parseNumeroConFormato('1.234,56', 'AR'), 1234.56);
+    assertEqual(parseNumeroConFormato('900.000,00', 'AR'), 900000);
+  });
+  test('US: coma de miles, punto decimal', function () {
+    assertEqual(parseNumeroConFormato('1,234.56', 'US'), 1234.56);
+    assertEqual(parseNumeroConFormato('1,234,567.89', 'US'), 1234567.89);
+  });
+  test('el formato US NO se puede leer como AR (era el bug a evitar)', function () {
+    // parseNumberAr ve coma Y punto y asume es-AR: 1,234.56 → 1.23456
+    assert(parseNumeroConFormato('1,234.56', 'US') !== parseNumberAr('1,234.56'),
+           'los dos formatos tienen que dar resultados distintos');
+    assertEqual(parseNumeroConFormato('1,234.56', 'US'), 1234.56);
+  });
+  test('negativos con signo y con paréntesis', function () {
+    assertEqual(parseNumeroConFormato('-1.234,56', 'AR'), -1234.56);
+    assertEqual(parseNumeroConFormato('(1.234,56)', 'AR'), -1234.56);
+    assertEqual(parseNumeroConFormato('(1,234.56)', 'US'), -1234.56);
+  });
+  test('tolera símbolo de moneda y espacios', function () {
+    assertEqual(parseNumeroConFormato('$ 1.234,56', 'AR'), 1234.56);
+    assertEqual(parseNumeroConFormato('US$ 1,234.56', 'US'), 1234.56);
+  });
+  test('vacío es 0 y basura es null', function () {
+    assertEqual(parseNumeroConFormato('', 'AR'), 0);
+    assertEqual(parseNumeroConFormato('nada', 'AR'), null);
+    assertEqual(parseNumeroConFormato(null, 'AR'), null);
+  });
+});
+
+group('parseFechaConFormato — fechas según el formato de la entidad', function () {
+  test('dd/mm/aaaa con los dos separadores', function () {
+    assertEqual(parseFechaConFormato('27/07/2026', 'dd/mm/aaaa'), '27/07/2026');
+    assertEqual(parseFechaConFormato('01-07-2026', 'dd/mm/aaaa'), '01/07/2026');
+  });
+  test('mm/dd/aaaa invierte día y mes', function () {
+    assertEqual(parseFechaConFormato('07/27/2026', 'mm/dd/aaaa'), '27/07/2026');
+    // El mismo texto leído con los dos formatos da días distintos: por eso el
+    // formato tiene que declararse y no adivinarse.
+    assertEqual(parseFechaConFormato('03/04/2026', 'dd/mm/aaaa'), '03/04/2026');
+    assertEqual(parseFechaConFormato('03/04/2026', 'mm/dd/aaaa'), '04/03/2026');
+  });
+  test('aaaa-mm-dd', function () {
+    assertEqual(parseFechaConFormato('2026-07-27', 'aaaa-mm-dd'), '27/07/2026');
+  });
+  test('rellena con cero a la izquierda', function () {
+    assertEqual(parseFechaConFormato('1/7/2026', 'dd/mm/aaaa'), '01/07/2026');
+  });
+  test('rechaza día o mes fuera de rango', function () {
+    assertEqual(parseFechaConFormato('32/01/2026', 'dd/mm/aaaa'), null);
+    assertEqual(parseFechaConFormato('01/13/2026', 'dd/mm/aaaa'), null);
+  });
+  test('vacío o basura da null, no explota', function () {
+    assertEqual(parseFechaConFormato('', 'dd/mm/aaaa'), null);
+    assertEqual(parseFechaConFormato('FECHA-MALA', 'dd/mm/aaaa'), null);
+    assertEqual(parseFechaConFormato(null, 'dd/mm/aaaa'), null);
+  });
+  test('acepta un Date por si la celda no viene como texto', function () {
+    assertEqual(parseFechaConFormato(new Date(2026, 6, 27), 'dd/mm/aaaa'), '27/07/2026');
+  });
+});
+
+group('parseResumenConPlantilla — motor genérico con plantillas del usuario', function () {
+  // Banco inventado: importe firmado en una columna, formato US, fecha mm/dd
+  const PLANTILLA_US = {
+    nombre: 'Banco Inventado',
+    formato: 'csv',
+    columnas: { fecha: 'Date', descripcion: 'Description', monto: 'Amount' },
+    modeloImporte: 'firmado',
+    formatoFecha: 'mm/dd/aaaa',
+    formatoNumero: 'US',
+    descripcionMultilinea: false,
+    patronesInternos: [],
+    filasIgnoradas: ['total del periodo']
+  };
+  const FILAS_US = [
+    ['Extracto de cuenta', '', ''],
+    ['Date', 'Description', 'Amount'],
+    ['07/27/2026', 'Coffee Shop', '-1,234.56'],
+    ['07/28/2026', 'Salary', '5,000.00'],
+    ['', 'Total del periodo', '3,765.44']
+  ];
+
+  test('una plantilla nueva se parsea sin escribir código', function () {
+    const r = parseResumenConPlantilla(FILAS_US, PLANTILLA_US);
+    assertEqual(r.transactions.length, 2);
+    assertEqual(r.errores.length, 0);
+  });
+  test('respeta el formato de fecha declarado', function () {
+    assertEqual(parseResumenConPlantilla(FILAS_US, PLANTILLA_US).transactions[0].fecha, '27/07/2026');
+  });
+  test('respeta el formato de número declarado', function () {
+    const txs = parseResumenConPlantilla(FILAS_US, PLANTILLA_US).transactions;
+    assertEqual(txs[0].monto, 1234.56);
+    assertEqual(txs[1].monto, 5000);
+  });
+  test('el monto queda positivo y el signo define ingreso/egreso', function () {
+    const txs = parseResumenConPlantilla(FILAS_US, PLANTILLA_US).transactions;
+    assert(txs.every(function (t) { return t.monto > 0; }), 'ningún monto puede ser negativo');
+    assertEqual(txs[0].esIngreso, false);
+    assertEqual(txs[1].esIngreso, true);
+  });
+  test('descarta las filas de total', function () {
+    const descs = parseResumenConPlantilla(FILAS_US, PLANTILLA_US).transactions
+      .map(function (t) { return t.descripcion; });
+    assert(!descs.some(function (d) { return d.indexOf('Total') >= 0; }), 'la fila de total no debe entrar');
+  });
+  test('el origen sale del nombre de la plantilla', function () {
+    assertEqual(parseResumenConPlantilla(FILAS_US, PLANTILLA_US).transactions[0].origen, 'Banco Inventado');
+  });
+  test('encuentra el encabezado aunque arriba haya metadatos de largo variable', function () {
+    const conRuido = [['x'], [''], ['Banco Inventado S.A.'], ['Cuenta 123']].concat(FILAS_US.slice(1));
+    assertEqual(parseResumenConPlantilla(conRuido, PLANTILLA_US).transactions.length, 2);
+  });
+  test('archivo que no corresponde: error claro, sin explotar', function () {
+    const r = parseResumenConPlantilla([['cualquier', 'cosa']], PLANTILLA_US);
+    assertEqual(r.transactions.length, 0);
+    assert(r.errores.length > 0, 'debe reportar el error');
+    assert(r.errores[0].indexOf('Banco Inventado') >= 0, 'el error nombra la entidad esperada');
+  });
+  test('entrada vacía o sin plantilla no explota', function () {
+    assertEqual(parseResumenConPlantilla([], PLANTILLA_US).transactions.length, 0);
+    assertEqual(parseResumenConPlantilla(null, PLANTILLA_US).transactions.length, 0);
+    assertEqual(parseResumenConPlantilla([['a']], null).transactions.length, 0);
+  });
+  test('las columnas se ubican por nombre, no por posición', function () {
+    // Mismo contenido con las columnas en otro orden: tiene que dar igual.
+    const invertidas = [
+      ['Amount', 'Description', 'Date'],
+      ['-1,234.56', 'Coffee Shop', '07/27/2026']
+    ];
+    const t = parseResumenConPlantilla(invertidas, PLANTILLA_US).transactions[0];
+    assertEqual(t.monto, 1234.56);
+    assertEqual(t.descripcion, 'Coffee Shop');
+    assertEqual(t.fecha, '27/07/2026');
+  });
+});
+
+group('detectarPlantilla — elegir la plantilla que corresponde al archivo', function () {
+  const FILAS_MP = [
+    ['INITIAL_BALANCE', 'CREDITS'],
+    ['RELEASE_DATE', 'TRANSACTION_TYPE', 'REFERENCE_ID', 'TRANSACTION_NET_AMOUNT'],
+    ['01-07-2026', 'Pago', '111', '-100,00']
+  ];
+  const FILAS_GAL = [
+    ['Banco Galicia - Caja Ahorro Pesos'],
+    ['Fecha', 'Movimiento', 'Débito', 'Crédito'],
+    ['27/07/2026', 'PAGO', '-100,00', '0,00']
+  ];
+
+  test('reconoce Mercado Pago', function () {
+    assertEqual(detectarPlantilla(FILAS_MP, PLANTILLAS_BUILTIN).id, 'MP');
+  });
+  test('reconoce Banco Galicia', function () {
+    assertEqual(detectarPlantilla(FILAS_GAL, PLANTILLAS_BUILTIN).id, 'Galicia');
+  });
+  test('archivo desconocido devuelve null', function () {
+    assertEqual(detectarPlantilla([['hola', 'mundo']], PLANTILLAS_BUILTIN), null);
+  });
+  test('una plantilla del usuario gana si va primero en la lista', function () {
+    const propia = {
+      id: 'mia', nombre: 'La Mía',
+      columnas: { fecha: 'Fecha', descripcion: 'Movimiento', debito: 'Débito', credito: 'Crédito' },
+      modeloImporte: 'debito-credito'
+    };
+    assertEqual(detectarPlantilla(FILAS_GAL, [propia].concat(PLANTILLAS_BUILTIN)).id, 'mia');
+  });
+});
+
+group('validarPlantilla — antes de dejar guardar una plantilla del usuario', function () {
+  const base = {
+    nombre: 'X',
+    columnas: { fecha: 'F', descripcion: 'D', monto: 'M' },
+    modeloImporte: 'firmado'
+  };
+  test('una plantilla completa no da errores', function () {
+    assertEqual(validarPlantilla(base).length, 0);
+  });
+  test('sin nombre da error', function () {
+    const p = JSON.parse(JSON.stringify(base)); p.nombre = '  ';
+    assert(validarPlantilla(p).length > 0, 'debe pedir el nombre');
+  });
+  test('sin columna de fecha o descripción da error', function () {
+    const p1 = JSON.parse(JSON.stringify(base)); p1.columnas.fecha = '';
+    const p2 = JSON.parse(JSON.stringify(base)); p2.columnas.descripcion = '';
+    assert(validarPlantilla(p1).length > 0, 'debe pedir la fecha');
+    assert(validarPlantilla(p2).length > 0, 'debe pedir la descripción');
+  });
+  test('importe firmado sin columna de monto da error', function () {
+    const p = JSON.parse(JSON.stringify(base)); p.columnas.monto = '';
+    assert(validarPlantilla(p).length > 0, 'debe pedir el monto');
+  });
+  test('débito-crédito acepta que venga una sola de las dos', function () {
+    const p = { nombre: 'X', modeloImporte: 'debito-credito',
+                columnas: { fecha: 'F', descripcion: 'D', debito: 'Deb' } };
+    assertEqual(validarPlantilla(p).length, 0);
+  });
+  test('débito-crédito sin ninguna de las dos da error', function () {
+    const p = { nombre: 'X', modeloImporte: 'debito-credito',
+                columnas: { fecha: 'F', descripcion: 'D' } };
+    assert(validarPlantilla(p).length > 0, 'debe pedir al menos una columna de importe');
+  });
+  test('plantilla nula no explota', function () {
+    assert(validarPlantilla(null).length > 0, 'debe reportar errores, no tirar excepción');
+  });
+});
+
 group('INTEGRACIÓN — Edge cases que probablemente rompan algo en el futuro', function () {
   test('state sin transactionsByYear: nada explota', function () {
     const prev = globalThis.state;
