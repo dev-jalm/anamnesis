@@ -6435,10 +6435,21 @@ async function leerFilasDeArchivo(file) {
   return parseCsv(texto, detectarSeparadorCsv(texto));
 }
 
-// Todas las plantillas disponibles: primero las que armó el usuario, para que
-// pueda pisar una incorporada si su banco cambió el formato del export.
+// Las plantillas que rigen ahora. Una guardada por el usuario con el MISMO id
+// que una incorporada la reemplaza: así se puede corregir Mercado Pago o
+// Galicia cuando la entidad cambia el formato de su export, sin esperar a que
+// se actualice la app. La incorporada no se pierde — queda en el código y se
+// puede restaurar.
 function plantillasDisponibles() {
-  return (state.bankTemplates || []).concat(PLANTILLAS_BUILTIN);
+  const propias = state.bankTemplates || [];
+  const pisadas = propias.map(function (p) { return p.id; });
+  return propias.concat(PLANTILLAS_BUILTIN.filter(function (b) {
+    return pisadas.indexOf(b.id) < 0;
+  }));
+}
+
+function plantillaBuiltin(id) {
+  return PLANTILLAS_BUILTIN.find(function (p) { return p.id === id; }) || null;
 }
 
 // ============================================================
@@ -6515,9 +6526,12 @@ function mostrarListaPlantillas() {
 
   const cont = document.getElementById('plantillaListaItems');
   const propias = state.bankTemplates || [];
-  const todas = propias.concat(PLANTILLAS_BUILTIN);
-  cont.innerHTML = todas.map(function (p) {
-    const cols = p.columnas || {};
+  // Una fila por formato vigente. Si el usuario editó una incorporada, se
+  // muestra SU versión, no la del código: es la que se está usando.
+  cont.innerHTML = plantillasDisponibles().map(function (p) {
+    const original = plantillaBuiltin(p.id);
+    const esIncorporada = !!original && !!p.builtin;   // la del código, sin tocar
+    const esModificada = !!original && !p.builtin;     // incorporada con cambios
     const detalle = [
       (p.modeloImporte === 'debito-credito' ? 'débito/crédito' : 'importe con signo'),
       p.formatoFecha || 'dd/mm/aaaa',
@@ -6528,19 +6542,27 @@ function mostrarListaPlantillas() {
         '<div class="plantilla-item-nombre">' + escapeHtmlSafe(p.nombre) + '</div>' +
         '<div class="plantilla-item-detalle">' + escapeHtmlSafe(detalle) + '</div>' +
       '</div>' +
-      (p.builtin
-        ? '<span class="plantilla-badge">INCORPORADO</span>'
-        : '<button class="btn-cancel" data-accion="editar">Editar</button>' +
-          '<button class="manual-row-delete" data-accion="borrar" title="Borrar formato">' +
+      (esIncorporada ? '<span class="plantilla-badge">INCORPORADO</span>' : '') +
+      (esModificada ? '<span class="plantilla-badge modificado">MODIFICADO</span>' : '') +
+      '<button class="btn-cancel" data-accion="editar">Editar</button>' +
+      // Una incorporada modificada se RESTAURA (vuelve a la del código); una
+      // propia se BORRA. Restaurar no es destructivo, así que no va con el
+      // icono de tacho ni pide confirmación.
+      (esModificada
+        ? '<button class="btn-cancel" data-accion="restaurar" title="Volver al formato que trae la app">Restaurar</button>'
+        : '') +
+      (!original
+        ? '<button class="manual-row-delete" data-accion="borrar" title="Borrar formato">' +
             '<i data-lucide="trash-2" style="width:13px;height:13px"></i>' +
-          '</button>') +
+          '</button>'
+        : '') +
     '</div>';
   }).join('');
 
   const count = document.getElementById('plantillaCount');
   if (count) {
     count.textContent = propias.length === 0
-      ? 'Sólo los incorporados'
+      ? 'Sin cambios propios'
       : propias.length + (propias.length === 1 ? ' formato propio' : ' formatos propios');
   }
   if (window.lucide) lucide.createIcons();
@@ -6552,10 +6574,14 @@ function abrirEditorPlantilla(id) {
   const titulo = document.getElementById('plantillasTitulo');
   if (!lista || !editor) return;
 
-  const existente = (state.bankTemplates || []).find(function (p) { return p.id === id; });
+  // Se busca entre las vigentes, así que también se puede abrir una incorporada.
+  // Al guardar queda una copia propia con el mismo id, que la reemplaza.
+  const existente = plantillasDisponibles().find(function (p) { return p.id === id; });
   if (existente) {
     // Copia profunda: si el usuario cancela, el original queda intacto.
     plantillaEditor = JSON.parse(JSON.stringify(existente));
+    // Deja de ser "la que trae la app" en cuanto se edita.
+    delete plantillaEditor.builtin;
     plantillaEditor._filas = null;
     plantillaEditor._idxEncabezado = -1;
   } else {
@@ -6576,14 +6602,23 @@ function abrirEditorPlantilla(id) {
   const chk = document.getElementById('plantMultilinea');
   if (chk) chk.checked = !!plantillaEditor.descripcionMultilinea;
 
-  // Los pasos 2-4 aparecen recién cuando hay un archivo de ejemplo: sin las
-  // columnas reales, los selectores estarían vacíos.
-  ['plantPaso2', 'plantPaso3', 'plantPaso4'].forEach(function (p) {
+  // Los pasos 2 y 4 necesitan el archivo: uno muestra sus filas y el otro el
+  // resultado de leerlo.
+  ['plantPaso2', 'plantPaso4'].forEach(function (p) {
     const el = document.getElementById(p);
     if (el) el.classList.add('hidden');
   });
-  // El paso 1 vuelve a abrirse: es lo único accionable hasta que haya archivo.
-  abrirPasoPlantilla('plantPaso1', true);
+  // El 3 no: una plantilla ya configurada tiene su mapeo guardado, y editarla
+  // para corregirle el formato de fecha no debería obligar a conseguir un
+  // archivo de ejemplo. Para una plantilla nueva sí se espera al archivo,
+  // porque no hay columnas de dónde elegir.
+  const paso3 = document.getElementById('plantPaso3');
+  if (paso3) paso3.classList.toggle('hidden', !existente);
+  poblarSelectoresColumnas();
+  // Con una plantilla ya cargada, el paso accionable es el mapeo; con una nueva,
+  // conseguir el archivo.
+  abrirPasoPlantilla('plantPaso1', !existente);
+  abrirPasoPlantilla('plantPaso3', !!existente);
   const t = document.getElementById('plantEjemploTitulo');
   if (t) t.textContent = 'Elegí un archivo de ejemplo';
   const h = document.getElementById('plantEjemploHint');
@@ -6721,13 +6756,32 @@ function renderTablaEjemploPlantilla() {
 // Los selectores de columna se llenan con los títulos REALES del archivo: el
 // usuario elige de una lista en vez de tipear nombres que tienen que coincidir
 // exactamente.
+//
+// Sin archivo de ejemplo —el caso de abrir una plantilla ya configurada sólo
+// para cambiarle el formato de fecha— las opciones salen de lo que la plantilla
+// ya tiene guardado. Si no, los selectores aparecerían vacíos y el mapeo
+// existente se perdería al guardar.
 function poblarSelectoresColumnas() {
-  if (!plantillaEditor || !plantillaEditor._filas) return;
-  const enc = plantillaEditor._filas[plantillaEditor._idxEncabezado] || [];
-  const nombres = enc.map(function (c, i) {
-    const t = String(c == null ? '' : c).trim();
-    return t || ('(columna ' + (i + 1) + ')');
-  });
+  if (!plantillaEditor) return;
+  const guardadas = Object.keys(plantillaEditor.columnas || {})
+    .map(function (k) { return plantillaEditor.columnas[k]; })
+    .filter(Boolean);
+
+  let nombres;
+  if (plantillaEditor._filas) {
+    const enc = plantillaEditor._filas[plantillaEditor._idxEncabezado] || [];
+    nombres = enc.map(function (c, i) {
+      const t = String(c == null ? '' : c).trim();
+      return t || ('(columna ' + (i + 1) + ')');
+    });
+    // Las columnas ya guardadas que el archivo de ejemplo NO trae se agregan
+    // igual: si no, cambiar de archivo borraría el mapeo en silencio en vez de
+    // dejarlo visible para que el usuario decida.
+    guardadas.forEach(function (g) { if (nombres.indexOf(g) < 0) nombres.push(g); });
+  } else {
+    nombres = guardadas;
+  }
+
   const campos = [
     ['plantColFecha', 'fecha', false],
     ['plantColDesc', 'descripcion', false],
@@ -6747,7 +6801,8 @@ function poblarSelectoresColumnas() {
     sel.innerHTML = html;
     sel.value = actual;
   });
-  autocompletarColumnasPorNombre(nombres);
+  // Sin archivo no hay nada que adivinar: los valores ya vienen de la plantilla.
+  if (plantillaEditor._filas) autocompletarColumnasPorNombre(nombres);
 }
 
 // Preselecciona por nombre lo que sea obvio. Ahorra los clicks del caso típico
@@ -6901,12 +6956,26 @@ function guardarPlantillaEditada() {
   const limpia = JSON.parse(JSON.stringify(plantillaEditor));
   delete limpia._filas;
   delete limpia._idxEncabezado;
+  // Guardada por el usuario, aunque haya salido de una incorporada: la marca
+  // builtin distingue "la que trae la app" de "la que rige", y acá rige ésta.
+  delete limpia.builtin;
 
   if (!Array.isArray(state.bankTemplates)) state.bankTemplates = [];
   const idx = state.bankTemplates.findIndex(function (p) { return p.id === limpia.id; });
   if (idx >= 0) state.bankTemplates[idx] = limpia;
   else state.bankTemplates.push(limpia);
 
+  scheduleSave();
+  mostrarListaPlantillas();
+  actualizarHintImportacion();
+}
+
+// Descarta la versión editada de una incorporada y vuelve a la del código. No
+// pide confirmación porque no se pierde nada propio: la original siempre está,
+// y volver a editarla es un click.
+function restaurarPlantillaBuiltin(id) {
+  if (!plantillaBuiltin(id)) return;
+  state.bankTemplates = (state.bankTemplates || []).filter(function (t) { return t.id !== id; });
   scheduleSave();
   mostrarListaPlantillas();
   actualizarHintImportacion();
@@ -6950,7 +7019,9 @@ function bindModalPlantillas() {
       const btn = e.target.closest('[data-accion]');
       if (!btn) return;
       const id = btn.closest('.plantilla-item').getAttribute('data-id');
-      if (btn.getAttribute('data-accion') === 'editar') abrirEditorPlantilla(id);
+      const accion = btn.getAttribute('data-accion');
+      if (accion === 'editar') abrirEditorPlantilla(id);
+      else if (accion === 'restaurar') restaurarPlantillaBuiltin(id);
       else borrarPlantilla(id);
     });
   }

@@ -5143,7 +5143,8 @@ body[data-exporting="true"] .section-card {
   color: var(--muted);
   margin-top: 2px;
 }
-/* Las incorporadas se distinguen para que quede claro por qué no se borran. */
+/* INCORPORADO = la que trae la app, sin tocar. MODIFICADO = una incorporada que
+   el usuario editó, y que por eso se restaura en vez de borrarse. */
 .plantilla-badge {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9.5px;
@@ -5153,6 +5154,11 @@ body[data-exporting="true"] .section-card {
   border: 1px solid var(--border);
   color: var(--muted);
   flex-shrink: 0;
+  white-space: nowrap;
+}
+.plantilla-badge.modificado {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* Cada paso es un <details> plegable: con los cuatro abiertos el modal no entra
