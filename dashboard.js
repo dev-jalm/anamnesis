@@ -5349,17 +5349,9 @@ const step1 = document.getElementById('step1');
 const step2 = document.getElementById('step2');
 const step3 = document.getElementById('step3');
 const step1NextBtn = document.getElementById('step1NextBtn');
-const step2NextBtn = document.getElementById('step2NextBtn');
 const step2BackBtn = document.getElementById('step2BackBtn');
-const step3BackBtn = document.getElementById('step3BackBtn');
 const step2BackBtnManual = document.getElementById('step2BackBtnManual');
 const sourceBtns = document.getElementById('sourceBtns');
-const copyPromptBtn = document.getElementById('copyPromptBtn');
-const openClaudeBtn = document.getElementById('openClaudeBtn');
-const importJsonBtn = document.getElementById('importJsonBtn');
-const jsonInput = document.getElementById('jsonInput');
-const uploadError = document.getElementById('uploadError');
-const uploadSuccess = document.getElementById('uploadSuccess');
 
 // State para carga manual de efectivo
 const manualState = {
@@ -5417,28 +5409,15 @@ function openModal() {
   });
   const fileStatusReset = document.getElementById('fileImportStatus');
   if (fileStatusReset) { fileStatusReset.className = 'alert-box hidden'; fileStatusReset.innerHTML = ''; }
-  const fallbackReset = document.getElementById('jsonFallbackBlock');
-  if (fallbackReset) fallbackReset.open = false;
   // Cerrar vuelve a esconderse en cada apertura: aparece cuando hay una
   // importación hecha, no antes.
   mostrarCerrarModalCarga(false);
 
-  uploadError.classList.add('hidden');
-  uploadSuccess.classList.add('hidden');
-  jsonInput.value = '';
   state.uploadSource = 'MP';
   manualState.rows = [];
   // Reset investment state también
   investmentState.rows = [];
   renderSourceButtons();
-  // Resetear estado de botones step3 por si quedaron en "modo cerrar" de una
-  // importación anterior. (El botón cambia de IMPORTAR DATOS a CERRAR cuando
-  // la importación tiene éxito; al reabrir tiene que volver a IMPORTAR DATOS.)
-  const importBtnReset = document.getElementById('importJsonBtn');
-  if (importBtnReset) {
-    importBtnReset.innerHTML = '<i data-lucide="check" style="width:14px;height:14px"></i> IMPORTAR DATOS';
-    delete importBtnReset.dataset.role;
-  }
   // Los "Atrás" de los formularios ya no se muestran: reorganizarModalCarga()
   // los oculta porque el wizard de pasos desapareció. Antes acá se los volvía a
   // mostrar en cada apertura, que es lo que los hacía reaparecer.
@@ -5575,35 +5554,9 @@ function reorganizarModalCarga() {
     return el;
   };
 
-  // Panel ARCHIVO: el recuadro de subida, el historial de cargas y, plegado,
-  // el camino viejo por LLM (prompt + textarea + botón de importar).
+  // Panel ARCHIVO: el recuadro de subida y el historial de cargas.
   mover('uploadHistoryPanel', paneFile);
   mover('fileImportBlock', paneFile);
-  const fallback = document.getElementById('jsonFallbackBlock');
-  if (fallback) {
-    paneFile.appendChild(fallback);
-    // El bloque del prompt del paso 2 pasa a vivir dentro del <details>: sigue
-    // siendo la vía para PDFs y bancos sin parser, pero deja de ser el camino
-    // principal. Su botón "Ya tengo el JSON" ya no tiene sentido acá.
-    const promptBlock = document.getElementById('step2FileMode');
-    if (promptBlock) {
-      fallback.insertBefore(promptBlock, fallback.firstElementChild.nextSibling);
-      promptBlock.classList.remove('hidden');
-      const nextBtn = document.getElementById('step2NextBtn');
-      if (nextBtn) nextBtn.style.display = 'none';
-      const backBtn = document.getElementById('step2BackBtn');
-      if (backBtn) backBtn.style.display = 'none';
-    }
-    mover('uploadError', fallback);
-    mover('uploadSuccess', fallback);
-    const importBtn = document.getElementById('importJsonBtn');
-    if (importBtn) {
-      const wrap = document.createElement('div');
-      wrap.className = 'modal-actions';
-      wrap.appendChild(importBtn);
-      fallback.appendChild(wrap);
-    }
-  }
 
   // Paneles de ingreso manual
   const manualMode = mover('step2ManualMode', paneMovs);
@@ -5710,7 +5663,6 @@ function goToStep(n) {
   step1.classList.add('hidden');
   step2.classList.add('hidden');
   step3.classList.add('hidden');
-  const fileMode = document.getElementById('step2FileMode');
   const manualMode = document.getElementById('step2ManualMode');
   const investmentMode = document.getElementById('step2InvestmentMode');
   const dot3 = document.getElementById('step2Dot3');
@@ -5718,8 +5670,7 @@ function goToStep(n) {
   if (n === 1) step1.classList.remove('hidden');
   if (n === 2) {
     step2.classList.remove('hidden');
-    // Reset visibilidad de los 3 modos
-    if (fileMode) fileMode.classList.add('hidden');
+    // Reset visibilidad de los modos
     if (manualMode) manualMode.classList.add('hidden');
     if (investmentMode) investmentMode.classList.add('hidden');
     if (state.uploadSource === 'Efectivo') {
@@ -5746,14 +5697,9 @@ function goToStep(n) {
       } else {
         renderInvestmentList();
       }
-    } else {
-      fileMode.classList.remove('hidden');
-      manualMode.classList.add('hidden');
-      if (dot3) dot3.style.display = '';
-      if (sep3) sep3.style.display = '';
-      const lbl = document.getElementById('step2SourceName');
-      if (lbl) lbl.textContent = SOURCE_DISPLAY[state.uploadSource] || state.uploadSource;
     }
+    // El caso "archivo" ya no pasa por acá: la subida vive en el panel único
+    // del modal, sin pasos intermedios.
   }
   if (n === 3) step3.classList.remove('hidden');
   if (window.lucide) lucide.createIcons();
@@ -6402,9 +6348,7 @@ cancelBtn.addEventListener('click', closeModal);
 // qué cargar, el control aparece en la misma pantalla. Se mantiene el guard por
 // si alguna variante del HTML todavía lo trae.
 if (step1NextBtn) step1NextBtn.addEventListener('click', function () { goToStep(2); });
-step2NextBtn.addEventListener('click', function () { goToStep(3); });
-step2BackBtn.addEventListener('click', function () { goToStep(1); });
-step3BackBtn.addEventListener('click', function () { goToStep(2); });
+if (step2BackBtn) step2BackBtn.addEventListener('click', function () { goToStep(1); });
 if (step2BackBtnManual) step2BackBtnManual.addEventListener('click', function () { goToStep(1); });
 
 const addManualRowBtn = document.getElementById('addManualRowBtn');
@@ -6431,202 +6375,6 @@ if (step2InvestmentBackBtn) step2InvestmentBackBtn.addEventListener('click', fun
 
 modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
 
-// ================= COPY PROMPT & OPEN CLAUDE =================
-function buildPrompt(source) {
-  // Estructura compartida del JSON que pedimos al LLM.
-  // Se eliminaron `ingresos`, `flows`, `jubilacionJalm`, `jubilacionClm` porque ahora
-  // todos los flujos (sueldo, préstamo, inversiones, trading, jubilación) se cargan
-  // como transactions individuales con su categoría/tag correspondiente. El KPI los
-  // suma directamente desde tx, sin duplicación.
-  // Se MANTIENEN `stocks` y `dailyBalances` porque son saldos puntuales (no flujos):
-  //   - `stocks`: posición USD a fin de mes en inversiones/trading
-  //   - `dailyBalances`: saldo MP día por día (para gráfico de evolución)
-  const baseStruct = `{
-  "year": 2026,
-  "month": "abril",
-  "categories": {
-    "Vivienda": 580000,
-    "Alimentacion": 420000,
-    "Salud": 200000,
-    "Transporte": 90000,
-    "Educacion": 720000,
-    "Deuda": 600000,
-    "Financieras": 0,
-    "Entretenimiento": 250000,
-    "Indumentaria": 100000,
-    "CuidadoPersonal": 30000,
-    "Extras": 50000,
-    "Turismo": 400000,
-    "Membresias": 60000,
-    "Gastronomia": 350000,
-    "TransferenciasTerceros": 150000
-  },
-  "transactions": [
-    { "fecha": "01/04/2026", "descripcion": "Alquiler abril", "monto": 580000, "categoria": "Vivienda", "subcategoria": "Alquiler", "origen": "MP" },
-    { "fecha": "05/04/2026", "descripcion": "TR a Juan Perez CBU 0070...", "monto": 50000, "categoria": "TransferenciasTerceros", "origen": "MP" },
-    { "fecha": "10/04/2026", "descripcion": "TR recibida de Maria Lopez", "monto": 30000, "categoria": "", "origen": "MP" }
-  ],
-  "dailyBalances": [50000, 48000, "..."],
-  "origen": "${SOURCE_DISPLAY[source] || source}"
-}`;
-
-  const guideMap = {
-    'MP': `Sos un asistente experto en analizar resúmenes financieros de Mercado Pago.
-
-INSTRUCCIONES:
-Te voy a adjuntar un PDF de resumen mensual de Mercado Pago. Tenés que extraer todos los movimientos y devolver un JSON con la siguiente estructura exacta:
-
-${baseStruct}
-
-REGLAS DE CATEGORIZACIÓN:
-- Categorías BÁSICAS (necesarias): Vivienda, Alimentacion, Salud, Transporte, Educacion, Deuda, Financieras
-- Categorías DISCRECIONALES: Entretenimiento, Indumentaria, CuidadoPersonal, Extras, Turismo, Membresias, Gastronomia
-- IMPORTANTE: NO clasifiques movimientos con categorías de flujo (Sueldo, Prestamo, Inversion, Trading, Jubilacion, Reserva). Las acreditaciones de sueldo, préstamos tomados, compras de inversiones/trading, aportes jubilatorios, etc. deben venir como transactions SIN categoría (dejar "categoria": "" o "__sin__"). El usuario las clasificará manualmente después.
-
-EJEMPLOS DE CATEGORIZACIÓN:
-- Alquiler/expensas/luz/gas/internet → "Vivienda"
-- Supermercado/verdulería/carnicería/dietética → "Alimentacion"
-- Farmacia/médico/medicamentos/seguros de salud → "Salud"
-- SUBE/Uber/taxi/colectivo/avión → "Transporte"
-- Colegio/útiles/talleres → "Educacion"
-- Pago de cuota de tarjeta/cuota de préstamo (subcategoría Prestamo de Deuda) → "Deuda"
-- Comisiones bancarias/fondos comunes → "Financieras"
-- Cine/teatro/streaming/eventos → "Entretenimiento"
-- Ropa/calzado/accesorios → "Indumentaria"
-- Peluquería/tratamientos/belleza → "CuidadoPersonal"
-- Kiosco/golosinas → "Extras"
-- Vacaciones/pasajes/hoteles → "Turismo"
-- Gimnasio/clubes → "Membresias"
-- Restaurantes/cafés/heladerías/delivery → "Gastronomia"
-- Acreditación de sueldo (HABERES) → SIN categoría (el usuario la clasifica luego como "Sueldo")
-- Toma de préstamo personal nuevo → SIN categoría (el usuario la clasifica luego como "Prestamo")
-- Compra de stablecoins/cripto, transferencia a billetera de inversiones → SIN categoría (luego como "Inversion")
-- Compra/venta de acciones, transferencia a broker → SIN categoría (luego como "Trading")
-- Aporte jubilatorio → SIN categoría (luego como "Jubilacion")
-
-TRANSFERENCIAS — REGLAS ESPECÍFICAS (importante: incluí TODAS):
-- **Transferencias enviadas** (egresos por TR/transferencia/envío a CVU/CBU/alias):
-  * A un tercero (cualquier persona o entidad que NO sea inversión, trading, jubilación, reserva o uno mismo) → categoría "TransferenciasTerceros"
-  * A inversión/broker/trading/cripto → SIN categoría (el usuario clasifica)
-  * Entre cuentas propias del titular (ej. mismo CUIT/nombre, transferencia interna a otra entidad) → SIN categoría (el usuario decide si es movimiento interno o ignorar)
-- **Transferencias recibidas** (ingresos por TR/transferencia/abono desde CVU/CBU/alias):
-  * De cualquier origen (tercero, devolución, ingreso ocasional, otra cuenta propia) → SIN categoría (el usuario clasifica)
-  * NO categorices automáticamente como Sueldo a menos que la descripción diga claramente "HABERES" o el concepto sea muy explícito de pago de sueldo
-- IMPORTANTE: incluí absolutamente TODAS las transferencias en el listado de transactions, tanto enviadas como recibidas, sin importar el monto ni el origen/destino. No omitas ninguna.
-
-FORMATO DE RESPUESTA:
-- Devolveme SOLO el JSON, sin explicaciones, sin markdown, sin nada más
-- El JSON debe ser PARSEABLE directamente con JSON.parse()
-- Asegurate que el campo "month" sea uno de: enero, febrero, marzo, abril, mayo, junio, julio, agosto, septiembre, octubre, noviembre, diciembre
-- "transactions" debe contener cada movimiento individual con:
-    * "fecha" en formato dd/mm/yyyy
-    * "descripcion": copiar el detalle del resumen
-    * "monto": positivo, en pesos
-    * "categoria": clave de category de GASTO (ej. "Alimentacion") o "" / "__sin__" para flujos
-    * "subcategoria" (opcional): clave de subcategoría si aplica (ej. "Supermercado", "Restaurantes")
-    * "origen": "MP"
-- "categories" debe reflejar la suma POR CATEGORÍA DE GASTO solamente (puede recalcularse desde transactions). No incluir categorías de flujo.
-- "dailyBalances": array con saldo MP de cada día del mes`,
-
-    'Galicia': `Sos un asistente experto en analizar resúmenes financieros de Banco Galicia.
-
-INSTRUCCIONES:
-Te voy a adjuntar un PDF de resumen mensual de Banco Galicia (cuenta corriente y/o tarjeta de crédito). Tenés que extraer todos los movimientos y devolver un JSON con la siguiente estructura exacta:
-
-${baseStruct}
-
-REGLAS DE CATEGORIZACIÓN:
-- Categorías BÁSICAS (necesarias): Vivienda, Alimentacion, Salud, Transporte, Educacion, Deuda, Financieras
-- Categorías DISCRECIONALES: Entretenimiento, Indumentaria, CuidadoPersonal, Extras, Turismo, Membresias, Gastronomia
-- IMPORTANTE: NO clasifiques movimientos con categorías de flujo (Sueldo, Prestamo, Inversion, Trading, Jubilacion, Reserva). Las acreditaciones de sueldo, préstamos tomados, compras de inversiones/trading, aportes jubilatorios, etc. deben venir como transactions SIN categoría (dejar "categoria": "" o "__sin__"). El usuario las clasificará manualmente después.
-
-EJEMPLOS DE CATEGORIZACIÓN:
-- Alquiler/expensas/luz/gas/internet → "Vivienda"
-- Supermercado/verdulería/carnicería/dietética → "Alimentacion"
-- Farmacia/médico/medicamentos/seguros de salud → "Salud"
-- SUBE/Uber/taxi/colectivo/avión → "Transporte"
-- Colegio/útiles/talleres → "Educacion"
-- Pago de cuota de tarjeta/cuota de préstamo (subcategoría Prestamo de Deuda) → "Deuda"
-- Comisiones bancarias/fondos comunes → "Financieras"
-- Cine/teatro/streaming/eventos → "Entretenimiento"
-- Ropa/calzado/accesorios → "Indumentaria"
-- Peluquería/tratamientos/belleza → "CuidadoPersonal"
-- Kiosco/golosinas → "Extras"
-- Vacaciones/pasajes/hoteles → "Turismo"
-- Gimnasio/clubes → "Membresias"
-- Restaurantes/cafés/heladerías/delivery → "Gastronomia"
-- Acreditación de sueldo (ej. "SIST. NAC. DE PAGOS - HABERES AIS APLICACIONES") → SIN categoría (luego se clasifica como "Sueldo")
-- Toma de préstamo personal nuevo (NO confundir con refinanciación de tarjeta — eso es Deuda) → SIN categoría (luego como "Prestamo")
-- Compra de stablecoins/cripto/transferencia a billetera de inversiones → SIN categoría (luego como "Inversion")
-- Operaciones de trading de acciones → SIN categoría (luego como "Trading")
-- Aporte jubilatorio → SIN categoría (luego como "Jubilacion")
-
-TRANSFERENCIAS — REGLAS ESPECÍFICAS (importante: incluí TODAS):
-- **Transferencias enviadas** (débitos por TR/transferencia/envío a CVU/CBU/alias):
-  * A un tercero (cualquier persona o entidad que NO sea inversión, trading, jubilación, reserva o uno mismo) → categoría "TransferenciasTerceros"
-  * A inversión/broker/trading/cripto → SIN categoría (el usuario clasifica)
-  * Entre cuentas propias del titular (ej. mismo CUIT/nombre, transferencia interna a Mercado Pago o a otra entidad) → SIN categoría (el usuario decide si es movimiento interno o ignorar)
-- **Transferencias recibidas** (créditos por TR/transferencia/abono desde CVU/CBU/alias):
-  * De cualquier origen (tercero, devolución, ingreso ocasional, otra cuenta propia) → SIN categoría (el usuario clasifica)
-  * NO categorices automáticamente como Sueldo a menos que la descripción diga claramente "HABERES" o sea muy explícito.
-- IMPORTANTE: incluí absolutamente TODAS las transferencias en el listado de transactions, tanto enviadas como recibidas, sin importar el monto ni el origen/destino. No omitas ninguna.
-
-FORMATO DE RESPUESTA:
-- Devolveme SOLO el JSON, sin explicaciones, sin markdown, sin nada más
-- El JSON debe ser PARSEABLE directamente con JSON.parse()
-- "transactions" debe contener cada movimiento individual con:
-    * "fecha" en formato dd/mm/yyyy
-    * "descripcion": copiar el detalle del resumen
-    * "monto": positivo, en pesos
-    * "categoria": clave de category de GASTO (ej. "Vivienda", "Salud") o "" / "__sin__" para flujos
-    * "subcategoria" (opcional): clave de subcategoría si aplica
-    * "origen": "Galicia"
-- "categories" debe reflejar la suma POR CATEGORÍA DE GASTO solamente.`,
-
-    'Efectivo': `Sos un asistente experto en categorizar movimientos en efectivo.
-
-INSTRUCCIONES:
-Te voy a pasar una lista de movimientos en efectivo (descripción + monto). Tenés que devolver un JSON con la siguiente estructura exacta:
-
-${baseStruct}
-
-REGLAS DE CATEGORIZACIÓN: igual que para los otros orígenes (ver Vivienda, Alimentacion, Salud, etc.). NO clasifiques nada con categorías de flujo (Sueldo, Prestamo, Inversion, Trading, Jubilacion, Reserva) — esas las clasifica el usuario después.
-
-FORMATO DE RESPUESTA:
-- Devolveme SOLO el JSON
-- Cada movimiento debe ir en "transactions" con "origen": "Efectivo"
-- "categories" debe reflejar la suma por categoría de gasto
-- "dailyBalances": [] (vacío)`
-  };
-
-  return guideMap[source] || guideMap['MP'];
-}
-copyPromptBtn.addEventListener('click', function () {
-  const prompt = buildPrompt(state.uploadSource);
-  navigator.clipboard.writeText(prompt).then(function () {
-    copyPromptBtn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px"></i> COPIADO';
-    if (window.lucide) lucide.createIcons();
-    setTimeout(function () {
-      copyPromptBtn.innerHTML = '<i data-lucide="copy" style="width:14px;height:14px"></i> COPIAR PROMPT';
-      if (window.lucide) lucide.createIcons();
-    }, 2000);
-  });
-});
-// openClaudeBtn fue eliminado del modal (la instrucción dice "abrí Claude.ai
-// en una pestaña" pero ya no hay botón). Mantenemos un guard por si quedan
-// referencias en otro lado.
-if (openClaudeBtn) openClaudeBtn.addEventListener('click', function () {
-  window.open('https://claude.ai/new', '_blank');
-});
-
-// ================= IMPORT JSON =================
-function extractJSON(text) {
-  const cleaned = text.trim().replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('No se encontró un JSON válido');
-  return JSON.parse(cleaned.substring(start, end + 1));
-}
 
 // ============================================================
 // IMPORTACIÓN DIRECTA DE RESÚMENES (CSV / XLSX)
@@ -6834,12 +6582,49 @@ function abrirEditorPlantilla(id) {
     const el = document.getElementById(p);
     if (el) el.classList.add('hidden');
   });
+  // El paso 1 vuelve a abrirse: es lo único accionable hasta que haya archivo.
+  abrirPasoPlantilla('plantPaso1', true);
   const t = document.getElementById('plantEjemploTitulo');
   if (t) t.textContent = 'Elegí un archivo de ejemplo';
+  const h = document.getElementById('plantEjemploHint');
+  if (h) h.textContent = 'CSV o Excel';
   const err = document.getElementById('plantErrores');
   if (err) err.classList.add('hidden');
+  actualizarResumenesPasos();
   aplicarModeloImporteEnEditor();
   if (window.lucide) lucide.createIcons();
+}
+
+function abrirPasoPlantilla(id, abierto) {
+  const el = document.getElementById(id);
+  if (el) el.open = !!abierto;
+}
+
+// Cada paso cerrado muestra en su encabezado lo que se eligió adentro. Sin
+// esto, plegarlos escondería justo la información que hay que revisar.
+function actualizarResumenesPasos() {
+  const set = function (id, txt) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt || '';
+  };
+  if (!plantillaEditor) { ['1', '2', '3', '4'].forEach(function (n) { set('plantPaso' + n + 'Resumen', ''); }); return; }
+
+  const filas = plantillaEditor._filas;
+  set('plantPaso1Resumen', filas ? (filas.length + ' filas leídas') : '');
+
+  if (filas) {
+    const enc = filas[plantillaEditor._idxEncabezado] || [];
+    const titulos = enc.map(function (c) { return String(c == null ? '' : c).trim(); }).filter(Boolean);
+    set('plantPaso2Resumen', 'Fila ' + (plantillaEditor._idxEncabezado + 1) + ' · ' + titulos.slice(0, 4).join(', '));
+  } else {
+    set('plantPaso2Resumen', '');
+  }
+
+  const c = plantillaEditor.columnas || {};
+  const importe = plantillaEditor.modeloImporte === 'debito-credito'
+    ? [c.debito, c.credito].filter(Boolean).join('/')
+    : c.monto;
+  set('plantPaso3Resumen', [c.fecha, c.descripcion, importe].filter(Boolean).join(' · '));
 }
 
 // Muestra u oculta las columnas de importe según el modelo elegido: con dos
@@ -6879,6 +6664,13 @@ async function cargarEjemploPlantilla(file) {
     renderTablaEjemploPlantilla();
     poblarSelectoresColumnas();
     renderPreviewPlantilla();
+    // Los pasos 1 y 2 quedan resueltos: se cierran para dejar en pantalla el
+    // mapeo y el preview, que es donde el usuario trabaja y verifica. Su
+    // resumen sigue mostrando qué archivo es y qué fila se tomó.
+    abrirPasoPlantilla('plantPaso1', false);
+    abrirPasoPlantilla('plantPaso2', false);
+    abrirPasoPlantilla('plantPaso3', true);
+    abrirPasoPlantilla('plantPaso4', true);
   } catch (e) {
     if (err) {
       err.classList.remove('hidden');
@@ -7036,10 +6828,13 @@ function renderPreviewPlantilla() {
   const cont = document.getElementById('plantResultado');
   if (!cont || !plantillaEditor) return;
   leerEditorAPlantilla();
+  actualizarResumenesPasos();
+  const resumen4 = document.getElementById('plantPaso4Resumen');
 
   const faltantes = validarPlantilla(plantillaEditor);
   if (faltantes.length) {
     cont.innerHTML = '<div class="list-empty">Completá los campos de arriba para ver el resultado.</div>';
+    if (resumen4) resumen4.textContent = 'Falta configurar';
     return;
   }
   const r = parseResumenConPlantilla(plantillaEditor._filas || [], plantillaEditor);
@@ -7047,7 +6842,12 @@ function renderPreviewPlantilla() {
     cont.innerHTML = '<div class="list-empty">' +
       escapeHtmlSafe(r.errores[0] || 'Con esta configuración no se leyó ningún movimiento.') +
       '</div>';
+    if (resumen4) resumen4.textContent = 'Sin movimientos';
     return;
+  }
+  if (resumen4) {
+    resumen4.textContent = r.transactions.length + ' movimientos' +
+      (r.errores.length ? ' · ' + r.errores.length + ' con problemas' : '');
   }
   const muestra = r.transactions.slice(0, 6);
   cont.innerHTML =
@@ -7392,76 +7192,6 @@ function mergeParsedData(parsed) {
   });
 }
 
-importJsonBtn.addEventListener('click', function () {
-  // Si el botón está en modo "CERRAR" (post-importación exitosa), cierra y termina.
-  if (this.dataset.role === 'close') {
-    closeModal();
-    return;
-  }
-  uploadError.classList.add('hidden');
-  uploadSuccess.classList.add('hidden');
-  const text = jsonInput.value;
-  if (!text.trim()) {
-    uploadError.classList.remove('hidden');
-    uploadError.innerHTML = '<strong>Error:</strong> pegá el JSON primero.';
-    return;
-  }
-  try {
-    const parsed = extractJSON(text);
-    mergeParsedData(parsed);
-    uploadSuccess.classList.remove('hidden');
-    let successMsg = '<strong>¡Importado!</strong> Se cargó ' + MONTH_LABELS[parsed.month.toLowerCase()] + ' ' + parsed.year + ' (origen: ' + (parsed.origen || state.uploadSource) + ').';
-    // Resumen del dedup: cuántas nuevas y cuántas ya existían
-    if (typeof parsed._dedupKept === 'number' || typeof parsed._dedupSkipped === 'number') {
-      const kept = parsed._dedupKept || 0;
-      const skipped = parsed._dedupSkipped || 0;
-      const dedupParts = [];
-      dedupParts.push(kept + ' nuev' + (kept === 1 ? 'a' : 'as'));
-      if (skipped > 0) {
-        dedupParts.push(skipped + ' ya existente' + (skipped === 1 ? '' : 's') + ' (omitida' + (skipped === 1 ? '' : 's') + ')');
-      }
-      successMsg += ' <span style="color:#8B7355">Movimientos: ' + dedupParts.join(' · ') + '.</span>';
-    }
-    const learnParts = [];
-    if (parsed._byRule > 0) {
-      learnParts.push(parsed._byRule + ' por regla' + (parsed._byRule > 1 ? 's' : ''));
-    }
-    if (parsed._autoLearned > 0) {
-      learnParts.push(parsed._autoLearned + ' auto-categorizado' + (parsed._autoLearned > 1 ? 's' : ''));
-    }
-    if (parsed._overridden > 0) {
-      learnParts.push(parsed._overridden + ' corregido' + (parsed._overridden > 1 ? 's' : '') + ' por historial');
-    }
-    if (learnParts.length > 0) {
-      successMsg += ' <span style="color:#6B8E4E">Aprendizaje: ' + learnParts.join(', ') + '.</span>';
-    }
-    uploadSuccess.innerHTML = successMsg;
-    initSelectors();
-    renderAll();
-    if (typeof renderMainMovements === 'function') renderMainMovements();
-    if (typeof renderMainBudget === 'function') renderMainBudget();
-    // NO cerramos automáticamente — el resumen de cargas (X nuevas, Y duplicadas,
-    // aprendizaje aplicado, etc.) tiene demasiada info para 1-2 segundos.
-    // El usuario cierra con el botón cuando termina de leer. Refrescamos el
-    // panel "Últimas cargas" para reflejar la importación que acaba de pasar.
-    if (typeof renderUploadHistoryPanel === 'function') renderUploadHistoryPanel();
-    // Convertir los botones del modal en estado "post-importación": el botón
-    // de IMPORTAR pasa a ser CERRAR (para que el usuario salga cuando termina
-    // de leer el resumen), y el Atrás se oculta porque ya no tiene sentido
-    // navegar — la importación está hecha.
-    const step3BackBtn = document.getElementById('step3BackBtn');
-    if (step3BackBtn) step3BackBtn.style.display = 'none';
-    const importBtnNow = document.getElementById('importJsonBtn');
-    if (importBtnNow) {
-      importBtnNow.innerHTML = '<i data-lucide="check" style="width:14px;height:14px"></i> CERRAR';
-      importBtnNow.dataset.role = 'close';   // marca: ahora cierra en vez de importar
-      if (window.lucide) lucide.createIcons();
-    }
-  } catch (err) {
-    uploadError.classList.remove('hidden');
-    uploadError.innerHTML = '<strong>Error al parsear:</strong> ' + (err.message || err);
-  }
-});
 
 // ================= CSV EXPORT (SELECTIVO) =================
 function csvEscape(v) {

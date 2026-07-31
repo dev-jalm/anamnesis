@@ -5095,16 +5095,38 @@ body[data-exporting="true"] .section-card {
 .link-btn:hover { color: var(--accent); }
 
 /* ===== Customizador de formatos de importación ===== */
+/* .modal-card no tiene tope de alto, así que con los cuatro pasos abiertos la
+   tarjeta crecía más que la ventana y quedaba cortada arriba y abajo, sin forma
+   de llegar a los botones. Se le pone tope y scroll propio. */
+#plantillasOverlay .modal-card {
+  padding: 20px 22px;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+#plantillasOverlay .modal-header { margin-bottom: 12px; }
+/* La barra de acciones queda pegada al pie de la tarjeta: con los cuatro pasos
+   abiertos el contenido scrollea, y GUARDAR quedaba abajo de todo, fuera de
+   vista. Pegada, se llega siempre sin scrollear. */
+#plantillasOverlay .modal-actions {
+  position: sticky;
+  bottom: -20px;             /* compensa el padding inferior de la tarjeta */
+  background: var(--card);
+  padding: 12px 0;
+  margin-top: 0;
+  border-top: 1px solid var(--border);
+  z-index: 1;
+}
+
 .plantilla-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 .plantilla-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 10px;
+  padding: 9px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--bg-1);
@@ -5133,51 +5155,89 @@ body[data-exporting="true"] .section-card {
   flex-shrink: 0;
 }
 
-/* Los pasos numerados: el número a la izquierda ocupando el alto del bloque. */
+/* Cada paso es un <details> plegable: con los cuatro abiertos el modal no entra
+   en pantalla. El encabezado es la fila clickeable y siempre visible. */
 .plant-paso {
-  display: grid;
-  grid-template-columns: 28px 1fr;
-  gap: 12px;
-  padding: 14px 0;
   border-top: 1px solid var(--border);
 }
-.plant-paso:first-child { border-top: none; padding-top: 0; }
+.plant-paso:first-of-type { border-top: none; }
+.plant-paso-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 0;
+  cursor: pointer;
+  list-style: none;
+}
+.plant-paso-head::-webkit-details-marker { display: none; }
+.plant-paso-head:hover .plant-paso-titulo { color: var(--accent); }
+/* Chevron propio a la derecha, que rota al abrir. */
+.plant-paso-head::after {
+  content: '';
+  margin-left: auto;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(45deg);
+  transition: transform 140ms;
+  flex-shrink: 0;
+}
+.plant-paso[open] > .plant-paso-head::after { transform: rotate(-135deg); }
 .plant-paso-num {
-  width: 24px;
-  height: 24px;
+  width: 19px;
+  height: 19px;
   border-radius: 100px;
   border: 1px solid var(--accent);
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
-.plant-paso-cuerpo { min-width: 0; }
-.plant-paso-titulo { font-size: 13px; font-weight: 600; color: var(--ink); }
-.plant-paso-hint { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+.plant-paso-titulo {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+/* Lo elegido en el paso, para no tener que abrirlo para saber cómo quedó. */
+.plant-paso-resumen {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.plant-paso-cuerpo {
+  min-width: 0;
+  padding: 0 0 12px 28px;
+}
+.plant-paso-hint { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
 
 /* Vista previa del archivo. Scroll propio: un resumen puede tener muchas
    columnas y el modal no debe crecer a lo ancho. */
 .plant-tabla-wrap {
-  margin-top: 10px;
-  max-height: 260px;
+  max-height: 190px;
   overflow: auto;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 .plant-tabla {
   border-collapse: collapse;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10.5px;
+  font-size: 10px;
   white-space: nowrap;
 }
 .plant-tabla td {
-  padding: 5px 9px;
+  padding: 3px 8px;
   border-bottom: 1px solid var(--border);
   color: var(--muted);
-  max-width: 190px;
+  max-width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -5200,11 +5260,18 @@ body[data-exporting="true"] .section-card {
 
 .plant-campos {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-top: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px 10px;
 }
-.plant-campo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.plant-campo { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* Controles más chicos que los del resto de la app: son diez campos que tienen
+   que entrar juntos y verse de una sin scrollear el modal. */
+.plant-campo .period-select {
+  padding: 5px 8px;
+  font-size: 11px;
+  height: auto;
+}
+.plant-campo .rule-label { font-size: 10px; margin: 0; }
 .plant-campo-ancho { grid-column: 1 / -1; }
 .plant-check {
   display: flex;
@@ -5217,12 +5284,12 @@ body[data-exporting="true"] .section-card {
 /* Preview del resultado: las tx que saldrían con la config actual. */
 .plant-preview-tx {
   display: grid;
-  grid-template-columns: 92px 1fr 120px 70px;
+  grid-template-columns: 84px 1fr 118px 62px;
   gap: 10px;
-  padding: 6px 10px;
+  padding: 4px 9px;
   border-bottom: 1px solid var(--border);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: 10.5px;
   align-items: center;
 }
 .plant-preview-tx:last-child { border-bottom: none; }
@@ -5235,36 +5302,20 @@ body[data-exporting="true"] .section-card {
 .plant-preview-monto { text-align: right; color: var(--ink); }
 .plant-preview-tipo { font-size: 9.5px; letter-spacing: 0.5px; }
 .plant-preview-wrap {
-  margin-top: 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--bg-1);
   overflow: hidden;
 }
+/* El pie del preview no necesita el margen del pie de una lista editable. */
+#plantResultado .list-footer { margin-top: 6px; }
 
-@media (max-width: 860px) {
+@media (max-width: 1000px) {
+  .plant-campos { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 760px) {
   .plant-campos { grid-template-columns: repeat(2, 1fr); }
 }
-/* El pegado de JSON queda como alternativa plegada: sigue disponible para
-   PDFs y bancos sin parser, pero no compite con la vía principal. */
-.json-fallback {
-  margin-top: 14px;
-  border-top: 1px solid var(--border);
-  padding-top: 12px;
-}
-.json-fallback > summary {
-  cursor: pointer;
-  font-size: 11px;
-  color: var(--muted);
-  font-family: 'JetBrains Mono', monospace;
-  letter-spacing: 0.3px;
-  list-style: none;
-}
-.json-fallback > summary:hover { color: var(--accent); }
-.json-fallback > summary::-webkit-details-marker { display: none; }
-.json-fallback > summary::before { content: '▸ '; }
-.json-fallback[open] > summary::before { content: '▾ '; }
-
 /* ============================================================
    MODO DEMO
    ============================================================ */

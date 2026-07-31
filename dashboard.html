@@ -1993,14 +1993,22 @@
 
     <!-- ── EDITOR ── -->
     <div id="plantillasEditor" class="hidden">
-      <div class="plant-paso">
-        <div class="plant-paso-num">1</div>
+      <!-- Cada paso es un <details>: el modal no entra entero en pantalla con
+           los cuatro abiertos. Al cargar el ejemplo, los pasos 1 y 2 se cierran
+           solos (ya están resueltos) y quedan abiertos el mapeo y el preview,
+           que es donde se trabaja. El resumen de cada paso cerrado muestra lo
+           que se eligió, así no hay que abrirlo para saber cómo quedó. -->
+      <details class="plant-paso" id="plantPaso1" open>
+        <summary class="plant-paso-head">
+          <span class="plant-paso-num">1</span>
+          <span class="plant-paso-titulo">Subí un archivo de ejemplo</span>
+          <span class="plant-paso-resumen" id="plantPaso1Resumen"></span>
+        </summary>
         <div class="plant-paso-cuerpo">
-          <div class="plant-paso-titulo">Subí un archivo de ejemplo</div>
           <div class="plant-paso-hint">Un resumen cualquiera de esa entidad. No se importa nada: sólo se lee para ver cómo está armado.</div>
-          <div class="file-import-drop" id="plantEjemploDrop" style="margin-top:10px">
+          <div class="file-import-drop" id="plantEjemploDrop" style="margin-top:8px">
             <input type="file" id="plantEjemploInput" accept=".csv,.xlsx,.xls" hidden>
-            <i data-lucide="file-up" style="width:20px;height:20px"></i>
+            <i data-lucide="file-up" style="width:18px;height:18px"></i>
             <div class="file-import-texts">
               <span class="file-import-title" id="plantEjemploTitulo">Elegí un archivo de ejemplo</span>
               <span class="file-import-hint" id="plantEjemploHint">CSV o Excel</span>
@@ -2008,23 +2016,29 @@
             <button type="button" class="upload-btn" id="plantEjemploBtn">ELEGIR ARCHIVO</button>
           </div>
         </div>
-      </div>
+      </details>
 
-      <div class="plant-paso hidden" id="plantPaso2">
-        <div class="plant-paso-num">2</div>
+      <details class="plant-paso hidden" id="plantPaso2">
+        <summary class="plant-paso-head">
+          <span class="plant-paso-num">2</span>
+          <span class="plant-paso-titulo">Marcá la fila de los títulos</span>
+          <span class="plant-paso-resumen" id="plantPaso2Resumen"></span>
+        </summary>
         <div class="plant-paso-cuerpo">
-          <div class="plant-paso-titulo">Marcá la fila de los títulos</div>
           <div class="plant-paso-hint">La que tiene los nombres de las columnas. Arriba suele haber datos de la cuenta que no son parte de la tabla.</div>
           <div class="plant-tabla-wrap">
             <table class="plant-tabla" id="plantTablaPreview"></table>
           </div>
         </div>
-      </div>
+      </details>
 
-      <div class="plant-paso hidden" id="plantPaso3">
-        <div class="plant-paso-num">3</div>
+      <details class="plant-paso hidden" id="plantPaso3" open>
+        <summary class="plant-paso-head">
+          <span class="plant-paso-num">3</span>
+          <span class="plant-paso-titulo">Decí qué es cada columna</span>
+          <span class="plant-paso-resumen" id="plantPaso3Resumen"></span>
+        </summary>
         <div class="plant-paso-cuerpo">
-          <div class="plant-paso-titulo">Decí qué es cada columna</div>
           <div class="plant-campos">
             <div class="plant-campo">
               <label class="rule-label">Nombre de la entidad</label>
@@ -2090,19 +2104,22 @@
             </div>
           </div>
         </div>
-      </div>
+      </details>
 
-      <div class="plant-paso hidden" id="plantPaso4">
-        <div class="plant-paso-num">4</div>
+      <details class="plant-paso hidden" id="plantPaso4" open>
+        <summary class="plant-paso-head">
+          <span class="plant-paso-num">4</span>
+          <span class="plant-paso-titulo">Revisá cómo queda</span>
+          <span class="plant-paso-resumen" id="plantPaso4Resumen"></span>
+        </summary>
         <div class="plant-paso-cuerpo">
-          <div class="plant-paso-titulo">Revisá cómo queda</div>
           <div class="plant-paso-hint">Los primeros movimientos leídos con esta configuración. Si algo no cuadra, corregí arriba.</div>
           <div id="plantResultado"></div>
         </div>
-      </div>
+      </details>
 
-      <div class="alert-box error hidden" id="plantErrores" style="margin-top:12px"></div>
-      <div class="modal-actions" style="margin-top:14px">
+      <div class="alert-box error hidden" id="plantErrores" style="margin-top:10px"></div>
+      <div class="modal-actions" style="margin-top:12px">
         <button class="btn-cancel" id="plantCancelarBtn">
           <i data-lucide="arrow-left" style="width:12px;height:12px"></i>
           Volver
@@ -2200,33 +2217,6 @@
       </div>
 
       <!-- Variante 2a: desde archivo -->
-      <div id="step2FileMode">
-        <div class="step-title">Pegá el prompt en Claude.ai junto con tu archivo</div>
-        <div class="info-box">
-          <div class="info-label">INSTRUCCIONES</div>
-          <ol class="step-list">
-            <li>Click en <strong>COPIAR PROMPT</strong> abajo</li>
-            <li>Abrí <strong>Claude.ai</strong> en una nueva pestaña</li>
-            <li>En el chat de Claude: pegá el prompt y <strong>adjuntá el archivo</strong> de tu <strong id="step2SourceName" style="color:var(--accent)"></strong></li>
-            <li>Claude te va a devolver un JSON. Copialo completo y volvé acá</li>
-          </ol>
-        </div>
-        <div class="modal-actions" style="flex-wrap:wrap;gap:8px">
-          <button class="btn-cancel" id="step2BackBtn">
-            <i data-lucide="arrow-left" style="width:12px;height:12px"></i>
-            Atrás
-          </button>
-          <button class="upload-btn csv-btn" id="copyPromptBtn">
-            <i data-lucide="copy" style="width:14px;height:14px"></i>
-            COPIAR PROMPT
-          </button>
-          <button class="upload-btn" id="step2NextBtn">
-            Ya tengo el JSON
-            <i data-lucide="arrow-right" style="width:14px;height:14px"></i>
-          </button>
-        </div>
-      </div>
-
       <!-- Variante 2b: carga manual -->
       <div id="step2ManualMode" class="hidden">
         <div class="step-title">Cargar movimientos manualmente</div>
@@ -2328,24 +2318,6 @@
         </button>
       </div>
 
-      <details class="json-fallback" id="jsonFallbackBlock">
-        <summary>¿Tu banco no está en la lista? Importar pegando JSON</summary>
-        <div class="form-block">
-          <textarea id="jsonInput" placeholder='Pegá aquí el JSON devuelto por Claude.ai, algo como:\n\n{\n  "year": 2026,\n  "month": "abril",\n  "categories": { ... },\n  ...\n}' style="width:100%;min-height:200px;font-family:monospace;font-size:12px;padding:12px;background:var(--bg-1);border:1px solid var(--grid);border-radius:8px;color:var(--ink);resize:vertical"></textarea>
-        </div>
-      </details>
-      <div class="alert-box error hidden" id="uploadError"></div>
-      <div class="alert-box success hidden" id="uploadSuccess"></div>
-      <div class="modal-actions">
-        <button class="btn-cancel" id="step3BackBtn">
-          <i data-lucide="arrow-left" style="width:12px;height:12px"></i>
-          Atrás
-        </button>
-        <button class="upload-btn" id="importJsonBtn">
-          <i data-lucide="check" style="width:14px;height:14px"></i>
-          IMPORTAR DATOS
-        </button>
-      </div>
     </div>
   </div>
 </div>
