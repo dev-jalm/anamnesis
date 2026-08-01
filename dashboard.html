@@ -2386,28 +2386,50 @@
         Las <strong>etiquetas</strong> son una clasificación cruzada: agrupan transacciones por un criterio adicional (un viaje, un proyecto, un evento, una persona), y una misma tx puede tener varias. Las que crea <strong>Modo viaje</strong> aparecen acá pero se eliminan junto al viaje.
       </p>
 
-      <!-- FILA 2 — Agregar nueva categoría / subcategoría / etiqueta -->
+      <!-- FILA 2 — Agregar nueva categoría / subcategoría / etiqueta.
+           Misma estructura que los formularios de Reglas y Modo viaje: cada
+           campo con su etiqueta arriba, dentro de un .rule-field. Antes los
+           controles iban sueltos en una fila y el único texto era el título del
+           recuadro, así que los tres formularios se veían distinto.
+           Los campos que se muestran u ocultan según el tipo llevan id en el
+           WRAPPER: ocultando sólo el control quedaba su etiqueta colgada. -->
       <div class="cat-add-unified">
-        <div class="period-label" style="margin-bottom:10px">Agregar nueva</div>
         <div class="cat-add-row">
-          <select id="catAddTypeSel" class="period-select cat-add-field-type">
-            <option value="cat" selected>Categoría</option>
-            <option value="sub">Subcategoría</option>
-            <option value="label">Etiqueta</option>
-          </select>
-          <select id="catAddClassSel" class="period-select cat-add-field-class">
-            <option value="basic">Básica</option>
-            <option value="discretionary" selected>Discrecional</option>
-          </select>
-          <select id="catAddParentSel" class="period-select cat-add-field-parent hidden">
-            <option value="">— elegir categoría madre —</option>
-          </select>
-          <input type="text" id="catAddNameInput" class="period-select cat-add-field-name" placeholder="Nombre visible" style="background-image:none;padding-right:14px">
-          <input type="color" id="catAddColorInput" class="label-color-input cat-add-field-color hidden" value="#D4A24C" title="Color de la etiqueta">
-          <button class="upload-btn cat-add-btn" id="catAddBtn">
-            <i data-lucide="plus" style="width:14px;height:14px"></i>
-            AGREGAR
-          </button>
+          <div class="rule-field" id="catAddFieldType">
+            <label class="rule-label" for="catAddTypeSel">Tipo</label>
+            <select id="catAddTypeSel" class="period-select cat-add-field-type">
+              <option value="cat" selected>Categoría</option>
+              <option value="sub">Subcategoría</option>
+              <option value="label">Etiqueta</option>
+            </select>
+          </div>
+          <div class="rule-field" id="catAddFieldClass">
+            <label class="rule-label" for="catAddClassSel">Clasificación</label>
+            <select id="catAddClassSel" class="period-select cat-add-field-class">
+              <option value="basic">Básica</option>
+              <option value="discretionary" selected>Discrecional</option>
+            </select>
+          </div>
+          <div class="rule-field hidden" id="catAddFieldParent">
+            <label class="rule-label" for="catAddParentSel">Categoría madre</label>
+            <select id="catAddParentSel" class="period-select cat-add-field-parent">
+              <option value="">— elegir categoría madre —</option>
+            </select>
+          </div>
+          <div class="rule-field cat-add-field-name-wrap" id="catAddFieldName">
+            <label class="rule-label" for="catAddNameInput">Nombre visible</label>
+            <input type="text" id="catAddNameInput" class="period-select cat-add-field-name" placeholder="Nombre visible" style="background-image:none;padding-right:14px">
+          </div>
+          <div class="rule-field hidden" id="catAddFieldColor">
+            <label class="rule-label" for="catAddColorInput">Color</label>
+            <input type="color" id="catAddColorInput" class="label-color-input cat-add-field-color" value="#D4A24C" title="Color de la etiqueta">
+          </div>
+          <div class="rule-field">
+            <button class="upload-btn cat-add-btn" id="catAddBtn">
+              <i data-lucide="plus" style="width:14px;height:14px"></i>
+              AGREGAR
+            </button>
+          </div>
         </div>
         <div class="cat-add-error hidden" id="catAddUnifiedError"></div>
       </div>
@@ -2530,10 +2552,24 @@
           </div>
         </div>
       </div>
-      <div class="rules-list-wrap" style="margin-top:18px;flex:1 1 auto;display:flex;flex-direction:column;min-height:0">
-        <div class="rules-list-header" style="display:flex; align-items:center; justify-content:space-between; gap:8px;flex-shrink:0">
+      <div class="rules-list-wrap">
+        <!-- Título, filtro y acciones en UNA barra. Eran dos filas apiladas que
+             se comían ~85px del panel, y lo que queda abajo es la lista de
+             reglas, que es lo que uno vino a ver. El filtro tiene las mismas
+             opciones que "Tipo categorías" en Historia clínica. -->
+        <div class="rules-list-header">
           <span>REGLAS ACTIVAS <span id="rulesCount" style="opacity:0.6"></span></span>
-          <div style="display:flex; gap:6px; align-items:center">
+          <span class="rules-filter-label">Filtrar por</span>
+          <select id="rulesFilterCatSel" class="period-select rules-filter-sel">
+            <option value="">Todas</option>
+            <option value="basic">Básicas</option>
+            <option value="discretionary">Discrecionales</option>
+            <option value="flow">De flujo</option>
+          </select>
+          <button class="cat-md-io-btn cat-md-io-btn-large" id="rulesFilterClearBtn" title="Limpiar filtro">
+            <i data-lucide="x" style="width:14px;height:14px"></i>
+          </button>
+          <div class="rules-header-actions">
             <button class="upload-btn" id="learnRulesBtn" title="Detectar patrones repetidos en tus clasificaciones manuales (configurable en Parámetros)">
               <i data-lucide="sparkles" style="width:14px;height:14px"></i>
               APRENDER REGLAS
@@ -2549,20 +2585,6 @@
               <i data-lucide="upload" style="width:14px;height:14px"></i>
             </button>
           </div>
-        </div>
-        <!-- Filtro: dropdown con las mismas opciones que "Tipo categorías" en
-             Historia clínica (Todas / Básicas / Discrecionales / De flujo). -->
-        <div class="rules-filter-row" style="margin-top:10px;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-shrink:0">
-          <span class="mono" style="font-size:10px;letter-spacing:1.5px;color:var(--muted-2);text-transform:uppercase">Filtrar por</span>
-          <select id="rulesFilterCatSel" class="period-select" style="min-width:200px;flex:0 1 220px">
-            <option value="">Todas</option>
-            <option value="basic">Básicas</option>
-            <option value="discretionary">Discrecionales</option>
-            <option value="flow">De flujo</option>
-          </select>
-          <button class="cat-md-io-btn cat-md-io-btn-large" id="rulesFilterClearBtn" title="Limpiar filtro" style="margin-left:0">
-            <i data-lucide="x" style="width:14px;height:14px"></i>
-          </button>
         </div>
         <div class="rules-list" id="rulesList"></div>
       </div>

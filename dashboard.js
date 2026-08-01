@@ -12443,9 +12443,12 @@ function updateCatAddFormFields() {
   const colorInput = document.getElementById('catAddColorInput');
   if (!typeSel) return;
   const t = typeSel.value;
-  if (classSel) classSel.classList.toggle('hidden', t === 'label');
+  // Se oculta el WRAPPER, no el control: cada campo ahora lleva su etiqueta
+  // arriba y ocultando sólo el <select> la etiqueta quedaba suelta.
+  const wrap = function (el, id) { return document.getElementById(id) || el; };
+  if (classSel) wrap(classSel, 'catAddFieldClass').classList.toggle('hidden', t === 'label');
   if (parentSel) {
-    parentSel.classList.toggle('hidden', t !== 'sub');
+    wrap(parentSel, 'catAddFieldParent').classList.toggle('hidden', t !== 'sub');
     if (t === 'sub') {
       const eff = getEffectiveCategoryLabels();
       const opts = Object.keys(eff)
@@ -12460,7 +12463,7 @@ function updateCatAddFormFields() {
       parentSel.innerHTML = '<option value="">— elegir categoría madre —</option>' + opts;
     }
   }
-  if (colorInput) colorInput.classList.toggle('hidden', t !== 'label');
+  if (colorInput) wrap(colorInput, 'catAddFieldColor').classList.toggle('hidden', t !== 'label');
   if (nameInput) {
     if (t === 'cat') nameInput.placeholder = 'Nombre visible (ej. Mascotas)';
     else if (t === 'sub') nameInput.placeholder = 'Nombre visible (ej. Restaurantes)';

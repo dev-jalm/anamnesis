@@ -332,7 +332,10 @@ footer .eyebrow-sources {
   flex-direction: column;
   gap: 2px;
 }
-.rule-label {
+/* Etiqueta de campo de los formularios "agregar" (categoría, regla, viaje).
+   Los tres tenían su propia clase con exactamente los mismos valores. */
+.rule-label,
+.travel-field-label {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   letter-spacing: 1px;
@@ -382,13 +385,47 @@ footer .eyebrow-sources {
   border-radius: 100px;
   white-space: nowrap;
 }
+/* La lista ocupa el alto que queda; el header no se encoge. */
+.rules-list-wrap {
+  margin-top: 12px;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+/* Una sola barra: título · filtro · acciones. */
 .rules-list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   letter-spacing: 1px;
   color: var(--muted-2);
   text-transform: uppercase;
   margin-bottom: 8px;
+}
+/* Empuja los botones al extremo derecho. */
+.rules-header-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: auto;
+}
+.rules-filter-label { margin-left: 10px; }
+.rules-filter-sel {
+  flex: 0 1 190px;
+  min-width: 150px;
+  /* Los controles del header van a la misma escala que los de los formularios
+     de arriba, no a la del .period-select general. */
+  padding: 6px 10px;
+  padding-right: 28px;
+  font-size: 12px;
+  background-position: right 8px center;
+  text-transform: none;
+  letter-spacing: normal;
 }
 .rules-list {
   display: flex;
@@ -1859,13 +1896,7 @@ footer .eyebrow-sources {
   flex-direction: column;
   gap: 2px;
 }
-.travel-field-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 1px;
-  color: var(--muted-2);
-  text-transform: uppercase;
-}
+/* .travel-field-label se define junto a .rule-label, más arriba. */
 .travels-list-wrap { margin-top: 18px; }
 .travels-list-header {
   font-family: 'JetBrains Mono', monospace;
@@ -2852,15 +2883,19 @@ footer .eyebrow-sources {
 /* Form unificado para agregar cat / sub / etiqueta */
 /* Caja, padding y gap salen del bloque compartido de arriba. */
 .cat-add-unified { margin-bottom: 10px; }
+/* align-items: flex-end como en Reglas y Modo viaje: con las etiquetas arriba,
+   lo que tiene que quedar alineado es la base de los controles, no su centro. */
 .cat-add-row {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
 }
 .cat-add-field-type { min-width: 140px; }
 .cat-add-field-class { min-width: 140px; }
-.cat-add-field-name { flex: 1 1 200px; background-image: none; padding-right: 14px; }
+/* El que se estira es el wrapper; el input ocupa todo su ancho. */
+.cat-add-field-name-wrap { flex: 1 1 200px; min-width: 180px; }
+.cat-add-field-name { width: 100%; background-image: none; padding-right: 14px; }
 .cat-add-field-parent { min-width: 200px; }
 .cat-add-field-color { width: 40px; }
 .cat-add-btn { flex-shrink: 0; }
@@ -5327,6 +5362,10 @@ body[data-exporting="true"] .section-card {
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
+  /* .rules-list es un flex column de alto acotado, y sus hijos se encogen por
+     defecto: con 47 reglas los grupos se comprimían hasta quedar en dos píxeles
+     —las barras vacías— en vez de mantener su alto y hacer scrollear la lista. */
+  flex-shrink: 0;
 }
 .rules-group-header {
   display: flex;
