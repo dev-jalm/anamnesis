@@ -308,25 +308,48 @@ footer .eyebrow-sources {
 
 /* Parámetros tab */
 /* Tab Reglas (Administración) */
-.rules-add-form {
+/* ===== Formularios "agregar" del modal Administración =====
+   Los tres —agregar categoría, agregar regla, iniciar viaje— son el mismo
+   patrón: una caja con filas de campos etiquetados y un botón de acción.
+   Las medidas viven acá una sola vez para que no se separen, y son más
+   ajustadas que las del resto de la app: en un modal de alto fijo, cada píxel
+   que ocupa el formulario se lo saca a la lista de abajo, que es lo que el
+   usuario vino a mirar. */
+.rules-add-form,
+.travel-add-form,
+.cat-add-unified {
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 14px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+}
+/* Controles más chicos que el .period-select general (10px 14px / 13px). */
+.rules-add-form .period-select,
+.travel-add-form .period-select,
+.cat-add-unified .period-select {
+  padding: 7px 12px;
+  padding-right: 32px;
+  font-size: 12.5px;
+  background-position: right 8px center;
+}
+.rules-add-form .upload-btn,
+.travel-add-form .upload-btn,
+.cat-add-unified .upload-btn {
+  padding: 9px 16px;
 }
 .rule-add-row {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-end;
   flex-wrap: wrap;
 }
 .rule-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 .rule-label {
   font-family: 'JetBrains Mono', monospace;
@@ -340,8 +363,8 @@ footer .eyebrow-sources {
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
-  min-height: 36px;
-  padding: 4px;
+  min-height: 30px;
+  padding: 3px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -390,11 +413,6 @@ footer .eyebrow-sources {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  /* Crece naturalmente según el contenido. El scroll lo maneja el contenedor
-     padre del modal (el body del cat-modal ya es scrolleable). Antes tenía
-     flex:1 + overflow-y:auto que dependía de que todos los ancestros tuvieran
-     flex layout — cuando algún ancestro no lo era, el scroll interno no
-     aparecía y las reglas quedaban visualmente cortadas. */
   padding-right: 4px;
 }
 .rule-row {
@@ -1942,26 +1960,18 @@ footer .eyebrow-sources {
 }
 
 /* Modo viaje (Parámetros) */
-.travel-add-form {
-  background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 8px;
-}
+/* Caja, padding y gap salen del bloque compartido de arriba. */
+.travel-add-form { margin-top: 8px; }
 .travel-add-row {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-end;
   flex-wrap: wrap;
 }
 .travel-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 .travel-field-label {
   font-family: 'JetBrains Mono', monospace;
@@ -2108,11 +2118,12 @@ footer .eyebrow-sources {
   border-radius: 8px;
 }
 .travel-intro {
-  margin: 0 0 14px 0;
-  font-size: 13px;
+  margin: 0 0 10px 0;
+  font-size: 12.5px;
   color: var(--muted-2);
-  line-height: 1.5;
-}  .config-list {
+  line-height: 1.45;
+}
+.config-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
@@ -2178,13 +2189,13 @@ footer .eyebrow-sources {
   display: flex;
   gap: 10px;
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 9px;
   flex-wrap: wrap;
 }
 .kpi-cfg-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 @media (max-width: 1000px){
   .kpi-cfg-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2197,7 +2208,7 @@ footer .eyebrow-sources {
   grid-template-columns: auto 1fr auto;
   gap: 10px;
   align-items: center;
-  padding: 10px 12px;
+  padding: 6px 10px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -2920,19 +2931,21 @@ footer .eyebrow-sources {
 #catTabConfig {
   overflow-y: auto;
 }
+/* Ficha médica: dos secciones largas (visualización + KPIs) que no entran en el
+   alto del modal. Se ajustan paddings y márgenes para recuperar espacio. */
 .fm-section {
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 16px 18px;
-  margin-bottom: 16px;
+  padding: 11px 14px;
+  margin-bottom: 10px;
 }
 .fm-section:last-child { margin-bottom: 0; }
 .fm-section-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
+  gap: 9px;
+  margin-bottom: 4px;
 }
 .fm-section-icon {
   width: 28px; height: 28px;
@@ -2950,10 +2963,10 @@ footer .eyebrow-sources {
   letter-spacing: -0.01em;
 }
 .fm-section-desc {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--muted-2);
-  line-height: 1.5;
-  margin: 0 0 12px 0;
+  line-height: 1.45;
+  margin: 0 0 8px 0;
   padding-left: 38px;
 }
 /* Listas dentro de fm-section ya alineadas con el head/desc */
@@ -2978,13 +2991,8 @@ footer .eyebrow-sources {
    La densidad de las grillas es alta (~30px de alto por fila). */
 
 /* Form unificado para agregar cat / sub / etiqueta */
-.cat-add-unified {
-  background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 14px 16px;
-  margin-bottom: 16px;
-}
+/* Caja, padding y gap salen del bloque compartido de arriba. */
+.cat-add-unified { margin-bottom: 10px; }
 .cat-add-row {
   display: flex;
   gap: 8px;
@@ -5452,10 +5460,18 @@ body[data-exporting="true"] .section-card {
 }
 
 /* ===== Densidad compacta (sin encimar) para la grilla de Reglas ===== */
+/* La lista scrollea POR DENTRO. El panel del modal es overflow:hidden, así que
+   dejándola crecer con el contenido no había scroll en ningún lado: con 47
+   reglas se veían las primeras cinco y el resto quedaba recortado abajo, sin
+   forma de llegar. El ancestro .rules-list-wrap ya es flex column con
+   min-height:0, que es lo que faltaba la vez anterior que se intentó esto. */
 .rules-list {
   display: flex;
   flex-direction: column;
   gap: 4px;       /* separación entre grupos */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 .rules-list .rule-row {
   padding: 8px 12px !important;
