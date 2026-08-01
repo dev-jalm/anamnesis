@@ -2378,9 +2378,12 @@
 
     <!-- Tab Categorías (master-detail) -->
     <div class="cat-tab-panel hidden" id="catTabManage">
-      <!-- FILA 1 — Descripción Categorías -->
+      <!-- FILA 1 — Descripción. Las dos explicaciones van juntas: la grilla de
+           abajo cambia según el tipo elegido, así que un texto que aparecía
+           recién al pie ya no tenía dónde ir. -->
       <p class="travel-intro" style="margin-bottom:14px">
         Acá administrás tus <strong>categorías</strong> y <strong>subcategorías</strong> de gastos. Las <strong>básicas</strong> son las esenciales (vivienda, alimentación, salud). Las <strong>discrecionales</strong> son las que podrías reducir si hiciera falta. Las de <strong>flujo</strong> (sueldo, inversiones, etc.) no aparecen acá porque vienen del sistema y no se editan.
+        Las <strong>etiquetas</strong> son una clasificación cruzada: agrupan transacciones por un criterio adicional (un viaje, un proyecto, un evento, una persona), y una misma tx puede tener varias. <strong>JALM</strong> y <strong>CLM</strong> vienen del sistema (jubilación), y las que crea <strong>Modo viaje</strong> aparecen acá pero se eliminan junto al viaje.
       </p>
 
       <!-- FILA 2 — Agregar nueva categoría / subcategoría / etiqueta -->
@@ -2409,14 +2412,14 @@
         <div class="cat-add-error hidden" id="catAddUnifiedError"></div>
       </div>
 
-      <!-- FILA 3 — Master + Detail -->
-      <div class="cat-md-wrap">
+      <!-- FILA 3 — Master + Detail. Se muestra con tipo = Categoría o
+           Subcategoría; con Etiqueta se oculta y aparece la grilla de abajo. -->
+      <div class="cat-md-wrap" id="catGridCatSub">
         <div class="cat-md-master">
           <div class="cat-md-header">
             <span class="cat-md-title">Categorías</span>
             <div class="cat-md-filter" id="catMasterFilter">
-              <button class="cat-md-filter-btn active" data-filter="all">Todas</button>
-              <button class="cat-md-filter-btn" data-filter="basic">Básicas</button>
+              <button class="cat-md-filter-btn active" data-filter="basic">Básicas</button>
               <button class="cat-md-filter-btn" data-filter="discretionary">Discrecionales</button>
             </div>
             <div class="cat-md-header-actions">
@@ -2439,13 +2442,8 @@
         </div>
       </div>
 
-      <!-- FILA 4 — Descripción Etiquetas -->
-      <p class="travel-intro" style="margin-top:24px;margin-bottom:14px">
-        Las <strong>etiquetas</strong> son una clasificación cruzada a las categorías: agrupan transacciones por un criterio adicional (un viaje, un proyecto, un evento, una persona, etc.). Una misma tx puede tener varias etiquetas. <strong>JALM</strong> y <strong>CLM</strong> son por defecto del sistema (jubilación). Las etiquetas creadas desde <strong>Modo viaje</strong> también aparecen acá pero no se eliminan acá (se eliminan junto al viaje).
-      </p>
-
-      <!-- FILA 5 — Grilla etiquetas -->
-      <div class="cat-md-wrap cat-md-wrap-single">
+      <!-- FILA 4 — Grilla etiquetas. Sólo con tipo = Etiqueta. -->
+      <div class="cat-md-wrap cat-md-wrap-single hidden" id="catGridTags">
         <div class="cat-md-master">
           <div class="cat-md-header">
             <span class="cat-md-title">Etiquetas</span>

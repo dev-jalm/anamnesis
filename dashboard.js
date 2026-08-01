@@ -12090,19 +12090,24 @@ function renderCatMasterList() {
     return (effectiveLabels[a] || a).localeCompare(effectiveLabels[b] || b);
   });
 
-  // Aplicar filtro del header (all / basic / discretionary)
-  if (!catModalState.masterFilter) catModalState.masterFilter = 'all';
+  // Aplicar filtro del header (basic / discretionary). Arranca en 'basic': el
+  // filtro "Todas" se eliminó porque mezclaba los dos tipos en una lista donde
+  // la columna de clasificación era lo único que los distinguía.
+  // Cualquier valor que no sea uno de los dos vigentes cae en 'basic'. Cubre el
+  // 'all' que pudiera haber quedado del filtro eliminado.
+  if (catModalState.masterFilter !== 'basic' && catModalState.masterFilter !== 'discretionary') {
+    catModalState.masterFilter = 'basic';
+  }
   const filter = catModalState.masterFilter;
   function classifOf(k) {
     const ch = catModalState.pendingCatChanges[k] || {};
     return ch.classification !== undefined ? ch.classification : getCategoryClassification(k);
   }
-  const filtered = (filter === 'all')
-    ? allKeys
-    : allKeys.filter(function (k) { return classifOf(k) === filter; });
+  const filtered = allKeys.filter(function (k) { return classifOf(k) === filter; });
 
   if (filtered.length === 0) {
-    masterList.innerHTML = '<div class="cat-detail-empty">No hay categorías' + (filter !== 'all' ? ' ' + (filter === 'basic' ? 'básicas' : 'discrecionales') : '') + '.</div>';
+    masterList.innerHTML = '<div class="cat-detail-empty">No hay categorías ' +
+      (filter === 'basic' ? 'básicas' : 'discrecionales') + '.</div>';
     return;
   }
 
@@ -12461,6 +12466,13 @@ function updateCatAddFormFields() {
     else if (t === 'sub') nameInput.placeholder = 'Nombre visible (ej. Restaurantes)';
     else if (t === 'label') nameInput.placeholder = 'Nombre visible (ej. Vacaciones 2026)';
   }
+  // La grilla de abajo acompaña al tipo elegido: con Categoría o Subcategoría
+  // se ven categorías y sus subcategorías; con Etiqueta, las etiquetas. Antes
+  // estaban las dos apiladas y no entraban en el alto del modal.
+  const gridCatSub = document.getElementById('catGridCatSub');
+  const gridTags = document.getElementById('catGridTags');
+  if (gridCatSub) gridCatSub.classList.toggle('hidden', t === 'label');
+  if (gridTags) gridTags.classList.toggle('hidden', t !== 'label');
 }
 
 // Stub para no romper el binding viejo de addCategoryBtn (que ahora está hidden y no

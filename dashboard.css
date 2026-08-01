@@ -3079,16 +3079,24 @@ footer .eyebrow-sources {
    scroll. Es min-height (no height fijo) así que si hay más filas la grilla
    crece hasta donde el contenido lo necesite, y recién ahí aparece el scroll
    interno de la lista. El detail (subs) usa el mismo alto. */
+/* Las grillas se estiran al alto que quede libre en el panel, en vez de pedir
+   540px fijos. El panel del modal es overflow:hidden, así que un alto fijo mayor
+   al disponible no producía scroll: recortaba las grillas por abajo, sin borde
+   inferior y sin forma de llegar a las últimas filas. Con flex + min-height:0
+   terminan donde termina el panel y las listas de adentro scrollean solas. */
 .cat-md-wrap {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  min-height: 540px;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .cat-md-wrap.cat-md-wrap-single {
   grid-template-columns: 1fr;
-  min-height: 540px;
 }
+/* .hidden global usa display:none, pero .cat-md-wrap declara display:grid con
+   la misma especificidad y gana por orden. Hace falta el override. */
+.cat-md-wrap.hidden { display: none; }
 .cat-md-master, .cat-md-detail {
   display: flex;
   flex-direction: column;
