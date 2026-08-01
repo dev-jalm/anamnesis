@@ -71,7 +71,6 @@ body {
   margin: 0 auto;
 }
 .mono { font-family: 'JetBrains Mono', monospace; }
-.display-font { font-family: 'Fraunces', serif; }
 
 header {
   margin-bottom: 32px;
@@ -83,12 +82,6 @@ header {
 }
 header {
   margin-bottom: 16px;
-}
-header .title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  align-items: flex-start;
 }
 header .brand-block {
   display: flex;
@@ -180,17 +173,6 @@ footer .eyebrow-sep {
 footer .eyebrow-sources {
   font-size: 13px; color: var(--muted);
 }
-
-.controls-row {
-  display: flex; justify-content: space-between;
-  align-items: flex-end; gap: 20px; margin-bottom: 18px; flex-wrap: wrap;
-}
-.actions-row {
-  display: flex; gap: 10px;
-  align-items: flex-end; flex-wrap: wrap;
-  margin-bottom: 12px;
-  justify-content: flex-end;
-}
 /* Barra superior fija: header + controls + tabs siempre visibles arriba mientras
    se hace scroll del contenido de la solapa.
    - position: sticky con top:0 → queda pegada al viewport al scrollear el body
@@ -247,8 +229,7 @@ footer .eyebrow-sources {
   grid-template-columns: 1fr;
   gap: 10px;
   margin-bottom: 32px;
-}
-.asset-section { margin-bottom: 0; }  /* Tag picker modal */
+}  /* Tag picker modal */
 .tag-picker-list {
   display: flex;
   flex-wrap: wrap;
@@ -639,69 +620,12 @@ footer .eyebrow-sources {
   border-radius: 0 6px 6px 0;
 }
 /* Barra de progreso Activos > Reserva */
-.reserva-progress-bar {
-  background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: 100px;
-  height: 10px;
-  overflow: hidden;
-  position: relative;
-}
-.reserva-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #6B8E4E 0%, #9BBE7C 100%);
-  border-radius: 100px;
-  transition: width 0.6s ease-out;
-}
-.reserva-progress-fill.over {
-  background: linear-gradient(90deg, #D4A24C 0%, #E8C47C 100%);
-}
-.reserva-progress-meta {
-  display: flex; justify-content: space-between;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px; color: var(--muted); margin-top: 6px;
-  letter-spacing: 0.5px;
-}
 /* Checks de cumplimiento mensual de la reserva */
 .reserva-checks {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(20px, 1fr));
   gap: 4px;
   margin-top: 8px;
-}
-.reserva-check {
-  aspect-ratio: 1;
-  background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: transparent;
-  transition: all 0.15s;
-}
-.reserva-check.done {
-  background: var(--green);
-  border-color: var(--green);
-  color: white;
-}
-.reserva-check:hover {
-  border-color: var(--accent);
-}
-.reserva-checks-meta {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted);
-  text-align: center;
-  margin-top: 4px;
-  letter-spacing: 0.5px;
-}
-.selectors {
-  display: flex; gap: 20px;
-  flex-wrap: wrap; align-items: flex-end;
-}
-.buttons-group {
-  display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
 }
 .selector-group { display: flex; flex-direction: column; }
 .period-label {
@@ -767,16 +691,6 @@ footer .eyebrow-sources {
   border-color: #4A6B8A;
   transform: translateY(-1px);
 }
-
-.delete-btn {
-  background: transparent; color: #C8553D; border: 1px solid #C8553D;
-  padding: 5px 10px; border-radius: 6px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px; font-weight: 600; letter-spacing: 1.2px;
-  cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
-  transition: all 0.2s;
-}
-.delete-btn:hover { background: #C8553D; color: #F5F1E8; }
 #deleteScopeBtns .source-btn.active {
   background: #C8553D; color: #F5F1E8; border-color: #C8553D;
 }
@@ -1383,21 +1297,6 @@ footer .eyebrow-sources {
 [data-theme="dark"] .budget-annual-table tr.variation-row td {
   background: rgba(255, 255, 255, 0.02);
 }
-.budget-annual-table td.cell-var {
-  text-align: right;
-  padding: 6px 8px;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.budget-annual-table td.cell-var.over {
-  color: var(--red);
-}
-.budget-annual-table td.cell-var.under {
-  color: var(--green);
-}
-.budget-annual-table td.cell-var.neutral {
-  color: var(--muted);
-}
 
 .step-indicator {
   display: flex; align-items: center; justify-content: center;
@@ -1429,13 +1328,6 @@ footer .eyebrow-sources {
   margin-bottom: 18px; color: var(--ink);
 }
 
-.step-list {
-  margin: 8px 0 0; padding-left: 22px;
-  font-size: 13px; color: var(--muted-2); line-height: 1.7;
-}
-.step-list li { margin-bottom: 4px; }
-.step-list strong { color: var(--ink); }
-
 .sync-status {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 6px 12px;
@@ -1462,12 +1354,6 @@ footer .eyebrow-sources {
 /* Recordatorios suaves de carga (banner debajo del header) */
 /* Fila de badges de estado en el header: notificación de Drive + recordatorios
    de carga, uno al lado del otro. */
-.status-badges-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
 .load-reminders-wrap {
   display: inline-flex;
   align-items: center;
@@ -2123,34 +2009,9 @@ footer .eyebrow-sources {
   color: var(--muted-2);
   line-height: 1.45;
 }
-.config-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-@media (max-width: 720px){
-  .config-list { grid-template-columns: 1fr; }
-}
-.config-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  align-items: center;
-  padding: 10px 12px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  transition: border-color 0.15s;
-}
-.config-row.modified { border-color: var(--accent); }
-.config-row-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.config-row-name { font-size: 13px; font-weight: 500; color: var(--ink); }
-.config-row-meta {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted-2);
-  letter-spacing: 0.3px;
-}
+/* .config-toggle sigue vivo: lo usa la grilla de visualización de Ficha médica.
+   Las clases .config-list / .config-row que lo acompañaban se eliminaron —
+   ningún HTML ni JS las referenciaba. */
 .config-toggle {
   display: inline-flex;
   align-items: center;
@@ -2970,13 +2831,11 @@ footer .eyebrow-sources {
   padding-left: 38px;
 }
 /* Listas dentro de fm-section ya alineadas con el head/desc */
-.fm-section .config-list,
 .fm-section .kpi-cfg-list {
   margin-left: 38px;
 }
 @media (max-width: 720px){
   .fm-section-desc { padding-left: 0; }
-  .fm-section .config-list,
   .fm-section .kpi-cfg-list { margin-left: 0; }
   .fm-section .kpi-cfg-header { padding-left: 0 !important; }
 }
@@ -3279,7 +3138,6 @@ footer .eyebrow-sources {
 
 /* El span con el "key" técnico se ocultó del UI por simplicidad. Por si quedó
    alguna ocurrencia escapada, la suprimimos defensivamente. */
-.cat-manage-key { display: none; }
 
 /* Etiquetas */
 .label-color-input {
@@ -3309,17 +3167,7 @@ footer .eyebrow-sources {
 .label-color-edit::-webkit-color-swatch-wrapper { padding: 0; }
 .label-color-edit::-webkit-color-swatch { border: none; border-radius: 2px; }
 .label-color-edit::-moz-color-swatch { border: none; border-radius: 2px; }
-.cat-master-row.label-row { grid-template-columns: 1fr 1fr 50px 28px; }  .cat-manage-key {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px; color: var(--muted-2);
-  padding: 5px 8px;
-  background: var(--card);
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.cat-master-row.label-row { grid-template-columns: 1fr 1fr 50px 28px; }
 .cat-manage-input {
   background: var(--card);
   border: 1px solid var(--grid);
@@ -3345,12 +3193,6 @@ footer .eyebrow-sources {
   background: linear-gradient(135deg, rgba(74, 107, 138, 0.20) 0%, rgba(47, 70, 89, 0.25) 100%);
   border-left: 3px solid #4A6B8A;
   padding-left: 11px;
-}
-[data-theme="dark"] .cat-master-row.modified .cat-manage-key,
-[data-theme="dark"] .cat-detail-row.modified .cat-manage-key {
-  background: rgba(0, 0, 0, 0.3);
-  color: #B5C8D9;
-  border-color: #4A6B8A;
 }
 .cat-manage-delete {
   background: transparent;
@@ -4280,11 +4122,6 @@ footer .eyebrow-sources {
 .kpi-sparkline { display: block; }
 
 /* ===== VIEW MODE TOGGLE (Resumen / Completa) ===== */
-.view-mode-toggle-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 14px;
-}
 .view-mode-toggle {
   display: inline-flex;
   gap: 0;
@@ -5906,13 +5743,6 @@ body[data-exporting="true"] .section-card {
 }
 /* Contenedor de extras: quedó sin uso al unificar la línea, pero se conserva la
    regla por si alguna variante del markup todavía lo emite. */
-.manual-row-extras {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: 8px;
-  align-items: center;
-  width: 100%;
-}
 .manual-extra-field {
   background: var(--card);
   border: 1px solid var(--grid);
@@ -6057,12 +5887,6 @@ body[data-exporting="true"] .section-card {
   transition: transform 0.15s;
 }
 .investment-detail-panel[open] summary::before { transform: rotate(90deg); }
-.investment-detail-panel summary .investment-count {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted-2);
-  margin-left: auto;
-}
 .investment-detail-table {
   width: 100%;
   border-collapse: collapse;
@@ -6260,17 +6084,6 @@ body[data-exporting="true"] .section-card {
   justify-content: space-between;
   gap: 16px;
 }
-.inv-summary-title {
-  flex-shrink: 0;
-}
-.inv-summary-stats {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin-left: auto;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
 .inv-summary-stat {
   display: flex;
   flex-direction: column;
@@ -6433,6 +6246,10 @@ body[data-exporting="true"] .section-card {
 /* La tabla USD usa un fondo levemente teñido para diferenciarla visualmente
    de la tabla ARS dentro del mismo panel. El encabezado ya es uniforme (regla
    de arriba); el tinte del body es lo que distingue una tabla de la otra. */
+/* Y para no perder contraste, las filas de tickers en USD tienen un hover más visible */
+
+/* La clase la arma el JS como 'inv-table-' + moneda, así que no aparece escrita
+   en ningún archivo. No borrar por "no usada". */
 .investment-detail-tables .inv-table-usd {
   background: rgba(74, 107, 138, 0.06);
 }
@@ -7083,18 +6900,6 @@ body[data-exporting="true"] .section-card {
 }
 /* Indicador de cotización al lado del toggle USD. Se muestra solo cuando el
    modo USD está activo. Compacto y mono para no robar protagonismo. */
-.kpi-currency-indicator {
-  display: inline-flex;
-  align-items: center;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted-2);
-  margin-left: 8px;
-  letter-spacing: 0.5px;
-}
-.kpi-currency-indicator.warn {
-  color: var(--red, #C8553D);
-}
 
 /* Símbolo de moneda dentro del valor de las tarjetas KPI. Lo coloreamos en
    un tono apagado (muted-2 — marrón cálido de la paleta tierra) para que el
@@ -7204,24 +7009,6 @@ body[data-exporting="true"] .section-card {
 }
 
 /* Bloque de título dinámico + estado sync */
-.sidebar-title-block h1 {
-  font-family: 'Fraunces', serif;
-  font-size: 18px;
-  font-weight: 400;
-  font-style: italic;
-  line-height: 1.15;
-  margin: 0 0 8px 0;
-  color: var(--ink, #2A2520);
-}
-.sidebar-title-block h1 strong {
-  font-weight: 700;
-  font-style: normal;
-}
-.sidebar-title-block .status-badges-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
 
 /* Selectores stackeados verticalmente */
 .sidebar-selectors {
