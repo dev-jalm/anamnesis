@@ -294,7 +294,10 @@
             <div class="main-mov-summary-count mono" id="mainMovFlowCount">0</div>
             <div class="main-mov-summary-value mono" id="mainMovFlowTotal">$0</div>
           </div>
-          <div class="main-mov-summary-block" title="Cantidad y suma de los movimientos filtrados (según el selector de tipo).">
+          <!-- Flujo y Movimientos son excluyentes: el listado muestra tx de
+               flujo o tx de gasto, nunca las dos. Se alternan en el mismo lugar
+               (ver updateMainMovSummary). -->
+          <div class="main-mov-summary-block" id="mainMovMovementsBlock" title="Cantidad y suma de los movimientos filtrados (según el selector de tipo).">
             <div class="main-mov-summary-label">Movimientos</div>
             <div class="main-mov-summary-count mono" id="mainMovCount">0</div>
             <div class="main-mov-summary-value mono" id="mainMovTotal">$0</div>

@@ -18746,10 +18746,15 @@ function updateMainMovSummary(items, allTxs) {
     return !!effCat && NON_EXPENSE_CATS.indexOf(effCat) >= 0 &&
            NON_COUNTABLE_FLOW_CATS.indexOf(effCat) < 0;
   });
+  // Se alternan: el listado muestra tx de flujo o tx de gasto, nunca las dos
+  // juntas (el filtro de tipo deja pasar unas u otras). Mostrar el bloque de
+  // Movimientos en "$0 · 0 tx" mientras se está mirando el flujo era ruido.
   if (flowBlockEl) {
     flowBlockEl.style.display = hayFlujoALaVista ? '' : 'none';
     flowBlockEl.setAttribute('title', 'Balance de flujo: ' + FORMULA_BALANCE_FLUJO);
   }
+  const movBlockEl = document.getElementById('mainMovMovementsBlock');
+  if (movBlockEl) movBlockEl.style.display = hayFlujoALaVista ? 'none' : '';
 
   // Render bloque FLUJO (solo si los elementos están presentes — backward compat)
   if (flowCountEl && flowTotalEl) {

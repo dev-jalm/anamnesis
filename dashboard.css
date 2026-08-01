@@ -3842,16 +3842,19 @@ footer .eyebrow-sources {
   gap: 14px;
   align-items: stretch;
 }
+/* Sin separador ni padding lateral: los dos bloques (Flujo y Movimientos) son
+   excluyentes, así que nunca hay dos a la vez que separar, y el que se muestre
+   tiene que caer siempre en la misma posición. Con el borde y el padding
+   asimétrico del :first-child, el bloque visible se corría unos píxeles según
+   cuál de los dos fuera. */
 .main-mov-summary-block {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 1px;
-  padding: 4px 12px;
-  border-left: 1px solid var(--border);
+  padding: 4px 0;
   line-height: 1.2;
 }
-.main-mov-summary-block:first-child { border-left: none; padding-left: 0; }
 .main-mov-summary-label {
   color: var(--muted);
   text-transform: uppercase;
