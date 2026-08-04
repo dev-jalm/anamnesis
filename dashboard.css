@@ -5368,23 +5368,6 @@ body[data-exporting="true"] .section-card {
   gap: 4px;
 }
 
-/* ===== Densidad alta para la grilla de Visualización (Ficha médica) ===== */
-.visualization-grid {
-  gap: 0;  /* sin gap entre filas, los bordes lo separan */
-}
-.viz-grid-header {
-  padding: 6px 12px;  /* antes 10px 14px */
-  font-size: 9px;     /* antes 10px */
-}
-.viz-grid-row {
-  padding: 5px 12px;  /* antes 10px 14px */
-}
-.viz-grid-row-name {
-  font-size: 12px;    /* antes 13px */
-}
-.viz-grid-row-meta {
-  font-size: 9px;     /* antes 10px */
-}
 /* El toggle (clase .config-toggle) usa por defecto 36×20px; lo achicamos */
 .visualization-grid .config-toggle {
   --toggle-w: 30px;
@@ -5583,11 +5566,16 @@ body[data-exporting="true"] .section-card {
 }
 
 /* ===== Grilla unificada de Visualización (Completa + Resumen) ===== */
+/* Son 12 filas fijas y cada una es sólo un nombre, un detalle y dos toggles:
+   la grilla se lee de un vistazo si las filas son bajas.
+   Los valores compactos estaban escritos más arriba en un bloque aparte que
+   nunca llegaba a aplicarse —estas reglas venían después y ganaban por orden—,
+   así que ahora viven acá, en un solo lugar. */
 .visualization-grid {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 10px;
+  gap: 0;   /* sin separación entre filas: los bordes ya las separan */
+  margin-top: 8px;
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
@@ -5597,11 +5585,11 @@ body[data-exporting="true"] .section-card {
   display: grid;
   grid-template-columns: 1fr 110px 110px;
   align-items: center;
-  padding: 10px 14px;
+  padding: 5px 12px;
   background: var(--bg-1);
   border-bottom: 1px solid var(--border);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 1.5px;
   color: var(--muted-2);
   text-transform: uppercase;
@@ -5613,7 +5601,7 @@ body[data-exporting="true"] .section-card {
   display: grid;
   grid-template-columns: 1fr 110px 110px;
   align-items: center;
-  padding: 10px 14px;
+  padding: 4px 12px;
   border-bottom: 1px solid var(--border);
   transition: background 0.15s;
 }
@@ -5629,18 +5617,21 @@ body[data-exporting="true"] .section-card {
 .viz-grid-row-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
+  min-width: 0;
 }
 .viz-grid-row-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--ink);
+  line-height: 1.3;
 }
 .viz-grid-row-meta {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: 9px;
   color: var(--muted-2);
   letter-spacing: 0.3px;
+  line-height: 1.3;
 }
 .viz-grid-row-toggle {
   display: flex;
