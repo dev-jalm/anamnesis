@@ -299,6 +299,11 @@ footer .eyebrow-sources {
 .rules-add-form,
 .travel-add-form,
 .cat-add-unified {
+  /* Alto de TODOS los controles de estos formularios. Definido una vez para que
+     los que no son <select> —el selector de color, el picker de etiquetas— se
+     alineen con los demás en vez de tener cada uno su propia altura. Es el que
+     resulta de padding 7px + borde 1px + línea de 12.5px. */
+  --add-ctrl-h: 31px;
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -353,15 +358,27 @@ footer .eyebrow-sources {
   border: 1px solid var(--border);
   border-radius: 6px;
 }
-/* Variante "en línea" cuando el picker está en una fila con otros fields.
-   Necesita scroll vertical interno si hay muchas etiquetas, para no estirar
-   la fila completa. Las etiquetas wrap como siempre pero el contenedor tiene
-   un max-height razonable. */
+/* Variante "en línea": el picker comparte fila con los selects del formulario,
+   así que tiene el MISMO alto que ellos. Antes crecía hasta 80px y quedaba
+   bastante más alto que sus vecinos.
+   Con alto fijo las etiquetas ya no pueden envolver a una segunda línea: van en
+   una sola fila y, si no entran, se scrollea en horizontal. */
 .rule-tags-picker-inline {
-  max-height: 80px;
-  overflow-y: auto;
-  align-items: flex-start;
-  align-content: flex-start;
+  height: var(--add-ctrl-h, 31px);
+  min-height: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+/* Las etiquetas no se comprimen al scrollear en horizontal. */
+.rule-tags-picker-inline > * { flex-shrink: 0; }
+/* Y son más chicas que en los modales: con el padding de 6px llegaban a 31px,
+   el alto entero del picker, y tapaban su borde y su relleno. */
+.rule-tags-picker-inline .tag-picker-chip {
+  font-size: 11px;
+  padding: 2px 10px;
+  border-width: 1px;
 }
 .rule-tags-picker .tag-picker-empty {
   font-family: 'Inter', system-ui;
@@ -3177,7 +3194,9 @@ footer .eyebrow-sources {
 /* Etiquetas */
 .label-color-input {
   width: 44px;
-  height: 36px;
+  /* Misma altura que los demás controles del formulario. Tenía 36px fijos y
+     sobresalía por encima del campo de al lado. */
+  height: var(--add-ctrl-h, 36px);
   padding: 2px;
   border: 1px solid var(--grid);
   border-radius: 6px;
