@@ -17444,12 +17444,12 @@ function buildInvestmentDetailPanel(destinos, title) {
         '<td>' + (showDestColumn ? 'Destino' : '') + '</td>' +
         '<td>Fecha</td>' +
         '<td></td>' +
-        '<td class="num">Cantidad</td>' +
+        '<td class="num">Nominales</td>' +
         '<td class="num">Precio de compra</td>' +
         '<td class="num">Total comprado</td>' +
         '<td class="num">Precio actual</td>' +
         '<td class="num" title="Precio actual menos precio de compra, por unidad">Variación x nominal</td>' +
-        '<td class="num" title="Cantidad × precio actual">Total actualizado</td>' +
+        '<td class="num" title="Nominales × precio actual">Total actualizado</td>' +
         '<td class="num" title="Ganancia o pérdida de esta compra">G/P</td>' +
       '</tr>';
       // Determinar el/los broker(s) del ticker. Si todas las entries usan
@@ -17562,12 +17562,12 @@ function buildInvestmentDetailPanel(destinos, title) {
           '<th title="Broker o exchange donde se opera el activo">Broker/Exchange</th>' +
           '<th>Ticker</th>' +
           '<th>Descripción</th>' +
-          '<th class="num">Cantidad</th>' +
+          '<th class="num">Nominales</th>' +
           '<th class="num" title="Precio Promedio de Compra ponderado">PPC</th>' +
-          '<th class="num" title="Cantidad × PPC">Invertido</th>' +
+          '<th class="num" title="Nominales × PPC">Total invertido</th>' +
           '<th class="num">Precio actual</th>' +
           '<th class="num" title="Precio actual menos PPC, por unidad">Variación x nominal</th>' +
-          '<th class="num" title="Cantidad × Precio actual">Actualizado</th>' +
+          '<th class="num" title="Nominales × Precio actual">Total actualizado</th>' +
           '<th class="num" title="Ganancia o pérdida vs PPC">G/P</th>' +
         '</tr>' +
       '</thead>' +
