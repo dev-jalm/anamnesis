@@ -299,11 +299,12 @@ footer .eyebrow-sources {
 .rules-add-form,
 .travel-add-form,
 .cat-add-unified {
-  /* Alto de TODOS los controles de estos formularios. Definido una vez para que
-     los que no son <select> —el selector de color, el picker de etiquetas— se
-     alineen con los demás en vez de tener cada uno su propia altura. Es el que
-     resulta de padding 7px + borde 1px + línea de 12.5px. */
-  --add-ctrl-h: 31px;
+  /* Alto de TODOS los controles de estos formularios, incluidos los que no son
+     <select> —el selector de color, el picker de etiquetas—. Es el mismo valor
+     que --admin-ctrl-h, el alto único del modal; se repite acá porque estos
+     formularios también se usan fuera de él (el editor de reglas es su propio
+     modal) y ahí no habría de dónde heredarlo. */
+  --add-ctrl-h: 32px;
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -2878,6 +2879,57 @@ footer .eyebrow-sources {
   margin: 0 0 8px 0;
   padding-left: 38px;
 }
+/* ===== Alto único de los controles del modal Administración =====
+   Convivían ocho alturas distintas —19, 22, 24, 26, 31, 32, 36 y 38px— entre
+   selects y botones que están uno al lado del otro. Se toma como referencia el
+   botón de acción de los formularios (AGREGAR REGLA, 32px) y se aplica a todos.
+   La medida vive en una variable: si cambia, cambia en un solo lugar. */
+.cat-modal-card {
+  --admin-ctrl-h: 32px;
+}
+.cat-modal-card .cat-md-filter-btn,
+.cat-modal-card .cat-md-io-btn,
+.cat-modal-card .cat-md-io-btn-large,
+.cat-modal-card .cat-master-row .cat-manage-select,
+.cat-modal-card .cat-detail-row .cat-manage-select,
+.cat-modal-card .cat-master-row .cat-manage-delete,
+.cat-modal-card .cat-detail-row .cat-manage-delete,
+.cat-modal-card .cat-master-row .cat-manage-swap-type,
+.cat-modal-card .rules-filter-sel,
+.cat-modal-card .rules-header-actions .upload-btn,
+.cat-modal-card .rules-add-form .period-select,
+.cat-modal-card .travel-add-form .period-select,
+.cat-modal-card .cat-add-unified .period-select,
+.cat-modal-card .rules-add-form .upload-btn,
+.cat-modal-card .travel-add-form .upload-btn,
+.cat-modal-card .cat-add-unified .upload-btn {
+  height: var(--admin-ctrl-h);
+}
+/* Los botones cuadrados de icono conservan su proporción. */
+.cat-modal-card .cat-md-io-btn,
+.cat-modal-card .cat-md-io-btn-large,
+.cat-modal-card .cat-master-row .cat-manage-delete,
+.cat-modal-card .cat-detail-row .cat-manage-delete,
+.cat-modal-card .cat-master-row .cat-manage-swap-type {
+  width: var(--admin-ctrl-h);
+}
+/* El muestrario de color de cada etiqueta, en su grilla. */
+.cat-modal-card .label-color-edit {
+  height: var(--admin-ctrl-h);
+  width: 38px;
+}
+/* Las filas de la grilla crecen lo justo para alojar sus controles. */
+.cat-modal-card .cat-master-row,
+.cat-modal-card .cat-detail-row {
+  min-height: calc(var(--admin-ctrl-h) + 4px);
+}
+/* Y el select de clasificación deja de ser 11px sueltos dentro de la fila. */
+.cat-modal-card .cat-master-row .cat-manage-select,
+.cat-modal-card .cat-detail-row .cat-manage-select {
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
 /* Listas dentro de fm-section ya alineadas con el head/desc */
 .fm-section .kpi-cfg-list {
   margin-left: 38px;
