@@ -17396,51 +17396,62 @@ function buildInvestmentDetailPanel(destinos, title) {
       const entriesSorted = g.entries.slice().sort(function (a, b) {
         return (b.fecha || '').localeCompare(a.fecha || '');
       });
+      // Las compras individuales se emiten como filas de LA MISMA tabla, no como
+      // una tabla anidada. Así comparten el <colgroup> y cada dato cae bajo el
+      // título de su columna: la fecha bajo Ticker, la cantidad bajo Cantidad,
+      // el precio de compra bajo PPC, y así. Anidada, las dos tablas medían sus
+      // columnas por separado y los títulos no coincidían con los valores.
       const entriesRowsHtml = entriesSorted.map(function (e) {
         const fechaDisplay = e.fecha ? e.fecha.split('-').reverse().join('/') : '—';
         const destLabel = (INVESTMENT_DESTINOS.find(function (d) { return d.key === e.destino; }) || { label: e.destino }).label;
         const eCant = Number(e.cantidad) || 0;
         const ePrecio = Number(e.precio) || 0;
         const eTotal = eCant * ePrecio;
-        // Rendimiento de ESTA compra contra el precio actual del ticker (el que
-        // muestra la cabecera). Dos lecturas distintas del mismo dato:
+        // Rendimiento de ESTA compra contra el precio actual del ticker.
         //   variación → cuánto se movió el papel por unidad, comparable entre
         //               compras del mismo ticker hechas a distinto precio.
-        //   G/P       → cuánta plata puso o sacó esta compra en concreto.
+        //   actualizado / G/P → cuánto vale hoy y cuánto dejó esta compra.
         // Sin precio actual cargado no hay contra qué comparar: van en guión.
         const varUnit = (precioActual !== null) ? (precioActual - ePrecio) : null;
+        const eActualizado = (precioActual !== null) ? (precioActual * eCant) : null;
         const gpLote = (varUnit !== null) ? (varUnit * eCant) : null;
-        const celdaGp = function (valor) {
-          if (valor === null) return '<td class="num inv-entry-gp">—</td>';
-          const cls = valor > 0 ? ' inv-gp-positive' : (valor < 0 ? ' inv-gp-negative' : '');
-          const signo = valor > 0 ? '+' : (valor < 0 ? '-' : '');
-          return '<td class="num inv-entry-gp' + cls + '">' +
-            signo + monedaPrefix + fmt(Math.abs(valor)) + '</td>';
-        };
-        return '<tr class="inv-entry-row">' +
-          '<td class="num">' + fechaDisplay + '</td>' +
-          (showDestColumn ? '<td>' + escapeHtmlSafe(destLabel) + '</td>' : '') +
+        const gpLotePct = (gpLote !== null && eTotal !== 0) ? (gpLote / Math.abs(eTotal) * 100) : null;
+        const eGpClass = gpLote === null ? '' : (gpLote > 0 ? 'inv-gp-positive' : (gpLote < 0 ? 'inv-gp-negative' : ''));
+        const eGpSign = gpLote === null ? '' : (gpLote > 0 ? '+' : (gpLote < 0 ? '-' : ''));
+        const na = '<span class="inv-na">—</span>';
+        return '<tr class="inv-entry-row inv-detail-row hidden" data-ticker-detail="' + escapeHtmlSafe(tk) + '">' +
+          '<td class="inv-entry-actions"><button class="inv-delete-btn" data-action="delete-inv" data-inv-id="' + escapeHtmlSafe(e.id) + '" title="Eliminar esta compra"><i data-lucide="trash-2" style="width:11px;height:11px"></i></button></td>' +
+          '<td>' + (showDestColumn ? escapeHtmlSafe(destLabel) : '') + '</td>' +
+          '<td class="inv-entry-fecha">' + fechaDisplay + '</td>' +
+          '<td></td>' +
           '<td class="num">' + (eCant < 0 ? '-' : '') + fmt(Math.abs(eCant)) + '</td>' +
-          '<td class="num">' + monedaPrefix + fmt(ePrecio) + '</td>' +
-          '<td class="num">' + (eTotal < 0 ? '-' : '') + monedaPrefix + fmt(Math.abs(eTotal)) + '</td>' +
-          celdaGp(varUnit) +
-          celdaGp(gpLote) +
-          '<td class="num"><button class="inv-delete-btn" data-action="delete-inv" data-inv-id="' + escapeHtmlSafe(e.id) + '" title="Eliminar este activo"><i data-lucide="trash-2" style="width:11px;height:11px"></i></button></td>' +
+          '<td class="num">' + monedaPrefix + ' ' + fmt(ePrecio) + '</td>' +
+          '<td class="num">' + (eTotal < 0 ? '-' : '') + monedaPrefix + ' ' + fmt(Math.abs(eTotal)) + '</td>' +
+          '<td class="num">' + (precioActual !== null ? monedaPrefix + ' ' + fmt(precioActual) : na) + '</td>' +
+          '<td class="num ' + eGpClass + '">' + (varUnit !== null
+            ? (varUnit > 0 ? '+' : (varUnit < 0 ? '-' : '')) + monedaPrefix + ' ' + fmt(Math.abs(varUnit))
+            : na) + '</td>' +
+          '<td class="num ' + eGpClass + '">' + (eActualizado !== null ? monedaPrefix + ' ' + fmt(eActualizado) : na) + '</td>' +
+          '<td class="num ' + eGpClass + '">' + (gpLote !== null
+            ? eGpSign + monedaPrefix + ' ' + fmt(Math.abs(gpLote)) +
+              (gpLotePct !== null ? '<div class="inv-gp-pct">' + eGpSign + Math.abs(gpLotePct).toFixed(2) + '%</div>' : '')
+            : na) + '</td>' +
         '</tr>';
       }).join('');
-      const subTableHtml = '<table class="investment-entries-subtable">' +
-        '<thead><tr>' +
-          '<th>Fecha</th>' +
-          (showDestColumn ? '<th>Destino</th>' : '') +
-          '<th class="num">Cantidad</th>' +
-          '<th class="num">Precio</th>' +
-          '<th class="num">Total</th>' +
-          '<th class="num" title="Precio actual menos precio de compra, por unidad">Variación</th>' +
-          '<th class="num" title="Variación por unidad × cantidad de esta compra">G/P</th>' +
-          '<th></th>' +
-        '</tr></thead>' +
-        '<tbody>' + entriesRowsHtml + '</tbody>' +
-      '</table>';
+      // Encabezado del detalle: los mismos títulos, en las mismas columnas.
+      const entriesHeadHtml = '<tr class="inv-entries-head inv-detail-row hidden" data-ticker-detail="' + escapeHtmlSafe(tk) + '">' +
+        '<td></td>' +
+        '<td>' + (showDestColumn ? 'Destino' : '') + '</td>' +
+        '<td>Fecha</td>' +
+        '<td></td>' +
+        '<td class="num">Cantidad</td>' +
+        '<td class="num">Precio de compra</td>' +
+        '<td class="num">Total comprado</td>' +
+        '<td class="num">Precio actual</td>' +
+        '<td class="num" title="Precio actual menos precio de compra, por unidad">Variación x nominal</td>' +
+        '<td class="num" title="Cantidad × precio actual">Total actualizado</td>' +
+        '<td class="num" title="Ganancia o pérdida de esta compra">G/P</td>' +
+      '</tr>';
       // Determinar el/los broker(s) del ticker. Si todas las entries usan
       // el mismo broker → mostramos su chip. Si hay varios → mostramos
       // "MULTI" con tooltip listando los distintos.
@@ -17466,6 +17477,12 @@ function buildInvestmentDetailPanel(destinos, title) {
         '<td class="num">' + monedaPrefix + ' ' + new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(g.ppc) + '</td>' +
         '<td class="num">' + (invertido < 0 ? '-' : '') + monedaPrefix + ' ' + fmt(Math.abs(invertido)) + '</td>' +
         '<td class="num"><input type="text" inputmode="decimal" class="inv-price-input" data-ticker="' + escapeHtmlSafe(tk) + '" value="' + (precioActual !== null ? formatInputAR(precioActual) : '') + '" title="' + escapeHtmlSafe(lastUpdateDisplay) + '"></td>' +
+        // Variación por nominal del conjunto: precio actual contra el PPC.
+        // Es el mismo dato que muestra cada compra en su fila, pero ponderado.
+        '<td class="num ' + gpClass + '">' + (precioActual !== null
+          ? ((precioActual - g.ppc) > 0 ? '+' : ((precioActual - g.ppc) < 0 ? '-' : '')) +
+            monedaPrefix + ' ' + fmt(Math.abs(precioActual - g.ppc))
+          : '<span class="inv-na">—</span>') + '</td>' +
         '<td class="num ' + gpClass + '">' + (actualizado !== null ? monedaPrefix + ' ' + fmt(actualizado) : '<span class="inv-na">—</span>') + '</td>' +
         '<td class="num ' + gpClass + '">' +
           (gp !== null
@@ -17473,9 +17490,8 @@ function buildInvestmentDetailPanel(destinos, title) {
             : '<span class="inv-na">—</span>') +
         '</td>' +
       '</tr>' +
-      '<tr class="inv-detail-row hidden" data-ticker-detail="' + escapeHtmlSafe(tk) + '">' +
-        '<td colspan="10" class="inv-detail-cell">' + subTableHtml + '</td>' +
-      '</tr>';
+      entriesHeadHtml +
+      entriesRowsHtml;
     }).join('');
   }
   const arsRows = buildRows(arsGroups, arsTickers, '$');
@@ -17483,14 +17499,14 @@ function buildInvestmentDetailPanel(destinos, title) {
 
   // ─── 5. Header de sección dentro de la tabla (divisor horizontal con label) ───
   function sectionHeaderRow(label, count) {
-    return '<tr class="inv-section-header"><td colspan="10">' +
+    return '<tr class="inv-section-header"><td colspan="11">' +
       '<span class="inv-section-label">' + label + '</span>' +
       '<span class="inv-section-count">' + count + ' ticker' + (count === 1 ? '' : 's') + '</span>' +
     '</td></tr>';
   }
   // Empty state row para una sección sin tickers cargados (CERO state)
   function sectionEmptyRow(label) {
-    return '<tr class="inv-section-empty"><td colspan="10">Sin activos cargados en ' + label + '</td></tr>';
+    return '<tr class="inv-section-empty"><td colspan="11">Sin activos cargados en ' + label + '</td></tr>';
   }
 
   // Cuerpo de la tabla: ARS arriba, USD abajo, separados por la fila de header.
@@ -17507,7 +17523,7 @@ function buildInvestmentDetailPanel(destinos, title) {
   //   fila 2: títulos de columnas
   // Si no hay tickers, fila única con mensaje vacío.
   function buildCurrencyTable(monedaLabel, count, rowsHtml) {
-    const bodyHtml = rowsHtml || '<tr class="inv-section-empty"><td colspan="10">Sin activos cargados en ' + monedaLabel + '</td></tr>';
+    const bodyHtml = rowsHtml || '<tr class="inv-section-empty"><td colspan="11">Sin activos cargados en ' + monedaLabel + '</td></tr>';
     // El botón "actualizar precios" va SOLO en la fila ARS — actualiza tanto
     // tickers ARS (precio directo desde data912/CEDEARs) como tickers USD
     // (precio implícito desde su CEDEAR equivalente vía cotización MEP).
@@ -17521,20 +17537,21 @@ function buildInvestmentDetailPanel(destinos, title) {
       : '';
     return '<table class="investment-detail-table investment-detail-grouped inv-table-' + monedaLabel.toLowerCase() + '">' +
       '<colgroup>' +
-        '<col style="width:20px">' +   /* toggle chevron */
-        '<col style="width:140px">' +  /* Broker/Exchange (más ancho para que "BROKER/EXCHANGE" entre completo) */
-        '<col style="width:70px">' +   /* Ticker */
-        '<col style="width:340px">' +  /* Descripción (reducido ~25% respecto al flex previo para dar espacio a las otras columnas) */
+        '<col style="width:20px">' +   /* toggle chevron · en el detalle, borrar */
+        '<col style="width:140px">' +  /* Broker/Exchange · en el detalle, destino */
+        '<col style="width:90px">' +   /* Ticker · en el detalle, fecha */
+        '<col style="width:250px">' +  /* Descripción · vacía en el detalle */
         '<col style="width:85px">' +   /* Cantidad */
-        '<col style="width:100px">' +  /* PPC */
-        '<col style="width:110px">' +  /* Invertido */
+        '<col style="width:105px">' +  /* PPC · en el detalle, precio de compra */
+        '<col style="width:110px">' +  /* Invertido · en el detalle, total comprado */
         '<col style="width:110px">' +  /* Precio actual */
-        '<col style="width:110px">' +  /* Actualizado */
+        '<col style="width:110px">' +  /* Variación por nominal */
+        '<col style="width:110px">' +  /* Actualizado · en el detalle, total actualizado */
         '<col style="width:100px">' +  /* G/P */
       '</colgroup>' +
       '<thead>' +
         '<tr class="inv-currency-header-row">' +
-          '<th colspan="10">' +
+          '<th colspan="11">' +
             '<span class="inv-section-label">' + monedaLabel + '</span>' +
             '<span class="inv-section-count">' + count + ' ticker' + (count === 1 ? '' : 's') + '</span>' +
             updateBtnHtml +
@@ -17549,6 +17566,7 @@ function buildInvestmentDetailPanel(destinos, title) {
           '<th class="num" title="Precio Promedio de Compra ponderado">PPC</th>' +
           '<th class="num" title="Cantidad × PPC">Invertido</th>' +
           '<th class="num">Precio actual</th>' +
+          '<th class="num" title="Precio actual menos PPC, por unidad">Variación x nominal</th>' +
           '<th class="num" title="Cantidad × Precio actual">Actualizado</th>' +
           '<th class="num" title="Ganancia o pérdida vs PPC">G/P</th>' +
         '</tr>' +
@@ -18054,16 +18072,23 @@ function bindInvestmentDetailDelegation() {
     if (toggleBtn) {
       const row = toggleBtn.closest('.inv-ticker-row');
       if (!row) return;
-      // La fila de detalle se emite inmediatamente después de la fila del
-      // ticker (hermana adyacente). NO buscar con document.querySelector por
-      // data-ticker-detail: el mismo ticker puede existir en varios paneles
-      // (ej. JALM y CLM) y un selector global agarra la primera coincidencia
-      // del DOM — destapaba el detalle de OTRO panel (invisible) y el
-      // clickeado nunca se mostraba, aunque el chevron sí rotaba.
-      const detail = row.nextElementSibling;
-      if (!detail || !detail.classList.contains('inv-detail-row')) return;
-      const isExpanded = !detail.classList.contains('hidden');
-      detail.classList.toggle('hidden', isExpanded);
+      // El detalle son VARIAS filas hermanas justo debajo del ticker: la de
+      // títulos más una por compra. Se recorren hasta encontrar algo que no sea
+      // detalle, en vez de tomar sólo la siguiente.
+      // NO buscar con document.querySelector por data-ticker-detail: el mismo
+      // ticker puede existir en varios paneles (ej. JALM y CLM) y un selector
+      // global agarra la primera coincidencia del DOM — destapaba el detalle de
+      // OTRO panel (invisible) y el clickeado nunca se mostraba, aunque el
+      // chevron sí rotaba.
+      const detalles = [];
+      let sib = row.nextElementSibling;
+      while (sib && sib.classList.contains('inv-detail-row')) {
+        detalles.push(sib);
+        sib = sib.nextElementSibling;
+      }
+      if (!detalles.length) return;
+      const isExpanded = !detalles[0].classList.contains('hidden');
+      detalles.forEach(function (d) { d.classList.toggle('hidden', isExpanded); });
       // Rotar el chevron
       const icon = toggleBtn.querySelector('i, svg');
       if (icon) icon.style.transform = isExpanded ? '' : 'rotate(90deg)';

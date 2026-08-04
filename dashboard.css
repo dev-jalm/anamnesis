@@ -6135,53 +6135,50 @@ body[data-exporting="true"] .section-card {
   background: var(--bg-0);
   border-bottom: 2px solid var(--border) !important;
 }
-.investment-entries-subtable {
-  /* Ocupa todo el ancho disponible, como la tabla de tickers de arriba. Antes
-     iba acotada a 720px y centrada: las columnas quedaban apretadas contra el
-     medio mientras sobraba espacio a los dos lados. */
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 10px;
+/* ===== Detalle de compras =====
+   Son filas de la MISMA tabla que los tickers, así que heredan el ancho de cada
+   columna del <colgroup> y los títulos caen justo sobre sus valores. Se
+   distinguen por un fondo apenas más oscuro y una barra de acento a la
+   izquierda, no por estar en un recuadro aparte. */
+.inv-entry-row > td,
+.inv-entries-head > td {
+  background: var(--bg-0);
+  font-size: 10.5px;
 }
-.investment-entries-subtable th,
-.investment-entries-subtable td {
-  padding: 6px 18px;
-  border-bottom: 1px solid var(--border);
-  /* Todos los datos centrados (fecha, cantidad, precio, total, acciones).
-     La única col que difiere es .num que ya trae text-align:right explícito. */
-  text-align: center;
-  white-space: nowrap;
+.inv-entry-row > td:first-child,
+.inv-entries-head > td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
 }
-.investment-entries-subtable th {
+/* Títulos del detalle: mismo lenguaje que los de la tabla, un punto más chicos
+   para que se lean como subtítulo y no compitan con el encabezado real. */
+.inv-entries-head > td {
   font-family: 'JetBrains Mono', monospace;
   font-size: 8px;
   letter-spacing: 1px;
   color: var(--muted-2);
   text-transform: uppercase;
   font-weight: 500;
+  padding-top: 8px;
+  white-space: normal;
+  line-height: 1.25;
 }
-/* Las columnas de rendimiento comparten el color con el G/P de la cabecera
-   del ticker: verde gana, rojo pierde. */
-.investment-entries-subtable .inv-entry-gp {
-  font-weight: 600;
-}
-.investment-entries-subtable .num {
-  /* Centrado (según pedido: todos los datos del detalle centrados).
-     Mantenemos la fuente mono para alineación visual de los dígitos. */
-  text-align: center;
+.inv-entry-fecha {
   font-family: 'JetBrains Mono', monospace;
+  color: var(--ink);
 }
-.investment-entries-subtable tr:last-child td {
-  border-bottom: none;
-}
-.investment-entries-subtable .inv-delete-btn {
+.inv-entry-actions { text-align: center; }
+.inv-entry-row .inv-delete-btn {
   background: transparent;
   border: none;
   cursor: pointer;
   color: var(--muted-2);
   padding: 2px;
 }
-.investment-entries-subtable .inv-delete-btn:hover { color: var(--red); }
+.inv-entry-row .inv-delete-btn:hover { color: var(--red); }
+/* La última compra cierra el bloque con un borde más marcado. */
+.inv-entry-row:not(:has(+ .inv-entry-row)) > td {
+  border-bottom: 1px solid var(--border);
+}
 
 /* ===== Header del panel de inversión con stats agregados ===== */
 .investment-detail-panel summary {
