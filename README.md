@@ -18,20 +18,17 @@ anamnesis parte de tres decisiones opuestas:
 
 ## Cómo se ve
 
-<!-- CAPTURAS PENDIENTES.
-     Una vez que existan docs/ficha-medica.png y docs/salud-financiera.png,
-     borrá esta línea y descomentá la tabla de abajo. Instrucciones para
-     generarlas al final del archivo, en "Agregar capturas".
+![Ficha médica](docs/ficha-medica.png)
 
-| | |
-|---|---|
-| ![Ficha médica](docs/ficha-medica.png) | ![Salud financiera](docs/salud-financiera.png) |
-| **Ficha médica** — KPIs, score y distribución del gasto | **Salud financiera** — cartera por destino, con líquido e invertido |
--->
+**Ficha médica** — el score de salud financiera con sus cinco componentes, los KPIs del período y la distribución del gasto por tipo, periodicidad, forma de pago y categoría.
+
+![Salud financiera](docs/salud-financiera.png)
+
+**Salud financiera** — la cartera por destino, con líquido e invertido separados por moneda. Cada activo se despliega en sus compras individuales, y cada compra muestra cómo le fue contra el precio de hoy.
 
 **▶ Probalo en vivo: [anamnesis-7zs.pages.dev](https://anamnesis-7zs.pages.dev/)** — entrá con "Ver demo con datos de ejemplo", no hace falta conectar nada.
 
-_Capturas pendientes._
+_Las dos capturas son del modo demo: los números son ficticios._
 
 ## Probarlo
 
@@ -98,15 +95,15 @@ Para validar sintaxis antes de commitear:
 node --check dashboard.js
 ```
 
-## Agregar capturas
+## Regenerar las capturas
 
-Las imágenes de arriba todavía no existen. Para generarlas:
+Si la interfaz cambia, las de `docs/` se rehacen así:
 
 1. Abrí `dashboard.html` y entrá al modo demo.
 2. Capturá **Ficha médica** y **Salud financiera** (en Chrome: `Ctrl+Shift+P` → "Capture screenshot").
-3. Guardalas como `docs/ficha-medica.png` y `docs/salud-financiera.png`.
+3. Pisá `docs/ficha-medica.png` y `docs/salud-financiera.png`.
 
-Al ser el modo demo, las capturas no exponen información real.
+Siempre desde el modo demo: así las capturas no exponen información real.
 
 ## Estado
 
