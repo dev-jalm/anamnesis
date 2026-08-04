@@ -433,13 +433,18 @@ footer .eyebrow-sources {
   margin-left: auto;
 }
 .rules-filter-label { margin-left: 10px; }
-.rules-filter-sel {
+/* Va calificado con .cat-modal-card a propósito: con un solo nombre de clase
+   empata en especificidad con .period-select, que está declarado más abajo en
+   el archivo y le ganaba por orden. El select terminaba con el padding grande
+   del selector general (10px arriba y abajo) dentro de los 32px de alto fijo
+   del modal, y al texto de 13px le quedaban 10px de espacio interior: se
+   cortaba por abajo. */
+.cat-modal-card .rules-filter-sel {
   flex: 0 1 190px;
   min-width: 150px;
   /* Los controles del header van a la misma escala que los de los formularios
      de arriba, no a la del .period-select general. */
-  padding: 6px 10px;
-  padding-right: 28px;
+  padding: 6px 28px 6px 10px;
   font-size: 12px;
   background-position: right 8px center;
   text-transform: none;
