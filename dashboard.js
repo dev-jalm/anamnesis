@@ -17399,13 +17399,32 @@ function buildInvestmentDetailPanel(destinos, title) {
       const entriesRowsHtml = entriesSorted.map(function (e) {
         const fechaDisplay = e.fecha ? e.fecha.split('-').reverse().join('/') : '—';
         const destLabel = (INVESTMENT_DESTINOS.find(function (d) { return d.key === e.destino; }) || { label: e.destino }).label;
-        const eTotal = (Number(e.cantidad) || 0) * (Number(e.precio) || 0);
+        const eCant = Number(e.cantidad) || 0;
+        const ePrecio = Number(e.precio) || 0;
+        const eTotal = eCant * ePrecio;
+        // Rendimiento de ESTA compra contra el precio actual del ticker (el que
+        // muestra la cabecera). Dos lecturas distintas del mismo dato:
+        //   variación → cuánto se movió el papel por unidad, comparable entre
+        //               compras del mismo ticker hechas a distinto precio.
+        //   G/P       → cuánta plata puso o sacó esta compra en concreto.
+        // Sin precio actual cargado no hay contra qué comparar: van en guión.
+        const varUnit = (precioActual !== null) ? (precioActual - ePrecio) : null;
+        const gpLote = (varUnit !== null) ? (varUnit * eCant) : null;
+        const celdaGp = function (valor) {
+          if (valor === null) return '<td class="num inv-entry-gp">—</td>';
+          const cls = valor > 0 ? ' inv-gp-positive' : (valor < 0 ? ' inv-gp-negative' : '');
+          const signo = valor > 0 ? '+' : (valor < 0 ? '-' : '');
+          return '<td class="num inv-entry-gp' + cls + '">' +
+            signo + monedaPrefix + fmt(Math.abs(valor)) + '</td>';
+        };
         return '<tr class="inv-entry-row">' +
           '<td class="num">' + fechaDisplay + '</td>' +
           (showDestColumn ? '<td>' + escapeHtmlSafe(destLabel) + '</td>' : '') +
-          '<td class="num">' + (e.cantidad < 0 ? '-' : '') + fmt(Math.abs(e.cantidad)) + '</td>' +
-          '<td class="num">' + monedaPrefix + fmt(e.precio) + '</td>' +
+          '<td class="num">' + (eCant < 0 ? '-' : '') + fmt(Math.abs(eCant)) + '</td>' +
+          '<td class="num">' + monedaPrefix + fmt(ePrecio) + '</td>' +
           '<td class="num">' + (eTotal < 0 ? '-' : '') + monedaPrefix + fmt(Math.abs(eTotal)) + '</td>' +
+          celdaGp(varUnit) +
+          celdaGp(gpLote) +
           '<td class="num"><button class="inv-delete-btn" data-action="delete-inv" data-inv-id="' + escapeHtmlSafe(e.id) + '" title="Eliminar este activo"><i data-lucide="trash-2" style="width:11px;height:11px"></i></button></td>' +
         '</tr>';
       }).join('');
@@ -17416,6 +17435,8 @@ function buildInvestmentDetailPanel(destinos, title) {
           '<th class="num">Cantidad</th>' +
           '<th class="num">Precio</th>' +
           '<th class="num">Total</th>' +
+          '<th class="num" title="Precio actual menos precio de compra, por unidad">Variación</th>' +
+          '<th class="num" title="Variación por unidad × cantidad de esta compra">G/P</th>' +
           '<th></th>' +
         '</tr></thead>' +
         '<tbody>' + entriesRowsHtml + '</tbody>' +

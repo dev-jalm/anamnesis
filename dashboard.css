@@ -6136,22 +6136,21 @@ body[data-exporting="true"] .section-card {
   border-bottom: 2px solid var(--border) !important;
 }
 .investment-entries-subtable {
-  /* Ancho acotado + centrado horizontal para que la tabla de compras
-     individuales no se estire de borde a borde (perdiendo lectura).
-     max-width: 720px es cómodo para las 5-6 columnas típicas. */
-  width: auto;
-  max-width: 720px;
-  margin: 0 auto;
+  /* Ocupa todo el ancho disponible, como la tabla de tickers de arriba. Antes
+     iba acotada a 720px y centrada: las columnas quedaban apretadas contra el
+     medio mientras sobraba espacio a los dos lados. */
+  width: 100%;
   border-collapse: collapse;
   font-size: 10px;
 }
 .investment-entries-subtable th,
 .investment-entries-subtable td {
-  padding: 5px 14px;
+  padding: 6px 18px;
   border-bottom: 1px solid var(--border);
   /* Todos los datos centrados (fecha, cantidad, precio, total, acciones).
      La única col que difiere es .num que ya trae text-align:right explícito. */
   text-align: center;
+  white-space: nowrap;
 }
 .investment-entries-subtable th {
   font-family: 'JetBrains Mono', monospace;
@@ -6160,6 +6159,11 @@ body[data-exporting="true"] .section-card {
   color: var(--muted-2);
   text-transform: uppercase;
   font-weight: 500;
+}
+/* Las columnas de rendimiento comparten el color con el G/P de la cabecera
+   del ticker: verde gana, rojo pierde. */
+.investment-entries-subtable .inv-entry-gp {
+  font-weight: 600;
 }
 .investment-entries-subtable .num {
   /* Centrado (según pedido: todos los datos del detalle centrados).
