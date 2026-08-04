@@ -6140,10 +6140,20 @@ body[data-exporting="true"] .section-card {
    columna del <colgroup> y los títulos caen justo sobre sus valores. Se
    distinguen por un fondo apenas más oscuro y una barra de acento a la
    izquierda, no por estar en un recuadro aparte. */
+/* Fondo propio para separarlo de la fila del activo, dentro de la misma gama.
+   Antes decía var(--bg-0), que no existe en ninguno de los dos temas: la
+   declaración no resolvía y las filas quedaban transparentes.
+   En claro se hunde un escalón (--bg-2, más oscuro que el fondo de la fila).
+   En oscuro se hace al revés y se aclara (--card): bajando desde #1A1714 casi
+   no queda recorrido antes del negro, y la diferencia no se veía. */
 .inv-entry-row > td,
 .inv-entries-head > td {
-  background: var(--bg-0);
+  background: var(--bg-2);
   font-size: 10.5px;
+}
+[data-theme="dark"] .inv-entry-row > td,
+[data-theme="dark"] .inv-entries-head > td {
+  background: var(--card);
 }
 .inv-entry-row > td:first-child,
 .inv-entries-head > td:first-child {
