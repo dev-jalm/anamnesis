@@ -398,7 +398,7 @@ const state = {
   // Preferencias de visibilidad de secciones de Ficha médica.
   // Si una key no está, se asume true (visible). Hacemos una excepción para
   // `distRingsSection` (la vista compacta de los 3 anillos) que arranca oculta
-  // porque su contenido se duplica con las 3 secciones detalladas; Joaco la
+  // porque su contenido se duplica con las 3 secciones detalladas; el usuario la
   // activa explícitamente desde Administración → Ficha médica → Visualización
   // si la prefiere por sobre las detalladas.
   visibilityPrefs: { distRingsSection: false },
@@ -3333,7 +3333,7 @@ function renderBalanceSection(d, _activeMonths, _periodLabel) {
 // Busca el label de la primera tarjeta KPI habilitada cuyo op apunte a la cat dada
 // (op.categoria === catKey, sin filtros adicionales restrictivos). Si no hay, devuelve
 // el fallback. Permite que las series del gráfico de flujo respeten los labels que
-// Joaco editó en sus tarjetas (ej. "Sueldos" → "Mi salario", etc).
+// el usuario editó en sus tarjetas (ej. "Sueldos" → "Mi salario", etc).
 function getKpiLabelForFlowCat(catKey, fallback) {
   if (!Array.isArray(state.kpiCardsConfig)) return fallback;
   const found = state.kpiCardsConfig.find(function (c) {
@@ -4279,7 +4279,7 @@ function renderAnatomyByCategory(agg, total, periodLabel, showQuarter) {
   // Renderizar el selector de Anatomía: solo cats/subs de GASTO (básicas y
   // discrecionales). Se excluyen las cats de flujo y la opción "Sin categoría"
   // porque Anatomía analiza patrones de gasto, no flujos administrativos ni
-  // movimientos sin clasificar. Si Joaco quiere ver gastos sin categoría puede
+  // movimientos sin clasificar. Si se quieren ver los gastos sin categoría puede
   // ir a Historia clínica directamente.
   const sel = document.getElementById('anatomyCategorySel');
   if (sel) {
@@ -5158,7 +5158,7 @@ function renderClassDistributionSection(d) {
 }
 
 // Sección compacta: los 3 anillos juntos sin rankings. Es una vista rápida que
-// no reemplaza a las 3 secciones detalladas — Joaco activa esta sección desde
+// no reemplaza a las 3 secciones detalladas — se activa esta sección desde
 // Administración → Ficha médica → Visualización si la quiere ver.
 // Las funciones renderPie/renderPiePeri/renderPiePayment aceptan canvasId y chartKey
 // como argumentos para poder dibujar en los canvas separados sin duplicar lógica.
@@ -13163,7 +13163,7 @@ function applyCategoryChanges() {
     if (ch.removed) {
       // Si tiene redirectTo, redirigir todos los movimientos al destino elegido.
       // `ch.redirectTo` ahora es un objeto `{ categoria, subcategoria }` (subcategoria
-      // puede ser null si Joaco eligió solo una cat madre como destino).
+      // puede ser null si se eligió solo una cat madre como destino).
       if (ch.redirectTo) {
         const target = ch.redirectTo;
         const targetCat = target.categoria;
@@ -19654,7 +19654,7 @@ const includeBudgetState = { txId: null, category: null, mode: 'single' };
 function getAvailableYearsForBudget() {
   // Año actual + 3 hacia adelante (4 años garantizados): permite armar presupuestos
   // anuales que crucen el calendario sin tener que esperar a que cambie el año.
-  // Además, se incluyen años con data histórica (dataByYear) por si Joaco quiere
+  // Además, se incluyen años con data histórica (dataByYear) por si se quiere
   // volver a marcar algo de un año pasado.
   const cur = new Date().getFullYear();
   const set = new Set([cur, cur + 1, cur + 2, cur + 3]);
