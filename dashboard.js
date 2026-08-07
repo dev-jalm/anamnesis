@@ -380,7 +380,13 @@ const state = {
     // Cotización MEP del USD/ARS — usada para convertir tickers USD a ARS
     // y mostrar el total combinado en Salud financiera. Editable en Parámetros.
     // Default razonable hasta que el usuario lo configure.
-    cotizacionMep: 1000
+    cotizacionMep: 1000,
+    // Qué se muestra después de la palabra "Jubilación". Sólo afecta al TEXTO:
+    // las claves internas siguen siendo 'JALM'/'CLM' y jubilacion_jalm/_clm, así
+    // que cambiar esto no toca ningún dato ya guardado ni pide migración.
+    // Editable en Parámetros.
+    jubilacion1Label: 'JALM',
+    jubilacion2Label: 'CLM'
   },
   // Patrones recurrentes que el usuario eligió descartar (no volver a sugerir).
   // Array de strings con norm(descripcion) de los patrones rechazados.
@@ -430,6 +436,37 @@ const SOURCE_DISPLAY = {
   'Efectivo': 'Ingreso manual de movimientos',
   'Inversion': 'Ingreso manual de inversiones'
 };
+
+// ===== Etiquetas de las dos jubilaciones =====
+// El usuario elige en Parámetros qué texto va después de "Jubilación". Las
+// CLAVES internas no cambian nunca —'JALM'/'CLM' como tags, jubilacion_jalm y
+// jubilacion_clm como destinos, jubilacionJalmByYear en el snapshot—, así que
+// renombrar es puramente visual: no hay migración ni riesgo de que un dato ya
+// guardado deje de encontrarse.
+const JUBILACION_LABELS_DEFAULT = ['JALM', 'CLM'];
+
+// Devuelve el sufijo elegido (ej. 'JALM'). n es 1 o 2.
+function sufijoJubilacion(n) {
+  const p = (typeof state !== 'undefined' && state.params) || {};
+  const v = n === 2 ? p.jubilacion2Label : p.jubilacion1Label;
+  const txt = (v === undefined || v === null) ? '' : String(v).trim();
+  return txt || JUBILACION_LABELS_DEFAULT[n - 1];
+}
+// Nombre completo para mostrar (ej. 'Jubilación JALM').
+function labelJubilacion(n) {
+  return 'Jubilación ' + sufijoJubilacion(n);
+}
+// Igual pero a partir de la clave del tag, que es como la conocen los KPIs.
+function labelJubilacionPorTag(tag) {
+  return labelJubilacion(tag === 'CLM' ? 2 : 1);
+}
+// Refresca los textos que están escritos directo en el HTML (leyendas). Los que
+// arma el JS se resuelven solos en cada render.
+function aplicarLabelsJubilacion() {
+  Array.from(document.querySelectorAll('[data-jubilacion-label]')).forEach(function (el) {
+    el.textContent = labelJubilacion(parseInt(el.getAttribute('data-jubilacion-label'), 10) || 1);
+  });
+}
 
 // Nombre visible de un origen. SOURCE_DISPLAY sólo cubre los cuatro fijos; las
 // entidades que define el usuario traen el suyo en la plantilla.
@@ -1386,6 +1423,8 @@ function renderAll() {
   // cada renderXxx hace su propio destroyChart, este barrido global protege
   // contra leaks cuando un render falló antes de llegar a su limpieza.
   cleanupAllCharts();
+  // Textos configurables que viven en el HTML (nombres de las jubilaciones).
+  aplicarLabelsJubilacion();
   // Asegurar que el modo de vista (Resumen/Completa) persistido esté aplicado.
   // Esto cubre el caso de cargar un archivo nuevo con params.viewMode distinto.
   if (typeof applyViewMode === 'function') applyViewMode();
@@ -2118,7 +2157,10 @@ function dismissLoadReminder(origin) {
 // Todas usan `tx_sum` salvo `gasto_total` para "Gastos". Los hints de jubilación
 // son textos descriptivos (antes mostraban stock acumulado, pero ese dato ya no
 // se carga desde el LLM).
-const DEFAULT_KPI_CARDS = [
+// Es una FUNCION envuelta en getter, no un array literal: las etiquetas de las
+// dos jubilaciones salen de Parametros y se tienen que resolver al usarse, no
+// al cargar el archivo.
+function defaultKpiCards() { return [
   // Los 3 primeros ocupan la COLUMNA IZQUIERDA del score (Salud Financiera).
   // location: 'score-left' los saca de la grilla principal y los apila a la
   // izquierda del card grande del score, ocupando el mismo alto que este.
@@ -2159,9 +2201,11 @@ const DEFAULT_KPI_CARDS = [
   { id: 'kpi_deudas',     order: 4, enabled: true, label: 'Deudas',          icon: 'credit-card', accent: '#D63B30', location: 'grid', op: { type: 'tx_sum', categoria: 'Deuda' },                   hint: { mode: 'pct_of', op: { type: 'gasto_total' }, suffix: 'del gasto', decimals: 1 } },
   { id: 'kpi_inversiones',order: 5, enabled: true, label: 'Inversión',       icon: 'piggy-bank',  accent: '#8E5A9E', location: 'grid', op: { type: 'tx_sum', categoria: 'Inversion' },               hint: { mode: 'none' } },
   { id: 'kpi_trading',    order: 6, enabled: true, label: 'Trading',         icon: 'line-chart',  accent: '#5B4E9E', location: 'grid', op: { type: 'tx_sum', categoria: 'Trading' },                 hint: { mode: 'none' } },
-  { id: 'kpi_jub_jalm',   order: 7, enabled: true, label: 'Jubilación JALM', icon: 'shield',      accent: '#C2BFB8', location: 'grid', op: { type: 'tx_sum', categoria: 'Jubilacion', tags: ['JALM'] }, hint: { mode: 'text', text: 'Aporte mensual JALM' } },
-  { id: 'kpi_jub_clm',    order: 8, enabled: true, label: 'Jubilación CLM',  icon: 'shield',      accent: '#D4849E', location: 'grid', op: { type: 'tx_sum', categoria: 'Jubilacion', tags: ['CLM'] },  hint: { mode: 'text', text: 'Aporte mensual CLM' } }
-];
+  { id: 'kpi_jub_jalm',   order: 7, enabled: true, label: labelJubilacion(1), icon: 'shield',      accent: '#C2BFB8', location: 'grid', op: { type: 'tx_sum', categoria: 'Jubilacion', tags: ['JALM'] }, hint: { mode: 'text', text: 'Aporte mensual ' + sufijoJubilacion(1) } },
+  { id: 'kpi_jub_clm',    order: 8, enabled: true, label: labelJubilacion(2), icon: 'shield',      accent: '#D4849E', location: 'grid', op: { type: 'tx_sum', categoria: 'Jubilacion', tags: ['CLM'] },  hint: { mode: 'text', text: 'Aporte mensual ' + sufijoJubilacion(2) } }
+]; }
+// Se sigue leyendo como array en todo el código; el getter lo resuelve al vuelo.
+Object.defineProperty(window, 'DEFAULT_KPI_CARDS', { get: defaultKpiCards });
 
 // IDs que por convención van en la columna izquierda del score
 const SCORE_LEFT_KPI_IDS = ['kpi_ingresos', 'kpi_egresos', 'kpi_saldo'];
@@ -3063,7 +3107,7 @@ function renderAnnualChart(d) {
           type: 'line'
         },
         {
-          label: 'Jubilación JALM',
+          label: labelJubilacion(1),
           data: jubilacionJalm,
           borderColor: '#8B8680',
           backgroundColor: '#8B8680',
@@ -5376,14 +5420,22 @@ const investmentState = {
   rows: []            // { id, fecha (yyyy-mm-dd), ticker, cantidad, precio }
 };
 
-// Catálogo de destinos para el batch de inversión
-const INVESTMENT_DESTINOS = [
-  { key: 'inversiones',     label: 'Inversión' },
-  { key: 'trading',         label: 'Trading' },
-  { key: 'jubilacion_jalm', label: 'Jubilación JALM' },
-  { key: 'jubilacion_clm',  label: 'Jubilación CLM' },
-  { key: 'reserva',         label: 'Reserva' }
-];
+// Catálogo de destinos para el batch de inversión.
+// Es una FUNCIÓN y no una constante: las etiquetas de las dos jubilaciones se
+// configuran en Parámetros, así que el catálogo tiene que resolverse cada vez
+// en lugar de congelarse al cargar el archivo.
+function investmentDestinos() {
+  return [
+    { key: 'inversiones',     label: 'Inversión' },
+    { key: 'trading',         label: 'Trading' },
+    { key: 'jubilacion_jalm', label: labelJubilacion(1) },
+    { key: 'jubilacion_clm',  label: labelJubilacion(2) },
+    { key: 'reserva',         label: 'Reserva' }
+  ];
+}
+// Compatibilidad: varios lugares lo usan como array. Se define con getter para
+// que siga leyéndose igual pero devuelva las etiquetas vigentes.
+Object.defineProperty(window, 'INVESTMENT_DESTINOS', { get: investmentDestinos });
 
 // Render de los botones de origen del wizard viejo (MP / Galicia / Manual /
 // Inversión). Ya no hay contenedor #sourceBtns: el modal unificado elige entre
@@ -9630,7 +9682,7 @@ function resetKpiCardsToDefault() {
   appConfirm({
     title: 'Restablecer tarjetas KPI',
     eyebrow: 'CONFIRMAR RESET',
-    message: 'Vas a volver a las 8 tarjetas originales (Sueldos, Préstamos, Gastos, Deudas, Inversión, Trading, Jubilación JALM, Jubilación CLM). Las tarjetas personalizadas que hayas creado se van a perder.',
+    message: 'Vas a volver a las 8 tarjetas originales (Sueldos, Préstamos, Gastos, Deudas, Inversión, Trading, ' + labelJubilacion(1) + ', ' + labelJubilacion(2) + '). Las tarjetas personalizadas que hayas creado se van a perder.',
     confirmLabel: 'RESTABLECER',
     danger: true,
     icon: 'rotate-ccw'
@@ -11072,6 +11124,34 @@ function renderParamsTab() {
       learnInput._bound = true;
     }
   }
+
+  // Nombres de las dos jubilaciones. Son texto libre: sólo cambian lo que se
+  // muestra después de "Jubilación", nunca las claves internas.
+  [1, 2].forEach(function (n) {
+    const el = document.getElementById('paramJubilacion' + n + 'Input');
+    if (!el) return;
+    const campo = 'jubilacion' + n + 'Label';
+    const pend = catModalState.pendingParamChanges[campo];
+    el.value = pend !== undefined ? pend : sufijoJubilacion(n);
+    el.classList.toggle('modified', pend !== undefined && pend !== state.params[campo]);
+    if (!el._bound) {
+      el.addEventListener('input', function () {
+        const v = el.value.trim();
+        if (v === (state.params[campo] || JUBILACION_LABELS_DEFAULT[n - 1])) {
+          delete catModalState.pendingParamChanges[campo];
+        } else {
+          catModalState.pendingParamChanges[campo] = v;
+        }
+        el.classList.toggle('modified', catModalState.pendingParamChanges[campo] !== undefined);
+        updateCatModalStatus();
+      });
+      // Vacío vuelve al default en vez de dejar "Jubilación " colgando.
+      el.addEventListener('blur', function () {
+        if (!el.value.trim()) el.value = JUBILACION_LABELS_DEFAULT[n - 1];
+      });
+      el._bound = true;
+    }
+  });
 
   // Días bajo $ — entero, con separador de miles "."
   const input = document.getElementById('paramDiasBajoInput');
@@ -13239,6 +13319,26 @@ function applyCategoryChanges() {
   if (catModalState.pendingParamChanges.learnRulesMonths !== undefined) {
     state.params.learnRulesMonths = catModalState.pendingParamChanges.learnRulesMonths;
   }
+  // Nombres de las jubilaciones. Vacío = volver al default, no guardar "".
+  //
+  // Las tarjetas KPI guardan su etiqueta como dato propio (son editables desde
+  // Administración → KPIs), así que no se re-derivan solas. Se las renombra acá,
+  // pero SOLO si todavía tienen el texto que les correspondía: si el usuario le
+  // puso un nombre propio a esa tarjeta, se respeta.
+  ['jubilacion1Label', 'jubilacion2Label'].forEach(function (campo, i) {
+    if (catModalState.pendingParamChanges[campo] === undefined) return;
+    const nuevo = String(catModalState.pendingParamChanges[campo] || '').trim() || JUBILACION_LABELS_DEFAULT[i];
+    const anterior = sufijoJubilacion(i + 1);
+    state.params[campo] = nuevo;
+    if (nuevo === anterior) return;
+    const cardId = i === 0 ? 'kpi_jub_jalm' : 'kpi_jub_clm';
+    const card = (state.kpiCardsConfig || []).find(function (c) { return c.id === cardId; });
+    if (!card) return;
+    if (card.label === 'Jubilación ' + anterior) card.label = 'Jubilación ' + nuevo;
+    if (card.hint && card.hint.text === 'Aporte mensual ' + anterior) {
+      card.hint.text = 'Aporte mensual ' + nuevo;
+    }
+  });
   if (catModalState.pendingParamChanges.cotizacionMep !== undefined) {
     state.params.cotizacionMep = catModalState.pendingParamChanges.cotizacionMep;
   }
@@ -17039,8 +17139,8 @@ function gotoMovementsForDestinos(destinos) {
   if (d === 'inversiones')          { cf.categoria = 'Inversion'; cf.label = 'LÍQUIDO · Inversiones'; }
   else if (d === 'trading')         { cf.categoria = 'Trading';   cf.label = 'LÍQUIDO · Trading'; }
   else if (d === 'reserva')         { cf.categoria = 'Reserva';   cf.label = 'LÍQUIDO · Reserva'; }
-  else if (d === 'jubilacion_jalm') { cf.categoria = 'Jubilacion'; cf.tags = ['JALM']; cf.label = 'LÍQUIDO · Jubilación JALM'; }
-  else if (d === 'jubilacion_clm')  { cf.categoria = 'Jubilacion'; cf.tags = ['CLM'];  cf.label = 'LÍQUIDO · Jubilación CLM'; }
+  else if (d === 'jubilacion_jalm') { cf.categoria = 'Jubilacion'; cf.tags = ['JALM']; cf.label = 'LÍQUIDO · ' + labelJubilacion(1); }
+  else if (d === 'jubilacion_clm')  { cf.categoria = 'Jubilacion'; cf.tags = ['CLM'];  cf.label = 'LÍQUIDO · ' + labelJubilacion(2); }
   else return;
 
   // Aplicar el filtro y limpiar otros (mismo patrón que drillDownKpi)
@@ -18232,12 +18332,12 @@ function renderMainAssets() {
   if (jalmEl) {
     const jalmPanel = buildInvestmentDetailPanel(
       ['jubilacion_jalm'],
-      demoUnaSolaJubilacion ? 'Jubilación' : 'Jubilación JALM'
+      demoUnaSolaJubilacion ? 'Jubilación' : labelJubilacion(1)
     );
     if (jalmPanel) jalmEl.insertAdjacentHTML('beforeend', jalmPanel);
   }
   if (clmEl && !demoUnaSolaJubilacion) {
-    const clmPanel = buildInvestmentDetailPanel(['jubilacion_clm'], 'Jubilación CLM');
+    const clmPanel = buildInvestmentDetailPanel(['jubilacion_clm'], labelJubilacion(2));
     if (clmPanel) clmEl.insertAdjacentHTML('beforeend', clmPanel);
   }
   // Bindear handler de borrado (idempotente — solo bindea una vez)

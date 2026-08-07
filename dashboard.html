@@ -466,7 +466,8 @@
       <div class="legend-dot"><span class="swatch" style="background:#C8553D"></span><span class="label">Gastos</span></div>
       <div class="legend-dot"><span class="swatch" style="background:#6B8E4E"></span><span class="label">Sueldos</span></div>
       <div class="legend-dot"><span class="swatch" style="background:#8E5A9E"></span><span class="label">Inversión</span></div>
-      <div class="legend-dot"><span class="swatch" style="background:#8B8680"></span><span class="label">Jubilación JALM</span></div>
+      <!-- El texto lo escribe aplicarLabelsJubilacion() desde Parámetros. -->
+      <div class="legend-dot"><span class="swatch" style="background:#8B8680"></span><span class="label" data-jubilacion-label="1">Jubilación JALM</span></div>
       <div class="legend-dot"><span class="swatch" style="background:repeating-linear-gradient(90deg, var(--ink) 0 6px, transparent 6px 10px);height:2px;align-self:center"></span><span class="label">Presupuesto</span></div>
     </div>
   </div>
@@ -2632,6 +2633,17 @@
           <div class="param-input-wrap">
             <input type="text" inputmode="numeric" id="paramLearnRulesMonthsInput" value="3">
             <span class="param-suffix">meses</span>
+          </div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-info">
+            <div class="param-label">Nombres de las jubilaciones</div>
+            <div class="param-desc">La app maneja dos jubilaciones. Acá elegís qué se muestra después de la palabra <strong>Jubilación</strong> en toda la app: tarjetas KPI, destinos de inversión, paneles de <strong>Salud financiera</strong> y filtros. Sirve para poner iniciales, nombres o lo que te sirva para distinguirlas. Sólo cambia el texto: los movimientos y los activos ya cargados no se tocan.</div>
+          </div>
+          <div class="param-input-wrap param-jub-wrap">
+            <input type="text" id="paramJubilacion1Input" maxlength="14" placeholder="Jubilación 1">
+            <input type="text" id="paramJubilacion2Input" maxlength="14" placeholder="Jubilación 2">
           </div>
         </div>
 

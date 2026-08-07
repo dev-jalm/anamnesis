@@ -7677,3 +7677,13 @@ body:not(.sidebar-pinned) .main-tab-panel {
   background-repeat: no-repeat;
   background-position: center;
 }
+
+/* Los dos nombres de jubilación comparten la fila de input de Parámetros. */
+.param-jub-wrap {
+  display: flex;
+  gap: 8px;
+}
+.param-jub-wrap input {
+  width: 110px;
+  text-align: center;
+}
