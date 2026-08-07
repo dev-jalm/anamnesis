@@ -2,7 +2,7 @@
 
 **Diagnóstico financiero personal.** Un dashboard que trata tus finanzas como una historia clínica: registra los síntomas, mide los signos vitales y arriesga un diagnóstico.
 
-Pensado para el contexto argentino: pesos y dólares conviviendo, cotización MEP, CEDEARs, inflación que hace que comparar dos meses sin ajustar no signifique nada.
+Pensado para el contexto argentino: pesos y dólares conviviendo, cotización MEP, y precios de CEDEARs que se actualizan solos —incluidos los tickers en dólares, que salen del CEDEAR en pesos aplicando su ratio.
 
 ---
 
@@ -28,7 +28,7 @@ anamnesis parte de tres decisiones opuestas:
 
 **▶ Probalo en vivo: [anamnesis-7zs.pages.dev](https://anamnesis-7zs.pages.dev/)** — entrá con "Ver demo con datos de ejemplo", no hace falta conectar nada.
 
-**📄 [Manual de usuario (PDF)](docs/manual-de-usuario.pdf)** — 15 páginas con una captura de cada pantalla y para qué sirve.
+**📄 [Manual de usuario (PDF)](docs/manual-de-usuario.pdf)** — 22 páginas con una captura de cada pantalla y para qué sirve.
 
 _Las dos capturas son del modo demo: los números son ficticios._
 

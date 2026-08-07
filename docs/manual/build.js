@@ -235,7 +235,24 @@ window.construirManual = async function () {
   let pagina = 1;
 
   const nuevaPagina = () => { doc.addPage(); pagina++; y = MG; };
+  // Corta sólo si la página tiene algo: evita dejar una hoja en blanco cuando
+  // lo anterior ya terminó justo arriba.
+  const nuevaPaginaSiHayAlgo = () => { if (y > MG) nuevaPagina(); };
   const espacio = (mm) => { if (y + mm > AL - MG) nuevaPagina(); };
+
+  // El logo se toma de la propia app: se crea un elemento con la clase que lo
+  // define y se lee su background. Así el manual siempre lleva el logo vigente,
+  // sin una segunda copia que se desactualice.
+  function logoDataUri() {
+    const el = document.createElement('div');
+    el.className = 'brand-mark';
+    el.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px';
+    document.body.appendChild(el);
+    const bi = getComputedStyle(el).backgroundImage || '';
+    el.remove();
+    const m = bi.match(/url\(["']?(data:image\/[^"')]+)["']?\)/);
+    return m ? m[1] : null;
+  }
 
   function parrafo(txt, opts) {
     opts = opts || {};
@@ -300,16 +317,21 @@ window.construirManual = async function () {
 
   // ── Portada ──
   doc.setFillColor(26, 23, 20); doc.rect(0, 0, AN, AL, 'F');
+  const logo = logoDataUri();
+  if (logo) {
+    const L = 34;
+    doc.addImage(logo, 'PNG', AN / 2 - L / 2, 78, L, L);
+  }
   doc.setTextColor(239, 231, 214);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(42);
-  doc.text(window.MANUAL.titulo, AN / 2, 112, { align: 'center' });
+  doc.text(window.MANUAL.titulo, AN / 2, 133, { align: 'center' });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(13);
   doc.setTextColor(212, 162, 76);
-  doc.text(window.MANUAL.bajada.toUpperCase(), AN / 2, 122, { align: 'center', charSpace: 1.2 });
+  doc.text(window.MANUAL.bajada.toUpperCase(), AN / 2, 143, { align: 'center', charSpace: 1.2 });
   doc.setDrawColor(212, 162, 76); doc.setLineWidth(0.4);
-  doc.line(AN / 2 - 22, 132, AN / 2 + 22, 132);
+  doc.line(AN / 2 - 22, 153, AN / 2 + 22, 153);
   doc.setTextColor(239, 231, 214); doc.setFontSize(19);
-  doc.text(window.MANUAL.subtitulo, AN / 2, 146, { align: 'center' });
+  doc.text(window.MANUAL.subtitulo, AN / 2, 167, { align: 'center' });
   doc.setFontSize(9); doc.setTextColor(150, 138, 122);
   doc.text(window.MANUAL.nota, AN / 2, 250, { align: 'center', maxWidth: 140 });
 
@@ -332,10 +354,9 @@ window.construirManual = async function () {
   await precargar();
   for (const s of window.MANUAL.secciones) {
     if (s.h) {
-      // Un título necesita arrastrar algo de cuerpo: si no entra el encabezado
-      // más las primeras líneas, arranca en página nueva.
-      espacio(42);
-      if (y > MG + 4) y += 5;
+      // Cada entrada del índice abre su propia página. Las secciones sin título
+      // son continuaciones y siguen a la anterior sin cortar.
+      nuevaPaginaSiHayAlgo();
       doc.setDrawColor(212, 162, 76); doc.setLineWidth(1.6);
       doc.line(MG, y - 4.6, MG + 11, y - 4.6);
       parrafo(s.h, { bold: true, size: 15, despues: s.sub ? 0.5 : 3 });

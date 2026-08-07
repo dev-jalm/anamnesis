@@ -22,6 +22,18 @@ await construirManual();
 
 El PDF se descarga. Reemplazá con él el de `docs/`.
 
+## Cómo se arma
+
+- **Portada** con el logo de la app. No hay una copia del archivo: se lee del
+  CSS creando un elemento con la clase `.brand-mark`, así el manual siempre
+  lleva el logo vigente.
+- **Índice** en una página, con una entrada por sección con título.
+- **Cada sección con título abre su propia página.** Las secciones sin `h` son
+  continuaciones y siguen a la anterior sin cortar.
+- Dentro de cada una: título, texto, imagen, viñetas. La figura va después de la
+  explicación, y eso además evita que un título quede al pie con su imagen en la
+  página siguiente.
+
 ## Cambiar el texto
 
 Está todo en `window.MANUAL` dentro de `build.js`, una entrada por sección:
