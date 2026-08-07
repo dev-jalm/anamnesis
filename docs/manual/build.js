@@ -363,12 +363,22 @@ window.construirManual = async function () {
   doc.setFont('Fraunces', 'normal'); doc.setFontSize(44);
   doc.text(window.MANUAL.titulo, AN / 2, 133, { align: 'center' });
   // La bajada en dos renglones: "DIAGNÓSTICO FINANCIERO" y debajo "PERSONAL".
+  //
+  // No se puede usar align:'center' junto con charSpace: jsPDF centra por el
+  // ancho NATURAL del texto y después el espaciado ensancha cada letra, así que
+  // el renglón termina corrido hacia la derecha. Se calcula el ancho real
+  // —incluyendo el espaciado— y se dibuja alineado a la izquierda en el x que
+  // lo deja centrado de verdad.
+  function centradoConEspaciado(txt, yPos, espaciado) {
+    const anchoReal = doc.getTextWidth(txt) + espaciado * Math.max(0, txt.length - 1);
+    doc.text(txt, AN / 2 - anchoReal / 2, yPos, { charSpace: espaciado });
+  }
   doc.setFont('JetBrains', 'normal'); doc.setFontSize(11);
   doc.setTextColor(212, 162, 76);
   const bajada = window.MANUAL.bajada.toUpperCase().split(' ');
   const ultima = bajada.pop();
-  doc.text(bajada.join(' '), AN / 2, 144, { align: 'center', charSpace: 1.6 });
-  doc.text(ultima, AN / 2, 151, { align: 'center', charSpace: 1.6 });
+  centradoConEspaciado(bajada.join(' '), 144, 1.6);
+  centradoConEspaciado(ultima, 151, 1.6);
   doc.setDrawColor(212, 162, 76); doc.setLineWidth(0.4);
   doc.line(AN / 2 - 22, 161, AN / 2 + 22, 161);
   doc.setTextColor(239, 231, 214);
