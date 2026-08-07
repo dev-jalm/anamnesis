@@ -24,10 +24,15 @@ El PDF se descarga. Reemplazá con él el de `docs/`.
 
 ## Cómo se arma
 
+- **Tipografías:** las mismas de la app. jsPDF sólo trae las 14 estándar de
+  PostScript, así que se incrustan los TTF estáticos de Fraunces (la marca y los
+  títulos), Inter (el texto corrido) y JetBrains Mono (bajadas, epígrafes y pie).
 - **Portada** con el logo de la app. No hay una copia del archivo: se lee del
   CSS creando un elemento con la clase `.brand-mark`, así el manual siempre
   lleva el logo vigente.
-- **Índice** en una página, con una entrada por sección con título.
+- **Índice** en una página, con el número de página de cada tema y un enlace
+  interno a esa página. Se dibuja al final, cuando ya se sabe dónde cayó cada
+  sección; la hoja se reserva antes y se completa después.
 - **Cada sección con título abre su propia página.** Las secciones sin `h` son
   continuaciones y siguen a la anterior sin cortar.
 - Dentro de cada una: título, texto, imagen, viñetas. La figura va después de la

@@ -28,7 +28,7 @@ anamnesis parte de tres decisiones opuestas:
 
 **▶ Probalo en vivo: [anamnesis-7zs.pages.dev](https://anamnesis-7zs.pages.dev/)** — entrá con "Ver demo con datos de ejemplo", no hace falta conectar nada.
 
-**📄 [Manual de usuario (PDF)](docs/manual-de-usuario.pdf)** — 22 páginas con una captura de cada pantalla y para qué sirve.
+**📄 [Manual de usuario (PDF)](docs/manual-de-usuario.pdf)** — 22 páginas con índice navegable, una captura de cada pantalla y para qué sirve cada una.
 
 _Las dos capturas son del modo demo: los números son ficticios._
 

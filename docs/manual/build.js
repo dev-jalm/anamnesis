@@ -222,9 +222,45 @@ window.MANUAL = {
 };
 
 /* ── Compilador ───────────────────────────────────────────────────────────── */
+// Las mismas tipografías que usa la app. jsPDF sólo trae las 14 estándar de
+// PostScript, así que hay que incrustar los TTF: se bajan las versiones
+// estáticas de cada familia y se registran en el documento.
+//   Fraunces      → la marca y los títulos (en la app, la serif de los headers)
+//   Inter         → el texto corrido
+//   JetBrains Mono→ epígrafes, bajadas y pie (los textos "de sistema")
+const FUENTES = [
+  { archivo: 'Inter-Regular.ttf',      familia: 'Inter',     estilo: 'normal',
+    url: 'https://cdn.jsdelivr.net/npm/@expo-google-fonts/inter/Inter_400Regular.ttf' },
+  { archivo: 'Inter-SemiBold.ttf',     familia: 'Inter',     estilo: 'bold',
+    url: 'https://cdn.jsdelivr.net/npm/@expo-google-fonts/inter/Inter_600SemiBold.ttf' },
+  { archivo: 'Fraunces-SemiBold.ttf',  familia: 'Fraunces',  estilo: 'normal',
+    url: 'https://cdn.jsdelivr.net/npm/@expo-google-fonts/fraunces/Fraunces_600SemiBold.ttf' },
+  { archivo: 'JetBrainsMono.ttf',      familia: 'JetBrains', estilo: 'normal',
+    url: 'https://cdn.jsdelivr.net/npm/@expo-google-fonts/jetbrains-mono/JetBrainsMono_400Regular.ttf' }
+];
+
+async function registrarFuentes(doc) {
+  const aBase64 = (buf) => {
+    const b = new Uint8Array(buf);
+    let s = '';
+    // De a pedazos: pasar 300 KB de golpe a fromCharCode revienta la pila.
+    for (let i = 0; i < b.length; i += 8192) {
+      s += String.fromCharCode.apply(null, b.subarray(i, i + 8192));
+    }
+    return btoa(s);
+  };
+  for (const f of FUENTES) {
+    const r = await fetch(f.url);
+    if (!r.ok) throw new Error('no se pudo bajar ' + f.familia + ' (HTTP ' + r.status + ')');
+    doc.addFileToVFS(f.archivo, aBase64(await r.arrayBuffer()));
+    doc.addFont(f.archivo, f.familia, f.estilo);
+  }
+}
+
 window.construirManual = async function () {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  await registrarFuentes(doc);
   const AN = 210, AL = 297;          // A4
   const MG = 20;                      // margen
   const ANU = AN - MG * 2;            // ancho util
@@ -256,7 +292,7 @@ window.construirManual = async function () {
 
   function parrafo(txt, opts) {
     opts = opts || {};
-    doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
+    doc.setFont(opts.familia || 'Inter', opts.bold ? 'bold' : 'normal');
     doc.setFontSize(opts.size || 10);
     doc.setTextColor.apply(doc, opts.color || TINTA);
     const lineas = doc.splitTextToSize(txt, opts.ancho || ANU);
@@ -270,7 +306,7 @@ window.construirManual = async function () {
   }
 
   function vinieta(txt) {
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
+    doc.setFont('Inter', 'normal'); doc.setFontSize(9.5);
     doc.setTextColor.apply(doc, TINTA);
     const lineas = doc.splitTextToSize(txt, ANU - 5);
     lineas.forEach(function (ln, i) {
@@ -323,29 +359,35 @@ window.construirManual = async function () {
     doc.addImage(logo, 'PNG', AN / 2 - L / 2, 78, L, L);
   }
   doc.setTextColor(239, 231, 214);
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(42);
+  // La marca va en Fraunces, igual que en la app.
+  doc.setFont('Fraunces', 'normal'); doc.setFontSize(44);
   doc.text(window.MANUAL.titulo, AN / 2, 133, { align: 'center' });
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(13);
+  // La bajada en dos renglones: "DIAGNÓSTICO FINANCIERO" y debajo "PERSONAL".
+  doc.setFont('JetBrains', 'normal'); doc.setFontSize(11);
   doc.setTextColor(212, 162, 76);
-  doc.text(window.MANUAL.bajada.toUpperCase(), AN / 2, 143, { align: 'center', charSpace: 1.2 });
+  const bajada = window.MANUAL.bajada.toUpperCase().split(' ');
+  const ultima = bajada.pop();
+  doc.text(bajada.join(' '), AN / 2, 144, { align: 'center', charSpace: 1.6 });
+  doc.text(ultima, AN / 2, 151, { align: 'center', charSpace: 1.6 });
   doc.setDrawColor(212, 162, 76); doc.setLineWidth(0.4);
-  doc.line(AN / 2 - 22, 153, AN / 2 + 22, 153);
-  doc.setTextColor(239, 231, 214); doc.setFontSize(19);
-  doc.text(window.MANUAL.subtitulo, AN / 2, 167, { align: 'center' });
-  doc.setFontSize(9); doc.setTextColor(150, 138, 122);
+  doc.line(AN / 2 - 22, 161, AN / 2 + 22, 161);
+  doc.setTextColor(239, 231, 214);
+  doc.setFont('Fraunces', 'normal'); doc.setFontSize(18);
+  doc.text(window.MANUAL.subtitulo, AN / 2, 175, { align: 'center' });
+  doc.setFont('Inter', 'normal'); doc.setFontSize(9);
+  doc.setTextColor(150, 138, 122);
   doc.text(window.MANUAL.nota, AN / 2, 250, { align: 'center', maxWidth: 140 });
 
   // ── Índice ──
+  // Se reserva la página y se dibuja al final: recién ahí se sabe en qué hoja
+  // quedó cada tema. Cada renglón es además un enlace interno.
   nuevaPagina();
-  parrafo('Contenido', { bold: true, size: 20, despues: 7 });
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-  window.MANUAL.secciones.filter(function (s) { return s.h; }).forEach(function (s) {
-    espacio(6);
-    doc.setTextColor.apply(doc, TINTA);
-    doc.text(s.h, MG + 2, y);
-    if (s.sub) { doc.setTextColor.apply(doc, SUAVE); doc.text(s.sub, MG + 2 + doc.getTextWidth(s.h) + 3, y); }
-    y += 6.2;
-  });
+  const PAG_INDICE = pagina;
+  const indice = [];   // { titulo, sub, pagina }
+  // La página del índice queda reservada y VACÍA hasta el final. Hay que abrir
+  // otra ya mismo: si no, la primera sección la encuentra en blanco, no dispara
+  // el salto y se dibuja encima del índice.
+  nuevaPagina();
 
   // ── Secciones ──
   // Orden: título, texto, imagen, viñetas. La figura va DESPUÉS de la
@@ -357,24 +399,61 @@ window.construirManual = async function () {
       // Cada entrada del índice abre su propia página. Las secciones sin título
       // son continuaciones y siguen a la anterior sin cortar.
       nuevaPaginaSiHayAlgo();
+      indice.push({ titulo: s.h, sub: s.sub, pagina: pagina });
       doc.setDrawColor(212, 162, 76); doc.setLineWidth(1.6);
       doc.line(MG, y - 4.6, MG + 11, y - 4.6);
-      parrafo(s.h, { bold: true, size: 15, despues: s.sub ? 0.5 : 3 });
-      if (s.sub) parrafo(s.sub, { size: 10.5, color: ACENTO, despues: 3.5 });
+      parrafo(s.h, { familia: 'Fraunces', size: 15, despues: s.sub ? 0.5 : 3 });
+      if (s.sub) parrafo(s.sub, { familia: 'JetBrains', size: 9.5, color: ACENTO, despues: 3.5 });
     }
     (s.p || []).forEach(function (t) { parrafo(t, { despues: 3 }); });
     if (s.img) imagen(s.img, s.imgCap);
     if (s.lista) { y += 0.5; s.lista.forEach(vinieta); y += 2; }
   }
 
+  // ── Índice, ya con los números de página ──
+  doc.setPage(PAG_INDICE);
+  y = MG;
+  parrafo('Contenido', { familia: 'Fraunces', size: 20, despues: 8 });
+  const numeroVisible = (p) => p - 1;   // la portada no se numera
+  indice.forEach(function (e) {
+    const alto = 7.4;
+    const yTexto = y;
+    doc.setFont('Inter', 'normal'); doc.setFontSize(10);
+    doc.setTextColor.apply(doc, TINTA);
+    doc.text(e.titulo, MG + 2, yTexto);
+    const anchoTitulo = doc.getTextWidth(e.titulo);
+    if (e.sub) {
+      doc.setFont('JetBrains', 'normal'); doc.setFontSize(8);
+      doc.setTextColor.apply(doc, SUAVE);
+      doc.text(e.sub, MG + 4 + anchoTitulo, yTexto);
+    }
+    // Puntos guía hasta el número, como en un índice impreso.
+    const num = String(numeroVisible(e.pagina));
+    doc.setFont('JetBrains', 'normal'); doc.setFontSize(9);
+    const anchoNum = doc.getTextWidth(num);
+    const desde = MG + 4 + anchoTitulo + (e.sub ? doc.getTextWidth(e.sub) + 4 : 0);
+    const hasta = AN - MG - anchoNum - 2;
+    doc.setTextColor(190, 178, 160);
+    if (hasta > desde) {
+      let puntos = '';
+      while (doc.getTextWidth(puntos + '.') < hasta - desde) puntos += '.';
+      doc.text(puntos, desde, yTexto);
+    }
+    doc.setTextColor.apply(doc, ACENTO);
+    doc.text(num, AN - MG, yTexto, { align: 'right' });
+    // Todo el renglón es clickeable, no sólo el número.
+    doc.link(MG, yTexto - 4, ANU, alto, { pageNumber: e.pagina });
+    y += alto;
+  });
+
   // ── Numeración (desde la 2) ──
   const total = doc.getNumberOfPages();
   for (let i = 2; i <= total; i++) {
     doc.setPage(i);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+    doc.setFont('JetBrains', 'normal'); doc.setFontSize(7.5);
     doc.setTextColor.apply(doc, SUAVE);
     doc.text('anamnesis · manual de usuario', MG, AL - 10);
-    doc.text(String(i - 1), AN - MG, AL - 10, { align: 'right' });
+    doc.text(String(numeroVisible(i)), AN - MG, AL - 10, { align: 'right' });
   }
 
   const blob = doc.output('blob');
