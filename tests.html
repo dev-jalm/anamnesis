@@ -2714,6 +2714,75 @@ group('Reglas de descarte — movimientos que no entran', function () {
   });
 });
 
+group('Reglas que renombran la descripción', function () {
+  const renombra = (pattern, nueva, extra) => Object.assign(
+    { id: 'r1', pattern: pattern, matchType: 'contains', descripcionNueva: nueva, enabled: true }, extra || {});
+  const tx = (desc) => ({ descripcion: desc, monto: 100 });
+
+  test('una regla que sólo renombra matchea, sin categoría', function () {
+    const r = matchCategoryRule('MERPAGO*STARBUCKS 0034', renombra('merpago*starbucks', 'Starbucks'));
+    assert(r !== null, 'debe matchear');
+    assertEqual(r.descripcionNueva, 'Starbucks');
+    assertEqual(r.categoria, undefined);
+    assertEqual(r.tags.length, 0);
+  });
+  test('descripcionDeRegla ignora vacíos y espacios', function () {
+    assertEqual(descripcionDeRegla({ descripcionNueva: '  Starbucks  ' }), 'Starbucks');
+    assertEqual(descripcionDeRegla({ descripcionNueva: '   ' }), null);
+    assertEqual(descripcionDeRegla({ descripcionNueva: '' }), null);
+    assertEqual(descripcionDeRegla({}), null);
+    assertEqual(descripcionDeRegla(null), null);
+  });
+  test('sigue sin matchear lo que no hace nada', function () {
+    assertEqual(matchCategoryRule('algo', { id: 'x', pattern: 'algo', matchType: 'contains' }), null);
+  });
+  test('renombrar guarda la descripción original', function () {
+    const t = tx('MERPAGO*STARBUCKS 0034');
+    assertEqual(aplicarRenombreDeRegla(t, 'Starbucks'), true);
+    assertEqual(t.descripcion, 'Starbucks');
+    assertEqual(t.descripcionOriginal, 'MERPAGO*STARBUCKS 0034');
+  });
+  test('el original se escribe UNA sola vez', function () {
+    // Mismo criterio que la edición manual: lo que se conserva es lo que trajo
+    // el archivo, no un paso intermedio.
+    const t = tx('ORIGINAL DEL BANCO');
+    aplicarRenombreDeRegla(t, 'Primera');
+    aplicarRenombreDeRegla(t, 'Segunda');
+    assertEqual(t.descripcion, 'Segunda');
+    assertEqual(t.descripcionOriginal, 'ORIGINAL DEL BANCO');
+  });
+  test('renombrar al mismo texto no hace nada', function () {
+    const t = tx('Starbucks');
+    assertEqual(aplicarRenombreDeRegla(t, 'Starbucks'), false);
+    assertEqual(t.descripcionOriginal, undefined);
+  });
+  test('sin texto nuevo no toca la tx', function () {
+    const t = tx('Algo');
+    assertEqual(aplicarRenombreDeRegla(t, null), false);
+    assertEqual(aplicarRenombreDeRegla(t, ''), false);
+    assertEqual(t.descripcion, 'Algo');
+  });
+  test('entrada nula no explota', function () {
+    assertEqual(aplicarRenombreDeRegla(null, 'x'), false);
+  });
+  test('una regla puede clasificar Y renombrar a la vez', function () {
+    const r = matchCategoryRule('MERPAGO*STARBUCKS 0034',
+      renombra('starbucks', 'Starbucks', { categoria: 'Gastronomia', periodicidad: 'variable' }));
+    assertEqual(r.categoria, 'Gastronomia');
+    assertEqual(r.descripcionNueva, 'Starbucks');
+    assertEqual(r.periodicidad, 'variable');
+  });
+  test('renombrar no altera la clave de dedup ya fijada al importar', function () {
+    // _importKey se calcula al parsear, con la descripción del archivo. Si el
+    // renombre la cambiara, reimportar el mismo archivo duplicaría todo.
+    const t = tx('MERPAGO*STARBUCKS 0034');
+    t._importKey = buildTxDedupKey({ fecha: '01/07/2026', descripcion: t.descripcion, monto: 100, origen: 'MP' });
+    const claveAntes = txCompareKey(t);
+    aplicarRenombreDeRegla(t, 'Starbucks');
+    assertEqual(txCompareKey(t), claveAntes);
+  });
+});
+
 group('Categorías de flujo — qué entra, qué sale y qué no es gasto', function () {
   // El balance de flujo es (Sueldo + Préstamo) − (todo el resto de flujo).
   // Sueldo es lo cobrado por trabajo y Préstamo es deuda nueva tomada: entran.

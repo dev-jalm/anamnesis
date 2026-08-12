@@ -260,11 +260,21 @@ function esReglaDescarte(rule) {
   return !!rule && rule.accion === REGLA_DESCARTAR;
 }
 
+// Texto con el que la regla reemplaza la descripción del archivo, si lo tiene.
+// Los resúmenes traen descripciones como "MERPAGO*STARBUCKS 0034512" que no se
+// leen; la regla las cambia por algo legible y la original queda guardada.
+function descripcionDeRegla(rule) {
+  const v = rule && rule.descripcionNueva;
+  const txt = (v === undefined || v === null) ? '' : String(v).trim();
+  return txt || null;
+}
+
 function matchCategoryRule(desc, rule) {
   if (!rule || rule.enabled === false || !rule.pattern) return null;
-  // Una regla de descarte no lleva categoría: su resultado no es "clasificá
-  // esto así" sino "esto no entra".
-  if (!rule.categoria && !esReglaDescarte(rule)) return null;
+  // Una regla sirve si hace ALGO: clasificar, descartar o renombrar. Antes se
+  // exigía categoría siempre; ahora esa exigencia es sólo para las que
+  // clasifican, porque las otras dos no la necesitan.
+  if (!rule.categoria && !esReglaDescarte(rule) && !descripcionDeRegla(rule)) return null;
   const haystack = String(desc || '').toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const rawPattern = String(rule.pattern);
@@ -294,7 +304,8 @@ function matchCategoryRule(desc, rule) {
   }
   if (!matched) return null;
   if (esReglaDescarte(rule)) return { accion: REGLA_DESCARTAR, ruleId: rule.id || null };
-  return {
+  const renombre = descripcionDeRegla(rule);
+  const res = {
     categoria: rule.categoria,
     subcategoria: rule.subcategoria || '',
     periodicidad: rule.periodicidad || '',
@@ -304,6 +315,10 @@ function matchCategoryRule(desc, rule) {
       ? rule.tags.slice()
       : (rule.tag ? [rule.tag] : [])
   };
+  // Sólo se agrega la clave si la regla efectivamente renombra: así el objeto
+  // que devuelven las reglas de siempre no cambia de forma.
+  if (renombre) res.descripcionNueva = renombre;
+  return res;
 }
 
 // Aplica las reglas en orden y devuelve la PRIMERA que matchee. null si ninguna.
@@ -315,6 +330,22 @@ function applyCategoryRules(desc) {
     if (res) return res;
   }
   return null;
+}
+
+// Cambia la descripción de una tx guardando la original, con el MISMO criterio
+// que usa la edición manual: `descripcionOriginal` se escribe una sola vez, la
+// primera. Así, si la tx ya venía editada a mano y después una regla la
+// renombra, lo que se conserva sigue siendo lo que trajo el archivo y no un
+// paso intermedio.
+//
+// Devuelve true si efectivamente cambió algo.
+function aplicarRenombreDeRegla(tx, nueva) {
+  if (!tx || !nueva) return false;
+  const actual = tx.descripcion || '';
+  if (actual === nueva) return false;
+  if (!tx.descripcionOriginal) tx.descripcionOriginal = actual;
+  tx.descripcion = nueva;
+  return true;
 }
 
 // Separa un lote de transacciones según las reglas de descarte. Se corre ANTES
@@ -2457,7 +2488,8 @@ if (typeof module !== 'undefined' && module.exports) {
     isNonExpenseCat, getCategoryClassification,
     // rules
     matchCategoryRule, applyCategoryRules,
-    REGLA_DESCARTAR, esReglaDescarte, separarPorDescarte,
+    REGLA_DESCARTAR, esReglaDescarte, separarPorDescarte, descripcionDeRegla,
+    aplicarRenombreDeRegla,
     // forecasting
     forecastNextValue, buildHeatmapLevels,
     // kpi engine

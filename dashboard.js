@@ -994,11 +994,12 @@ function predictCategory(desc, model) {
 // matchCategoryRule() y applyCategoryRules() viven ahora en core.js.
 
 function applyLearningToTransactions(txs) {
-  if (!Array.isArray(txs) || txs.length === 0) return { autoFilled: 0, overridden: 0, byRule: 0, totalTxs: 0 };
+  if (!Array.isArray(txs) || txs.length === 0) return { autoFilled: 0, overridden: 0, byRule: 0, renamed: 0, totalTxs: 0 };
   const model = buildLearningModel();
   let autoFilled = 0;
   let overridden = 0;
   let byRule = 0;
+  let renamed = 0;
   txs.forEach(function (t) {
     if (!t) return;
     const hasCat = t.categoria && t.categoria !== '__sin__';
@@ -1007,6 +1008,16 @@ function applyLearningToTransactions(txs) {
     // se aplica siempre — incluso sobre lo que dijo el LLM (es decisión explícita del usuario).
     const ruleMatch = applyCategoryRules(t.descripcion);
     if (ruleMatch) {
+      // Renombrar PRIMERO y con la descripción original todavía en mano. La
+      // clave de dedup ya quedó fijada al parsear (_importKey), así que
+      // cambiar el texto acá no rompe el reconocimiento de duplicados al
+      // reimportar el mismo archivo.
+      if (ruleMatch.descripcionNueva && aplicarRenombreDeRegla(t, ruleMatch.descripcionNueva)) {
+        renamed++;
+      }
+      // Una regla que sólo renombra no toca la categoría: sin esto, la dejaría
+      // en undefined y se perdería lo que hubiera puesto el aprendizaje.
+      if (!ruleMatch.categoria) return;
       const changed = (t.categoria !== ruleMatch.categoria)
         || (ruleMatch.subcategoria && t.subcategoria !== ruleMatch.subcategoria)
         || (ruleMatch.periodicidad && t.periodicidad !== ruleMatch.periodicidad);
@@ -1073,7 +1084,7 @@ function applyLearningToTransactions(txs) {
       overridden++;
     }
   });
-  return { autoFilled: autoFilled, overridden: overridden, byRule: byRule, totalTxs: txs.length };
+  return { autoFilled: autoFilled, overridden: overridden, byRule: byRule, renamed: renamed, totalTxs: txs.length };
 }
 
 
@@ -7188,7 +7199,7 @@ async function importarArchivoResumen(file) {
   // Un resumen puede cruzar meses: se importa un lote por cada uno.
   const lotes = agruparTransaccionesPorMes(resultado.transactions);
   const meses = [];
-  let totalNuevas = 0, totalOmitidas = 0, totalDescartadas = 0;
+  let totalNuevas = 0, totalOmitidas = 0, totalDescartadas = 0, totalRenombradas = 0;
 
   lotes.forEach(function (lote) {
     const parsed = {
@@ -7202,6 +7213,7 @@ async function importarArchivoResumen(file) {
     totalNuevas += (parsed._dedupKept || 0);
     totalOmitidas += (parsed._dedupSkipped || 0);
     totalDescartadas += (parsed._descartadas || 0);
+    totalRenombradas += (parsed._renombradas || 0);
   });
 
   return {
@@ -7212,6 +7224,7 @@ async function importarArchivoResumen(file) {
     nuevas: totalNuevas,
     omitidas: totalOmitidas,
     descartadas: totalDescartadas,
+    renombradas: totalRenombradas,
     internas: resultado.transactions.filter(function (t) { return t.interno; }).length,
     errores: resultado.errores
   };
@@ -7277,6 +7290,7 @@ function mergeParsedData(parsed) {
     if (learnResult.autoFilled > 0) parsed._autoLearned = learnResult.autoFilled;
     if (learnResult.overridden > 0) parsed._overridden = learnResult.overridden;
     if (learnResult.byRule > 0) parsed._byRule = learnResult.byRule;
+    if (learnResult.renamed > 0) parsed._renombradas = learnResult.renamed;
 
     // Construir el listado de tx existentes en el año (todos los meses) para
     // el dedup. La unicidad de tx no respeta el mes (la misma tx puede
@@ -8239,12 +8253,15 @@ function sincronizarFormReglaDescarte() {
   const descarta = sel.value === REGLA_DESCARTAR;
   const peri = document.getElementById('rulePeriodicitySel');
   const tags = document.getElementById('ruleTagsPicker');
-  [peri, tags].forEach(function (el) {
+  // Renombrar tampoco aplica a un descarte: el movimiento no se va a ver.
+  const renombrar = document.getElementById('ruleRenameInput');
+  [peri, tags, renombrar].forEach(function (el) {
     const campo = el && el.closest('.rule-field');
     if (campo) campo.classList.toggle('hidden', descarta);
   });
   if (descarta) {
     if (peri) peri.value = '';
+    if (renombrar) renombrar.value = '';
     if (typeof ruleFormTagsState !== 'undefined' && ruleFormTagsState.selected) {
       ruleFormTagsState.selected.clear();
       if (typeof renderRuleTagsPicker === 'function') renderRuleTagsPicker();
@@ -8315,7 +8332,8 @@ function renderRulesList() {
     // Las de descarte no tienen categoría, así que ningún filtro por
     // clasificación las alcanza: se muestran siempre para no esconderlas.
     if (esReglaDescarte(r)) return true;
-    if (!r.categoria) return false;
+    // Idem las que sólo renombran: sin categoría, ningún filtro las alcanza.
+    if (!r.categoria) return !!descripcionDeRegla(r);
     const cls = getCategoryClassification(r.categoria);
     // Las cats de flujo (NON_EXPENSE_CATS) las clasifica como 'reserved'
     if (filterValue === 'flow') return cls === 'reserved';
@@ -8355,14 +8373,18 @@ function renderRulesList() {
   filtered.forEach(function (r) {
     // Las de descarte van a su propio grupo: no clasifican en ninguna categoría
     // y conviene verlas juntas, porque son las que borran cosas.
-    const catKey = esReglaDescarte(r) ? '__descartar__' : (r.categoria || '__sin__');
+    const catKey = esReglaDescarte(r)
+      ? '__descartar__'
+      : (r.categoria || (descripcionDeRegla(r) ? '__renombrar__' : '__sin__'));
     if (!groups[catKey]) groups[catKey] = [];
     groups[catKey].push(r);
   });
   // Orden alfabético de las categorías (por label). El grupo de descarte va
   // último: es el que borra cosas, conviene que no sea lo primero que se toca.
   const etiquetaGrupo = function (k) {
-    return k === '__descartar__' ? 'Descartar al importar' : (state.categoryLabels[k] || k);
+    if (k === '__descartar__') return 'Descartar al importar';
+    if (k === '__renombrar__') return 'Sólo renombrar';
+    return state.categoryLabels[k] || k;
   };
   const orderedCatKeys = Object.keys(groups).sort(function (a, b) {
     if (a === '__descartar__') return 1;
@@ -8404,7 +8426,12 @@ function renderRulesList() {
       // dejamos un guión sutil.
       // En una regla de descarte esa columna no tiene sub que mostrar: se usa
       // para decir qué hace, que es lo único que importa saber de ella.
-      const subDisplay = esReglaDescarte(r) ? 'se descarta' : (subLabel ? ('· ' + subLabel) : '—');
+      // Esa columna dice qué HACE la regla. Si sólo renombra no hay sub que
+      // mostrar, así que se muestra el texto nuevo, que es lo que la define.
+      const renombraA = descripcionDeRegla(r);
+      const subDisplay = esReglaDescarte(r)
+        ? 'se descarta'
+        : (subLabel ? ('· ' + subLabel) : (renombraA && !r.categoria ? '→ ' + renombraA : '—'));
       const periLabel = r.periodicidad ? ((PERIODICITY_OPTIONS.find(function (o) { return o.key === r.periodicidad; }) || { label: '' }).label) : '';
       const mtLabel = MATCHTYPE_LABELS[r.matchType] || 'contiene';
       const enabledStyle = r.enabled === false ? ' disabled' : '';
@@ -8423,7 +8450,11 @@ function renderRulesList() {
           '<i data-lucide="' + (r.enabled === false ? 'circle' : 'check-circle-2') + '" style="width:16px;height:16px;color:' + (r.enabled === false ? 'var(--muted)' : 'var(--green)') + '"></i>' +
         '</button>' +
         '<div class="rule-row-mt">' + mtLabel + '</div>' +
-        '<div class="rule-row-pattern" title="' + escapeHtml(r.pattern) + '">' + escapeHtml(r.pattern) + '</div>' +
+        '<div class="rule-row-pattern" title="' + escapeHtml(r.pattern) + '">' + escapeHtml(r.pattern) +
+          (renombraA && r.categoria
+            ? '<span class="rule-row-rename" title="Renombra la descripción a: ' + escapeHtml(renombraA) + '"> → ' + escapeHtml(renombraA) + '</span>'
+            : '') +
+        '</div>' +
         '<div class="rule-row-cat" title="' + escapeHtml(subDisplay) + '">' + escapeHtml(subDisplay) + '</div>' +
         '<div class="rule-row-peri">' + (periLabel || '—') + '</div>' +
         '<button class="rule-row-action" data-action="apply" title="Aplicar esta regla a tx existentes">' +
@@ -8523,14 +8554,15 @@ function addRuleFromForm() {
   const matchType = document.getElementById('ruleMatchType').value || 'contains';
   const catValue = document.getElementById('ruleCategorySel').value || '';
   const periodicidad = document.getElementById('rulePeriodicitySel').value || '';
+  const renombrar = (document.getElementById('ruleRenameInput').value || '').trim();
   // El selector usa el formato "cat::sub" (mismo que Hábitos). Si la sub está vacía,
   // la regla aplica solo a nivel categoría.
   const esDescarte = catValue === REGLA_DESCARTAR;
   const idx = catValue.indexOf('::');
   const categoria = esDescarte ? '' : (idx >= 0 ? catValue.substring(0, idx) : catValue);
   const subcategoria = (esDescarte || idx < 0) ? '' : catValue.substring(idx + 2);
-  if (!pattern || (!categoria && !esDescarte)) {
-    alert('Tenés que ingresar al menos un patrón y una categoría.');
+  if (!pattern || (!categoria && !esDescarte && !renombrar)) {
+    alert('Tenés que ingresar un patrón y, al menos, una categoría o una descripción de reemplazo.');
     return;
   }
   // Validar regex si aplica
@@ -8553,6 +8585,7 @@ function addRuleFromForm() {
         categoria: categoria,
         subcategoria: subcategoria,
         periodicidad: periodicidad,
+        descripcionNueva: renombrar,
         tags: Array.from(ruleFormTagsState.selected),
         enabled: true
       };
@@ -8560,6 +8593,7 @@ function addRuleFromForm() {
   state.categoryRules.push(newRule);
   document.getElementById('rulePatternInput').value = '';
   document.getElementById('rulePeriodicitySel').value = '';
+  document.getElementById('ruleRenameInput').value = '';
   document.getElementById('ruleCategorySel').value = '';
   // Limpiar selección de tags y re-renderizar el picker
   ruleFormTagsState.selected.clear();
@@ -9268,7 +9302,7 @@ function reapplyAllRules() {
   }, function (result) {
     if (result !== true) return; // Cancelar/X/Esc → no re-aplicar
     // Aplicar
-    let matched = 0, changedCat = 0, changedSub = 0, changedPeri = 0, addedTags = 0, borradas = 0;
+    let matched = 0, changedCat = 0, changedSub = 0, changedPeri = 0, addedTags = 0, borradas = 0, renombradas = 0;
     Object.keys(state.transactionsByYear || {}).forEach(function (y) {
       const yb = state.transactionsByYear[y];
       if (!yb) return;
@@ -9287,6 +9321,8 @@ function reapplyAllRules() {
           const res = applyCategoryRules(t.descripcion);
           if (!res || res.accion === REGLA_DESCARTAR) return;
           matched++;
+          if (res.descripcionNueva && aplicarRenombreDeRegla(t, res.descripcionNueva)) renombradas++;
+          if (!res.categoria) return;   // regla que sólo renombra
           if (t.categoria !== res.categoria) { t.categoria = res.categoria; changedCat++; }
           if (res.subcategoria && t.subcategoria !== res.subcategoria) { t.subcategoria = res.subcategoria; changedSub++; }
           if (res.periodicidad && t.periodicidad !== res.periodicidad) { t.periodicidad = res.periodicidad; changedPeri++; }
@@ -9311,6 +9347,7 @@ function reapplyAllRules() {
         '• Subcategorías cambiadas: <strong style="color:var(--ink)">' + changedSub + '</strong><br>' +
         '• Periodicidades cambiadas: <strong style="color:var(--ink)">' + changedPeri + '</strong><br>' +
         '• Etiquetas agregadas: <strong style="color:var(--ink)">' + addedTags + '</strong>' +
+        (renombradas > 0 ? '<br>• Descripciones reemplazadas: <strong style="color:var(--ink)">' + renombradas + '</strong>' : '') +
         (borradas > 0
           ? '<br>• <span style="color:var(--red)">Movimientos borrados: <strong>' + borradas + '</strong></span>'
           : '') +
@@ -16630,6 +16667,10 @@ function bindStatementFileImport() {
       if (r.descartadas) {
         partes.push('<span style="color:var(--muted)">' + r.descartadas + ' descartado' +
                     (r.descartadas === 1 ? '' : 's') + ' por regla</span>');
+      }
+      if (r.renombradas) {
+        partes.push('<span style="color:var(--muted)">' + r.renombradas + ' renombrado' +
+                    (r.renombradas === 1 ? '' : 's') + '</span>');
       }
       if (r.internas) partes.push(r.internas + ' movimiento' + (r.internas === 1 ? '' : 's') + ' interno' + (r.internas === 1 ? '' : 's'));
       if (r.errores.length) partes.push('<span style="color:var(--red)">' + r.errores.length + ' fila(s) con problemas</span>');
