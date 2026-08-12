@@ -2636,6 +2636,84 @@ group('parseGaliciaRows — extracto de Banco Galicia', function () {
   });
 });
 
+group('Reglas de descarte — movimientos que no entran', function () {
+  const descarte = (pattern, extra) => Object.assign(
+    { id: 'd1', pattern: pattern, matchType: 'contains', accion: 'descartar', enabled: true }, extra || {});
+  const clasifica = (pattern, cat) => ({ id: 'c1', pattern: pattern, matchType: 'contains',
+                                         categoria: cat, enabled: true });
+  const tx = (desc) => ({ descripcion: desc, monto: 100, fecha: '01/07/2026' });
+
+  test('una regla de descarte matchea aunque no tenga categoría', function () {
+    // La validación normal exige categoría; las de descarte son la excepción.
+    const r = matchCategoryRule('SALDO ANTERIOR', descarte('saldo anterior'));
+    assert(r !== null, 'debe matchear');
+    assertEqual(r.accion, 'descartar');
+  });
+  test('sin categoría y sin acción no matchea nada', function () {
+    assertEqual(matchCategoryRule('lo que sea', { id: 'x', pattern: 'lo que', matchType: 'contains' }), null);
+  });
+  test('esReglaDescarte distingue una de otra', function () {
+    assertEqual(esReglaDescarte(descarte('x')), true);
+    assertEqual(esReglaDescarte(clasifica('x', 'Salud')), false);
+    assertEqual(esReglaDescarte(null), false);
+  });
+  test('separa lo que se descarta de lo que se conserva', function () {
+    const r = separarPorDescarte(
+      [tx('SALDO ANTERIOR'), tx('Supermercado'), tx('saldo anterior del mes')],
+      [descarte('saldo anterior')]);
+    assertEqual(r.descartadas.length, 2);
+    assertEqual(r.conservadas.length, 1);
+    assertEqual(r.conservadas[0].descripcion, 'Supermercado');
+  });
+  test('una regla desactivada no descarta nada', function () {
+    const r = separarPorDescarte([tx('SALDO ANTERIOR')], [descarte('saldo anterior', { enabled: false })]);
+    assertEqual(r.descartadas.length, 0);
+    assertEqual(r.conservadas.length, 1);
+  });
+  test('gana la primera regla que matchea, como en la categorización', function () {
+    // Clasificar primero → se conserva, aunque abajo haya un descarte.
+    const a = separarPorDescarte([tx('Farmacia del barrio')],
+      [clasifica('farmacia', 'Salud'), descarte('farmacia')]);
+    assertEqual(a.conservadas.length, 1);
+    // Descartar primero → se va, aunque abajo haya una regla que la clasifica.
+    const b = separarPorDescarte([tx('Farmacia del barrio')],
+      [descarte('farmacia'), clasifica('farmacia', 'Salud')]);
+    assertEqual(b.descartadas.length, 1);
+  });
+  test('acepta varios patrones separados con ;', function () {
+    const r = separarPorDescarte([tx('SALDO ANTERIOR'), tx('AVISO LEGAL'), tx('Kiosco')],
+      [descarte('saldo anterior;aviso legal')]);
+    assertEqual(r.descartadas.length, 2);
+    assertEqual(r.conservadas.length, 1);
+  });
+  test('respeta el tipo de match (starts / exact / regex)', function () {
+    const empieza = { id: 'd', pattern: 'transf', matchType: 'starts', accion: 'descartar', enabled: true };
+    assertEqual(separarPorDescarte([tx('TRANSF ctas propias')], [empieza]).descartadas.length, 1);
+    assertEqual(separarPorDescarte([tx('Pago por TRANSF')], [empieza]).descartadas.length, 0);
+    const re = { id: 'd', pattern: '^ret[0-9]+$', matchType: 'regex', accion: 'descartar', enabled: true };
+    assertEqual(separarPorDescarte([tx('RET123')], [re]).descartadas.length, 1);
+  });
+  test('sin reglas no se descarta nada', function () {
+    const r = separarPorDescarte([tx('a'), tx('b')], []);
+    assertEqual(r.descartadas.length, 0);
+    assertEqual(r.conservadas.length, 2);
+  });
+  test('entrada vacía o inválida no explota', function () {
+    assertEqual(separarPorDescarte([], [descarte('x')]).conservadas.length, 0);
+    assertEqual(separarPorDescarte(null, [descarte('x')]).conservadas.length, 0);
+    assertEqual(separarPorDescarte([null, tx('ok')], [descarte('zzz')]).conservadas.length, 1);
+  });
+  test('applyCategoryRules devuelve la acción para que el llamador la respete', function () {
+    const prev = globalThis.state;
+    globalThis.state = { categoryRules: [descarte('comision')] };
+    const res = applyCategoryRules('COMISION mantenimiento');
+    assertEqual(res.accion, 'descartar');
+    // No trae categoría: quien la use para clasificar tiene que chequear la acción
+    assertEqual(res.categoria, undefined);
+    globalThis.state = prev;
+  });
+});
+
 group('Categorías de flujo — qué entra, qué sale y qué no es gasto', function () {
   // El balance de flujo es (Sueldo + Préstamo) − (todo el resto de flujo).
   // Sueldo es lo cobrado por trabajo y Préstamo es deuda nueva tomada: entran.

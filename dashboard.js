@@ -7188,7 +7188,7 @@ async function importarArchivoResumen(file) {
   // Un resumen puede cruzar meses: se importa un lote por cada uno.
   const lotes = agruparTransaccionesPorMes(resultado.transactions);
   const meses = [];
-  let totalNuevas = 0, totalOmitidas = 0;
+  let totalNuevas = 0, totalOmitidas = 0, totalDescartadas = 0;
 
   lotes.forEach(function (lote) {
     const parsed = {
@@ -7201,6 +7201,7 @@ async function importarArchivoResumen(file) {
     meses.push(MONTH_LABELS[lote.month] + ' ' + lote.year);
     totalNuevas += (parsed._dedupKept || 0);
     totalOmitidas += (parsed._dedupSkipped || 0);
+    totalDescartadas += (parsed._descartadas || 0);
   });
 
   return {
@@ -7210,6 +7211,7 @@ async function importarArchivoResumen(file) {
     leidas: resultado.transactions.length,
     nuevas: totalNuevas,
     omitidas: totalOmitidas,
+    descartadas: totalDescartadas,
     internas: resultado.transactions.filter(function (t) { return t.interno; }).length,
     errores: resultado.errores
   };
@@ -7264,6 +7266,12 @@ function mergeParsedData(parsed) {
   // temas de fecha de operación vs liquidación, etc.
   if (parsed.transactions && Array.isArray(parsed.transactions)) {
     if (!state.transactionsByYear[year][month]) state.transactionsByYear[year][month] = [];
+    // Reglas de descarte PRIMERO: lo que el usuario marcó como basura no llega a
+    // entrar, así que tampoco se categoriza, ni se deduplica, ni alimenta el
+    // aprendizaje por historial con movimientos que no le interesan.
+    const corte = separarPorDescarte(parsed.transactions);
+    if (corte.descartadas.length > 0) parsed._descartadas = corte.descartadas.length;
+    parsed.transactions = corte.conservadas;
     // Aplicar aprendizaje basado en categorizaciones manuales previas, ANTES de pushear.
     const learnResult = applyLearningToTransactions(parsed.transactions);
     if (learnResult.autoFilled > 0) parsed._autoLearned = learnResult.autoFilled;
@@ -8205,13 +8213,50 @@ function renderRulesTab() {
   // Value="cat::sub" (cuando se elige una sub, también se guarda la sub en la regla).
   const sel = document.getElementById('ruleCategorySel');
   if (sel) {
-    sel.innerHTML = buildCatSubOptionsByClassification('', { placeholderText: '— elegir categoría —' });
+    // Además de las categorías, la regla puede DESCARTAR el movimiento. Va en
+    // el mismo selector porque es la misma decisión: qué hacer con lo que
+    // matchea. Separado con un <optgroup> para que no se lea como una categoría
+    // más de la lista.
+    sel.innerHTML = buildCatSubOptionsByClassification('', { placeholderText: '— elegir categoría —' }) +
+      '<optgroup label="Otra acción">' +
+        '<option value="' + REGLA_DESCARTAR + '">— Descartar el movimiento —</option>' +
+      '</optgroup>';
   }
+  sincronizarFormReglaDescarte();
   // Resetear y renderizar el picker de tags cuando se abre la solapa
   ruleFormTagsState.selected.clear();
   renderRuleTagsPicker();
   renderRulesList();
   if (window.lucide) lucide.createIcons();
+}
+
+// Con "descartar" elegido, periodicidad y etiquetas no tienen a qué aplicarse:
+// el movimiento no va a existir. Se ocultan en vez de dejarlos activos sin
+// efecto, que invita a llenarlos y esperar algo que no va a pasar.
+function sincronizarFormReglaDescarte() {
+  const sel = document.getElementById('ruleCategorySel');
+  if (!sel) return;
+  const descarta = sel.value === REGLA_DESCARTAR;
+  const peri = document.getElementById('rulePeriodicitySel');
+  const tags = document.getElementById('ruleTagsPicker');
+  [peri, tags].forEach(function (el) {
+    const campo = el && el.closest('.rule-field');
+    if (campo) campo.classList.toggle('hidden', descarta);
+  });
+  if (descarta) {
+    if (peri) peri.value = '';
+    if (typeof ruleFormTagsState !== 'undefined' && ruleFormTagsState.selected) {
+      ruleFormTagsState.selected.clear();
+      if (typeof renderRuleTagsPicker === 'function') renderRuleTagsPicker();
+    }
+  }
+  const btn = document.getElementById('addRuleBtn');
+  if (btn) {
+    btn.innerHTML = descarta
+      ? '<i data-lucide="trash-2" style="width:14px;height:14px"></i> AGREGAR REGLA DE DESCARTE'
+      : '<i data-lucide="plus" style="width:14px;height:14px"></i> AGREGAR REGLA';
+    if (window.lucide) lucide.createIcons();
+  }
 }
 
 // Setup del selector de filtro de la grilla de reglas. Las opciones son
@@ -8267,6 +8312,9 @@ function renderRulesList() {
   // reclasifica manualmente, así que un lookup directo daba siempre falsy.
   const filterValue = catModalState.rulesFilterValue || '';
   const filtered = !filterValue ? rules : rules.filter(function (r) {
+    // Las de descarte no tienen categoría, así que ningún filtro por
+    // clasificación las alcanza: se muestran siempre para no esconderlas.
+    if (esReglaDescarte(r)) return true;
     if (!r.categoria) return false;
     const cls = getCategoryClassification(r.categoria);
     // Las cats de flujo (NON_EXPENSE_CATS) las clasifica como 'reserved'
@@ -8305,21 +8353,27 @@ function renderRulesList() {
   // Construir mapa cat → reglas[]
   const groups = {};
   filtered.forEach(function (r) {
-    const catKey = r.categoria || '__sin__';
+    // Las de descarte van a su propio grupo: no clasifican en ninguna categoría
+    // y conviene verlas juntas, porque son las que borran cosas.
+    const catKey = esReglaDescarte(r) ? '__descartar__' : (r.categoria || '__sin__');
     if (!groups[catKey]) groups[catKey] = [];
     groups[catKey].push(r);
   });
-  // Orden alfabético de las categorías (por label)
+  // Orden alfabético de las categorías (por label). El grupo de descarte va
+  // último: es el que borra cosas, conviene que no sea lo primero que se toca.
+  const etiquetaGrupo = function (k) {
+    return k === '__descartar__' ? 'Descartar al importar' : (state.categoryLabels[k] || k);
+  };
   const orderedCatKeys = Object.keys(groups).sort(function (a, b) {
-    const la = state.categoryLabels[a] || a;
-    const lb = state.categoryLabels[b] || b;
-    return la.localeCompare(lb);
+    if (a === '__descartar__') return 1;
+    if (b === '__descartar__') return -1;
+    return etiquetaGrupo(a).localeCompare(etiquetaGrupo(b));
   });
 
   // Render: por cada categoría un header colapsable + (si está expandido) las filas
   list.innerHTML = orderedCatKeys.map(function (catKey) {
     const groupRules = groups[catKey];
-    const catLabel = state.categoryLabels[catKey] || catKey;
+    const catLabel = etiquetaGrupo(catKey);
     // Estado colapsado por categoría: si el usuario tocó el chevron, respetamos
     // su elección. Si nunca lo tocó, default = colapsado (independiente del
     // filtro). Antes, al activar un filtro, todas las cats se expandían
@@ -8348,7 +8402,9 @@ function renderRulesList() {
       // El nombre de categoría ya está en el header del grupo. En la fila
       // mostramos solo la sub (si existe) para ahorrar espacio. Si no hay sub,
       // dejamos un guión sutil.
-      const subDisplay = subLabel ? ('· ' + subLabel) : '—';
+      // En una regla de descarte esa columna no tiene sub que mostrar: se usa
+      // para decir qué hace, que es lo único que importa saber de ella.
+      const subDisplay = esReglaDescarte(r) ? 'se descarta' : (subLabel ? ('· ' + subLabel) : '—');
       const periLabel = r.periodicidad ? ((PERIODICITY_OPTIONS.find(function (o) { return o.key === r.periodicidad; }) || { label: '' }).label) : '';
       const mtLabel = MATCHTYPE_LABELS[r.matchType] || 'contiene';
       const enabledStyle = r.enabled === false ? ' disabled' : '';
@@ -8469,10 +8525,11 @@ function addRuleFromForm() {
   const periodicidad = document.getElementById('rulePeriodicitySel').value || '';
   // El selector usa el formato "cat::sub" (mismo que Hábitos). Si la sub está vacía,
   // la regla aplica solo a nivel categoría.
+  const esDescarte = catValue === REGLA_DESCARTAR;
   const idx = catValue.indexOf('::');
-  const categoria = idx >= 0 ? catValue.substring(0, idx) : catValue;
-  const subcategoria = idx >= 0 ? catValue.substring(idx + 2) : '';
-  if (!pattern || !categoria) {
+  const categoria = esDescarte ? '' : (idx >= 0 ? catValue.substring(0, idx) : catValue);
+  const subcategoria = (esDescarte || idx < 0) ? '' : catValue.substring(idx + 2);
+  if (!pattern || (!categoria && !esDescarte)) {
     alert('Tenés que ingresar al menos un patrón y una categoría.');
     return;
   }
@@ -8481,16 +8538,24 @@ function addRuleFromForm() {
     try { new RegExp(pattern); }
     catch (e) { alert('Regex inválida: ' + e.message); return; }
   }
-  const newRule = {
-    id: 'rule_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-    pattern: pattern,
-    matchType: matchType,
-    categoria: categoria,
-    subcategoria: subcategoria,
-    periodicidad: periodicidad,
-    tags: Array.from(ruleFormTagsState.selected),
-    enabled: true
-  };
+  const newRule = esDescarte
+    ? {
+        id: 'rule_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+        pattern: pattern,
+        matchType: matchType,
+        accion: REGLA_DESCARTAR,
+        enabled: true
+      }
+    : {
+        id: 'rule_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+        pattern: pattern,
+        matchType: matchType,
+        categoria: categoria,
+        subcategoria: subcategoria,
+        periodicidad: periodicidad,
+        tags: Array.from(ruleFormTagsState.selected),
+        enabled: true
+      };
   if (!Array.isArray(state.categoryRules)) state.categoryRules = [];
   state.categoryRules.push(newRule);
   document.getElementById('rulePatternInput').value = '';
@@ -8499,6 +8564,7 @@ function addRuleFromForm() {
   // Limpiar selección de tags y re-renderizar el picker
   ruleFormTagsState.selected.clear();
   renderRuleTagsPicker();
+  sincronizarFormReglaDescarte();
   scheduleSave();
   renderRulesList();
 }
@@ -9176,30 +9242,50 @@ function reapplyAllRules() {
       if (Array.isArray(list)) totalTx += list.length;
     });
   });
+  // Cuántas se van a BORRAR. Se cuenta antes de preguntar: una cosa es avisar
+  // "esto puede pisar categorías" y otra muy distinta "esto elimina 47
+  // movimientos". El usuario tiene que ver el número antes de decidir.
+  let aBorrar = 0;
+  Object.keys(state.transactionsByYear || {}).forEach(function (y) {
+    const yb = state.transactionsByYear[y];
+    if (!yb) return;
+    Object.keys(yb).forEach(function (m) {
+      if (Array.isArray(yb[m])) aBorrar += separarPorDescarte(yb[m]).descartadas.length;
+    });
+  });
   appConfirm({
     title: 'Re-aplicar reglas a todas las tx',
     eyebrow: 'RE-APLICAR REGLAS',
     message: 'Se van a evaluar ' + rules.length + ' regla(s) sobre ' + totalTx + ' transacción(es). Las reglas pisan la categoría / subcategoría / periodicidad existentes si matchean. Las etiquetas se suman sin duplicar.',
-    summaryLabel: 'IMPORTANTE',
-    summaryText: 'Si tenés tx que editaste manualmente y querés conservar, esta acción puede pisarlas. No es reversible automáticamente (aunque el archivo se guarda con backup).',
+    summaryLabel: aBorrar > 0 ? 'SE VAN A BORRAR MOVIMIENTOS' : 'IMPORTANTE',
+    summaryText: aBorrar > 0
+      ? 'Hay reglas de descarte que matchean ' + aBorrar + ' movimiento(s) ya cargado(s): esta acción los ELIMINA. Además, las reglas de categoría pueden pisar ediciones manuales. No es reversible automáticamente (aunque el archivo se guarda con backup).'
+      : 'Si tenés tx que editaste manualmente y querés conservar, esta acción puede pisarlas. No es reversible automáticamente (aunque el archivo se guarda con backup).',
     cancelLabel: 'Cancelar',
-    confirmLabel: 'Re-aplicar reglas',
+    confirmLabel: aBorrar > 0 ? 'Re-aplicar y borrar ' + aBorrar : 'Re-aplicar reglas',
     icon: 'refresh-cw',
-    danger: false
+    danger: aBorrar > 0
   }, function (result) {
     if (result !== true) return; // Cancelar/X/Esc → no re-aplicar
     // Aplicar
-    let matched = 0, changedCat = 0, changedSub = 0, changedPeri = 0, addedTags = 0;
+    let matched = 0, changedCat = 0, changedSub = 0, changedPeri = 0, addedTags = 0, borradas = 0;
     Object.keys(state.transactionsByYear || {}).forEach(function (y) {
       const yb = state.transactionsByYear[y];
       if (!yb) return;
       Object.keys(yb).forEach(function (m) {
         const list = yb[m];
         if (!Array.isArray(list)) return;
-        list.forEach(function (t) {
+        // Las reglas de descarte, aplicadas sobre lo YA cargado, borran. Se
+        // resuelven separando la lista en vez de mutando durante el recorrido.
+        const corte = separarPorDescarte(list);
+        if (corte.descartadas.length > 0) {
+          borradas += corte.descartadas.length;
+          yb[m] = corte.conservadas;
+        }
+        yb[m].forEach(function (t) {
           if (!t || !t.descripcion) return;
           const res = applyCategoryRules(t.descripcion);
-          if (!res) return;
+          if (!res || res.accion === REGLA_DESCARTAR) return;
           matched++;
           if (t.categoria !== res.categoria) { t.categoria = res.categoria; changedCat++; }
           if (res.subcategoria && t.subcategoria !== res.subcategoria) { t.subcategoria = res.subcategoria; changedSub++; }
@@ -9225,6 +9311,9 @@ function reapplyAllRules() {
         '• Subcategorías cambiadas: <strong style="color:var(--ink)">' + changedSub + '</strong><br>' +
         '• Periodicidades cambiadas: <strong style="color:var(--ink)">' + changedPeri + '</strong><br>' +
         '• Etiquetas agregadas: <strong style="color:var(--ink)">' + addedTags + '</strong>' +
+        (borradas > 0
+          ? '<br>• <span style="color:var(--red)">Movimientos borrados: <strong>' + borradas + '</strong></span>'
+          : '') +
         '</div>',
       cancelLabel: null,
       confirmLabel: 'OK',
@@ -9352,6 +9441,9 @@ function applySingleRule(ruleId) {
   if (btn) btn.addEventListener('click', addRuleFromForm);
   const reapply = document.getElementById('reapplyRulesBtn');
   if (reapply) reapply.addEventListener('click', reapplyAllRules);
+  // El form cambia de forma según se clasifique o se descarte.
+  const catSel = document.getElementById('ruleCategorySel');
+  if (catSel) catSel.addEventListener('change', sincronizarFormReglaDescarte);
 })();
 
 // ================= CONFIGURACIÓN — VISIBILIDAD DE SECCIONES =================
@@ -16534,6 +16626,10 @@ function bindStatementFileImport() {
       if (r.nuevas || r.omitidas) {
         partes.push(r.nuevas + ' nuev' + (r.nuevas === 1 ? 'o' : 'os') +
                     (r.omitidas ? ' · ' + r.omitidas + ' ya existente' + (r.omitidas === 1 ? '' : 's') : ''));
+      }
+      if (r.descartadas) {
+        partes.push('<span style="color:var(--muted)">' + r.descartadas + ' descartado' +
+                    (r.descartadas === 1 ? '' : 's') + ' por regla</span>');
       }
       if (r.internas) partes.push(r.internas + ' movimiento' + (r.internas === 1 ? '' : 's') + ' interno' + (r.internas === 1 ? '' : 's'));
       if (r.errores.length) partes.push('<span style="color:var(--red)">' + r.errores.length + ' fila(s) con problemas</span>');

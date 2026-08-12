@@ -250,8 +250,21 @@ function getCategoryClassification(catKey) {
 // por `;` (OR lógico): "Carrefour;Dia;Sandy" matchea si la descripción contiene
 // (o empieza con) cualquiera de las 3 palabras. El trim + filtrado de vacíos se
 // hace para tolerar "Carrefour ; Dia" o "Carrefour;;Dia".
+// Acción de una regla que, en vez de clasificar, descarta el movimiento al
+// importarlo. Sirve para la basura que traen los resúmenes —saldos anteriores,
+// avisos, movimientos internos que no se quieren registrar— y que hoy hay que
+// borrar a mano después de cada carga.
+const REGLA_DESCARTAR = 'descartar';
+
+function esReglaDescarte(rule) {
+  return !!rule && rule.accion === REGLA_DESCARTAR;
+}
+
 function matchCategoryRule(desc, rule) {
-  if (!rule || rule.enabled === false || !rule.pattern || !rule.categoria) return null;
+  if (!rule || rule.enabled === false || !rule.pattern) return null;
+  // Una regla de descarte no lleva categoría: su resultado no es "clasificá
+  // esto así" sino "esto no entra".
+  if (!rule.categoria && !esReglaDescarte(rule)) return null;
   const haystack = String(desc || '').toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const rawPattern = String(rule.pattern);
@@ -280,6 +293,7 @@ function matchCategoryRule(desc, rule) {
     return null; // regex inválido
   }
   if (!matched) return null;
+  if (esReglaDescarte(rule)) return { accion: REGLA_DESCARTAR, ruleId: rule.id || null };
   return {
     categoria: rule.categoria,
     subcategoria: rule.subcategoria || '',
@@ -301,6 +315,33 @@ function applyCategoryRules(desc) {
     if (res) return res;
   }
   return null;
+}
+
+// Separa un lote de transacciones según las reglas de descarte. Se corre ANTES
+// de categorizar y de deduplicar: lo descartado no llega a existir, así que no
+// hay que borrarlo después ni ensucia el aprendizaje por historial.
+//
+// Respeta el orden de las reglas igual que la categorización: gana la primera
+// que matchea. Si esa primera es de clasificación, la tx se conserva aunque más
+// abajo haya una de descarte — al revés de lo esperable, pero coherente con
+// cómo funciona el resto: la prioridad la da el orden y el usuario lo controla.
+function separarPorDescarte(txs, reglas) {
+  const lista = (typeof reglas !== 'undefined' && reglas)
+    ? reglas
+    : ((typeof state !== 'undefined' && state && state.categoryRules) || []);
+  const conservadas = [];
+  const descartadas = [];
+  (txs || []).forEach(function (t) {
+    if (!t) return;
+    let veredicto = null;
+    for (let i = 0; i < lista.length; i++) {
+      const res = matchCategoryRule(t.descripcion, lista[i]);
+      if (res) { veredicto = res; break; }
+    }
+    if (veredicto && veredicto.accion === REGLA_DESCARTAR) descartadas.push(t);
+    else conservadas.push(t);
+  });
+  return { conservadas: conservadas, descartadas: descartadas };
 }
 
 // ============================================================
@@ -2416,6 +2457,7 @@ if (typeof module !== 'undefined' && module.exports) {
     isNonExpenseCat, getCategoryClassification,
     // rules
     matchCategoryRule, applyCategoryRules,
+    REGLA_DESCARTAR, esReglaDescarte, separarPorDescarte,
     // forecasting
     forecastNextValue, buildHeatmapLevels,
     // kpi engine
