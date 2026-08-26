@@ -2017,9 +2017,15 @@
           '<p class="mesa-block-sub">El tilde de cada fila registra un cierre, total o parcial. ' +
             'Cuando una operación se cerró en varios tramos, la flecha despliega el detalle de cada uno.</p>' +
         '</summary>' +
-        '<div class="mesa-fold-body" data-mesa-history>' + tableHtml() + '</div>' +
-      '</details>' +
-      '<p class="mesa-foot">' +
+        // El pie explica Liquidación, R y Adherencia, que son columnas de ESTA
+        // tabla: vivía afuera de las secciones y quedaba a la vista con todo
+        // plegado, tres párrafos de definiciones sobre un panel sin datos.
+        // Va adentro, pero como hermano de [data-mesa-history] y no dentro:
+        // updateHistory() reescribe ese contenedor entero y se lo llevaría
+        // puesto en cada cierre registrado.
+        '<div class="mesa-fold-body">' +
+          '<div data-mesa-history>' + tableHtml() + '</div>' +
+          '<p class="mesa-foot">' +
         '<strong>Liquidación</strong> — long: <code>(Nocional − Margen) / (Unidades × (1 − MMR))</code> · ' +
         'short: <code>(Nocional + Margen) / (Unidades × (1 + MMR))</code>. ' +
         'Aproximado: cada exchange aplica MMR por tramos, y comisiones y funding corren el precio real. ' +
@@ -2028,8 +2034,10 @@
         'El objetivo no es ganar seguido: es que la suma de R sea positiva.<br>' +
         '<strong>Adherencia</strong> — operaciones ejecutadas según las reglas ÷ operaciones clasificadas. ' +
         'Cuenta como cumplida la que pasó las cinco compuertas, tenía stop cargado, se abrió con el día ' +
-        'habilitado y se cerró por una salida del sistema. Es el único número que no depende del mercado.' +
-      '</p>';
+          'habilitado y se cerró por una salida del sistema. Es el único número que no depende del mercado.' +
+          '</p>' +
+        '</div>' +
+      '</details>';
   }
 
   /* ---------------------------------------------------------------------
@@ -2169,6 +2177,28 @@
     // tienen otra acción por omisión que cancelar.
     root.addEventListener('click', function (e) {
       if (e.target.closest('.mesa-fold-sum .mesa-actions')) e.preventDefault();
+    });
+
+    /* Plegar una sección le saca alto a la página, y el navegador conserva el
+       scroll medido desde arriba: el resultado es que todo lo que está abajo
+       sube de golpe y el título que acabás de tocar se te escapa de la vista.
+       Cerrar "Mesa de trabajo" son 1.100 px que desaparecen de un saque.
+
+       Se corrige anclando el summary: se mide dónde está en pantalla antes de
+       que el navegador aplique el toggle y se lo devuelve a esa misma altura
+       después. El usuario ve la sección quedarse quieta y el resto acomodarse
+       alrededor, que es lo que espera de un plegable. */
+    root.addEventListener('click', function (e) {
+      var sum = e.target.closest('.mesa-fold-sum');
+      if (!sum || e.target.closest('.mesa-actions')) return;
+      var antes = sum.getBoundingClientRect().top;
+      // El toggle es la acción por omisión del click: corre después de este
+      // handler, así que la corrección va en el frame siguiente.
+      requestAnimationFrame(function () {
+        var despues = sum.getBoundingClientRect().top;
+        var delta = despues - antes;
+        if (delta) window.scrollBy(0, delta);
+      });
     });
 
     root.addEventListener('click', function (e) {

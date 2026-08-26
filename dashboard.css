@@ -6122,6 +6122,30 @@ body[data-exporting="true"] .section-card {
   -moz-appearance: textfield;
 }
 
+/* Precio actual: el símbolo de moneda va afuera del input porque adentro
+   habría que parsearlo cada vez que se lee el valor. La celda pasa a flex para
+   que el símbolo quede pegado al número y el conjunto siga alineado a la
+   derecha como el resto de la columna. El input pierde el width:100% —con él,
+   empujaba el símbolo fuera de la celda. */
+.inv-price-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+}
+.inv-price-sym {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.inv-price-cell .inv-price-input {
+  width: auto;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
 .inv-gp-positive { color: var(--green); font-weight: 600; }
 .inv-gp-negative { color: var(--red); font-weight: 600; }
 .inv-gp-pct {

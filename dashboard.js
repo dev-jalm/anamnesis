@@ -17517,9 +17517,12 @@ function buildInvestmentDetailPanel(destinos, title) {
     const actDisp = (act !== null) ? prefix + ' ' + fmt(Math.abs(act)) : '<span class="inv-na">—</span>';
     const cls = vari.abs === null ? '' : (vari.abs > 0 ? 'inv-gp-positive' : (vari.abs < 0 ? 'inv-gp-negative' : ''));
     const sign = vari.abs === null ? '' : (vari.abs > 0 ? '+' : (vari.abs < 0 ? '-' : ''));
+    // Sin signo en el importe: la variación ya va en verde o rojo. El signo
+    // queda en el porcentaje de al lado, que es donde no hay color propio que
+    // lo diga.
     const varDisp = vari.abs === null
       ? '<span class="inv-na">—</span>'
-      : sign + prefix + ' ' + fmt(Math.abs(vari.abs)) + ' <span class="inv-header-pct">(' + sign + Math.abs(vari.pct).toFixed(2) + '%)</span>';
+      : prefix + ' ' + fmt(Math.abs(vari.abs)) + ' <span class="inv-header-pct">(' + sign + Math.abs(vari.pct).toFixed(2) + '%)</span>';
     // Líquido: si es null mostramos "—". Si es negativo, rojo (invertiste más
     // que lo aportado — inconsistencia entre tx cargadas y portfolio).
     // Si tiene valor (fila ARS+USD), la celda es clickeable: lleva a Historia
@@ -17707,12 +17710,16 @@ function buildInvestmentDetailPanel(destinos, title) {
           '<td class="num">' + monedaPrefix + ' ' + fmt(ePrecio) + '</td>' +
           '<td class="num">' + (eTotal < 0 ? '-' : '') + monedaPrefix + ' ' + fmt(Math.abs(eTotal)) + '</td>' +
           '<td class="num">' + (precioActual !== null ? monedaPrefix + ' ' + fmt(precioActual) : na) + '</td>' +
+          // Sin signo en los importes: el verde y el rojo ya dicen si ganó o
+          // perdió, y el "+$" delante de un numero verde es la misma
+          // informacion dos veces. El porcentaje si lo conserva, que es donde
+          // la direccion no se lee del color sino de la magnitud.
           '<td class="num ' + eGpClass + '">' + (varUnit !== null
-            ? (varUnit > 0 ? '+' : (varUnit < 0 ? '-' : '')) + monedaPrefix + ' ' + fmt(Math.abs(varUnit))
+            ? monedaPrefix + ' ' + fmt(Math.abs(varUnit))
             : na) + '</td>' +
           '<td class="num ' + eGpClass + '">' + (eActualizado !== null ? monedaPrefix + ' ' + fmt(eActualizado) : na) + '</td>' +
           '<td class="num ' + eGpClass + '">' + (gpLote !== null
-            ? eGpSign + monedaPrefix + ' ' + fmt(Math.abs(gpLote)) +
+            ? monedaPrefix + ' ' + fmt(Math.abs(gpLote)) +
               (gpLotePct !== null ? '<div class="inv-gp-pct">' + eGpSign + Math.abs(gpLotePct).toFixed(2) + '%</div>' : '')
             : na) + '</td>' +
         '</tr>';
@@ -17753,19 +17760,26 @@ function buildInvestmentDetailPanel(destinos, title) {
         '<td class="ticker">' + escapeHtmlSafe(tk) + '</td>' +
         '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(tk) + '" value="' + escapeHtmlSafe(descripcion).replace(/"/g, '&quot;') + '" placeholder="ej: SPDR S&P 500 ETF"></td>' +
         '<td class="num">' + (g.cantidadTotal < 0 ? '-' : '') + fmt(Math.abs(g.cantidadTotal)) + '</td>' +
-        '<td class="num">' + monedaPrefix + ' ' + new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(g.ppc) + '</td>' +
+        // PPC sin decimales, igual que el resto de los importes de la fila. Era
+        // la única celda con dos decimales y desalineaba la columna: el
+        // promedio ponderado de compras enteras no gana nada con los centavos.
+        '<td class="num">' + monedaPrefix + ' ' + fmt(g.ppc) + '</td>' +
         '<td class="num">' + (invertido < 0 ? '-' : '') + monedaPrefix + ' ' + fmt(Math.abs(invertido)) + '</td>' +
-        '<td class="num"><input type="text" inputmode="decimal" class="inv-price-input" data-ticker="' + escapeHtmlSafe(tk) + '" value="' + (precioActual !== null ? formatInputAR(precioActual) : '') + '" title="' + escapeHtmlSafe(lastUpdateDisplay) + '"></td>' +
+        // El precio actual es editable, así que el símbolo va afuera del input:
+        // adentro lo tendría que parsear al leerlo. Es la única celda de la
+        // fila donde el importe salía sin moneda.
+        '<td class="num inv-price-cell"><span class="inv-price-sym">' + monedaPrefix + '</span>' +
+          '<input type="text" inputmode="decimal" class="inv-price-input" data-ticker="' + escapeHtmlSafe(tk) + '" value="' + (precioActual !== null ? formatInputAR(precioActual) : '') + '" title="' + escapeHtmlSafe(lastUpdateDisplay) + '"></td>' +
         // Variación por nominal del conjunto: precio actual contra el PPC.
         // Es el mismo dato que muestra cada compra en su fila, pero ponderado.
+        // Sin signo: lo dice el color.
         '<td class="num ' + gpClass + '">' + (precioActual !== null
-          ? ((precioActual - g.ppc) > 0 ? '+' : ((precioActual - g.ppc) < 0 ? '-' : '')) +
-            monedaPrefix + ' ' + fmt(Math.abs(precioActual - g.ppc))
+          ? monedaPrefix + ' ' + fmt(Math.abs(precioActual - g.ppc))
           : '<span class="inv-na">—</span>') + '</td>' +
         '<td class="num ' + gpClass + '">' + (actualizado !== null ? monedaPrefix + ' ' + fmt(actualizado) : '<span class="inv-na">—</span>') + '</td>' +
         '<td class="num ' + gpClass + '">' +
           (gp !== null
-            ? gpSign + monedaPrefix + ' ' + fmt(Math.abs(gp)) + '<div class="inv-gp-pct">' + gpSign + Math.abs(gpPct).toFixed(2) + '%</div>'
+            ? monedaPrefix + ' ' + fmt(Math.abs(gp)) + '<div class="inv-gp-pct">' + gpSign + Math.abs(gpPct).toFixed(2) + '%</div>'
             : '<span class="inv-na">—</span>') +
         '</td>' +
       '</tr>' +
