@@ -99,9 +99,24 @@
 .mesa-fold:not([open]) > summary .mesa-actions [data-mesa-add],
 .mesa-fold:not([open]) > summary .mesa-actions [data-mesa-reset] { display: none; }
 
-/* Con la bajada oculta, el título queda solo en la fila y el triángulo tiene
-   que alinearse con él y no con el borde superior de un bloque que ya no está. */
-.mesa-fold:not([open]) > summary::before { margin-top: 4px; }
+/* Plegada, la sección es una sola línea y el título tiene que quedar centrado
+   en su banda. Sin esto quedaban descolgados y encima distinto entre sí: la
+   mesa de trabajo pegada arriba —la estiraba el alto del botón Sistema 4K, con
+   align-items:flex-start el título se alineaba al tope del más alto— y las
+   otras dos pegadas abajo, por los 20px de padding superior de .mesa-sep
+   contra 0 abajo.
+
+   Se centra todo con align-items en vez de calcular paddings: así el triángulo
+   y el botón se acomodan solos al alto real del título. */
+.mesa-fold:not([open]) > summary { align-items: center; padding: 4px 0; }
+.mesa-fold:not([open]) > summary .mesa-bench-head { align-items: center; }
+.mesa-fold:not([open]) > summary::before { margin-top: 0; }
+/* El margen inferior del título separa el título de la bajada. Plegada no hay
+   bajada, así que ese margen sólo lo corre hacia arriba. */
+.mesa-fold:not([open]) > summary .mesa-block-title { margin-bottom: 0; }
+/* Padding simétrico: el de .mesa-sep es 20px arriba y 0 abajo, pensado para
+   una sección abierta que sigue con contenido. */
+.mesa-fold:not([open]).mesa-sep { padding-top: 12px; padding-bottom: 12px; }
 
 .mesa-fold-body { padding-top: 4px; }
 
