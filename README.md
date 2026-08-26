@@ -32,7 +32,7 @@ anamnesis parte de tres decisiones opuestas:
 
 **▶ Probalo en vivo: [anamnesis-7zs.pages.dev](https://anamnesis-7zs.pages.dev/)** — entrá con "Ver demo con datos de ejemplo", no hace falta conectar nada.
 
-**📄 [Manual de usuario (PDF)](docs/manual-de-usuario.pdf)** — 24 páginas con índice navegable, una captura de cada pantalla y para qué sirve cada una.
+**📄 [Manual de usuario (PDF)](docs/manual-de-usuario.pdf)** — índice navegable, una captura de cada pantalla y para qué sirve cada una.
 
 _Las tres capturas son del modo demo: los números son ficticios._
 
@@ -51,9 +51,9 @@ La metáfora médica no es decorativa: cada solapa responde una pregunta distint
 | Solapa | Pregunta que responde |
 |---|---|
 | **Historia clínica** | ¿En qué se fue la plata? Movimientos del período, recategorizables, con etiquetas y formas de pago. Dos vistas: **Resumen**, una fila por categoría con su peso sobre el total, y **Completa**, cada movimiento editable en su fila. |
-| **Ficha médica** | ¿Cómo estoy hoy? KPIs configurables, score de salud, distribución por categoría, tipo, periodicidad y medio de pago. |
+| **Ficha médica** | ¿Cómo estoy hoy? KPIs configurables, score de salud, distribución por categoría, tipo, periodicidad y medio de pago. También en dos vistas: **Completa** con todos los gráficos, y **Resumen** con las secciones que elijas dejar. |
 | **Diagnóstico** | ¿Qué está pasando? Flujo trimestral, evolución anual e insights automáticos. |
-| **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y jubilación, con precios actualizados desde el mercado. Cada activo se despliega en sus compras individuales, con el rendimiento de cada una contra el precio de hoy. Trading va aparte: es la [mesa de operaciones](#la-mesa-de-trading). |
+| **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y las dos jubilaciones, con precios actualizados desde el mercado. Cada activo se despliega en sus compras individuales, con el rendimiento de cada una contra el precio de hoy. Trading va último y aparte: es la [mesa de operaciones](#la-mesa-de-trading). |
 | **Evolución** | ¿Estoy mejorando? Presupuestado contra real, mes a mes, con tendencias por categoría. |
 
 ## La mesa de trading
@@ -67,6 +67,8 @@ Cada operación pasa por cinco compuertas —tendencia, retroceso a la media, vo
 El historial compara las operaciones **con stop contra las que fueron sin stop** —cantidad, PnL neto, win rate, drawdown, R acumulado y nivel de margen mínimo— porque ahí es donde se ve si operar sin stop te está saliendo bien o simplemente todavía no te salió mal. Las que van sin stop no muestran R: sin stop no hay unidad de riesgo, y poner cero sería mentir, porque cero R significa salir en break-even.
 
 El reglamento completo se consulta desde la propia mesa, sin salir del dashboard.
+
+Las tres secciones —mesa de trabajo, métricas e historial— vienen plegadas. Abiertas de entrada el panel medía varias pantallas y había que scrollear hasta el fondo para llegar al historial, que es lo que más se mira.
 
 La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite: con stop y sin stop, abiertas, parciales y cerradas, long y short, salida por objetivo, por stop y a mano, y una que cierra en dos tramos. Una de las que va sin stop cierra **en ganancia**, a propósito: ganar no valida el proceso.
 
@@ -86,7 +88,7 @@ Los formatos incorporados también se editan, por si esas entidades cambian cóm
 
 **El navegador como runtime completo.** La persistencia usa la File System Access API contra un archivo que elige el usuario, con el handle guardado en IndexedDB para reconectar entre sesiones y guardado con debounce. No hay backend porque no hace falta.
 
-**Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado —parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas, parseo de resúmenes bancarios— y `tests.html` la cubre con **352 tests** en 40 grupos, incluidos casos de integración de un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
+**Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado —parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas, parseo de resúmenes bancarios— y `tests.html` la cubre con **359 tests** en 44 grupos, incluidos casos de integración de un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
 
 **Cada banco es un dato, no código.** Los parsers de Mercado Pago y Galicia eran el mismo algoritmo con constantes distintas, así que ese algoritmo vive una sola vez y cada entidad es una plantilla: qué columna trae la fecha, si el importe viene firmado o partido en débito y crédito, en qué formato están los números. Ocho campos cubren los dos bancos reales, y el motor trabaja sobre filas, así que da igual que el archivo sea CSV o Excel.
 
@@ -99,15 +101,15 @@ Los formatos incorporados también se editan, por si esas entidades cambian cóm
 ## Estructura
 
 ```
-dashboard.html    3.047 líneas    estructura, modales, formularios
+dashboard.html    3.051 líneas    estructura, modales, formularios
 dashboard.css     7.689 líneas    estilos y theming claro/oscuro
-dashboard.js     21.727 líneas    lógica, render, estado, importación
-core.js           2.519 líneas    funciones puras + motor de plantillas
-mesa-trading.js   2.903 líneas    mesa de trading: riesgo, liquidación, historial
-mesa-trading.css    948 líneas    estilos de la mesa
+dashboard.js     21.730 líneas    lógica, render, estado, importación
+core.js           2.542 líneas    funciones puras + motor de plantillas
+mesa-trading.js   2.927 líneas    mesa de trading: riesgo, liquidación, historial
+mesa-trading.css    992 líneas    estilos de la mesa
 sistema-4k.js       478 líneas    el reglamento de trading, consultable en la app
 demo-data.js        635 líneas    generador del dataset de demostración
-tests.html        3.141 líneas    352 tests sobre core.js
+tests.html        3.171 líneas    359 tests sobre core.js
 ```
 
 ## Correr los tests

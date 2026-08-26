@@ -388,11 +388,15 @@
            colapsable (buildInvestmentDetailPanel) muestra título y totales
            agregados. Reserva además tiene una fila META con progreso de meta
            total / aporte mensual / barra de avance. -->
+      <!-- El orden es el del horizonte de cada destino, del más líquido al más
+           lejano: primero la reserva, después lo invertido, después las dos
+           jubilaciones, y Trading al final porque es el único que no son
+           tenencias sino operaciones. -->
       <div id="reservaContent"></div>
       <div id="inversionesContent"></div>
-      <div id="tradingContent"></div>
       <div id="jubilacionJalmContent"></div>
       <div id="jubilacionClmContent"></div>
+      <div id="tradingContent"></div>
     </div>
   </div>
 
@@ -865,7 +869,7 @@
         <div class="kpi-editor-grid">
           <div class="kpi-editor-field">
             <span class="kpi-editor-field-label">Nombre</span>
-            <input type="text" id="kpiEditorLabel" placeholder="ej: Sueldos">
+            <input type="text" id="kpiEditorLabel" maxlength="30" placeholder="ej: Sueldos">
           </div>
           <div class="kpi-editor-field kpi-editor-field-compact">
             <span class="kpi-editor-field-label">Color de borde</span>
@@ -1495,7 +1499,7 @@
       <div class="travel-add-row" style="flex-wrap:wrap">
         <div class="travel-field" style="flex:1.5;min-width:200px">
           <span class="travel-field-label">Nombre</span>
-          <input type="text" id="travelEditNameInput" class="period-select">
+          <input type="text" id="travelEditNameInput" class="period-select" maxlength="30">
         </div>
         <div class="travel-field">
           <span class="travel-field-label">Fecha inicio</span>
@@ -2043,7 +2047,7 @@
           <div class="plant-campos">
             <div class="plant-campo">
               <label class="rule-label">Nombre de la entidad</label>
-              <input type="text" class="period-select" id="plantNombre" placeholder="ej: Banco Nación">
+              <input type="text" class="period-select" id="plantNombre" maxlength="30" placeholder="ej: Banco Nación">
             </div>
             <div class="plant-campo">
               <label class="rule-label">Columna de la fecha</label>
@@ -2420,7 +2424,7 @@
           </div>
           <div class="rule-field cat-add-field-name-wrap" id="catAddFieldName">
             <label class="rule-label" for="catAddNameInput">Nombre visible</label>
-            <input type="text" id="catAddNameInput" class="period-select cat-add-field-name" placeholder="Nombre visible" style="background-image:none;padding-right:14px">
+            <input type="text" id="catAddNameInput" class="period-select cat-add-field-name" maxlength="30" placeholder="Nombre visible" style="background-image:none;padding-right:14px">
           </div>
           <div class="rule-field hidden" id="catAddFieldColor">
             <label class="rule-label" for="catAddColorInput">Color</label>
@@ -2536,7 +2540,7 @@
             <label class="rule-label" for="ruleRenameInput">
               Renombrar a <span class="rule-label-hint">(opcional)</span>
             </label>
-            <input type="text" id="ruleRenameInput" class="period-select" placeholder="ej: Starbucks" style="background-image:none;padding-right:12px" title="Reemplaza la descripción que trae el archivo. La original queda guardada y se ve al pasar el mouse.">
+            <input type="text" id="ruleRenameInput" class="period-select" maxlength="60" placeholder="ej: Starbucks" style="background-image:none;padding-right:12px" title="Reemplaza la descripción que trae el archivo. La original queda guardada y se ve al pasar el mouse.">
           </div>
           <div class="rule-field" style="flex:1 1 180px;min-width:160px">
             <label class="rule-label">Periodicidad (opcional)</label>
@@ -2605,7 +2609,7 @@
         <div class="travel-add-row">
           <div class="travel-field" style="flex:1.5;min-width:160px">
             <span class="travel-field-label">Nombre del viaje / evento</span>
-            <input type="text" id="travelNameInput" class="period-select" placeholder="ej: Bariloche, casamiento Vicky...">
+            <input type="text" id="travelNameInput" class="period-select" maxlength="30" placeholder="ej: Bariloche, casamiento Vicky...">
           </div>
           <div class="travel-field">
             <span class="travel-field-label">Fecha inicio</span>

@@ -47,6 +47,50 @@
   padding: 20px 14px 0;
 }
 
+/* ---------- secciones plegables de la mesa ----------
+   Los tres bloques —mesa de trabajo, métricas e historial— arrancan cerrados.
+   Abiertos de entrada, el panel de Trading medía varias pantallas y había que
+   scrollear hasta el final para llegar al historial, que es lo que más se mira.
+
+   El triángulo es el mismo tratamiento que usan los paneles de inversión: se
+   saca el marcador nativo —que cambia de dibujo entre navegadores— y se pone
+   uno propio que rota al abrir. */
+.mesa-fold > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  /* El área de click llega hasta el borde, no sólo hasta donde termina el
+     texto: un título corto con un target de click corto se siente roto. */
+  padding: 2px 0;
+}
+.mesa-fold > summary::-webkit-details-marker { display: none; }
+.mesa-fold > summary::before {
+  content: '';
+  flex-shrink: 0;
+  width: 0; height: 0;
+  border-left: 5px solid var(--muted);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  margin-top: 6px;
+  transition: transform 120ms ease;
+}
+.mesa-fold[open] > summary::before { transform: rotate(90deg); }
+.mesa-fold > summary:hover .mesa-block-title { color: var(--accent); }
+
+/* El div que sigue al summary lleva el contenido. Sin el flex:1 el bloque de
+   la cabecera —título + acciones— no ocuparía el ancho y las acciones se
+   pegarían al título en vez de irse al margen derecho. */
+.mesa-fold > summary > .mesa-bench-head,
+.mesa-fold > summary > div:first-of-type { flex: 1 1 auto; min-width: 0; }
+
+/* Cerrada, la bajada del título es el único texto visible: sin margen inferior
+   queda pegada a la línea divisoria de la sección siguiente. */
+.mesa-fold:not([open]) > summary .mesa-block-sub { margin-bottom: 4px; }
+
+.mesa-fold-body { padding-top: 4px; }
+
 /* ---------- cabecera del panel de Trading ----------
    La fila usa el marcado de anamnesis (.inv-header-total-row) para verse igual
    que las de Reserva, Inversiones y Jubilacion. La clase `combined` se usa solo

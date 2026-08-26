@@ -3038,6 +3038,36 @@ group('validarPlantilla — antes de dejar guardar una plantilla del usuario', f
   });
 });
 
+group('recortarTexto — longitudes máximas de los campos de texto', function () {
+  test('los máximos son los acordados: 60 para descripción, 30 para nombres', function () {
+    assertEqual(MAX_LEN_DESCRIPCION, 60);
+    assertEqual(MAX_LEN_NOMBRE, 30);
+  });
+  test('un texto más largo que el máximo se recorta', function () {
+    assertEqual(recortarTexto('x'.repeat(90), MAX_LEN_DESCRIPCION).length, 60);
+    assertEqual(recortarTexto('x'.repeat(50), MAX_LEN_NOMBRE).length, 30);
+  });
+  test('un texto que entra queda igual', function () {
+    assertEqual(recortarTexto('Starbucks', MAX_LEN_DESCRIPCION), 'Starbucks');
+  });
+  test('un texto exactamente del largo máximo no se toca', function () {
+    const justo = 'x'.repeat(60);
+    assertEqual(recortarTexto(justo, MAX_LEN_DESCRIPCION), justo);
+  });
+  test('null, undefined y vacío devuelven string vacío, no explotan', function () {
+    assertEqual(recortarTexto(null, 30), '');
+    assertEqual(recortarTexto(undefined, 30), '');
+    assertEqual(recortarTexto('', 30), '');
+  });
+  test('un máximo inválido cae en el de descripción en vez de romper', function () {
+    assertEqual(recortarTexto('x'.repeat(90), 0).length, 60);
+    assertEqual(recortarTexto('x'.repeat(90), null).length, 60);
+  });
+  test('un número se trata como texto', function () {
+    assertEqual(recortarTexto(12345, 3), '123');
+  });
+});
+
 group('INTEGRACIÓN — Edge cases que probablemente rompan algo en el futuro', function () {
   test('state sin transactionsByYear: nada explota', function () {
     const prev = globalThis.state;

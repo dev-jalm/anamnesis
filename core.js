@@ -55,6 +55,28 @@ const MONTHS_ORDER = [
 ];
 
 // ============================================================
+// LONGITUDES DE CAMPOS DE TEXTO
+// ============================================================
+// Acotan lo que el USUARIO puede escribir. NO recortan lo que trae un archivo:
+// la descripción que emite el banco se guarda entera, porque es el dato de
+// origen y además es la que fija la clave de deduplicación (_importKey). Si se
+// recortara al importar, reimportar el mismo archivo dejaría de reconocer los
+// duplicados.
+//
+// Consecuencia buscada: una descripción importada más larga que el máximo se
+// muestra completa, pero al editarla a mano queda acotada.
+const MAX_LEN_DESCRIPCION = 60;
+const MAX_LEN_NOMBRE = 30;
+
+// Recorta respetando el máximo. Devuelve string siempre, así el llamador no
+// tiene que defenderse de null.
+function recortarTexto(valor, maximo) {
+  const s = String(valor === null || valor === undefined ? '' : valor);
+  const max = (typeof maximo === 'number' && maximo > 0) ? maximo : MAX_LEN_DESCRIPCION;
+  return s.length > max ? s.slice(0, max) : s;
+}
+
+// ============================================================
 // HELPERS DE STRINGS
 // ============================================================
 
@@ -2477,6 +2499,7 @@ if (typeof module !== 'undefined' && module.exports) {
     PLANTILLAS_BUILTIN,
     // constants
     NON_EXPENSE_CATS, NON_COUNTABLE_FLOW_CATS, BASIC_CATS, DISCRETIONARY_CATS, MONTHS_ORDER, SCHEMA_VERSION,
+    MAX_LEN_DESCRIPCION, MAX_LEN_NOMBRE, recortarTexto,
     HEALTH_SCORE_DEFAULTS,
     // strings
     norm, escapeHtmlSafe,

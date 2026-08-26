@@ -5861,7 +5861,7 @@ function renderManualList() {
     return '<div class="manual-row manual-row-extended" data-id="' + r.id + '">' +
       '<div class="manual-row-main">' +
         '<input type="date" data-field="fecha" value="' + r.fecha + '" title="Fecha">' +
-        '<input type="text" data-field="descripcion" placeholder="Descripción" value="' + (r.descripcion ? r.descripcion.replace(/"/g, '&quot;') : '') + '">' +
+        '<input type="text" data-field="descripcion" maxlength="' + MAX_LEN_DESCRIPCION + '" placeholder="Descripción" value="' + (r.descripcion ? r.descripcion.replace(/"/g, '&quot;') : '') + '">' +
         '<input type="text" inputmode="decimal" data-field="monto" placeholder="Monto" title="Monto" value="' + (r.monto ? formatInputAR(parseAmount(String(r.monto))) : '') + '">' +
         '<select data-field="catSub" title="Categoría / Subcategoría" class="manual-extra-field manual-extra-cat">' + catSubOptions + '</select>' +
         '<select data-field="periodicidad" title="Periodicidad" class="manual-extra-field">' + buildPeriOptions(r.periodicidad) + '</select>' +
@@ -19457,7 +19457,10 @@ function bindMovListDelegation() {
     const origTx = findTxById(txId);
     if (!origTx) return;
     if (isDesc) {
-      const newDesc = (el.textContent || '').trim();
+      // Un contenteditable no entiende maxlength, así que el tope se aplica acá.
+      // Sólo alcanza a lo que se escribe a mano: una descripción importada más
+      // larga se sigue mostrando entera hasta que alguien la edite.
+      const newDesc = recortarTexto((el.textContent || '').trim(), MAX_LEN_DESCRIPCION);
       // El "original" para comparar es lo que ya está guardado como descripcionOriginal
       // (si la tx ya fue editada antes) o la descripción actual (si nunca se editó).
       const origDesc = origTx.descripcionOriginal || origTx.descripcion || '';

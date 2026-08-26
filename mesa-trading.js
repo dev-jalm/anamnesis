@@ -44,7 +44,12 @@
     monto:  { dec: 0, grupo: true  },
     pct:    { dec: 2, grupo: false },
     precio: { dec: null, grupo: true },   // dec null = conserva lo que tenga
-    entero: { dec: 0, grupo: false }
+    entero: { dec: 0, grupo: false },
+    // Unidades: punto como separador de miles —una posición puede ser de
+    // 348.837 unidades— pero SIN redondear, porque también puede ser de
+    // 0,027778 BTC. Ni `monto` ni `precio` servían: monto redondea a entero y
+    // precio lee el punto de "348.837" como decimal.
+    unidades: { dec: null, grupo: true }
   };
 
   /* ---------------------------------------------------------------------
@@ -108,7 +113,7 @@
       return isFinite(nv) ? Math.round(nv * escala) : 0;
     }
 
-    if (tipo === 'monto' || tipo === 'entero' || tipo === 'costo') {
+    if (tipo === 'monto' || tipo === 'entero' || tipo === 'costo' || tipo === 'unidades') {
       s = s.replace(/\./g, '').replace(',', '.');
     } else if (s.indexOf(',') >= 0) {
       s = s.replace(/\./g, '').replace(',', '.');
@@ -143,6 +148,21 @@
 
   // Montos en USDT: sin decimales, con separador de miles.
   function fmtMonto(v) { return fmtNum(v, 0, true); }
+
+  // Las unidades van de 348.837 (PUMP a 0,0043) a 0,027778 (BTC a 61.200): un
+  // único formato no cubre los dos extremos. Con cero decimales —que es lo que
+  // hacía fmtMonto— una posición de 0,0278 BTC se mostraba como "0", que además
+  // de ser falso hacía parecer que no había posición abierta.
+  function fmtUnidades(v) {
+    if (!isFinite(v)) return '—';
+    var a = Math.abs(v);
+    if (a === 0) return '0';
+    if (a >= 1000) return fmtNum(v, 0, true);
+    if (a >= 1) return fmtNum(v, 2, true);
+    // Menos de una unidad: hasta 8 decimales y sin ceros de relleno a la
+    // derecha, que sólo agregan ancho de columna.
+    return fmtNum(v, 8, true).replace(/,?0+$/, '');
+  }
   // Porcentajes: siempre 2 decimales.
   function fmtPct(v) { return fmtNum(v, 2, false); }
 
@@ -1394,7 +1414,7 @@
     }
 
     return '<div class="mesa-tiles">' +
-        tile('Unidades', fmtMonto(c.qty), 'tamaño de posición') +
+        tile('Unidades', fmtUnidades(c.qty), 'tamaño de posición') +
         tile('Nocional', fmtMonto(c.nocional) + ' USDT', 'valor controlado') +
         tile(c.cruzado ? 'Respaldo (cruzado)' : 'Margen',
              fmtMonto(c.margen) + ' USDT',
@@ -1625,7 +1645,7 @@
         '<td class="mut"></td>' +
         '<td class="mut"></td>' +
         '<td>' + fmtPrecio(c.precio) + '</td>' +
-        '<td>' + fmtMonto(c.qty) + '</td>' +
+        '<td>' + fmtUnidades(c.qty) + '</td>' +
         '<td class="mut"></td>' +
         '<td class="mut"></td>' +
         '<td>' + fmtCosto(c.costos || 0) + '</td>' +
@@ -1841,9 +1861,9 @@
           '<td' + (r.qCerrada > 0 ? '' : ' class="mut"') + '>' +
             (r.qCerrada > 0 ? fmtPrecio(r.salidaProm) : '—') +
             (r.n > 1 ? '<span class="mesa-sub">promedio</span>' : '') + '</td>' +
-          '<td>' + fmtMonto(t.qty) +
+          '<td>' + fmtUnidades(t.qty) +
             (r.estado === 'parcial'
-              ? '<span class="mesa-sub abierta">' + fmtMonto(r.qAbierta) + ' sin cerrar</span>'
+              ? '<span class="mesa-sub abierta">' + fmtUnidades(r.qAbierta) + ' sin cerrar</span>'
               : '') + '</td>' +
           '<td>' + fmtNum(t.lev, 0, false) + 'x' +
             '<span class="mesa-sub">' + (t.margenTipo === 'cruzado' ? 'cruz' : 'aisl') + '</span></td>' +
@@ -1938,8 +1958,17 @@
 
   function render(root) {
     var d = draft || defaults();
+    // Los tres bloques van colapsados. Abiertos de entrada, el panel de Trading
+    // ocupaba varias pantallas y obligaba a scrollear para llegar al historial,
+    // que es lo que más se consulta. Cada uno se abre cuando se lo necesita.
+    //
+    // Se re-arma en cada render() —o sea, en cada renderMainAssets— así que el
+    // estado por omisión vuelve a ser "cerrado". updateHistory() no pasa por
+    // acá: refresca los contenedores en el lugar, de modo que registrar un
+    // cierre no le cierra la sección al usuario.
     root.innerHTML =
-      '<div class="mesa-bench">' +
+      '<details class="mesa-fold">' +
+      '<summary class="mesa-fold-sum">' +
         '<div class="mesa-bench-head">' +
           '<div>' +
             '<h4 class="mesa-block-title">Mesa de trabajo</h4>' +
@@ -1957,6 +1986,8 @@
             '<button type="button" class="mesa-btn" data-mesa-reset>Limpiar</button>' +
           '</div>' +
         '</div>' +
+      '</summary>' +
+      '<div class="mesa-fold-body mesa-bench">' +
         // Dos columnas: el procedimiento a la izquierda, la escala pegada al
         // margen derecho. La escala arranca con la sección 1 y termina con la 4
         // porque describe la misma operación que se está armando en ellas —
@@ -1972,17 +2003,22 @@
         '</div>' +
         '<div data-mesa-results>' + resultsHtml(d, calc(d)) + '</div>' +
       '</div>' +
-      '<div class="mesa-sep">' +
-        '<h4 class="mesa-block-title">Métricas del historial</h4>' +
-        '<p class="mesa-block-sub">Se recalculan con cada operación cerrada.</p>' +
-        '<div data-mesa-metrics>' + metricsHtml() + '</div>' +
-      '</div>' +
-      '<div class="mesa-sep">' +
-        '<h4 class="mesa-block-title">Historial de operaciones</h4>' +
-        '<p class="mesa-block-sub">El tilde de cada fila registra un cierre, total o parcial. ' +
-          'Cuando una operación se cerró en varios tramos, la flecha despliega el detalle de cada uno.</p>' +
-        '<div data-mesa-history>' + tableHtml() + '</div>' +
-      '</div>' +
+      '</details>' +
+      '<details class="mesa-fold mesa-sep">' +
+        '<summary class="mesa-fold-sum">' +
+          '<h4 class="mesa-block-title">Métricas del historial</h4>' +
+          '<p class="mesa-block-sub">Se recalculan con cada operación cerrada.</p>' +
+        '</summary>' +
+        '<div class="mesa-fold-body" data-mesa-metrics>' + metricsHtml() + '</div>' +
+      '</details>' +
+      '<details class="mesa-fold mesa-sep">' +
+        '<summary class="mesa-fold-sum">' +
+          '<h4 class="mesa-block-title">Historial de operaciones</h4>' +
+          '<p class="mesa-block-sub">El tilde de cada fila registra un cierre, total o parcial. ' +
+            'Cuando una operación se cerró en varios tramos, la flecha despliega el detalle de cada uno.</p>' +
+        '</summary>' +
+        '<div class="mesa-fold-body" data-mesa-history>' + tableHtml() + '</div>' +
+      '</details>' +
       '<p class="mesa-foot">' +
         '<strong>Liquidación</strong> — long: <code>(Nocional − Margen) / (Unidades × (1 − MMR))</code> · ' +
         'short: <code>(Nocional + Margen) / (Unidades × (1 + MMR))</code>. ' +
@@ -2125,6 +2161,14 @@
       if (el.id && el.id.indexOf('mesa_') === 0) {
         e.preventDefault(); el.blur();
       }
+    });
+
+    // Las tres acciones viven dentro del <summary> de "Mesa de trabajo", así
+    // que un click en ellas abriría o cerraría la sección además de hacer lo
+    // suyo. preventDefault cancela sólo eso: los botones son type="button" y no
+    // tienen otra acción por omisión que cancelar.
+    root.addEventListener('click', function (e) {
+      if (e.target.closest('.mesa-fold-sum .mesa-actions')) e.preventDefault();
     });
 
     root.addEventListener('click', function (e) {
@@ -2653,7 +2697,7 @@
           r.cierres.map(function (c, j) {
             var p = pnlCierre(t, c);
             return '<div class="mesa-cierre-prev">' +
-              '<span class="q">' + fmtMonto(c.qty) + '</span>' +
+              '<span class="q">' + fmtUnidades(c.qty) + '</span>' +
               '<span class="a">a ' + fmtPrecio(c.precio) + '</span>' +
               '<span class="m">' + esc(SALIDA_LBL[c.motivo] || 'sin motivo') + '</span>' +
               '<span class="p ' + (p >= 0 ? 'pos' : 'neg') + '">' + (p >= 0 ? '+' : '') + fmtMonto(p) + '</span>' +
@@ -2672,7 +2716,7 @@
       titulo: esc(t.activo),
       sub: esc(t.fecha) + ' · ' + esc(t.dir) + ' · entrada ' + fmtPrecio(t.entrada) +
            ' · ' + (t.stop > 0 ? 'stop ' + fmtPrecio(t.stop) : 'sin stop') +
-           '<br><strong>Quedan ' + fmtMonto(r.qAbierta) + ' de ' + fmtMonto(t.qty) + ' unidades</strong>',
+           '<br><strong>Quedan ' + fmtUnidades(r.qAbierta) + ' de ' + fmtUnidades(t.qty) + ' unidades</strong>',
       cuerpo:
         yaCerrado +
         (niveles.length
@@ -2690,14 +2734,14 @@
               x.pc + '% <span class="v">' + fmtMonto(x.q) + '</span></button>';
           }).join('') +
           '<button type="button" class="mesa-chip acc" data-mesa-cant="' + r.qAbierta + '">' +
-            'resto <span class="v">' + fmtMonto(r.qAbierta) + '</span></button>' +
+            'resto <span class="v">' + fmtUnidades(r.qAbierta) + '</span></button>' +
         '</div>' +
         '<div class="mesa-inputs">' +
           '<label title="' + escAttr(ayuda.cant) + '">' +
             '<span class="mesa-lbl" title="' + escAttr(ayuda.cant) + '">Unidades a cerrar</span>' +
             '<input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"' +
-            ' id="mesa_cierreQty" data-tipo="monto" title="' + escAttr(ayuda.cant) + '"' +
-            ' value="' + fmtMonto(r.qAbierta) + '"></label>' +
+            ' id="mesa_cierreQty" data-tipo="unidades" title="' + escAttr(ayuda.cant) + '"' +
+            ' value="' + fmtUnidades(r.qAbierta) + '"></label>' +
           '<label title="' + escAttr(ayuda.precio) + '">' +
             '<span class="mesa-lbl" title="' + escAttr(ayuda.precio) + '">Precio de salida</span>' +
             '<input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"' +
@@ -2743,7 +2787,7 @@
         var chipQ = e.target.closest('[data-mesa-cant]');
         if (chipQ) {
           m.querySelector('#mesa_cierreQty').value =
-            fmtMonto(parseFloat(chipQ.getAttribute('data-mesa-cant')));
+            fmtUnidades(parseFloat(chipQ.getAttribute('data-mesa-cant')));
           vistaCierre(m, t, r);
           return;
         }
@@ -2758,7 +2802,7 @@
         }
         if (!e.target.closest('[data-mesa-close]')) return;
 
-        var q = parseNum(m.querySelector('#mesa_cierreQty').value, 'monto');
+        var q = parseNum(m.querySelector('#mesa_cierreQty').value, 'unidades');
         var precio = parseNum(m.querySelector('#mesa_cierrePrecio').value, 'precio');
         var motivo = m.querySelector('#mesa_cierreMotivo').value;
 
@@ -2769,7 +2813,7 @@
         }
         if (q > r.qAbierta + 0.0000001) {
           aviso({ eyebrow: 'CANTIDAD INVÁLIDA', title: 'Estás cerrando más de lo que queda', danger: true,
-            message: 'Quedan ' + fmtMonto(r.qAbierta) + ' unidades sin cerrar y estás poniendo ' +
+            message: 'Quedan ' + fmtUnidades(r.qAbierta) + ' unidades sin cerrar y estás poniendo ' +
                      fmtMonto(q) + '. Corregí la cantidad o tocá «resto».' });
           return;
         }
@@ -2808,7 +2852,7 @@
   function vistaCierre(m, t, r) {
     var zona = m.querySelector('[data-mesa-vista]');
     if (!zona) return;
-    var q = parseNum(m.querySelector('#mesa_cierreQty').value, 'monto');
+    var q = parseNum(m.querySelector('#mesa_cierreQty').value, 'unidades');
     var precio = parseNum(m.querySelector('#mesa_cierrePrecio').value, 'precio');
     var costos = parseNum(m.querySelector('#mesa_cierreCostos').value, 'costo') || 0;
     var btn = m.querySelector('[data-mesa-close]');
@@ -2844,7 +2888,7 @@
         '<strong>' + (cierraTodo
           ? 'la operación queda cerrada' + (rTotal !== null && !r.n
               ? ' · ' + (rTotal >= 0 ? '+' : '') + fmtPct(rTotal) + 'R' : '')
-          : fmtMonto(resta) + ' unidades · ' + fmtPct(resta / t.qty * 100) + '% de la posición') +
+          : fmtUnidades(resta) + ' unidades · ' + fmtPct(resta / t.qty * 100) + '% de la posición') +
         '</strong>' +
       '</div>';
   }
@@ -2860,7 +2904,7 @@
       danger: true, icon: 'trash-2',
       message: 'La operación vuelve a quedar con esas unidades abiertas y el resultado se recalcula.',
       summaryLabel: 'TRAMO',
-      summaryText: fmtMonto(c.qty) + ' unidades a ' + fmtPrecio(c.precio) +
+      summaryText: fmtUnidades(c.qty) + ' unidades a ' + fmtPrecio(c.precio) +
         ' · ' + (SALIDA_LBL[c.motivo] || 'sin motivo') +
         ' · ' + (pnlCierre(t, c) >= 0 ? '+' : '') + fmtMonto(pnlCierre(t, c)) + ' USDT',
       confirmLabel: 'ELIMINAR', cancelLabel: 'Cancelar'
