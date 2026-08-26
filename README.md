@@ -36,7 +36,7 @@ _Las dos capturas son del modo demo: los números son ficticios._
 
 No hace falta instalar nada ni tener datos propios: abrí `dashboard.html` y hacé clic en **"Ver demo con datos de ejemplo"**.
 
-Eso carga un dataset ficticio de 573 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios y una cartera de 10 CEDEARs— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`, ni sale a la red.
+Eso carga un dataset ficticio de 573 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 CEDEARs y seis operaciones en la mesa de trading— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`, ni sale a la red.
 
 Para usarlo con datos reales necesitás Chrome o Edge (la File System Access API no está en Firefox ni Safari) y servirlo por HTTP o abrirlo como archivo local.
 
@@ -49,8 +49,22 @@ La metáfora médica no es decorativa: cada solapa responde una pregunta distint
 | **Historia clínica** | ¿En qué se fue la plata? Movimientos del período, recategorizables, con etiquetas y formas de pago. |
 | **Ficha médica** | ¿Cómo estoy hoy? KPIs configurables, score de salud, distribución por categoría, tipo, periodicidad y medio de pago. |
 | **Diagnóstico** | ¿Qué está pasando? Flujo trimestral, evolución anual e insights automáticos. |
-| **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones, trading y jubilación, con precios actualizados desde el mercado. Cada activo se despliega en sus compras individuales, con el rendimiento de cada una contra el precio de hoy. |
+| **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y jubilación, con precios actualizados desde el mercado. Cada activo se despliega en sus compras individuales, con el rendimiento de cada una contra el precio de hoy. Trading va aparte: es la [mesa de operaciones](#la-mesa-de-trading). |
 | **Evolución** | ¿Estoy mejorando? Presupuestado contra real, mes a mes, con tendencias por categoría. |
+
+## La mesa de trading
+
+Trading era el único destino de la cartera que no encajaba con lo que la pantalla mostraba. Una tenencia es una compra que se acumula y se valúa contra el precio de hoy. Una operación apalancada es otra cosa: un viaje completo —entrada, stop, salida— con apalancamiento, precio de liquidación, comisiones y funding, que termina con un resultado definitivo. Valuarla como si fuera un CEDEAR no dice nada.
+
+Así que Trading dejó de listar tickers y su panel pasó a ser una mesa de gestión de riesgo. Antes de abrir una operación calcula lo que el exchange no te muestra junto: el tamaño de posición que sale del riesgo que elegiste, el precio de liquidación real —con los tramos de margen de mantenimiento, no la fórmula de manual—, cuánto se evapora si te liquidan, y si la liquidación pega antes que tu stop, en cuyo caso el stop es decorativo.
+
+Cada operación pasa por cinco compuertas —tendencia, retroceso a la media, volumen, stop fuera de la liquidez y R:R mínimo de 2— y queda registrado cuáles pasó. Eso es lo que después permite separar **el sistema que no funciona del sistema que no ejecutaste**: la adherencia se mide contra lo que te habías propuesto, no contra el resultado.
+
+El historial compara las operaciones **con stop contra las que fueron sin stop** —cantidad, PnL neto, win rate, drawdown, R acumulado y nivel de margen mínimo— porque ahí es donde se ve si operar sin stop te está saliendo bien o simplemente todavía no te salió mal. Las que van sin stop no muestran R: sin stop no hay unidad de riesgo, y poner cero sería mentir, porque cero R significa salir en break-even.
+
+El reglamento completo se consulta desde la propia mesa, sin salir del dashboard.
+
+La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite: con stop y sin stop, abiertas, parciales y cerradas, long y short, salida por objetivo, por stop y a mano, y una que cierra en dos tramos. Una de las que va sin stop cierra **en ganancia**, a propósito: ganar no valida el proceso.
 
 ## Importar los resúmenes
 
@@ -68,23 +82,28 @@ Los formatos incorporados también se editan, por si esas entidades cambian cóm
 
 **El navegador como runtime completo.** La persistencia usa la File System Access API contra un archivo que elige el usuario, con el handle guardado en IndexedDB para reconectar entre sesiones y guardado con debounce. No hay backend porque no hace falta.
 
-**Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado —parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas, parseo de resúmenes bancarios— y `tests.html` la cubre con **331 tests** en 40 grupos, incluidos casos de integración de un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
+**Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado —parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas, parseo de resúmenes bancarios— y `tests.html` la cubre con **352 tests** en 40 grupos, incluidos casos de integración de un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
 
 **Cada banco es un dato, no código.** Los parsers de Mercado Pago y Galicia eran el mismo algoritmo con constantes distintas, así que ese algoritmo vive una sola vez y cada entidad es una plantilla: qué columna trae la fecha, si el importe viene firmado o partido en débito y crédito, en qué formato están los números. Ocho campos cubren los dos bancos reales, y el motor trabaja sobre filas, así que da igual que el archivo sea CSV o Excel.
 
 **Categorización en dos etapas.** Primero las reglas explícitas del usuario (`contains`, `exact`, `starts`, `regex`), y para lo que no matchea, un clasificador token-based que aprende de los últimos meses ya categorizados. Lo que el usuario corrige a mano se convierte en insumo del clasificador.
+
+**Una regla vale si hace algo.** Además de clasificar, una regla puede **descartar** —para la basura que traen los resúmenes: saldos anteriores, avisos, líneas de corte— o **renombrar**, porque `MERPAGO*STARBUCKS 0034512` no se lee. El descarte corre antes de categorizar y deduplicar: lo descartado nunca entra, así que tampoco ensucia el aprendizaje. El renombre guarda la descripción original y la muestra en el tooltip, y no rompe la deduplicación: la clave se fija al parsear, con el texto del archivo, y el renombre ocurre después.
 
 **Aritmética con signo explícito.** Todos los montos se guardan positivos y el signo lo aplica cada operación (`+ Sueldo − gastos − Inversión…`). Suena menor, pero es lo que permite que una misma transacción cuente distinto según el KPI que la mire.
 
 ## Estructura
 
 ```
-dashboard.html    3.026 líneas    estructura, modales, formularios
-dashboard.css     7.679 líneas    estilos y theming claro/oscuro
-dashboard.js     21.438 líneas    lógica, render, estado, importación
-core.js           2.445 líneas    funciones puras + motor de plantillas
-demo-data.js        508 líneas    generador del dataset de demostración
-tests.html        2.994 líneas    331 tests sobre core.js
+dashboard.html    3.047 líneas    estructura, modales, formularios
+dashboard.css     7.689 líneas    estilos y theming claro/oscuro
+dashboard.js     21.727 líneas    lógica, render, estado, importación
+core.js           2.519 líneas    funciones puras + motor de plantillas
+mesa-trading.js   2.903 líneas    mesa de trading: riesgo, liquidación, historial
+mesa-trading.css    948 líneas    estilos de la mesa
+sistema-4k.js       478 líneas    el reglamento de trading, consultable en la app
+demo-data.js        635 líneas    generador del dataset de demostración
+tests.html        3.141 líneas    352 tests sobre core.js
 ```
 
 ## Correr los tests
