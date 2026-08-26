@@ -34,15 +34,28 @@ window.MANUAL = {
     {
       h: 'Historia clínica',
       sub: '¿En qué se fue la plata?',
-      img: '01-historia-clinica',
-      imgCap: 'Los movimientos del período, agrupados por categoría.',
+      img: '17-historia-clinica-resumen',
+      imgCap: 'Vista Resumen: una fila por categoría, con su peso sobre el total.',
       p: [
-        'Es el listado de todos los movimientos del período elegido. Cada fila es una transacción con su fecha, descripción, monto, categoría, periodicidad, forma de pago y etiquetas.',
-        'Arriba de todo, TIPO CATEGORÍAS filtra qué se muestra: Todas (los gastos, básicos y discrecionales), Básicas, Discrecionales o De flujo (sueldos, préstamos, aportes a reserva, inversión, trading y jubilación). El buscador de al lado filtra por cualquier campo a la vez.'
+        'Es el listado de todos los movimientos del período elegido, y tiene dos visualizaciones que se alternan con el par de botones de arriba a la derecha: Resumen y Completa. Las dos trabajan sobre los mismos movimientos y respetan los mismos filtros; lo que cambia es a qué distancia los mirás.',
+        'Arriba de todo, TIPO CATEGORÍAS filtra qué se muestra: Todas (los gastos, básicos y discrecionales), Básicas, Discrecionales o De flujo (sueldos, préstamos, aportes a reserva, inversión, trading y jubilación). El buscador de al lado filtra por cualquier campo a la vez.',
+        'RESUMEN es la vista de arriba hacia abajo: una fila por categoría, con cuántos movimientos tiene, cuánto suma y qué porcentaje del total representa. Sirve para la pregunta de dónde se fue la plata, sin el ruido de las transacciones una por una. Cada categoría se despliega con el chevron cuando querés bajar al detalle.'
       ],
       lista: [
-        'Cada categoría se expande con el chevron para ver sus movimientos.',
-        'Los campos de cada movimiento se editan en la misma fila. Los cambios quedan pendientes hasta que apretás GUARDAR: hasta entonces podés seguir corrigiendo o cancelar.',
+        'Las categorías vienen ordenadas de mayor a menor, así lo que más pesa está siempre arriba.',
+        'El porcentaje es sobre el total mostrado, no sobre el total del mes: si filtraste, se recalcula.'
+      ]
+    },
+    {
+      img: '01-historia-clinica-completa',
+      imgCap: 'Vista Completa: cada movimiento en su fila, editable en el lugar.',
+      p: [
+        'COMPLETA es la vista de trabajo: cada movimiento en su propia fila, en orden cronológico, con fecha, origen, descripción, monto, categoría, periodicidad, forma de pago, etiquetas y el botón de borrar. Es donde se corrige lo que la importación clasificó mal.'
+      ],
+      lista: [
+        'Los campos se editan en la misma fila, sin abrir nada. Los cambios quedan pendientes hasta que apretás GUARDAR: hasta entonces podés seguir corrigiendo o cancelar.',
+        'La letra al lado de la fecha es el origen del movimiento, para saber de qué resumen salió sin tener que abrirlo.',
+        'Un valor editado a mano se muestra en color de acento y guarda el original en el tooltip, así siempre se puede ver qué decía el archivo.',
         'CARGAR MOVIMIENTOS abre la pantalla de importación (ver más adelante).',
         'CSV baja los movimientos filtrados a una planilla.',
         'El totalizador de abajo a la derecha muestra Movimientos cuando estás viendo gastos y Flujo cuando estás viendo movimientos de flujo. Nunca los dos: el listado muestra unos u otros.'

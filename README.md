@@ -26,11 +26,15 @@ anamnesis parte de tres decisiones opuestas:
 
 **Salud financiera** — la cartera por destino, con líquido e invertido separados por moneda. Cada activo se despliega en sus compras individuales, y cada compra muestra cómo le fue contra el precio de hoy.
 
+![Mesa de trading](docs/mesa-trading.png)
+
+**Mesa de trading** — el panel de Trading no lista tenencias: calcula el tamaño de posición desde el riesgo, el precio de liquidación real y las cinco compuertas del sistema, y en el historial compara las operaciones con stop contra las que fueron sin stop.
+
 **▶ Probalo en vivo: [anamnesis-7zs.pages.dev](https://anamnesis-7zs.pages.dev/)** — entrá con "Ver demo con datos de ejemplo", no hace falta conectar nada.
 
-**📄 [Manual de usuario (PDF)](docs/manual-de-usuario.pdf)** — 22 páginas con índice navegable, una captura de cada pantalla y para qué sirve cada una.
+**📄 [Manual de usuario (PDF)](docs/manual-de-usuario.pdf)** — 24 páginas con índice navegable, una captura de cada pantalla y para qué sirve cada una.
 
-_Las dos capturas son del modo demo: los números son ficticios._
+_Las tres capturas son del modo demo: los números son ficticios._
 
 ## Probarlo
 
@@ -46,7 +50,7 @@ La metáfora médica no es decorativa: cada solapa responde una pregunta distint
 
 | Solapa | Pregunta que responde |
 |---|---|
-| **Historia clínica** | ¿En qué se fue la plata? Movimientos del período, recategorizables, con etiquetas y formas de pago. |
+| **Historia clínica** | ¿En qué se fue la plata? Movimientos del período, recategorizables, con etiquetas y formas de pago. Dos vistas: **Resumen**, una fila por categoría con su peso sobre el total, y **Completa**, cada movimiento editable en su fila. |
 | **Ficha médica** | ¿Cómo estoy hoy? KPIs configurables, score de salud, distribución por categoría, tipo, periodicidad y medio de pago. |
 | **Diagnóstico** | ¿Qué está pasando? Flujo trimestral, evolución anual e insights automáticos. |
 | **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y jubilación, con precios actualizados desde el mercado. Cada activo se despliega en sus compras individuales, con el rendimiento de cada una contra el precio de hoy. Trading va aparte: es la [mesa de operaciones](#la-mesa-de-trading). |

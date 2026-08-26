@@ -57,7 +57,8 @@ Qué muestra cada una:
 | Archivo | Pantalla |
 |---|---|
 | `00-conexion.png` | Bienvenida: conectar Drive o entrar a la demo |
-| `01-historia-clinica.png` | Movimientos del período agrupados por categoría |
+| `17-historia-clinica-resumen.png` | Historia clínica, vista Resumen: una fila por categoría |
+| `01-historia-clinica-completa.png` | Historia clínica, vista Completa: cada movimiento editable |
 | `02-ficha-medica.png` | Score, tarjetas de indicadores y distribución del gasto |
 | `03-diagnostico.png` | Avisos, flujo trimestral y evolución anual |
 | `04-salud-financiera.png` | Cartera por destino, con un activo desplegado |
