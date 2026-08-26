@@ -87,25 +87,60 @@ const DEMO_APORTES = [
   { cat: 'Jubilacion', tags: ['JALM'], monto: 140000, dia: 10, desc: 'Aporte jubilación' }
 ];
 
-// Cartera de CEDEARs para la solapa Salud financiera. Precios en ARS con el
-// PPC por debajo del precio actual, para que la demo muestre ganancia.
+/* --------------------------------------------------------------------------
+   Cartera de CEDEARs para la solapa Salud financiera
+   --------------------------------------------------------------------------
+   Precios en ARS. Cada activo lleva una LISTA de compras, no una sola: así es
+   como se arma una posición de verdad —de a poco, a precios distintos— y es lo
+   que hace que desplegar un activo muestre algo. Con una compra por ticker, la
+   fila de detalle repetía la cabecera y la función no se entendía.
+
+   El precio promedio de compra que muestra la cabecera sale ponderado de estas
+   compras; no está escrito en ningún lado.
+
+   MSFT tiene la segunda compra POR ENCIMA del precio actual, a propósito: es el
+   caso que muestra que la cabecera puede estar en verde y una compra suelta en
+   rojo. Sin eso, todas las filas de detalle salían del mismo color y no se veía
+   para qué sirve abrirlas.
+
+   `meses` es la antigüedad de la compra contra hoy, así la demo no envejece.
+   -------------------------------------------------------------------------- */
 const DEMO_CARTERA = [
-  { ticker: 'SPY',  desc: 'SPDR S&P 500 ETF Trust',  broker: 'BALANZ',      cant: 42,  ppc: 21400, actual: 28650, destino: 'inversiones' },
-  { ticker: 'AAPL', desc: 'Apple Inc.',              broker: 'BALANZ',      cant: 65,  ppc: 12800, actual: 16240, destino: 'inversiones' },
-  { ticker: 'MSFT', desc: 'Microsoft Corporation',   broker: 'NEXO',        cant: 28,  ppc: 19600, actual: 24180, destino: 'inversiones' },
-  { ticker: 'GOOGL',desc: 'Alphabet Inc.',           broker: 'NEXO',        cant: 35,  ppc: 15200, actual: 17890, destino: 'inversiones' },
+  { ticker: 'SPY',  desc: 'SPDR S&P 500 ETF Trust',  broker: 'BALANZ',      actual: 28650, destino: 'inversiones',
+    compras: [ { meses: 8, dia: 12, cant: 15, ppc: 19800 },
+               { meses: 5, dia:  8, cant: 15, ppc: 21400 },
+               { meses: 2, dia: 19, cant: 12, ppc: 24900 } ] },
+  { ticker: 'AAPL', desc: 'Apple Inc.',              broker: 'BALANZ',      actual: 16240, destino: 'inversiones',
+    compras: [ { meses: 7, dia:  5, cant: 40, ppc: 11900 },
+               { meses: 3, dia: 22, cant: 25, ppc: 14240 } ] },
+  { ticker: 'MSFT', desc: 'Microsoft Corporation',   broker: 'NEXO',        actual: 24180, destino: 'inversiones',
+    compras: [ { meses: 7, dia: 18, cant: 18, ppc: 17400 },
+               { meses: 1, dia: 14, cant: 10, ppc: 25560 } ] },
+  { ticker: 'GOOGL',desc: 'Alphabet Inc.',           broker: 'NEXO',        actual: 17890, destino: 'inversiones',
+    compras: [ { meses: 6, dia: 11, cant: 35, ppc: 15200 } ] },
   // NVDA y MELI estaban en 'trading'. Trading ya no lista tenencias por ticker:
   // su detalle es la Mesa, que modela operaciones apalancadas (entrada, stop,
   // salida). Un CEDEAR ahí quedaba invisible pero sumando, así que pasan a
   // inversiones, que es lo que realmente son.
-  { ticker: 'NVDA', desc: 'NVIDIA Corporation',      broker: 'BULL_MARKET', cant: 18,  ppc: 31500, actual: 46700, destino: 'inversiones' },
-  { ticker: 'MELI', desc: 'MercadoLibre Inc.',       broker: 'BALANZ',      cant: 12,  ppc: 42000, actual: 51300, destino: 'inversiones' },
-  { ticker: 'KO',   desc: 'The Coca-Cola Company',   broker: 'BALANZ',      cant: 80,  ppc: 8900,  actual: 10450, destino: 'jubilacion_jalm' },
-  { ticker: 'JNJ',  desc: 'Johnson & Johnson',       broker: 'NEXO',        cant: 45,  ppc: 11200, actual: 12980, destino: 'jubilacion_jalm' },
+  { ticker: 'NVDA', desc: 'NVIDIA Corporation',      broker: 'BULL_MARKET', actual: 46700, destino: 'inversiones',
+    compras: [ { meses: 9, dia:  7, cant: 10, ppc: 28400 },
+               { meses: 4, dia: 16, cant:  8, ppc: 35375 } ] },
+  { ticker: 'MELI', desc: 'MercadoLibre Inc.',       broker: 'BALANZ',      actual: 51300, destino: 'inversiones',
+    compras: [ { meses: 5, dia: 24, cant: 12, ppc: 42000 } ] },
+  { ticker: 'KO',   desc: 'The Coca-Cola Company',   broker: 'BALANZ',      actual: 10450, destino: 'jubilacion_jalm',
+    compras: [ { meses: 10, dia: 6, cant: 30, ppc: 8100 },
+               { meses:  6, dia: 6, cant: 25, ppc: 8900 },
+               { meses:  3, dia: 6, cant: 25, ppc: 9700 } ] },
+  { ticker: 'JNJ',  desc: 'Johnson & Johnson',       broker: 'NEXO',        actual: 12980, destino: 'jubilacion_jalm',
+    compras: [ { meses: 8, dia: 20, cant: 45, ppc: 11200 } ] },
   // VOO pasa a jubilacion_jalm: la demo tiene un solo panel de jubilación y el
   // de CLM no se muestra, así que una posición ahí quedaría invisible.
-  { ticker: 'VOO',  desc: 'Vanguard S&P 500 ETF',    broker: 'BALANZ',      cant: 30,  ppc: 18700, actual: 23400, destino: 'jubilacion_jalm' },
-  { ticker: 'GOLD', desc: 'Barrick Gold Corporation',broker: 'BULL_MARKET', cant: 55,  ppc: 6800,  actual: 8120,  destino: 'reserva' }
+  { ticker: 'VOO',  desc: 'Vanguard S&P 500 ETF',    broker: 'BALANZ',      actual: 23400, destino: 'jubilacion_jalm',
+    compras: [ { meses: 9, dia: 15, cant: 18, ppc: 17200 },
+               { meses: 4, dia: 15, cant: 12, ppc: 20950 } ] },
+  { ticker: 'GOLD', desc: 'Barrick Gold Corporation',broker: 'BULL_MARKET', actual: 8120,  destino: 'reserva',
+    compras: [ { meses: 6, dia:  9, cant: 30, ppc: 6200 },
+               { meses: 2, dia:  9, cant: 25, ppc: 7520 } ] }
 ];
 
 /* --------------------------------------------------------------------------
@@ -420,24 +455,28 @@ function buildDemoSnapshot(mesesAtras) {
   }
 
   // ============================================================
-  // Inversiones: una compra por ticker, fechada hacia atrás para que
-  // "días invertidos" muestre algo razonable.
+  // Inversiones: varias compras por ticker y destino, en fechas distintas, que
+  // es como se arma una posición de verdad. Cada compra es una entrada propia:
+  // la app las agrupa por ticker para la cabecera y las lista una por una al
+  // desplegar el activo.
   // ============================================================
   const investmentEntries = [];
   const tickerInfo = {};
   DEMO_CARTERA.forEach(function (p, i) {
-    const f = new Date(hoy.getFullYear(), hoy.getMonth() - (3 + (i % 9)), 10 + (i % 15));
-    investmentEntries.push({
-      id: 'inv_demo_' + i,
-      fecha: f.getFullYear() + '-' + String(f.getMonth() + 1).padStart(2, '0') + '-' + String(f.getDate()).padStart(2, '0'),
-      broker: p.broker,
-      ticker: p.ticker,
-      cantidad: p.cant,
-      precio: p.ppc,
-      total: p.cant * p.ppc,
-      destino: p.destino,
-      moneda: 'ARS',
-      createdAt: f.getTime()
+    p.compras.forEach(function (c, j) {
+      const f = new Date(hoy.getFullYear(), hoy.getMonth() - c.meses, c.dia);
+      investmentEntries.push({
+        id: 'inv_demo_' + i + '_' + j,
+        fecha: f.getFullYear() + '-' + String(f.getMonth() + 1).padStart(2, '0') + '-' + String(f.getDate()).padStart(2, '0'),
+        broker: p.broker,
+        ticker: p.ticker,
+        cantidad: c.cant,
+        precio: c.ppc,
+        total: c.cant * c.ppc,
+        destino: p.destino,
+        moneda: 'ARS',
+        createdAt: f.getTime()
+      });
     });
     tickerInfo[p.ticker] = {
       descripcion: p.desc,

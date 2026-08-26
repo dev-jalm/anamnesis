@@ -40,7 +40,7 @@ _Las tres capturas son del modo demo: los números son ficticios._
 
 No hace falta instalar nada ni tener datos propios: abrí `dashboard.html` y hacé clic en **"Ver demo con datos de ejemplo"**.
 
-Eso carga un dataset ficticio de 573 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 CEDEARs y seis operaciones en la mesa de trading— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`, ni sale a la red.
+Eso carga un dataset ficticio de 573 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 CEDEARs comprados en 19 tandas y seis operaciones en la mesa de trading— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`, ni sale a la red.
 
 Para usarlo con datos reales necesitás Chrome o Edge (la File System Access API no está en Firefox ni Safari) y servirlo por HTTP o abrirlo como archivo local.
 
