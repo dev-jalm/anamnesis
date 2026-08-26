@@ -80,7 +80,7 @@ window.MANUAL = {
       img: '04-salud-financiera',
       imgCap: 'Cartera por destino, con el detalle de compras de un activo desplegado.',
       p: [
-        'Muestra el patrimonio repartido en cuatro destinos: Reserva, Inversiones, Trading y las dos Jubilaciones. Cada uno es un panel que se despliega.',
+        'Muestra el patrimonio repartido en cuatro destinos: Reserva, Inversiones, Trading y las dos Jubilaciones. Cada uno es un panel que se despliega. Trading es el único que no lista tenencias: su detalle es la mesa de operaciones, que se explica en el apartado siguiente.',
         'Dentro de cada panel, los totales van separados por moneda —ARS, USD y el combinado— y distinguen el líquido (la plata que destinaste y todavía no invertiste) del invertido (lo que ya está en activos). La columna Variación compara lo invertido contra lo que vale hoy.',
         'La tabla lista los activos por ticker: nominales, precio promedio de compra, total invertido, precio actual, variación por nominal, total actualizado y ganancia o pérdida. Cada activo se despliega en sus compras individuales, y cada compra muestra cómo le fue contra el precio de hoy: en verde si gana, en rojo si pierde.'
       ],
@@ -88,6 +88,24 @@ window.MANUAL = {
         'El botón de refresco al lado de ARS actualiza precios y descripciones desde data912.com.',
         'Los tickers en dólares no se piden aparte: se derivan del CEDEAR en pesos aplicando su ratio y la cotización MEP.',
         'Si un activo no tiene precio actual cargado, sus columnas de rendimiento muestran un guión en lugar de cero: no es lo mismo no haber ganado nada que no tener con qué comparar.'
+      ]
+    },
+    {
+      h: 'La mesa de trading',
+      sub: '¿Estoy operando o improvisando?',
+      img: '16-mesa-trading',
+      imgCap: 'La mesa: la operación, la verificación y el tamaño, con el historial debajo.',
+      p: [
+        'El panel de Trading no lista activos por ticker como los demás, y es a propósito. Una tenencia es una compra que se acumula y se valúa contra el precio de hoy. Una operación apalancada es otra cosa: un viaje completo —entrada, stop y salida— con apalancamiento, precio de liquidación, comisiones y funding, que termina con un resultado definitivo. Valuarla como si fuera un CEDEAR no diría nada.',
+        'La mesa se lee de izquierda a derecha en tres bloques: la operación (los niveles que la definen), la verificación (si cumple el sistema) y el tamaño (cuánto entra). Pasando el cursor por el nombre de cada campo se ve qué va adentro.',
+        'Antes de abrir, calcula lo que el exchange no muestra junto: el tamaño de posición que sale del riesgo que elegiste, el precio de liquidación real —usando los tramos de margen de mantenimiento, no la fórmula de manual—, cuánto se evapora si te liquidan, y si la liquidación pega antes que tu stop. Ese último caso es el que importa: si pasa, el stop es decorativo.'
+      ],
+      lista: [
+        'Cada operación pasa por cinco compuertas —tendencia, retroceso a la media, volumen, stop fuera de la liquidez y R:R mínimo de 2— y queda registrado cuáles pasó y cuáles no.',
+        'Una operación no se cierra: se va cerrando. Cada cierre guarda cantidad, precio, costos y motivo, así que salir en tres tramos a precios distintos se registra tal como pasó. Un solo cierre por el total es el caso particular, no el caso base.',
+        'El historial compara las operaciones con stop contra las que fueron sin stop: cantidad, resultado neto, aciertos, drawdown, R acumulado y nivel de margen mínimo.',
+        'Las operaciones sin stop no muestran R. Sin stop no hay unidad de riesgo, y poner cero sería mentir: cero R significa haber salido en break-even.',
+        'El reglamento completo se consulta desde la propia mesa, sin salir del dashboard.'
       ]
     },
     {
@@ -325,8 +343,14 @@ window.construirManual = async function () {
   const IMGS = {};
   async function precargar() {
     const nombres = window.MANUAL.secciones.filter(function (s) { return s.img; }).map(function (s) { return s.img; });
+    // Una captura que falta NO tumba el build. Antes, el onerror rechazaba el
+    // Promise.all y el manual entero dejaba de compilar con un error que ni
+    // siquiera decía qué archivo faltaba. Ahora se avisa por consola con el
+    // nombre y la sección sale sin figura: es preferible un manual al que le
+    // falta una imagen que ningún manual.
+    const faltantes = [];
     await Promise.all(nombres.map(function (n) {
-      return new Promise(function (res, rej) {
+      return new Promise(function (res) {
         const img = new Image();
         img.onload = function () {
           let w = ANU, h = (img.naturalHeight / img.naturalWidth) * w;
@@ -335,14 +359,20 @@ window.construirManual = async function () {
           IMGS[n] = { img: img, w: w, h: h };
           res();
         };
-        img.onerror = rej;
+        img.onerror = function () { faltantes.push(n); res(); };
         img.src = '/docs/manual/' + n + '.png';
       });
     }));
+    if (faltantes.length) {
+      console.warn('[manual] Faltan estas capturas en docs/manual/, las secciones salen sin figura:\n  ' +
+                   faltantes.map(function (n) { return n + '.png'; }).join('\n  '));
+    }
   }
 
   function imagen(nombre, caption) {
-    const { img, w, h } = IMGS[nombre];
+    const entrada = IMGS[nombre];
+    if (!entrada) return;              // captura faltante: ya se avisó al precargar
+    const { img, w, h } = entrada;
     if (y + h + 8 > AL - MG) nuevaPagina();
     doc.addImage(img, 'PNG', MG + (ANU - w) / 2, y, w, h, undefined, 'FAST');
     doc.setDrawColor(210, 200, 185); doc.setLineWidth(0.2);
