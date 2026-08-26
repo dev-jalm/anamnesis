@@ -85,9 +85,23 @@
 .mesa-fold > summary > .mesa-bench-head,
 .mesa-fold > summary > div:first-of-type { flex: 1 1 auto; min-width: 0; }
 
-/* Cerrada, la bajada del título es el único texto visible: sin margen inferior
-   queda pegada a la línea divisoria de la sección siguiente. */
-.mesa-fold:not([open]) > summary .mesa-block-sub { margin-bottom: 4px; }
+/* Cerrada, la sección muestra SOLO su nombre. La bajada explica cómo se usa lo
+   que hay adentro: con el cuerpo plegado no tiene a qué referirse, y tres
+   bajadas seguidas convertían el panel cerrado en un bloque de texto que
+   competía con los títulos justo cuando lo único que se busca es elegir una
+   sección. */
+.mesa-fold:not([open]) > summary .mesa-block-sub { display: none; }
+
+/* Registrar operación y Limpiar actúan sobre el formulario, que está plegado:
+   ofrecerlos ahí es ofrecer una acción sobre algo que no se ve. Sistema 4K se
+   queda —abre el reglamento, que no depende del formulario— y de paso deja la
+   consulta a mano sin tener que desplegar nada. */
+.mesa-fold:not([open]) > summary .mesa-actions [data-mesa-add],
+.mesa-fold:not([open]) > summary .mesa-actions [data-mesa-reset] { display: none; }
+
+/* Con la bajada oculta, el título queda solo en la fila y el triángulo tiene
+   que alinearse con él y no con el borde superior de un bloque que ya no está. */
+.mesa-fold:not([open]) > summary::before { margin-top: 4px; }
 
 .mesa-fold-body { padding-top: 4px; }
 
