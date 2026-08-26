@@ -831,20 +831,6 @@
 .mesa-table .inv-delete-btn:hover { color: var(--red); }
 .mesa-table .inv-delete-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 3px; }
 
-.mesa-foot {
-  font-size: 10.5px;
-  color: var(--muted);
-  line-height: 1.6;
-  margin: 0;
-}
-.mesa-foot code {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  background: var(--bg-2);
-  padding: 1px 4px;
-  border-radius: 3px;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .mesa * { transition: none !important; }
 }

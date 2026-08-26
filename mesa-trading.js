@@ -1901,10 +1901,18 @@
       '<th title="Precio de salida.&#10;Con más de un cierre es el promedio ponderado por cantidad.&#10;El detalle de cada tramo se abre con la flecha.">Salida</th>' +
       '<th title="Unidades con las que se abrió la posición.&#10;Si quedó a medias, debajo dice cuántas siguen sin cerrar.">Unidades</th>' +
       '<th title="Multiplicador del exchange y tipo de margen.&#10;aisl = aislado, cruz = cruzado.&#10;El tipo de margen decide qué respalda la posición y dónde cae la liquidación.">Lev</th>' +
-      '<th title="Precio al que el exchange habría cerrado la posición por vos.&#10;Calculado con el margen de mantenimiento del tramo vigente al abrir.">Liquidación</th>' +
+      '<th title="Precio al que el exchange habría cerrado la posición por vos.&#10;' +
+        'Calculado con el margen de mantenimiento del tramo vigente al abrir.&#10;&#10;' +
+        'long: (Nocional − Margen) / (Unidades × (1 − MMR))&#10;' +
+        'short: (Nocional + Margen) / (Unidades × (1 + MMR))&#10;&#10;' +
+        'Es aproximado: cada exchange aplica MMR por tramos, y comisiones y funding corren el precio real. ' +
+        'Verificá contra el número de tu plataforma.">Liquidación</th>' +
       '<th title="Comisiones más funding pagados, en USDT.&#10;Con varios cierres es la suma de todos los tramos.">Costos</th>' +
       '<th title="Resultado realizado en USDT, ya descontados comisiones y funding.&#10;En una operación a medias es solo lo cobrado hasta ahora.">PnL neto</th>' +
-      '<th title="Resultado medido en unidades de riesgo.&#10;Se mide contra el riesgo de la operación entera, no el del tramo.&#10;Perder el stop entero es −1R.">R</th>' +
+      '<th title="Resultado medido en unidades de riesgo.&#10;' +
+        'Se mide contra el riesgo de la operación entera, no el del tramo.&#10;' +
+        'Perder el stop entero es −1R.&#10;&#10;' +
+        'El objetivo no es ganar seguido: es que la suma de R sea positiva.">R</th>' +
       '<th class="l" title="Qué compuertas verificaste al entrar.&#10;Si falló alguna, se listan por nombre — pasá el cursor por la celda para ver el detalle.&#10;Se declara al registrar y no se cambia después: es tu palabra en el momento.">Entrada por</th>' +
       '<th class="l" title="Motivo del cierre.&#10;Con varios cierres dice cuántos hubo; el detalle de cada uno se abre con la flecha.">Salida por</th>' +
     '</tr></thead><tbody>' + body + '</tbody></table></div>';
@@ -2017,26 +2025,11 @@
           '<p class="mesa-block-sub">El tilde de cada fila registra un cierre, total o parcial. ' +
             'Cuando una operación se cerró en varios tramos, la flecha despliega el detalle de cada uno.</p>' +
         '</summary>' +
-        // El pie explica Liquidación, R y Adherencia, que son columnas de ESTA
-        // tabla: vivía afuera de las secciones y quedaba a la vista con todo
-        // plegado, tres párrafos de definiciones sobre un panel sin datos.
-        // Va adentro, pero como hermano de [data-mesa-history] y no dentro:
-        // updateHistory() reescribe ese contenedor entero y se lo llevaría
-        // puesto en cada cierre registrado.
-        '<div class="mesa-fold-body">' +
-          '<div data-mesa-history>' + tableHtml() + '</div>' +
-          '<p class="mesa-foot">' +
-        '<strong>Liquidación</strong> — long: <code>(Nocional − Margen) / (Unidades × (1 − MMR))</code> · ' +
-        'short: <code>(Nocional + Margen) / (Unidades × (1 + MMR))</code>. ' +
-        'Aproximado: cada exchange aplica MMR por tramos, y comisiones y funding corren el precio real. ' +
-        'Verificá contra el número de tu plataforma.<br>' +
-        '<strong>R</strong> es el resultado en unidades de riesgo. Perder el stop entero es −1R. ' +
-        'El objetivo no es ganar seguido: es que la suma de R sea positiva.<br>' +
-        '<strong>Adherencia</strong> — operaciones ejecutadas según las reglas ÷ operaciones clasificadas. ' +
-        'Cuenta como cumplida la que pasó las cinco compuertas, tenía stop cargado, se abrió con el día ' +
-          'habilitado y se cerró por una salida del sistema. Es el único número que no depende del mercado.' +
-          '</p>' +
-        '</div>' +
+        // El pie con las definiciones de Liquidación, R y Adherencia se fue a
+        // los tooltips de esas mismas columnas: la explicación queda al lado
+        // del número que explica, en vez de tres párrafos al final que hay que
+        // ir a buscar y correlacionar de memoria con la columna.
+        '<div class="mesa-fold-body" data-mesa-history>' + tableHtml() + '</div>' +
       '</details>';
   }
 
