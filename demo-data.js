@@ -94,14 +94,107 @@ const DEMO_CARTERA = [
   { ticker: 'AAPL', desc: 'Apple Inc.',              broker: 'BALANZ',      cant: 65,  ppc: 12800, actual: 16240, destino: 'inversiones' },
   { ticker: 'MSFT', desc: 'Microsoft Corporation',   broker: 'NEXO',        cant: 28,  ppc: 19600, actual: 24180, destino: 'inversiones' },
   { ticker: 'GOOGL',desc: 'Alphabet Inc.',           broker: 'NEXO',        cant: 35,  ppc: 15200, actual: 17890, destino: 'inversiones' },
-  { ticker: 'NVDA', desc: 'NVIDIA Corporation',      broker: 'BULL_MARKET', cant: 18,  ppc: 31500, actual: 46700, destino: 'trading' },
-  { ticker: 'MELI', desc: 'MercadoLibre Inc.',       broker: 'BALANZ',      cant: 12,  ppc: 42000, actual: 51300, destino: 'trading' },
+  // NVDA y MELI estaban en 'trading'. Trading ya no lista tenencias por ticker:
+  // su detalle es la Mesa, que modela operaciones apalancadas (entrada, stop,
+  // salida). Un CEDEAR ahí quedaba invisible pero sumando, así que pasan a
+  // inversiones, que es lo que realmente son.
+  { ticker: 'NVDA', desc: 'NVIDIA Corporation',      broker: 'BULL_MARKET', cant: 18,  ppc: 31500, actual: 46700, destino: 'inversiones' },
+  { ticker: 'MELI', desc: 'MercadoLibre Inc.',       broker: 'BALANZ',      cant: 12,  ppc: 42000, actual: 51300, destino: 'inversiones' },
   { ticker: 'KO',   desc: 'The Coca-Cola Company',   broker: 'BALANZ',      cant: 80,  ppc: 8900,  actual: 10450, destino: 'jubilacion_jalm' },
   { ticker: 'JNJ',  desc: 'Johnson & Johnson',       broker: 'NEXO',        cant: 45,  ppc: 11200, actual: 12980, destino: 'jubilacion_jalm' },
   // VOO pasa a jubilacion_jalm: la demo tiene un solo panel de jubilación y el
   // de CLM no se muestra, así que una posición ahí quedaría invisible.
   { ticker: 'VOO',  desc: 'Vanguard S&P 500 ETF',    broker: 'BALANZ',      cant: 30,  ppc: 18700, actual: 23400, destino: 'jubilacion_jalm' },
   { ticker: 'GOLD', desc: 'Barrick Gold Corporation',broker: 'BULL_MARKET', cant: 55,  ppc: 6800,  actual: 8120,  destino: 'reserva' }
+];
+
+/* --------------------------------------------------------------------------
+   Operaciones para la Mesa de Trading (state.trades)
+   --------------------------------------------------------------------------
+   El set está elegido para que la mesa muestre sus casos límite, no seis veces
+   el mismo: con stop y sin stop, abierta / parcial / cerrada, long y short,
+   salida por objetivo / por stop / a mano, y una que cierra en dos tramos.
+   Sin stop no hay unidad de riesgo, así que esas van con r: null — es el punto
+   pedagógico de la mesa y conviene que la demo lo exhiba.
+
+   Los campos derivados (qty, liq, margen, mm, nivelMargen, perdidaLiq, tasaMM)
+   NO están inventados: salieron de MesaTrading.calc() con estos mismos datos de
+   entrada, así que la pantalla es coherente con lo que la app calcularía. Si se
+   tocan entrada / stop / lev / capital / riesgoPct hay que volver a derivarlos,
+   porque acá quedan congelados a propósito: demo-data.js se carga antes que
+   mesa-trading.js y no puede depender de él.
+
+   `dias` es la antigüedad en días respecto de hoy, no una fecha fija: así el
+   historial no envejece y la demo siempre muestra operaciones recientes.
+   -------------------------------------------------------------------------- */
+const DEMO_TRADES = [
+  // Cerrada en dos tramos (objetivo 1 y objetivo 2): el caso que justifica que
+  // los cierres sean una lista y no un único precio de salida. +2,56 R.
+  { dias: 74, activo: 'BTC-USDT-SWAP', dir: 'long', entrada: 61200, stop: 59400,
+    tp1: 64800, tp2: 67500, tp3: 71000, qty: 0.027778, lev: 10, extra: 0,
+    margenTipo: 'aislado', liq: 55777.21519, perdidaLiq: 150.632911, tasaMM: 1.25,
+    margen: 170, mm: 21.25, nivelMargen: 800, capital: 5000, riesgoPct: 1,
+    compuertas: ['tendencia', 'retroceso', 'volumen', 'stopliq', 'rr'],
+    mercado: { ema20: 59850, atr: 1450, extremo: 59700, volUlt: 8400, volMedia: 7100, nivel: 59700 },
+    limite: 0,
+    cierres: [{ dias: 67, qty: 0.016667, precio: 64800, costos: 1.2, motivo: 'tp1' },
+              { dias: 54, qty: 0.011111, precio: 67500, costos: 0.9, motivo: 'tp2' }],
+    salidaPor: 'varios', salida: 65879.98056, costos: 2.1, pnl: 127.9005, r: 2.55799 },
+
+  // Short que se fue al stop: la pérdida controlada, −1,03 R contando costos.
+  { dias: 58, activo: 'ETH-USDT-SWAP', dir: 'short', entrada: 3180, stop: 3268,
+    tp1: 3010, tp2: 2920, tp3: 2790, qty: 0.568182, lev: 10, extra: 0,
+    margenTipo: 'aislado', liq: 3454.814815, perdidaLiq: 156.144781, tasaMM: 1.25,
+    margen: 180.681818, mm: 22.585227, nivelMargen: 800, capital: 5000, riesgoPct: 1,
+    compuertas: ['tendencia', 'volumen', 'stopliq', 'rr'],
+    mercado: { ema20: 3244, atr: 74, extremo: 3272, volUlt: 11200, volMedia: 9800, nivel: 3272 },
+    limite: 0,
+    cierres: [{ dias: 55, qty: 0.568182, precio: 3268, costos: 1.5, motivo: 'stop' }],
+    salidaPor: 'stop', salida: 3268, costos: 1.5, pnl: -51.500016, r: -1.03 },
+
+  // Parcial: cerró el 40% en el objetivo 1 y dejó correr el resto.
+  { dias: 42, activo: 'SOL-USDT-SWAP', dir: 'long', entrada: 142.5, stop: 136.8,
+    tp1: 154, tp2: 161.5, tp3: 172, qty: 8.77193, lev: 8, extra: 0,
+    margenTipo: 'aislado', liq: 126.265823, perdidaLiq: 142.405063, tasaMM: 1.25,
+    margen: 156.25, mm: 15.625, nivelMargen: 1000, capital: 5000, riesgoPct: 1,
+    compuertas: ['tendencia', 'retroceso', 'volumen', 'stopliq', 'rr'],
+    mercado: { ema20: 139.2, atr: 4.9, extremo: 137.5, volUlt: 6200, volMedia: 5900, nivel: 137.5 },
+    limite: 0,
+    cierres: [{ dias: 34, qty: 3.508772, precio: 154, costos: 0.7, motivo: 'tp1' }],
+    salidaPor: 'tp1', salida: 154, costos: 0.7, pnl: 39.650878, r: 0.793018 },
+
+  // Abierta, con stop y con margen extra cargado (el único que usa `extra`).
+  { dias: 20, activo: 'HYPE-USDT-SWAP', dir: 'short', entrada: 38.4, stop: 40.1,
+    tp1: 35.2, tp2: 33.4, tp3: 30.9, qty: 29.411765, lev: 6, extra: 100,
+    margenTipo: 'aislado', liq: 47.604938, perdidaLiq: 270.733479, tasaMM: 1.25,
+    margen: 288.235294, mm: 14.117647, nivelMargen: 2041.666667, capital: 5000, riesgoPct: 1,
+    compuertas: ['tendencia', 'volumen', 'stopliq', 'rr'],
+    mercado: { ema20: 39.6, atr: 1.55, extremo: 40.3, volUlt: 4100, volMedia: 3800, nivel: 40.3 },
+    limite: 0,
+    cierres: [], salidaPor: '', salida: 0, costos: 0, pnl: 0, r: null },
+
+  // SIN stop y abierta: no pasa las compuertas de stop y R:R, y lo único que
+  // acota la pérdida es la liquidación. Es el caso que la mesa quiere hacer ver.
+  { dias: 14, activo: 'PUMP-USDT-SWAP', dir: 'long', entrada: 0.0043, stop: 0,
+    tp1: 0.0052, tp2: 0.0061, tp3: 0, qty: 348837.209302, lev: 5, extra: 0,
+    margenTipo: 'aislado', liq: 0.003484, perdidaLiq: 284.810127, tasaMM: 1.25,
+    margen: 300, mm: 18.75, nivelMargen: 1600, capital: 5000, riesgoPct: 1,
+    compuertas: ['tendencia'],
+    mercado: { ema20: 0.00412, atr: 0.00031, extremo: 0.00398, volUlt: 920000, volMedia: 610000, nivel: 0.00398 },
+    limite: 0,
+    cierres: [], salidaPor: '', salida: 0, costos: 0, pnl: 0, r: null },
+
+  // SIN stop pero cerrada a mano y en ganancia: sirve para mostrar que ganar no
+  // valida el proceso. Da +91 USDT y R sin calcular, porque no hubo riesgo definido.
+  { dias: 48, activo: 'DOGE-USDT-SWAP', dir: 'long', entrada: 0.163, stop: 0,
+    tp1: 0.185, tp2: 0.198, tp3: 0, qty: 6134.969325, lev: 4, extra: 0,
+    margenTipo: 'aislado', liq: 0.123797, perdidaLiq: 240.506329, tasaMM: 1.25,
+    margen: 250, mm: 12.5, nivelMargen: 2000, capital: 5000, riesgoPct: 1,
+    compuertas: ['tendencia', 'volumen'],
+    mercado: { ema20: 0.1585, atr: 0.0072, extremo: 0.1552, volUlt: 540000, volMedia: 498000, nivel: 0.1552 },
+    limite: 0,
+    cierres: [{ dias: 31, qty: 6134.969325, precio: 0.1782, costos: 2.1, motivo: 'manual' }],
+    salidaPor: 'manual', salida: 0.1782, costos: 2.1, pnl: 91.151534, r: null }
 ];
 
 const DEMO_MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -354,6 +447,39 @@ function buildDemoSnapshot(mesesAtras) {
     };
   });
 
+  // Operaciones de la Mesa de Trading. Las fechas de DEMO_TRADES vienen en días
+  // de antigüedad, no absolutas: acá se resuelven contra hoy para que el
+  // historial no envejezca. El formato es el mismo que usa la mesa al guardar
+  // (fecha ISO yyyy-mm-dd, ts en milisegundos).
+  function fechaTrade(dias) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - dias);
+    const mm = d.getMonth() + 1, dd = d.getDate();
+    return { iso: d.getFullYear() + '-' + String(mm).padStart(2, '0') + '-' + String(dd).padStart(2, '0'),
+             ts: d.getTime() };
+  }
+  // En DEMO_TRADES el orden es el pedagógico (agrupado por caso), pero la mesa
+  // guarda con unshift, así que el array real queda de la más nueva a la más
+  // vieja. Se ordena por antigüedad para que la demo se vea como se vería un
+  // historial cargado a mano.
+  const trades = DEMO_TRADES.slice()
+    .sort(function (a, b) { return a.dias - b.dias; })
+    .map(function (t, i) {
+      const abierta = fechaTrade(t.dias);
+      const copia = Object.assign({}, t);
+      delete copia.dias;
+      copia.id = 'trd_demo_' + String(i + 1).padStart(2, '0');
+      copia.createdAt = abierta.ts;
+      copia.fecha = abierta.iso;
+      copia.compuertas = t.compuertas.slice();
+      copia.mercado = Object.assign({}, t.mercado);
+      copia.cierres = t.cierres.map(function (c) {
+        const f = fechaTrade(c.dias);
+        return { ts: f.ts, fecha: f.iso, qty: c.qty, precio: c.precio,
+                 costos: c.costos, motivo: c.motivo };
+      });
+      return copia;
+    });
+
   const snap = {
     schemaVersion: (typeof SCHEMA_VERSION !== 'undefined' ? SCHEMA_VERSION : 3),
     version: (typeof STATE_VERSION !== 'undefined' ? STATE_VERSION : 4),
@@ -494,6 +620,7 @@ function buildDemoSnapshot(mesesAtras) {
     origins: DEMO_ORIGENES.slice(),
     uploadHistoryByOrigin: {},
     investmentEntries: investmentEntries,
+    trades: trades,
     tickerInfo: tickerInfo,
     txIncludedInBudget: {}
   };

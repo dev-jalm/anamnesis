@@ -1,0 +1,948 @@
+/* ==========================================================================
+   MESA DE TRADING — gestión de riesgo por operación
+   Se inserta dentro del panel colapsable de Trading, debajo de las tablas
+   de activos. Usa exclusivamente los tokens de dashboard.css, así que el
+   tema oscuro funciona solo (hereda de [data-theme="dark"]).
+   Todo va scopeado bajo .mesa para no colisionar con el resto del CSS.
+   ========================================================================== */
+
+/* En Trading la mesa es el único contenido del cuerpo del panel: las tablas
+   por ticker no se construyen (ver buildInvestmentDetailPanel). Por eso el
+   borde superior separa del <summary>, no de unas tablas, y el padding
+   horizontal iguala al del summary (14px) porque acá no hay tabla a sangre
+   que llegue sola hasta el borde. */
+.mesa {
+  border-top: 1px solid var(--border);
+  padding: 18px 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.mesa-block-title {
+  font-family: 'Fraunces', serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 3px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.mesa-block-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 14px;
+}
+
+/* Misma línea divisoria que separa la mesa del resto del panel, ahora también
+   antes de las métricas y del historial. Los márgenes negativos cancelan el
+   padding lateral de .mesa para que el trazo llegue de borde a borde igual
+   que el de arriba; si no, quedaría 14px más corto de cada lado y se leería
+   como otra cosa. */
+.mesa-sep {
+  border-top: 1px solid var(--border);
+  margin-left: -14px;
+  margin-right: -14px;
+  padding: 20px 14px 0;
+}
+
+/* ---------- cabecera del panel de Trading ----------
+   La fila usa el marcado de anamnesis (.inv-header-total-row) para verse igual
+   que las de Reserva, Inversiones y Jubilacion. La clase `combined` se usa solo
+   por la tipografia —13px en vez de 12px, como la fila principal de los otros
+   paneles—; el borde superior que ella trae separa la fila ARS+USD de las de
+   arriba, y aca no hay nada arriba, asi que quedaria una linea colgada. */
+[data-mesa-cab] .inv-header-total-combined {
+  border-top: none;
+  padding-top: 4px;
+  margin-top: 0;
+}
+
+/* ---------- comparativa con stop / sin stop ---------- */
+/* La comparativa vive en la cabecera del panel, debajo de la fila de numeros:
+   resumen de la cuenta y tiene que leerse con el panel cerrado. Transpuesta
+   —dos filas en vez de siete— para que la cabecera no crezca a lo alto. */
+.mesa-comparativa { margin-top: 8px; }
+.mesa-table-comp { min-width: 620px; font-size: 11.5px; }
+.mesa-table-comp th { padding-top: 6px; padding-bottom: 6px; }
+.mesa-table-comp td { padding-top: 7px; padding-bottom: 7px; }
+.mesa-table-comp tbody tr.vacia td { opacity: .5; }
+.mesa-grupo-lbl {
+  font-family: 'Fraunces', serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: help;
+  border-bottom: 1px dotted color-mix(in srgb, var(--muted) 50%, transparent);
+}
+.mesa-table-comp .mesa-sub { font-size: 8.5px; }
+
+/* ---------- mesa de trabajo: cabecera y grupos ---------- */
+.mesa-bench { display: flex; flex-direction: column; }
+
+/* Cuatro columnas a la misma altura: los tres pasos que se llenan y la escala
+   al costado. La verificación va al doble de ancho que sus vecinas porque lleva
+   los datos y la barra de compuertas uno al lado del otro.
+   `align-items: stretch` —el valor por omisión de grid— es lo que hace que las
+   cuatro terminen a la misma altura sin fijarle ninguna. */
+.mesa-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr) 178px;
+  gap: 14px;
+  margin-top: 12px;
+}
+.mesa-cols > .mesa-group { margin-bottom: 0; }
+.mesa-aside {
+  min-width: 0;
+  border-left: 1px solid var(--border);
+  padding-left: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Dos pasos al angostar: primero baja la escala, después se rompen las
+   columnas. Romper todo de una vez dejaba la verificación aplastada en
+   pantallas intermedias, que es donde más se usa. */
+@media (max-width: 1340px) {
+  .mesa-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); }
+  .mesa-aside {
+    grid-column: 1 / -1;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    padding-left: 0;
+    padding-top: 12px;
+  }
+  .mesa-aside .mesa-scale-v { min-height: 220px; }
+}
+@media (max-width: 820px) {
+  .mesa-cols { grid-template-columns: 1fr; }
+}
+.mesa-bench-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+/* Las tres acciones comparten la línea del encabezado. El azul es el mismo
+   que la app usa en la tarjeta de Trading, y separa "abrir el reglamento" de
+   "escribir una operación", que es la distinción que importa. */
+.mesa-bench-head .mesa-actions { margin-top: 0; flex-shrink: 0; }
+.mesa-btn { white-space: nowrap; }
+.mesa-btn.azul {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #F5F1E8;
+  font-weight: 500;
+}
+.mesa-btn.azul:hover { filter: brightness(1.08); border-color: var(--blue); }
+
+/* Cada grupo es un paso del procedimiento, numerado. El orden visual ES el
+   orden de llenado: verificar que la operación existe, definir los niveles,
+   y recién entonces calcular el tamaño. */
+.mesa-group {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 13px 14px 15px;
+  margin-bottom: 12px;
+  background: var(--bg-1);
+}
+/* Cabecera de alto reservado: título arriba, bajada abajo con espacio para
+   dos renglones. Así el primer campo de las tres secciones empieza a la misma
+   altura aunque las bajadas tengan largos distintos. */
+.mesa-group-head { margin-bottom: 12px; }
+.mesa-group-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 5px;
+}
+.mesa-group-n {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  width: 19px; height: 19px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--inv-accent, var(--accent));
+  color: var(--on-dark-text);
+  flex-shrink: 0;
+}
+.mesa-group-lbl {
+  font-family: 'Fraunces', serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.mesa-group-sub {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  min-height: 2.9em;   /* dos renglones: el alto que reserva la cabecera */
+  min-width: 0;
+}
+/* El enlace de OKX va en su propio renglón, debajo de la bajada, y con el
+   mismo alto de línea que el texto: si ese renglón mide distinto, la cabecera
+   de Verificación queda más alta que las otras dos y su primer campo arranca
+   más abajo que el Activo de al lado. */
+.mesa-okx-linea { display: block; line-height: 1.45; }
+.mesa-okx-linea .mesa-link { line-height: inherit; vertical-align: baseline; }
+
+/* ---------- formulario ---------- */
+/* Dos columnas fijas: los campos caen de a pares en el orden del array CAMPOS.
+   Con auto-fit el número de columnas cambiaba con el ancho y la fila 3 de una
+   sección no coincidía con la fila 3 de la de al lado. */
+.mesa-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.mesa-inputs label.full { grid-column: 1 / -1; }
+/* `space-between` alinea todos los inputs de una fila aunque una etiqueta
+   ocupe dos renglones: la etiqueta queda arriba y el campo abajo, siempre a
+   la misma altura. Si no, un rótulo largo baja su campo y descuadra la fila. */
+.mesa-inputs label {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+}
+/* Algunas etiquetas de opción son largas (la condición del día habilitado
+   va entre paréntesis en el propio texto): necesitan más de una columna. */
+.mesa-inputs label.off { opacity: .45; }
+
+/* La etiqueta lleva la ayuda en un title: el subrayado punteado y el cursor
+   de ayuda son la señal de que hay algo que leer al pasar por encima. */
+.mesa-inputs .mesa-lbl {
+  font-size: 9.5px;
+  /* Alto de línea fijo: con alto automático, una etiqueta con tilde
+     ("ESTADO DEL DÍA") mide dos píxeles más que una sin tilde ("ACTIVO") y su
+     campo arranca dos píxeles más abajo que el de la columna de al lado. */
+  line-height: 13px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  cursor: help;
+  width: fit-content;
+  max-width: 100%;
+  border-bottom: 1px dotted color-mix(in srgb, var(--muted) 55%, transparent);
+  padding-bottom: 1px;
+}
+
+/* Sin flechitas de incremento: los campos son de carga manual y el spinner
+   invita a un tanteo que no tiene sentido con precios de 8 decimales.
+   Los inputs son type="text", pero la regla queda por si alguno cambia. */
+.mesa-inputs input[type="number"]::-webkit-outer-spin-button,
+.mesa-inputs input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.mesa-inputs input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+.mesa-inputs input,
+.mesa-inputs select {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  /* Alto fijo para campo y desplegable por igual: el select usa Inter y el
+     input monoespaciada, y las dos tipografías dan alturas de contenido
+     distintas. Sin esto, un campo de texto y un desplegable en la misma fila
+     de columnas vecinas no arrancan a la misma altura. */
+  box-sizing: border-box;
+  height: 30px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--card);
+  color: var(--ink);
+  width: 100%;
+  min-width: 0;
+}
+.mesa-inputs select { font-family: 'Inter', sans-serif; }
+.mesa-inputs input:focus,
+.mesa-inputs select:focus {
+  outline: 2px solid var(--inv-accent, var(--accent));
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+/* Los campos de texto libre no son números: no van en monoespaciada ni
+   alineados a la derecha. */
+.mesa-inputs input.txt {
+  font-family: 'Inter', sans-serif;
+  font-variant-numeric: normal;
+  text-transform: uppercase;
+}
+.mesa-inputs input:disabled,
+.mesa-inputs select:disabled { cursor: not-allowed; background: var(--bg-2); }
+
+/* Enlace de acción dentro de un subtítulo: se comporta como texto, no como
+   botón, porque vive en medio de una oración. */
+.mesa-link {
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  color: var(--inv-accent, var(--accent));
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+.mesa-link:hover { filter: brightness(1.15); }
+.mesa-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.mesa-link:disabled { color: var(--muted); cursor: progress; text-decoration: none; }
+.mesa-okx-msg {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-left: 8px;
+}
+.mesa-okx-msg.ok  { color: var(--green); }
+.mesa-okx-msg.err { color: var(--red); }
+
+/* ---------- sección de verificación ----------
+   Tres filas a la izquierda, la barra de los cinco pasos al margen derecho.
+   `align-items: stretch` hace que la barra arranque en la primera fila y
+   termine en la última sin tener que fijarle una altura. */
+.mesa-vgrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 208px;
+  gap: 16px;
+  align-items: stretch;
+}
+/* Los seis datos que se leen del gráfico entran en una fila sola: son un solo
+   gesto de carga y partirlos en dos renglones los hace parecer dos tareas. */
+.mesa-vside {
+  min-width: 0;
+  border-left: 1px solid var(--border);
+  padding-left: 16px;
+}
+/* La barra baja debajo de los datos antes que las columnas se rompan: en
+   208px la verificación necesita al menos ~430px de sección para respirar. */
+@media (max-width: 1100px) {
+  .mesa-vgrid { grid-template-columns: 1fr; gap: 14px; }
+  .mesa-vside { border-left: none; padding-left: 0; border-top: 1px solid var(--border); padding-top: 12px; }
+  .mesa-vsteps { min-height: 200px; }
+}
+
+/* ---------- barra de los cinco pasos ----------
+   Mismo lenguaje que el índice del Sistema 4K: punto numerado sobre una
+   línea vertical. Acá el punto lleva el veredicto en vez del número cuando
+   ya se pudo evaluar, y el tramo de línea se pinta si el paso se cumple. */
+.mesa-vrail { height: 100%; display: flex; flex-direction: column; }
+.mesa-vrail.off { opacity: .35; }
+.mesa-vrail-lbl {
+  font-size: 9.5px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  cursor: help;
+  width: fit-content;
+  border-bottom: 1px dotted color-mix(in srgb, var(--muted) 55%, transparent);
+  padding-bottom: 1px;
+  margin: 0 0 12px;
+}
+.mesa-vsteps { flex: 1 1 auto; display: flex; flex-direction: column; }
+.mesa-vstep {
+  flex: 1 1 0;
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: 11px;
+  min-height: 34px;
+}
+.mesa-vcol { display: flex; flex-direction: column; align-items: center; }
+.mesa-vdot {
+  width: 21px; height: 21px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .14s, border-color .14s, color .14s;
+}
+.mesa-vline {
+  flex: 1 1 auto;
+  width: 2px;
+  background: var(--border);
+  margin: 1px 0;
+  border-radius: 1px;
+  transition: background .14s;
+}
+.mesa-vstep:last-child .mesa-vline { visibility: hidden; }
+.mesa-vstep.est-ok .mesa-vdot {
+  background: var(--green); border-color: var(--green); color: var(--on-dark-text);
+}
+.mesa-vstep.est-ok .mesa-vline { background: var(--green); }
+.mesa-vstep.est-no .mesa-vdot {
+  background: var(--red); border-color: var(--red); color: var(--on-dark-text);
+}
+.mesa-vtxt { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding-top: 1px; }
+.mesa-vtxt .t {
+  font-size: 12px;
+  color: var(--ink);
+  line-height: 1.25;
+}
+/* La medición se fue al tooltip: en pantalla queda el punto y el nombre.
+   El paso se lee de un vistazo y el número está a un hover, para cuando uno
+   quiere discutirle al veredicto. */
+.mesa-vstep.est-sin .t { color: var(--muted); }
+/* Enlace que aplica el stop sugerido: aparece dentro del paso 4 en cuanto se
+   puede calcular, y desaparece cuando el stop cargado ya lo cumple. */
+.mesa-vfix { font-size: 10.5px; align-self: flex-start; margin-top: 2px; }
+.mesa-vtxt { justify-content: center; cursor: help; }
+
+.mesa-empty-inline {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* ---------- tiles de resultado ---------- */
+.mesa-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(142px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+.mesa-tile {
+  background: var(--card);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mesa-tile .k {
+  font-size: 9.5px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* Mismo lenguaje que las etiquetas del formulario: punteado = hay ayuda. */
+.mesa-tile .k.has-help {
+  cursor: help;
+  width: fit-content;
+  max-width: 100%;
+  border-bottom: 1px dotted color-mix(in srgb, var(--muted) 50%, transparent);
+  padding-bottom: 1px;
+}
+.mesa-tile .v {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.mesa-tile .s {
+  font-size: 10.5px;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+.mesa-tile .v.pos { color: var(--green); }
+.mesa-tile .v.neg { color: var(--red); }
+.mesa-tile .v.acc { color: var(--accent); }
+.mesa-tile .v.liq { color: var(--red-2); }
+
+/* ---------- escala de riesgo (vertical) ----------
+   El precio corre sobre el eje Y como en cualquier gráfico: arriba lo caro,
+   abajo lo barato. Vive en la columna derecha y se estira para acompañar el
+   alto del formulario; por eso las marcas se posicionan en porcentaje y las
+   etiquetas se acomodan después por JS, ya con la altura real medida. */
+.mesa-scale-label {
+  font-size: 9.5px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 14px;
+  cursor: help;
+  width: fit-content;
+  border-bottom: 1px dotted color-mix(in srgb, var(--muted) 55%, transparent);
+  padding-bottom: 1px;
+}
+.mesa-scale-v {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 190px;
+  margin-left: 3px;
+}
+.mesa-scale-v.empty { display: flex; align-items: center; }
+.mesa-rail {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 6px;
+  background: var(--bg-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.mesa-zone {
+  position: absolute;
+  left: 0; right: 0;
+  background: color-mix(in srgb, var(--red) 32%, transparent);
+}
+.mesa-mk {
+  position: absolute;
+  left: -4px;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  transform: translateY(-50%);
+}
+.mesa-mklab {
+  position: absolute;
+  left: 18px;
+  right: 0;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.25;
+  min-width: 0;
+}
+.mesa-mklab .n {
+  font-size: 9px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.mesa-mklab .p {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.mesa-mklab .d { font-size: 9.5px; }
+.mesa-mk.liq   { background: var(--red-2); }
+.mesa-mk.stop  { background: var(--red); }
+.mesa-mk.entry { background: var(--ink); width: 19px; left: -6px; }
+.mesa-mk.tp    { background: var(--green); }
+
+/* Dos tonos de la misma familia por marca: el nombre en el tono fuerte y el
+   precio con su porcentaje en el suave. Tres de las cuatro familias usan
+   pares que anamnesis ya define (--green/--green-2, --ink/--ink-2,
+   --red-2/--red); el stop no tiene par propio, así que su tono suave sale de
+   mezclar el rojo con el fondo de la tarjeta — que aclara en el tema claro y
+   atenúa en el oscuro, en vez de romperse en uno de los dos. */
+.mesa-mklab.tp    .n { color: var(--green); }
+.mesa-mklab.tp    .p,
+.mesa-mklab.tp    .d { color: var(--green-2); }
+
+.mesa-mklab.entry .n { color: var(--ink); }
+.mesa-mklab.entry .p,
+.mesa-mklab.entry .d { color: var(--ink-2); }
+
+.mesa-mklab.stop  .n { color: var(--red); }
+.mesa-mklab.stop  .p,
+.mesa-mklab.stop  .d { color: color-mix(in srgb, var(--red) 62%, var(--card)); }
+
+.mesa-mklab.liq   .n { color: var(--red-2); }
+.mesa-mklab.liq   .p,
+.mesa-mklab.liq   .d { color: var(--red); }
+.mesa-scale-foot {
+  font-size: 10px;
+  color: var(--muted);
+  margin: 12px 0 0;
+}
+
+/* ---------- alerta ---------- */
+.mesa-alert {
+  margin-top: 14px;
+  padding: 10px 13px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  border-left: 3px solid var(--red-2);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+}
+.mesa-alert.hidden { display: none; }
+.mesa-alert strong { color: var(--red-2); }
+
+/* ---------- acciones ---------- */
+.mesa-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.mesa-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px;
+  padding: 6px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color .12s;
+}
+.mesa-btn:hover { border-color: var(--inv-accent, var(--accent)); }
+.mesa-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mesa-btn.primary {
+  background: var(--inv-accent, var(--accent));
+  border-color: var(--inv-accent, var(--accent));
+  color: var(--on-dark-text);
+  font-weight: 500;
+}
+.mesa-btn.primary:hover { filter: brightness(1.07); }
+
+/* ---------- tabla de historial ---------- */
+.mesa-table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.mesa-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 1080px;
+  font-size: 12px;
+}
+.mesa-table th {
+  font-size: 9.5px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  text-align: right;
+  padding: 8px 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.mesa-table th.l, .mesa-table td.l { text-align: left; }
+.mesa-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.mesa-table tbody tr:last-child td { border-bottom: none; }
+.mesa-table tbody tr:hover { background: var(--bg-2); }
+.mesa-table td.pos { color: var(--green); }
+.mesa-table td.neg { color: var(--red); }
+.mesa-table td.liq { color: var(--red-2); }
+.mesa-table td.mut { color: var(--muted); }
+.mesa-table td.editable { cursor: text; }
+.mesa-table td.editable:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: var(--bg-1);
+}
+
+/* Select dentro del historial: el motivo de salida se elige ahí mismo, sin
+   abrir ningún panel. Se apoya en los tokens del tema como el resto. */
+.mesa-sel {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  max-width: 118px;
+}
+.mesa-sel:hover { border-color: var(--border); background: var(--bg-1); }
+.mesa-sel:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+/* Marca de "operé con el día ya cerrado". Va en rojo porque es la violación
+   que más caro sale y la que más fácil se olvida. */
+.mesa-flag {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--red-2);
+  background: color-mix(in srgb, var(--red) 15%, transparent);
+}
+
+.mesa-sub {
+  display: block;
+  font-size: 8.5px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.mesa-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 9.5px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+}
+.mesa-pill.long  { background: color-mix(in srgb, var(--green) 20%, transparent); color: var(--green); }
+.mesa-pill.short { background: color-mix(in srgb, var(--red) 20%, transparent);   color: var(--red); }
+
+.mesa-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-family: 'Inter', sans-serif;
+}
+/* Borrar operación: el mismo botón que borra un activo en Reserva,
+   Inversiones y Jubilación, y en el mismo lugar — al comienzo de la fila.
+   La clase es la del dashboard (.inv-delete-btn) para que herede su estilo;
+   acá solo se define la celda que lo contiene. */
+.mesa-table td.inv-entry-actions,
+.mesa-table th.acc {
+  width: 70px;
+  padding-left: 8px;
+  padding-right: 0;
+  text-align: center;
+}
+.mesa-table .inv-delete-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--muted-2, var(--muted));
+  padding: 2px;
+  line-height: 0;
+  display: inline-flex;
+}
+.mesa-table .inv-delete-btn:hover { color: var(--red); }
+.mesa-table .inv-delete-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 3px; }
+
+.mesa-foot {
+  font-size: 10.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
+}
+.mesa-foot code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  background: var(--bg-2);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mesa * { transition: none !important; }
+}
+
+/* ---------- modales ----------
+   El marcado y las clases son los de anamnesis (.modal-overlay, .modal-card,
+   .modal-header, .modal-actions, .btn-cancel, .upload-btn). Acá solo va lo que
+   el dashboard no tiene: el subtítulo bajo el título, la variante de documento
+   con cuerpo desplazable, y el ajuste de los campos de la mesa adentro. */
+.mesa-modal .mesa-modal-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.45;
+}
+/* En la variante documento la bajada es una oración, no un dato: va en la
+   tipografía de texto y con más aire. */
+.mesa-modal .mesa-modal-doc .mesa-modal-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  max-width: 62ch;
+  margin-top: 7px;
+}
+.mesa-modal .mesa-modal-doc .s4k-doc { margin-top: 2px; }
+.mesa-modal .mesa-modal-head-r {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.mesa-modal .modal-close { line-height: 0; display: inline-flex; }
+.mesa-modal .mesa-modal-nota {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+.mesa-modal .mesa-inputs { gap: 12px; }
+.mesa-modal .modal-actions { margin-top: 20px; align-items: center; }
+.mesa-btn-mini { font-size: 11.5px; padding: 4px 9px; }
+
+/* Variante documento: cabecera fija y cuerpo que se desplaza. El padding pasa
+   del .modal-card a sus hijos para que la barra de scroll llegue al borde. */
+.mesa-modal .modal-card.mesa-modal-doc {
+  display: flex;
+  flex-direction: column;
+  max-height: min(88vh, 100%);
+  padding: 24px 0 0;
+  overflow: hidden;
+}
+.mesa-modal .modal-card.mesa-modal-doc .modal-header {
+  padding: 0 26px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+.mesa-modal-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 26px 30px;
+}
+@media (max-width: 560px) {
+  .mesa-modal.modal-overlay { padding: 0; }
+  .mesa-modal .modal-card { max-height: 100%; height: 100%; border-radius: 0; border: none; }
+  .mesa-modal .modal-card.mesa-modal-doc .modal-header { padding: 0 16px; }
+  .mesa-modal-scroll { padding: 0 16px 24px; }
+}
+
+/* El botón de cerrar una operación, al lado del tacho en la misma celda. */
+.mesa-cerrar-btn:hover { color: var(--green); }
+.mesa-chevron svg { transition: transform .15s; }
+.mesa-chevron.abierto svg { transform: rotate(90deg); }
+.mesa-chevron:hover { color: var(--ink); }
+
+/* Filas de detalle: un tramo de cierre por fila, colgando de su operación.
+   Mismo lenguaje que las compras individuales de un ticker en Inversiones. */
+.mesa-table tr.mesa-detalle > td {
+  background: var(--bg-2);
+  font-size: 11px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+.mesa-table tr.mesa-detalle.hidden { display: none; }
+.mesa-table tr.mesa-fila.tiene-detalle > td { border-bottom-color: transparent; }
+.mesa-varios {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px dotted color-mix(in srgb, var(--muted) 50%, transparent);
+}
+.mesa-sub.abierta { color: var(--red-2); }
+
+/* ---------- modal de cierre ---------- */
+.mesa-cierres-previos {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  background: var(--bg-1);
+}
+.mesa-cierres-previos .mesa-lbl {
+  display: block;
+  font-size: 9.5px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+.mesa-cierre-prev {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  padding: 3px 0;
+  color: var(--ink-2);
+}
+.mesa-cierre-prev .q { min-width: 78px; }
+.mesa-cierre-prev .a { color: var(--muted); }
+.mesa-cierre-prev .m {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--muted);
+  flex: 1;
+}
+.mesa-cierre-prev .p { font-weight: 500; }
+.mesa-cierre-prev .p.pos { color: var(--green); }
+.mesa-cierre-prev .p.neg { color: var(--red); }
+
+/* Atajos: los objetivos cargados y las porciones del escalonado. Tocar uno
+   pone el precio y el motivo juntos, que es como se decide en la práctica. */
+.mesa-atajos {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.mesa-atajos .mesa-lbl {
+  font-size: 9.5px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 3px;
+}
+.mesa-chip {
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+  color: var(--ink-2);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.mesa-chip:hover { border-color: var(--inv-accent, var(--accent)); color: var(--ink); }
+.mesa-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mesa-chip .v {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.mesa-chip.acc { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+
+.mesa-cierre-vista {
+  margin-top: 14px;
+  padding: 11px 13px;
+  border-radius: 7px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+.mesa-vista-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 2px 0;
+}
+.mesa-vista-fila strong {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.mesa-vista-fila strong.pos { color: var(--green); }
+.mesa-vista-fila strong.neg { color: var(--red); }
+.mesa-table td.inv-entry-actions,
+.mesa-table th.acc { white-space: nowrap; }

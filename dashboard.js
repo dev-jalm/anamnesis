@@ -325,6 +325,9 @@ const state = {
   // destino ∈ { 'inversiones' | 'jubilacion_jalm' | 'jubilacion_clm' | 'reserva' }
   // moneda ∈ { 'ARS' | 'USD' }
   investmentEntries: [],
+  // Operaciones de trading apalancado (mesa-trading.js). Modelo distinto de
+  // investmentEntries: viaje completo entrada->salida con stop, lev y liquidacion.
+  trades: [],
   // Formatos de importación definidos por el usuario: describen la estructura
   // del archivo de un banco que no viene con plantilla incorporada. Misma forma
   // que PLANTILLAS_BUILTIN (ver el motor en core.js). Van primero en la lista de
@@ -5438,7 +5441,11 @@ const investmentState = {
 function investmentDestinos() {
   return [
     { key: 'inversiones',     label: 'Inversión' },
-    { key: 'trading',         label: 'Trading' },
+    // Trading sigue en el catálogo porque hace falta para resolver la etiqueta
+    // de cargas viejas, pero `alta: false` lo saca del selector: una operación
+    // apalancada no es una compra que se acumula, se carga en la Mesa de
+    // Trading, que modela entrada + stop + salida.
+    { key: 'trading',         label: 'Trading', alta: false },
     { key: 'jubilacion_jalm', label: labelJubilacion(1) },
     { key: 'jubilacion_clm',  label: labelJubilacion(2) },
     { key: 'reserva',         label: 'Reserva' }
@@ -6011,7 +6018,12 @@ function renderInvestmentList() {
       // destinos, en una sola carga.
       '<select data-field="destino" class="inv-row-destino" title="Destino del activo">' +
         '<option value="">— Destino —</option>' +
-        INVESTMENT_DESTINOS.map(function (d) {
+        // Los destinos con alta:false no se ofrecen nunca. Acá se cargan altas
+        // nuevas, y una operación apalancada no es una compra que se acumula:
+        // va a la Mesa de Trading.
+        INVESTMENT_DESTINOS.filter(function (d) {
+          return d.alta !== false;
+        }).map(function (d) {
           return '<option value="' + d.key + '"' + (r.destino === d.key ? ' selected' : '') + '>' + d.label + '</option>';
         }).join('') +
       '</select>' +
@@ -13816,6 +13828,8 @@ function buildStateSnapshot() {
     bankTemplates: state.bankTemplates,
     // Inversiones cargadas desde el modal "Cargar movimientos → Inversión"
     investmentEntries: state.investmentEntries,
+    // Operaciones de la mesa de trading
+    trades: state.trades,
     // Info de mercado por ticker (descripción + precio actual editables)
     tickerInfo: state.tickerInfo,
     // Set de txIds ya incluidas en algún presupuesto (feedback visual del botón)
@@ -13991,6 +14005,11 @@ function applyStateSnapshot(snap) {
   }
   if (Array.isArray(snap.bankTemplates)) state.bankTemplates = snap.bankTemplates;
   if (Array.isArray(snap.investmentEntries)) state.investmentEntries = snap.investmentEntries;
+  // A diferencia del resto, acá se resetea si el snapshot no trae trades: la
+  // demo no los incluye, así que conservarlos dejaba las operaciones reales a
+  // la vista en modo demo (y las arrastraba al abrir otro archivo, que después
+  // las guardaba como propias).
+  state.trades = Array.isArray(snap.trades) ? snap.trades : [];
   if (snap.tickerInfo && typeof snap.tickerInfo === 'object') state.tickerInfo = snap.tickerInfo;
   if (snap.txIncludedInBudget && typeof snap.txIncludedInBudget === 'object') state.txIncludedInBudget = snap.txIncludedInBudget;
 
@@ -17599,8 +17618,31 @@ function buildInvestmentDetailPanel(destinos, title) {
     metaRowHtml = buildReservaMetaRow();
   }
 
-  const headerNewHtml =
-    '<div class="inv-header-grid">' +
+  // Trading no lleva totales en la cabecera. El resto de los paneles agrupa
+  // tenencias que se valuan contra un precio actual, y ahi "invertido /
+  // actualizado / variacion" describe la posicion. Una cuenta de futuros no
+  // es eso: lo que importa es el resultado de las operaciones cerradas, y eso
+  // lo mide la mesa con sus propias metricas mas abajo. Las filas de moneda,
+  // la barra de asignacion y el sparkline quedaban en cero o mostraban un
+  // numero que no significaba nada.
+  const esTradingPanel = (destinos[0] || '') === 'trading';
+
+  const headerNewHtml = esTradingPanel
+    ? '<div class="inv-header-grid">' +
+        '<div class="inv-header-name">' + escapeHtmlSafe(title) + '</div>' +
+        // Misma grilla de dos columnas que el resto de los paneles: el nombre
+        // a la izquierda y los numeros a la derecha, arrancando donde arrancan
+        // los de Reserva, Inversiones y Jubilacion. Los arma mesa-trading.js
+        // porque salen de state.trades, que es su modelo; aca solo se reserva
+        // el lugar.
+        '<div class="inv-header-totals">' +
+          '<div data-mesa-cab>' +
+            (window.MesaTrading && window.MesaTrading.cabeceraHtml
+              ? window.MesaTrading.cabeceraHtml() : '') +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    : '<div class="inv-header-grid">' +
       '<div class="inv-header-name">' + escapeHtmlSafe(title) + '</div>' +
       '<div class="inv-header-totals">' +
         metaRowHtml +
@@ -17824,8 +17866,14 @@ function buildInvestmentDetailPanel(destinos, title) {
   return '<details class="investment-detail-panel inv-panel-' + escapeHtmlSafe(panelKey) + '" style="--inv-accent: ' + panelAccent + '">' +
     '<summary>' + headerNewHtml + '</summary>' +
     '<div class="investment-detail-tables">' +
-      buildCurrencyTable('ARS', arsTickers.length, arsRows) +
-      buildCurrencyTable('USD', usdTickers.length, usdRows) +
+      // Trading no lista activos por ticker: una operacion apalancada no es
+      // una tenencia que se acumula y se valua contra tickerInfo.precioActual,
+      // es un viaje entrada->salida que cierra con un resultado definitivo.
+      // Su detalle es el historial que inserta mesa-trading.js. Las demas
+      // secciones (reserva, inversiones, jubilacion) siguen igual.
+      (panelKey === 'trading' ? '' :
+        buildCurrencyTable('ARS', arsTickers.length, arsRows) +
+        buildCurrencyTable('USD', usdTickers.length, usdRows)) +
     '</div>' +
   '</details>';
 }
@@ -18459,6 +18507,10 @@ function renderMainAssets() {
   if (tradingEl) {
     const tradingPanel = buildInvestmentDetailPanel(['trading'], 'Trading');
     if (tradingPanel) tradingEl.insertAdjacentHTML('beforeend', tradingPanel);
+    // Mesa de trading: se inserta DENTRO del panel colapsable. En Trading el
+    // cuerpo es solo esto (no hay tablas por ticker). No toca el header:
+    // totales, barra de asignacion y sparkline quedan como estaban.
+    if (window.MesaTrading) window.MesaTrading.mount(tradingEl);
   }
   // La demo trabaja con una sola jubilación: no tiene sentido mostrarle a un
   // visitante la separación JALM/CLM, que es una distinción personal de quien
