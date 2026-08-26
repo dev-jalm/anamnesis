@@ -11,12 +11,22 @@
    borde superior separa del <summary>, no de unas tablas, y el padding
    horizontal iguala al del summary (14px) porque acá no hay tabla a sangre
    que llegue sola hasta el borde. */
+/* Sin gap entre secciones: la separación la pone el padding de cada una.
+   Con gap, el hueco caía DEBAJO del contenido de una sección pero ENCIMA del
+   divisor de la siguiente, así que la banda que ve el ojo —de divisor a
+   divisor— era 22px más larga por abajo y todos los títulos quedaban altos.
+   Con el espacio adentro de cada sección, la banda coincide con la caja y
+   centrar es simétrico. */
 .mesa {
   border-top: 1px solid var(--border);
-  padding: 18px 14px 20px;
+  /* Sin padding arriba: ese aire lo pone la primera sección, que es la única
+     que puede achicarlo cuando está plegada. Con el padding acá, la primera
+     banda quedaba 22px más alta que las otras dos y el ritmo de los divisores
+     salía desparejo. */
+  padding: 0 14px 20px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 0;
 }
 
 .mesa-block-title {
@@ -44,7 +54,10 @@
   border-top: 1px solid var(--border);
   margin-left: -14px;
   margin-right: -14px;
-  padding: 20px 14px 0;
+  /* Simétrico arriba y abajo: antes era 20/0 y se apoyaba en el gap del
+     contenedor para separar de la sección siguiente. Sin gap, el aire lo pone
+     la propia sección, de los dos lados. */
+  padding: 20px 14px 20px;
 }
 
 /* ---------- secciones plegables de la mesa ----------
@@ -114,9 +127,18 @@
 /* El margen inferior del título separa el título de la bajada. Plegada no hay
    bajada, así que ese margen sólo lo corre hacia arriba. */
 .mesa-fold:not([open]) > summary .mesa-block-title { margin-bottom: 0; }
-/* Padding simétrico: el de .mesa-sep es 20px arriba y 0 abajo, pensado para
-   una sección abierta que sigue con contenido. */
+/* Padding simétrico: el de .mesa-sep es 20px, pensado para una sección abierta
+   que sigue con contenido. Plegada alcanza con menos. */
 .mesa-fold:not([open]).mesa-sep { padding-top: 12px; padding-bottom: 12px; }
+
+/* La primera sección no lleva .mesa-sep: su divisor es el borde superior de
+   .mesa. El aire de los dos lados lo pone ella, no el contenedor. */
+.mesa-fold:not(.mesa-sep) { padding-top: 18px; padding-bottom: 18px; }
+
+/* Plegada va con menos, y sobre todo con el valor que iguala su banda a la de
+   las otras dos: la fila es 10px más alta porque lleva el botón Sistema 4K,
+   así que el padding compensa esa diferencia. */
+.mesa-fold:not([open]):not(.mesa-sep) { padding-top: 7px; padding-bottom: 7px; }
 
 .mesa-fold-body { padding-top: 4px; }
 
