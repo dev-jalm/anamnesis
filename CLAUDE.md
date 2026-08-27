@@ -7,6 +7,11 @@ hay excusa de "no me acordaba".
 
 **Si el usuario da una regla nueva durante una sesión, va acá, en el momento.**
 
+> **La regla que gobierna a las demás: no suponer.** Cada vez que hay algo que
+> revisar —un bug, un número que no cierra, algo que se ve mal, el impacto de un
+> cambio— se verifica y se analiza antes de opinar y antes de tocar. Está
+> desarrollada en [Verificación](#verificación), y se aplica a todo lo que sigue.
+
 ---
 
 ## Idioma
@@ -156,8 +161,37 @@ Antes de dar por buena una regla nueva: leer el estilo computado, no asumir.
 
 ## Verificación
 
-**Medir, no afirmar.** Antes de decir que algo funciona: estilos computados,
-posiciones en píxeles, o el estado antes/después leído en el navegador.
+### No suponer. Nunca.
+
+**Cada vez que hay algo que revisar, se verifica y se analiza. No se supone.**
+Es la regla que más caro salió: tres intentos seguidos de arreglar la columna
+"Precio actual" mirando la captura y deduciendo la causa —el símbolo separado,
+el ancho del input, el `size`— cuando la causa real era que la celda medía
+37 px de alto contra 47 de sus vecinas.
+
+Vale para todo, no sólo para CSS: un bug reportado, un número que no cierra, un
+"esto no anda", el impacto de un cambio. **Primero se mide, después se opina.**
+
+Tres formas de suponer que ya costaron trabajo:
+
+1. **Diagnosticar desde una imagen.** Una captura muestra el síntoma, no la
+   causa. Sirve para saber *qué* mirar, no para decidir *qué* tocar.
+2. **Dar por buena una medición que no mide lo que importa.** Los títulos de las
+   secciones plegadas "daban centrados" contra la caja del `<details>`, pero lo
+   que ve el ojo es la banda entre divisores. Antes de confiar en un número:
+   ¿esto es lo que realmente ve el usuario?
+3. **Explicar sin comparar.** Cuando algo se ve mal en una tabla, en una grilla
+   o en una lista, la pregunta útil es **en qué se diferencia de sus vecinos**
+   que sí se ven bien. La respuesta casi siempre está en esa diferencia.
+
+Si medir es caro o no se puede —no hay screenshots en esta sesión, por
+ejemplo—, se dice que no se pudo verificar y qué se asumió. No se presenta una
+suposición como un hecho.
+
+### Medir, no afirmar
+
+Antes de decir que algo funciona: estilos computados, posiciones en píxeles, o
+el estado antes/después leído en el navegador.
 
 Falsos positivos que ya pasaron, para no repetirlos:
 - Leer el `textContent` de un `<select>` — trae todas las opciones, no la elegida.
@@ -165,6 +199,14 @@ Falsos positivos que ya pasaron, para no repetirlos:
   **Buscar por id.**
 - Usar una función ya cargada en memoria después de editar el archivo — hay que
   recargar la página.
+- Medir un elemento contra su propia caja cuando lo que importa es su posición
+  dentro de otra cosa (una banda, una fila, una columna).
+- Confiar en `getBoundingClientRect()` o en `display` para saber si algo se ve
+  dentro de un `<details>` cerrado: reportan como si estuviera abierto. Para eso
+  sirve `innerText`, que respeta lo que está renderizado.
+- Sacar conclusiones de una captura hecha con html2canvas: dibuja igual los
+  hijos de un `<details>` cerrado, así que muestra superpuesto lo que en
+  pantalla está oculto.
 
 ---
 
