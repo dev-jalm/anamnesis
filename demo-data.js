@@ -468,6 +468,9 @@ function buildDemoSnapshot(mesesAtras) {
   // ============================================================
   const investmentEntries = [];
   const tickerInfo = {};
+  // Forma de pago por tx. Va en un mapa aparte y no en la tx, igual que en la
+  // app. Lo llena la generación de ventas de más abajo.
+  const paymentMethodOverrides = {};
   DEMO_CARTERA.forEach(function (p, i) {
     p.compras.forEach(function (c, j) {
       const f = new Date(hoy.getFullYear(), hoy.getMonth() - c.meses, c.dia);
@@ -495,15 +498,20 @@ function buildDemoSnapshot(mesesAtras) {
           // clínica ni en Evolución, y la demo no mostraría esa mitad.
           const realizado = v.cant * v.precio - v.cant * c.ppc;
           if (Math.abs(realizado) >= 0.005) {
+            const idTx = 'tx_venta_demo_' + i + '_' + j + '_' + k;
             pushTx(fv.getFullYear(), DEMO_MESES[fv.getMonth()], {
-              id: 'tx_venta_demo_' + i + '_' + j + '_' + k,
+              id: idTx,
               fecha: fechaAR(fv.getFullYear(), fv.getMonth(), fv.getDate()),
               descripcion: 'Venta ' + p.ticker + ' · ' + v.cant + ' nominales · Inversión',
               monto: Math.abs(realizado),
               categoria: realizado > 0 ? 'RentaFinanciera' : 'PerdidaFinanciera',
               subcategoria: null,
+              periodicidad: 'esporadico',
               origen: 'Venta de activos'
             });
+            // Misma clasificación que aplica la app al vender: la forma de pago
+            // va en el mapa de overrides, no en la tx.
+            paymentMethodOverrides[idTx] = 'transferencia';
           }
           return { id: 'vta_demo_' + i + '_' + j + '_' + k, ts: fv.getTime(), fecha: iso(fv),
                    cantidad: v.cant, precio: v.precio, total: v.cant * v.precio };
@@ -594,7 +602,7 @@ function buildDemoSnapshot(mesesAtras) {
       JALM: { label: 'JALM',   color: '#8B8680' },
       CLM:  { label: 'CLAUDE', color: '#D4849E' }
     },
-    paymentMethodOverrides: {},
+    paymentMethodOverrides: paymentMethodOverrides,
     categoryRules: [],
     // viewMode 'resumen' arranca la Ficha médica en la vista compacta: para
     // alguien que entra por primera vez, la vista completa es demasiada

@@ -18653,9 +18653,16 @@ function registrarTxDeResultado(objetivo, realizado, cuando, cantidad) {
     monto: Math.abs(realizado),
     categoria: realizado > 0 ? 'RentaFinanciera' : 'PerdidaFinanciera',
     subcategoria: null,
+    // Una venta no es un gasto recurrente: se liquida cuando se decide. Y el
+    // dinero llega acreditado, no en efectivo ni con tarjeta. Se clasifica al
+    // crearla para que no quede pendiente de que alguien la complete a mano.
+    periodicidad: 'esporadico',
     origen: 'Venta de activos'
   };
   try { applyTravelTagsToNewTx(tx); } catch (e) {}
+  // La forma de pago no vive en la tx sino en un mapa aparte, indexado por id.
+  if (!state.paymentMethodOverrides) state.paymentMethodOverrides = {};
+  state.paymentMethodOverrides[tx.id] = 'transferencia';
   state.transactionsByYear[year][month].push(tx);
   // dataByYear es la suma de tx por categoría: sin esto, los totales del mes
   // quedan sin la venta hasta la próxima importación.

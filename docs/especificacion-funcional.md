@@ -244,6 +244,9 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-079o | La transacción se clasifica en **Renta financiera** cuando el resultado es positivo y en **Pérdida financiera** cuando es negativo |
 | RF-079p | La devolución del capital **no** genera transacción: ya está contemplada en la reducción del costo conservado. Se registra únicamente el resultado |
 | RF-079q | Las categorías de resultado no intervienen en el cálculo del aportado de un destino |
+| RF-079r | La transacción se clasifica automáticamente con periodicidad **esporádica** y forma de pago **transferencia**, sin requerir intervención del usuario |
+
+**Fundamento de RF-079r.** Una venta no es un gasto recurrente: se liquida cuando se decide. Y el importe se acredita, no se cobra en efectivo ni con tarjeta. Dejar ambos campos sin completar obligaría a clasificar a mano cada venta y a que, hasta entonces, la operación figurara como no clasificada en las distribuciones de la Ficha médica.
 
 **Fundamento de RF-079n.** El líquido ya cierra sin la transacción. Su propósito es que el resultado sea visible: sin ella, una venta con ganancia no aparecía en Historia clínica, no movía el score, y no figuraba en Diagnóstico ni en Evolución, que trabajan sobre transacciones.
 
@@ -948,7 +951,7 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 
 | Cambio | Requerimiento |
 |---|---|
-| Venta de activos, total y parcial | RF-079a a RF-079q |
+| Venta de activos, total y parcial | RF-079a a RF-079r |
 | Longitudes máximas en los campos de texto | RF-215 a RF-217 |
 | Trading en tres secciones plegables, cerradas por defecto | RF-078b a RF-078e |
 | Reordenamiento de los destinos de Salud financiera | RF-070 |
