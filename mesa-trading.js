@@ -147,12 +147,27 @@
   }
 
   // Montos en USDT: sin decimales, con separador de miles.
+  /* Convención de signo en toda la mesa: el "−" lo pone fmtNum, y el "+" lo
+     agrega quien formatea, SOLO si el valor es mayor que cero.
+
+     Antes la condición era >= 0, así que el cero se llevaba un "+": la
+     cabecera mostraba "+0,00%", que afirma una subida que no pasó. Y encima en
+     cero la celda no se pinta de ningún color, con lo cual el signo declaraba
+     una dirección que el estilo no declaraba. Cero no tiene signo. */
   function fmtMonto(v) { return fmtNum(v, 0, true); }
 
   // Las unidades van de 348.837 (PUMP a 0,0043) a 0,027778 (BTC a 61.200): un
   // único formato no cubre los dos extremos. Con cero decimales —que es lo que
   // hacía fmtMonto— una posición de 0,0278 BTC se mostraba como "0", que además
   // de ser falso hacía parecer que no había posición abierta.
+  /* Espejo de lo anterior, para los valores que se muestran como pérdida con un
+     "−" escrito a mano —riesgo, pérdida si liquida, drawdown—: cero tampoco es
+     una pérdida. "−0" en la columna de drawdown dice que hubo una caída que no
+     hubo, y encima esa celda ya se pinta en gris cuando el valor es cero. */
+  function conMenos(v, texto) {
+    return (isFinite(v) && v > 0) ? '−' + texto : texto;
+  }
+
   function fmtUnidades(v) {
     if (!isFinite(v)) return '—';
     var a = Math.abs(v);
@@ -1423,7 +1438,7 @@
         tile('Lev. efectivo', fmtPct(c.levEf) + 'x',
              'máx. del tramo ' + c.levMax + 'x', levAlto ? 'neg' : 'acc') +
         tile('Pérdida en stop',
-             c.hayStop ? '−' + fmtMonto(c.riesgoUSD) + ' USDT' : '—',
+             c.hayStop ? conMenos(c.riesgoUSD, fmtMonto(c.riesgoUSD)) + ' USDT' : '—',
              c.hayStop ? (cap ? fmtPct(c.riesgoUSD / cap * 100) + '% del capital' : '') : 'sin stop cargado',
              c.hayStop ? 'neg' : '') +
         tile('Liquidación',
@@ -1432,7 +1447,7 @@
                       : 'a ' + fmtPct(c.distLiq) + '% de la entrada',
              c.sinLiq ? 'pos' : 'liq') +
         tile('Pérdida si liquida',
-             c.sinLiq ? '—' : '−' + fmtMonto(c.perdidaLiq) + ' USDT',
+             c.sinLiq ? '—' : conMenos(c.perdidaLiq, fmtMonto(c.perdidaLiq)) + ' USDT',
              c.sinLiq ? 'sin liquidación posible'
                       : (cap ? fmtPct(c.perdidaLiq / cap * 100) + '% del capital' : ''),
              c.sinLiq ? '' : 'neg') +
@@ -1442,7 +1457,7 @@
         // ese lugar: son las que usa el exchange para decidir cuándo liquidar.
         (!c.hayStop && c.qty > 0
           ? tile('Drawdown máximo',
-                 c.sinLiq ? 'sin límite' : '−' + fmtPct(c.ddPct) + '%',
+                 c.sinLiq ? 'sin límite' : conMenos(c.ddPct, fmtPct(c.ddPct)) + '%',
                  c.sinLiq ? 'no hay liquidación alcanzable'
                           : (c.ddATR !== null ? fmtPct(c.ddATR) + ' ATR de recorrido'
                                               : 'cargá el ATR para verlo en velas'),
@@ -1453,7 +1468,7 @@
                  (c.nivelMargen !== null && c.nivelMargen < 300) ? 'neg' : 'acc')
           : '') +
         tile('Colchón stop→liq',
-             c.colchon === null ? '—' : (c.colchon >= 0 ? '+' : '') + fmtPct(c.colchon) + '%',
+             c.colchon === null ? '—' : (c.colchon > 0 ? '+' : '') + fmtPct(c.colchon) + '%',
              c.colchon === null ? 'requiere stop' : (c.antes ? 'liquida antes del stop' : 'margen de seguridad'),
              c.colchon === null ? '' : (c.colchon < 1 ? 'neg' : 'pos')) +
         tile('R:R objetivo 1', c.rr1 === null ? '—' : fmtPct(c.rr1) + ':1',
@@ -1602,7 +1617,7 @@
            (m.parciales ? ' · ' + m.parciales + ' a medias' : '')) +
       tile('Aciertos', m.n ? fmtPct(m.wr) + '%' : '—',
            m.wins + 'G / ' + m.losses + 'P', sinCortar ? 'neg' : '') +
-      tile('R acumulado', (m.totalR >= 0 ? '+' : '') + fmtPct(m.totalR) + 'R',
+      tile('R acumulado', (m.totalR > 0 ? '+' : '') + fmtPct(m.totalR) + 'R',
            m.sinR ? m.sinR + ' sin stop no cuentan' : 'suma de resultados',
            m.totalR >= 0 ? 'pos' : 'neg') +
       tile('Expectancy', m.n ? fmtMonto(m.exp) : '—', 'esperado por operación',
@@ -1610,11 +1625,11 @@
       tile('Profit factor', m.pf === Infinity ? '∞' : (m.n ? fmtPct(m.pf) : '—'),
            m.pf === Infinity ? 'sin pérdidas aún' : 'gana ÷ pierde',
            m.pf === Infinity ? 'neg' : (m.pf >= 1.5 ? 'pos' : '')) +
-      tile('Máx. drawdown', '−' + fmtMonto(m.dd), 'caída desde el pico', 'neg') +
+      tile('Máx. drawdown', conMenos(m.dd, fmtMonto(m.dd)), 'caída desde el pico', 'neg') +
       tile('Ganancia media', m.wins ? fmtMonto(m.avgW) : '—', 'por acierto', 'pos') +
       tile('Pérdida media', m.losses ? fmtMonto(m.avgL) : '—',
            m.losses ? 'por fallo' : 'nunca cortaste', 'neg') +
-      tile('PnL neto', (m.neto >= 0 ? '+' : '') + fmtMonto(m.neto),
+      tile('PnL neto', (m.neto > 0 ? '+' : '') + fmtMonto(m.neto),
            m.netoParcial ? 'incluye ' + fmtMonto(m.netoParcial) + ' de parciales' : 'después de costos',
            m.neto >= 0 ? 'pos' : 'neg') +
       tile('Adherencia', m.adh === null ? '—' : fmtPct(m.adh) + '%',
@@ -1649,7 +1664,7 @@
         '<td class="mut"></td>' +
         '<td class="mut"></td>' +
         '<td>' + fmtCosto(c.costos || 0) + '</td>' +
-        '<td class="' + (p >= 0 ? 'pos' : 'neg') + '">' + (p >= 0 ? '+' : '') + fmtMonto(p) + '</td>' +
+        '<td class="' + (p >= 0 ? 'pos' : 'neg') + '">' + (p > 0 ? '+' : '') + fmtMonto(p) + '</td>' +
         '<td class="mut"></td>' +
         '<td class="l mut"></td>' +
         '<td class="l mut">' + esc(SALIDA_LBL[c.motivo] || 'sin motivo') + '</td>' +
@@ -1676,14 +1691,14 @@
         '<td class="l"><span class="mesa-grupo-lbl" title="' + escAttr(ayuda) + '">' + lbl + '</span></td>' +
         '<td>' + (g.n || '—') + '</td>' +
         '<td class="' + (g.n ? (g.neto >= 0 ? 'pos' : 'neg') : 'mut') + '">' +
-          (g.n ? (g.neto >= 0 ? '+' : '') + fmtMonto(g.neto) : '—') + '</td>' +
+          (g.n ? (g.neto > 0 ? '+' : '') + fmtMonto(g.neto) : '—') + '</td>' +
         '<td>' + (g.wr === null ? '—' : fmtPct(g.wr) + '%') +
           (g.n ? '<span class="mesa-sub">' + g.wins + 'G / ' + g.losses + 'P</span>' : '') + '</td>' +
-        '<td class="' + (g.dd ? 'neg' : 'mut') + '">' + (g.n ? '−' + fmtMonto(g.dd) : '—') + '</td>' +
+        '<td class="' + (g.dd ? 'neg' : 'mut') + '">' + (g.n ? conMenos(g.dd, fmtMonto(g.dd)) : '—') + '</td>' +
         '<td class="' + (g.totalR === null ? 'mut' : (g.totalR >= 0 ? 'pos' : 'neg')) + '"' +
           (esSin ? ' title="' + escAttr('Sin stop no hay unidad de riesgo, así que no hay R que calcular. No es un cero: es una métrica que no existe para este camino.') + '"' : '') + '>' +
           (g.totalR === null ? (esSin && g.n ? 'no aplica' : '—')
-                             : (g.totalR >= 0 ? '+' : '') + fmtPct(g.totalR) + 'R') + '</td>' +
+                             : (g.totalR > 0 ? '+' : '') + fmtPct(g.totalR) + 'R') + '</td>' +
         '<td class="' + (g.nivelMin !== null && g.nivelMin < 300 ? 'neg' : '') + '">' +
           (g.nivelMin === null ? '—' : fmtNum(Math.round(g.nivelMin), 0, true) + '%') + '</td>' +
       '</tr>';
@@ -1745,7 +1760,7 @@
     var ux = pad + iw;
     var uy = pad + ih - ((fin - minV) / rango) * ih;
 
-    var txt = 'Resultado acumulado: ' + (fin >= 0 ? '+' : '') + fmtMonto(fin) + ' USDT · ' +
+    var txt = 'Resultado acumulado: ' + (fin > 0 ? '+' : '') + fmtMonto(fin) + ' USDT · ' +
       pts.length + (pts.length === 1 ? ' cierre' : ' cierres');
 
     return '<svg class="inv-sparkline" viewBox="0 0 ' + w + ' ' + h + '" ' +
@@ -1783,8 +1798,8 @@
 
     var cerrado = c.cerradoDia || c.cerradoSemana;
     var hoyVal = c.diaPct === null
-      ? (c.dia >= 0 ? '+' : '') + fmtMonto(c.dia)
-      : (c.diaPct >= 0 ? '+' : '') + fmtPct(c.diaPct) + '%';
+      ? (c.dia > 0 ? '+' : '') + fmtMonto(c.dia)
+      : (c.diaPct > 0 ? '+' : '') + fmtPct(c.diaPct) + '%';
     var hoyRot = 'Hoy · ' + (c.cerradoDia ? 'día cerrado'
       : c.cerradoSemana ? 'semana cerrada' : 'habilitado');
 
@@ -1795,7 +1810,7 @@
             'Resultado realizado hoy, sobre el capital de la última operación registrada.\n' +
             'El sistema cierra el día en −4% y la semana en −8%.\n' +
             'Semana: ' + (c.semanaPct === null ? fmtMonto(c.semana) + ' USDT'
-                          : (c.semanaPct >= 0 ? '+' : '') + fmtPct(c.semanaPct) + '%') + '.\n' +
+                          : (c.semanaPct > 0 ? '+' : '') + fmtPct(c.semanaPct) + '%') + '.\n' +
             'Se calcula sobre los cierres: una posición abierta que va perdiendo no cierra el día, porque todavía puede dar vuelta.') +
       celda('Abiertas' + (ab.sinStop ? ' · ' + ab.sinStop + ' sin stop' : ''),
             String(ab.n),
@@ -1804,7 +1819,7 @@
             'El sistema limita 3 abiertas y 6% de riesgo simultáneo.\n' +
             'Riesgo comprometido: ' + (ab.riesgoPct === null ? '—' : fmtPct(ab.riesgoPct) + '%') + '.\n' +
             'Las que no tienen stop no aportan riesgo medible, por eso se cuentan aparte.') +
-      celda('PnL neto', (m.neto >= 0 ? '+' : '') + fmtMonto(m.neto),
+      celda('PnL neto', (m.neto > 0 ? '+' : '') + fmtMonto(m.neto),
             m.neto > 0 ? 'inv-gp-positive' : (m.neto < 0 ? 'inv-gp-negative' : ''),
             'Resultado acumulado de todo lo cerrado, con comisiones y funding descontados.\n' +
             'Incluye los tramos de las operaciones que están a medias: esa plata ya está en la cuenta.') +
@@ -1870,13 +1885,13 @@
           '<td class="liq">' + fmtPrecio(t.liq) + '</td>' +
           '<td>' + fmtCosto(r.costos) + '</td>' +
           '<td class="' + (r.n === 0 ? 'mut' : (r.pnl >= 0 ? 'pos' : 'neg')) + '">' +
-            (r.n === 0 ? 'abierta' : (r.pnl >= 0 ? '+' : '') + fmtMonto(r.pnl)) +
+            (r.n === 0 ? 'abierta' : (r.pnl > 0 ? '+' : '') + fmtMonto(r.pnl)) +
             (r.estado === 'parcial' ? '<span class="mesa-sub">realizado</span>' : '') + '</td>' +
           '<td class="' + ((r.r === null || r.r === undefined) ? 'mut'
                             : (r.r >= 0 ? 'pos' : 'neg')) + '">' +
             (r.n === 0 ? '—'
               : (r.r === null || r.r === undefined) ? 's/R'
-              : (r.r >= 0 ? '+' : '') + fmtPct(r.r) + 'R') + '</td>' +
+              : (r.r > 0 ? '+' : '') + fmtPct(r.r) + 'R') + '</td>' +
           '<td class="l' + (origenDe(t) === 'sistema' ? '' : ' mut') + '"' +
             ' title="' + escAttr(
               origenDe(t) === 'parcial'
@@ -2391,7 +2406,7 @@
           summaryLabel: 'OPERACIÓN',
           summaryText: t.fecha + ' · ' + t.activo + ' · ' + t.dir + ' ' + fmtPrecio(t.entrada) +
             (t.salida > 0 ? ' · cerrada en ' + fmtPrecio(t.salida) +
-              ' · ' + (t.pnl >= 0 ? '+' : '') + fmtMonto(t.pnl) + ' USDT' : ' · abierta'),
+              ' · ' + (t.pnl > 0 ? '+' : '') + fmtMonto(t.pnl) + ' USDT' : ' · abierta'),
           confirmLabel: 'ELIMINAR', cancelLabel: 'Cancelar'
         }, function (ok) {
           if (!ok) return;
@@ -2723,7 +2738,7 @@
               '<span class="q">' + fmtUnidades(c.qty) + '</span>' +
               '<span class="a">a ' + fmtPrecio(c.precio) + '</span>' +
               '<span class="m">' + esc(SALIDA_LBL[c.motivo] || 'sin motivo') + '</span>' +
-              '<span class="p ' + (p >= 0 ? 'pos' : 'neg') + '">' + (p >= 0 ? '+' : '') + fmtMonto(p) + '</span>' +
+              '<span class="p ' + (p >= 0 ? 'pos' : 'neg') + '">' + (p > 0 ? '+' : '') + fmtMonto(p) + '</span>' +
               '<button type="button" class="inv-delete-btn" data-mesa-del-cierre="' + i + ':' + j +
                 '" title="Borrar este cierre">' + ICONO_BORRAR + '</button>' +
             '</div>';
@@ -2899,18 +2914,18 @@
       '<div class="mesa-vista-fila">' +
         '<span>Este tramo</span>' +
         '<strong class="' + (pnlTramo >= 0 ? 'pos' : 'neg') + '">' +
-          (pnlTramo >= 0 ? '+' : '') + fmtMonto(pnlTramo) + ' USDT</strong>' +
+          (pnlTramo > 0 ? '+' : '') + fmtMonto(pnlTramo) + ' USDT</strong>' +
       '</div>' +
       (r.n ? '<div class="mesa-vista-fila"><span>Total de la operación</span>' +
         '<strong class="' + (total >= 0 ? 'pos' : 'neg') + '">' +
-        (total >= 0 ? '+' : '') + fmtMonto(total) + ' USDT' +
-        (rTotal !== null ? ' · ' + (rTotal >= 0 ? '+' : '') + fmtPct(rTotal) + 'R' : '') +
+        (total > 0 ? '+' : '') + fmtMonto(total) + ' USDT' +
+        (rTotal !== null ? ' · ' + (rTotal > 0 ? '+' : '') + fmtPct(rTotal) + 'R' : '') +
         '</strong></div>' : '') +
       '<div class="mesa-vista-fila">' +
         '<span>' + (cierraTodo ? 'Después de este cierre' : 'Queda abierto') + '</span>' +
         '<strong>' + (cierraTodo
           ? 'la operación queda cerrada' + (rTotal !== null && !r.n
-              ? ' · ' + (rTotal >= 0 ? '+' : '') + fmtPct(rTotal) + 'R' : '')
+              ? ' · ' + (rTotal > 0 ? '+' : '') + fmtPct(rTotal) + 'R' : '')
           : fmtUnidades(resta) + ' unidades · ' + fmtPct(resta / t.qty * 100) + '% de la posición') +
         '</strong>' +
       '</div>';
@@ -2929,7 +2944,7 @@
       summaryLabel: 'TRAMO',
       summaryText: fmtUnidades(c.qty) + ' unidades a ' + fmtPrecio(c.precio) +
         ' · ' + (SALIDA_LBL[c.motivo] || 'sin motivo') +
-        ' · ' + (pnlCierre(t, c) >= 0 ? '+' : '') + fmtMonto(pnlCierre(t, c)) + ' USDT',
+        ' · ' + (pnlCierre(t, c) > 0 ? '+' : '') + fmtMonto(pnlCierre(t, c)) + ' USDT',
       confirmLabel: 'ELIMINAR', cancelLabel: 'Cancelar'
     }, function (ok) {
       if (!ok) return;
