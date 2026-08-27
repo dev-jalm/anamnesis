@@ -245,6 +245,32 @@ Falsos positivos que ya pasaron, para no repetirlos:
 
 ---
 
+## Bitácora de sesiones
+
+**Al cerrar cada sesión se regenera la bitácora**, para que las horas del
+proyecto sean siempre un dato y no una reconstrucción posterior:
+
+    "C:/Users/joaco/tools/node-v24.18.0-win-x64/node.exe" docs/horas-sesiones.js
+
+Escribe `docs/bitacora-sesiones.md` con fecha, hora de inicio, hora de fin y
+duración de cada sesión, más los totales. Se commitea junto con el trabajo de
+esa sesión.
+
+**No se anota a mano.** El script lee las transcripciones que el entorno ya
+escribe por su cuenta, con la marca temporal de cada interacción. Una anotación
+manual depende de que alguien se acuerde al empezar Y al terminar, y eso falla;
+además nadie puede reconstruir el inicio real de una sesión que arrancó hace
+tres horas.
+
+El corte entre sesiones es de 90 minutos, el mismo criterio del Anexo A de la
+especificación funcional. Si se cambia, las dos cifras dejan de ser comparables.
+
+**Por qué existe esta regla:** al querer documentar el esfuerzo del proyecto,
+las horas de los primeros cuatro meses resultaron imposibles de medir —no
+quedaba registro utilizable— y hubo que estimarlas. De acá en adelante no.
+
+---
+
 ## Entregables
 
 Todo archivo generado —PDF, imagen, export, o el archivo modificado que el
