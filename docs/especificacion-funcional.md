@@ -951,7 +951,7 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.1 | 26/08/2026 | Incorpora las definiciones del cliente sobre las cinco cuestiones abiertas. Se agregan las longitudes de campo (5.8), las dos vistas de Ficha médica (4.4), el orden de los destinos de Salud financiera (RF-070), las secciones plegables de Trading (RF-078b a RF-078e), la precisión sobre el filtro Todas (RF-021), la regla de alcance de las reglas (RN-015), los requerimientos derivados de PEND-04 y PEND-05, y la composición del conjunto de demostración con compras múltiples por activo (RF-222b, RF-222c) | Reemplazada |
 | 1.2 | 26/08/2026 | Incorpora la venta de activos: requerimientos (4.6.1), entidad Venta y sus derivados (5.2.1), cálculo del líquido (6.0) y reglas RN-016 a RN-018. Se agregan los criterios de signo en importes de resultado (RNF-02a a RNF-02c) y la venta en el conjunto de demostración (RF-222d) | Reemplazada |
 
-| 1.3 | 27/08/2026 | Incorpora el Anexo A, con el esfuerzo real de construcción medido sobre el historial del repositorio y la estimación de lo que habría demandado un equipo humano | **Vigente** |
+| 1.3 | 27/08/2026 | Incorpora el Anexo A, con el esfuerzo de construcción separado en sus dos períodos —el previo al repositorio, estimado, y el trazable, medido— y la estimación de lo que habría demandado un equipo humano | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 
@@ -968,11 +968,62 @@ Los requerimientos RF-230 a RF-235 quedan **especificados y no implementados**, 
 
 ## Anexo A. Esfuerzo de construcción
 
-Este anexo contrasta el esfuerzo real de construcción del producto contra el que habría demandado un equipo humano convencional. Los dos números se obtienen por métodos distintos y se explicitan por separado, porque tienen naturaleza distinta: uno es una medición, el otro una estimación.
+Este anexo contrasta el esfuerzo real de construcción del producto contra el que habría demandado un equipo humano convencional.
 
-### A.1 Esfuerzo real
+### A.1 El proyecto tiene dos períodos, y sólo uno es medible
 
-**Método.** Las horas no se declaran: se derivan del historial del repositorio. Los 104 commits se agrupan en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, se suma la duración de cada sesión y se agregan 30 minutos previos al primer commit de cada una, por el trabajo que ocurre antes de que exista algo para confirmar.
+La construcción no empezó con el repositorio. Se desarrolló en dos etapas, con herramientas distintas:
+
+| Período | Desde | Hasta | Herramienta | Trazabilidad |
+|---|---|---|---|---|
+| **1. Previo al repositorio** | 02/04/2026 | 27/07/2026 | Conversaciones y proyectos, pasando las versiones del producto de una a otra | Ninguna. No hay registro por sesión |
+| **2. Con repositorio** | 27/07/2026 | 26/08/2026 | Entorno con control de versiones | Completa. 104 commits fechados |
+
+**Cuánto producto existía antes del primer commit.** El primer commit —titulado *Anamnesis: estado inicial*— no marca el inicio del desarrollo sino la incorporación al repositorio de un producto ya construido:
+
+| Archivo | Líneas al primer commit |
+|---|---|
+| dashboard.js | 20.178 |
+| dashboard.css | 7.273 |
+| dashboard.html | 2.807 |
+| tests.html | 2.469 |
+| core.js | 1.962 |
+| **Total** | **34.689** |
+
+Sobre las 44.194 líneas actuales, eso es el **78 % del producto**. El período con repositorio aportó el 22 % restante, más la mesa de trading, la venta de activos, el manual y esta especificación.
+
+Que en el primer commit ya haya cinco archivos es en sí mismo un dato: el producto nació como un único `dashboard.html` con la estructura, los estilos y la lógica adentro, y la separación en módulos —incluida la extracción de `core.js` como lógica pura y la de `tests.html` como suite— también ocurrió antes del repositorio.
+
+### A.2 Período 1: previo al repositorio — estimado
+
+No hay medición posible: las conversaciones no dejan registro de sesiones. Se acota por dos vías independientes.
+
+**Por calendario.** Del 02/04 al 27/07 hay 116 días, unas 16,6 semanas.
+
+| Intensidad | Horas del período |
+|---|---|
+| 5 h/semana | 83 |
+| 8 h/semana | 133 |
+| 10 h/semana | 166 |
+| 12 h/semana | 199 |
+| 15 h/semana | 249 |
+| 20 h/semana | 331 |
+
+**Por volumen.** El período medido produjo 9.505 líneas netas en 40,5 horas: 235 líneas por hora. Aplicado a las 34.689 líneas del primer commit, da **148 horas**, unas 9 horas semanales.
+
+**Ese número es un piso, no una estimación central.** Supone la misma productividad en las dos etapas, y hay tres razones para creer que la primera fue más lenta:
+
+1. **El costo de la herramienta.** Cada conversación nueva exigía reconstruir el contexto desde cero, y las versiones del producto se pasaban completas de una a otra. Ese trabajo no produce una sola línea de producto.
+2. **Sin red de seguridad.** No había control de versiones para volver atrás ni ejecución de la suite en cada cambio, de modo que cada regresión se detectaba probando a mano.
+3. **Una reestructuración que el método no ve.** El producto empezó como un único archivo `dashboard.html` con todo adentro y llegó al primer commit ya dividido en cinco. Esa separación ocurrió íntegramente en este período, y es trabajo que reorganiza sin agregar líneas: el método por volumen lo cuenta como cero.
+
+El valor real está por encima de 148 horas.
+
+**Valor adoptado: 200 horas**, equivalentes a unas 12 horas semanales.
+
+### A.3 Período 2: con repositorio — medido
+
+**Método.** Las horas no se declaran: se derivan del historial. Los 104 commits se agrupan en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, se suma la duración de cada sesión y se agregan 30 minutos previos al primer commit de cada una, por el trabajo que ocurre antes de que exista algo para confirmar.
 
 | Indicador | Valor |
 |---|---|
@@ -980,7 +1031,7 @@ Este anexo contrasta el esfuerzo real de construcción del producto contra el qu
 | Días con actividad | 13 |
 | Commits | 104 |
 | Sesiones de trabajo | 23 |
-| **Horas reales** | **≈ 40,5** |
+| **Horas medidas** | **≈ 40,5** |
 | Duración media por sesión | 1,8 h |
 
 **Sensibilidad del método.** El resultado es estable ante el criterio de corte, lo que da confianza en el orden de magnitud:
@@ -994,9 +1045,19 @@ Este anexo contrasta el esfuerzo real de construcción del producto contra el qu
 
 Se adopta el corte de 90 minutos. Los 180 minutos se descartan por unir sesiones que el calendario muestra separadas.
 
-**Naturaleza de esas horas.** Son horas de una única persona dirigiendo, decidiendo y validando, con la escritura de código asistida por IA. No son equivalentes a horas de programación manual, y por eso la comparación de A.3 no debe leerse como una medida de productividad individual.
+**Naturaleza de esas horas.** Son horas de una única persona dirigiendo, decidiendo y validando, con la escritura de código asistida por IA. No son equivalentes a horas de programación manual, y por eso el contraste de A.6 no debe leerse como una medida de productividad individual.
 
-### A.2 Esfuerzo estimado de un equipo humano
+### A.4 Esfuerzo real total
+
+| Período | Horas | Origen del dato |
+|---|---|---|
+| 1. Previo al repositorio | ≈ 200 | Estimado (A.2) |
+| 2. Con repositorio | ≈ 40,5 | Medido (A.3) |
+| **Total** | **≈ 240** | |
+
+El 83 % del esfuerzo corresponde al período sin trazabilidad. Es coherente con que ahí se construyó el 78 % del producto, en la etapa además menos eficiente de las dos.
+
+### A.5 Esfuerzo estimado de un equipo humano
 
 **Alcance a construir.** 44.194 líneas de código versionado, 380 pruebas automatizadas, 5 integraciones externas, un manual de 27 páginas con 19 capturas y su compilador, y esta especificación.
 
@@ -1043,22 +1104,25 @@ Se adopta el corte de 90 minutos. Los 180 minutos se descartan por unir sesiones
 
 **Traducción a calendario.** 2.070 horas equivalen a unas 259 jornadas persona. Con un equipo de cuatro a cinco personas trabajando en paralelo, con las dependencias propias del proyecto —el diseño precede al desarrollo, las pruebas lo siguen—, el plazo razonable es de **3 a 4 meses**.
 
-### A.3 Contraste
+### A.6 Contraste
 
 | Concepto | Real | Equipo humano |
 |---|---|---|
-| Horas | 40,5 | ≈ 2.070 |
+| Horas | ≈ 240 | ≈ 2.070 |
 | Personas | 1 | 4 a 5 |
-| Calendario | 31 días corridos, 13 con actividad | 3 a 4 meses |
+| Calendario | 5 meses, en dedicación parcial | 3 a 4 meses, a tiempo completo |
 
-**Relación aproximada: 1 a 51.**
+**Relación aproximada: 1 a 8,6.**
 
-### A.4 Advertencias sobre estas cifras
+Conviene notar que el calendario real es **más largo** que el estimado para el equipo humano. La diferencia no está en terminar antes, sino en cuánta gente y cuántas horas hicieron falta para llegar al mismo lugar.
+
+### A.7 Advertencias sobre estas cifras
 
 | # | Advertencia |
 |---|---|
-| 1 | Las horas reales son una **medición** sobre el historial del repositorio; las del equipo humano, una **estimación** con los supuestos declarados en A.2. No tienen el mismo grado de certeza |
-| 2 | El trabajo previo a un commit se aproxima con 30 minutos por sesión. Las sesiones de análisis que no produjeron commits no están contabilizadas, de modo que 40,5 es un **piso** |
-| 3 | La estimación del equipo humano supone construir **el producto terminado**, sin las exploraciones descartadas que un proyecto real atraviesa. En ese sentido es conservadora |
-| 4 | La comparación no mide productividad individual: las horas reales corresponden a dirección, decisión y validación, con la escritura de código asistida |
-| 5 | Un equipo humano habría producido decisiones de arquitectura distintas. La relación compara el costo de llegar a **este** producto, no a uno equivalente en funciones |
+| 1 | Las cifras tienen tres grados de certeza distintos: las 40,5 horas del período 2 son una **medición**; las 200 del período 1, una **estimación acotada por dos métodos**; las 2.070 del equipo humano, una **estimación por componente** con los supuestos de A.5 |
+| 2 | Las 200 horas del período 1 son el número más débil del anexo. Su piso —148 horas— sí está fundado; el valor adoptado supone una productividad menor que la del período medido, por las razones de A.2, pero no hay forma de verificarlo |
+| 3 | Dentro del período 2, el trabajo previo a un commit se aproxima con 30 minutos por sesión, y las sesiones que no produjeron commits no se cuentan. También ahí 40,5 es un piso |
+| 4 | La estimación del equipo humano supone construir **el producto terminado**, sin las exploraciones descartadas que un proyecto real atraviesa. En ese sentido es conservadora |
+| 5 | La comparación no mide productividad individual: las horas reales corresponden a dirección, decisión y validación, con la escritura de código asistida |
+| 6 | Un equipo humano habría producido decisiones de arquitectura distintas. La relación compara el costo de llegar a **este** producto, no a uno equivalente en funciones |
