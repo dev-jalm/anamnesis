@@ -116,8 +116,14 @@ const DEMO_CARTERA = [
   { ticker: 'MSFT', desc: 'Microsoft Corporation',   broker: 'NEXO',        actual: 24180, destino: 'inversiones',
     compras: [ { meses: 7, dia: 18, cant: 18, ppc: 17400 },
                { meses: 1, dia: 14, cant: 10, ppc: 25560 } ] },
+  // GOOGL lleva una venta parcial: es el caso que muestra la liquidación de
+  // tenencias sin que haya que cargarla a mano. Se vendieron 15 de 35 a 17.100
+  // —por debajo del precio de hoy, así que la venta dejó ganancia pero menos de
+  // la que hubiera dejado esperando, que es la situación real de cualquiera que
+  // vende—. Los 20 que quedan siguen valuándose contra el precio actual.
   { ticker: 'GOOGL',desc: 'Alphabet Inc.',           broker: 'NEXO',        actual: 17890, destino: 'inversiones',
-    compras: [ { meses: 6, dia: 11, cant: 35, ppc: 15200 } ] },
+    compras: [ { meses: 6, dia: 11, cant: 35, ppc: 15200,
+                 ventas: [ { meses: 1, dia: 23, cant: 15, precio: 17100 } ] } ] },
   // NVDA y MELI estaban en 'trading'. Trading ya no lista tenencias por ticker:
   // su detalle es la Mesa, que modela operaciones apalancadas (entrada, stop,
   // salida). Un CEDEAR ahí quedaba invisible pero sumando, así que pasan a
@@ -465,9 +471,13 @@ function buildDemoSnapshot(mesesAtras) {
   DEMO_CARTERA.forEach(function (p, i) {
     p.compras.forEach(function (c, j) {
       const f = new Date(hoy.getFullYear(), hoy.getMonth() - c.meses, c.dia);
+      const iso = function (d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+               '-' + String(d.getDate()).padStart(2, '0');
+      };
       investmentEntries.push({
         id: 'inv_demo_' + i + '_' + j,
-        fecha: f.getFullYear() + '-' + String(f.getMonth() + 1).padStart(2, '0') + '-' + String(f.getDate()).padStart(2, '0'),
+        fecha: iso(f),
         broker: p.broker,
         ticker: p.ticker,
         cantidad: c.cant,
@@ -475,7 +485,14 @@ function buildDemoSnapshot(mesesAtras) {
         total: c.cant * c.ppc,
         destino: p.destino,
         moneda: 'ARS',
-        createdAt: f.getTime()
+        createdAt: f.getTime(),
+        // Las ventas viven en la compra: el costo de lo vendido sale de su
+        // precio. Mismo formato que registra el modal de venta.
+        ventas: (c.ventas || []).map(function (v, k) {
+          const fv = new Date(hoy.getFullYear(), hoy.getMonth() - v.meses, v.dia);
+          return { id: 'vta_demo_' + i + '_' + j + '_' + k, ts: fv.getTime(), fecha: iso(fv),
+                   cantidad: v.cant, precio: v.precio, total: v.cant * v.precio };
+        })
       });
     });
     tickerInfo[p.ticker] = {

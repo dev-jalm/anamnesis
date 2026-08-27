@@ -55,6 +55,85 @@ const MONTHS_ORDER = [
 ];
 
 // ============================================================
+// VENTAS DE ACTIVOS
+// ============================================================
+// Una tenencia no se liquida de una vez: se va vendiendo. Igual que una
+// operación de trading guarda una lista de cierres, cada compra guarda una
+// lista de ventas —cantidad, precio, total y cuándo— y todo lo demás se
+// deriva de esa lista. Vender todo de una es el caso particular, no el base.
+//
+// La venta vive en la COMPRA y no en un array aparte a propósito: el costo de
+// lo vendido sale del precio de esa compra, así que la ganancia realizada se
+// calcula sin tener que rastrear a qué compra correspondía cada venta.
+//
+// Estructura de una venta: { id, ts, fecha, cantidad, precio, total }
+
+function ventasDeEntrada(e) {
+  return (e && Array.isArray(e.ventas)) ? e.ventas : [];
+}
+
+function cantidadVendida(e) {
+  return ventasDeEntrada(e).reduce(function (s, v) {
+    return s + (Number(v && v.cantidad) || 0);
+  }, 0);
+}
+
+// Lo que queda en cartera de esa compra. Nunca negativo: una venta por más de
+// lo que hay es un dato inconsistente, no una posición corta.
+function cantidadRestante(e) {
+  const total = Number(e && e.cantidad) || 0;
+  return Math.max(0, total - cantidadVendida(e));
+}
+
+// Plata que entró por las ventas de esa compra.
+function productoVentas(e) {
+  return ventasDeEntrada(e).reduce(function (s, v) {
+    const cant = Number(v && v.cantidad) || 0;
+    const prec = Number(v && v.precio) || 0;
+    const tot = Number(v && v.total);
+    return s + (isFinite(tot) && tot !== 0 ? tot : cant * prec);
+  }, 0);
+}
+
+// Costo de lo vendido, al precio de ESTA compra.
+function costoVendido(e) {
+  return cantidadVendida(e) * (Number(e && e.precio) || 0);
+}
+
+// Ganancia o pérdida ya realizada: lo que entró menos lo que había costado.
+function realizadoDeEntrada(e) {
+  return productoVentas(e) - costoVendido(e);
+}
+
+// Costo de lo que todavía se tiene. Es el "invertido" que corresponde mostrar
+// después de una venta parcial: la plata que sigue puesta en el activo.
+function invertidoRestante(e) {
+  return cantidadRestante(e) * (Number(e && e.precio) || 0);
+}
+
+function estadoEntrada(e) {
+  const vend = cantidadVendida(e);
+  if (vend <= 0) return 'abierta';
+  return cantidadRestante(e) > 0.0000001 ? 'parcial' : 'vendida';
+}
+
+// Valida una venta antes de registrarla. Devuelve lista de errores, vacía si
+// está bien — mismo contrato que validarPlantilla.
+function validarVenta(e, cantidad, precio) {
+  const errores = [];
+  const cant = Number(cantidad), prec = Number(precio);
+  if (!isFinite(cant) || cant <= 0) errores.push('La cantidad tiene que ser mayor que cero.');
+  if (!isFinite(prec) || prec <= 0) errores.push('El precio tiene que ser mayor que cero.');
+  const disp = cantidadRestante(e);
+  // El margen de 1e-6 es por el redondeo de los nominales fraccionados: sin él,
+  // vender "todo" fallaba por una millonésima.
+  if (isFinite(cant) && cant > 0 && cant > disp + 0.000001) {
+    errores.push('Estás vendiendo ' + cant + ' y quedan ' + disp + '.');
+  }
+  return errores;
+}
+
+// ============================================================
 // LONGITUDES DE CAMPOS DE TEXTO
 // ============================================================
 // Acotan lo que el USUARIO puede escribir. NO recortan lo que trae un archivo:
@@ -2500,6 +2579,9 @@ if (typeof module !== 'undefined' && module.exports) {
     // constants
     NON_EXPENSE_CATS, NON_COUNTABLE_FLOW_CATS, BASIC_CATS, DISCRETIONARY_CATS, MONTHS_ORDER, SCHEMA_VERSION,
     MAX_LEN_DESCRIPCION, MAX_LEN_NOMBRE, recortarTexto,
+    // ventas de activos
+    ventasDeEntrada, cantidadVendida, cantidadRestante, productoVentas,
+    costoVendido, realizadoDeEntrada, invertidoRestante, estadoEntrada, validarVenta,
     HEALTH_SCORE_DEFAULTS,
     // strings
     norm, escapeHtmlSafe,

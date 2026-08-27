@@ -6146,6 +6146,30 @@ body[data-exporting="true"] .section-card {
   flex: 0 1 auto;
 }
 
+/* Botón de vender, gemelo del de cerrar una operación en la mesa de trading:
+   comparte la clase base con el de borrar y sólo cambia el color al pasar. */
+.inv-vender-btn:hover { color: var(--green); }
+.inv-entry-actions { white-space: nowrap; }
+/* Lo vendido de una compra, debajo de su fecha. */
+.inv-entry-vendido {
+  font-size: 9px;
+  color: var(--muted-2);
+  margin-top: 1px;
+}
+/* Ticker sin saldo: sigue en la lista para poder ver cuándo se vendió, pero
+   atenuado, porque ya no es una tenencia. */
+.inv-ticker-liquidado { opacity: 0.72; }
+.inv-chip-liquidado {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
 .inv-gp-positive { color: var(--green); font-weight: 600; }
 .inv-gp-negative { color: var(--red); font-weight: 600; }
 .inv-gp-pct {

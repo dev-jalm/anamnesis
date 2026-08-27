@@ -17036,19 +17036,31 @@ function renderMainDiagnosis() {
 // cantidades de un ticker se cancelan (compras + ventas iguales), el ticker
 // se omite del agrupado pero las entradas individuales siguen visibles bajo
 // el detalle expandido (eso lo manejamos en el render).
+// Mismo ícono que usa la mesa de trading para registrar un cierre: vender una
+// tenencia y cerrar una operación son la misma acción vista desde dos modelos,
+// así que comparten símbolo.
+const ICONO_VENDER =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true">' +
+  '<path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>';
+
 function groupInvestmentEntriesByTicker(entries) {
   const groups = {};
   entries.forEach(function (e) {
     const k = (e.ticker || '').toUpperCase();
     if (!groups[k]) {
-      groups[k] = { ticker: k, entries: [], cantidadTotal: 0, invertidoBruto: 0, moneda: e.moneda };
+      groups[k] = { ticker: k, entries: [], cantidadTotal: 0, invertidoBruto: 0,
+                    moneda: e.moneda, vendida: 0, producto: 0, realizado: 0 };
     }
     groups[k].entries.push(e);
-    groups[k].cantidadTotal += Number(e.cantidad) || 0;
-    // El "invertido bruto" suma cantidad × precio. Para ventas (cantidad negativa)
-    // queda como número negativo, lo que reduce el invertido neto y refleja
-    // correctamente el flujo de caja.
-    groups[k].invertidoBruto += (Number(e.cantidad) || 0) * (Number(e.precio) || 0);
+    // Cantidad e invertido son los que QUEDAN, no los originales: después de
+    // vender 200 de 1000, la posición es de 800 y la plata puesta es la de esos
+    // 800. Lo vendido se lleva su costo y deja su producto en el líquido.
+    groups[k].cantidadTotal += cantidadRestante(e);
+    groups[k].invertidoBruto += invertidoRestante(e);
+    groups[k].vendida += cantidadVendida(e);
+    groups[k].producto += productoVentas(e);
+    groups[k].realizado += realizadoDeEntrada(e);
     // Si las entradas mezclan monedas (raro pero posible), nos quedamos con la
     // primera. Lo dejamos consistente en el panel.
     if (!groups[k].moneda) groups[k].moneda = e.moneda;
@@ -17418,11 +17430,12 @@ function buildInvestmentDetailPanel(destinos, title) {
 
   // ─── 2. Helper para calcular totales de un grupo (ARS o USD) ───
   function totalsFor(groups, tickers) {
-    let totInv = 0, totAct = 0, allHavePrecio = (tickers.length > 0);
+    let totInv = 0, totAct = 0, totRealizado = 0, allHavePrecio = (tickers.length > 0);
     tickers.forEach(function (tk) {
       const g = groups[tk];
       const info = (state.tickerInfo && state.tickerInfo[tk]) || {};
       totInv += g.invertidoBruto;
+      totRealizado += (g.realizado || 0);
       const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
         ? Number(info.precioActual) : null;
       if (pa === null) allHavePrecio = false;
@@ -17435,6 +17448,9 @@ function buildInvestmentDetailPanel(destinos, title) {
       invertido: totInv,
       actualizado: totAct,
       allHavePrecio: allHavePrecio,
+      // Ganancia YA realizada por ventas. No entra en gp —que compara lo que
+      // todavía se tiene contra su precio de hoy— pero sí en el líquido.
+      realizado: totRealizado,
       gp: gp,
       gpPct: gpPct
     };
@@ -17491,8 +17507,14 @@ function buildInvestmentDetailPanel(destinos, title) {
   // menos lo efectivamente invertido (en ARS combinado: ARS + USD×MEP).
   // Solo se muestra en la fila ARS+USD; las filas ARS y USD individuales muestran "—"
   // porque las tx siempre son en ARS y no hay forma de separarlas por moneda.
+  // Las ventas devuelven plata al líquido. No alcanza con restar menos
+  // invertido: vender 200 nominales que costaron $200 por $300 deja $300 en la
+  // mano, y esos $100 de ganancia nunca entraron como aporte. Por eso se suma
+  // lo realizado, que es exactamente esa diferencia.
+  //   líquido = aportado − (costo de lo que queda) + (ganancia ya realizada)
+  const realizadoComb = arsT.realizado + (usdT.realizado * cotizacionMep);
   const totalAportado = sumTxByDestinos(destinos);
-  const liquidoComb = totalAportado - invCombArs;
+  const liquidoComb = totalAportado - invCombArs + realizadoComb;
 
   // Variación = actualizado - invertido. Devuelve null si no se puede calcular.
   function variacion(inv, act) {
@@ -17686,9 +17708,15 @@ function buildInvestmentDetailPanel(destinos, title) {
       const entriesRowsHtml = entriesSorted.map(function (e) {
         const fechaDisplay = e.fecha ? e.fecha.split('-').reverse().join('/') : '—';
         const destLabel = (INVESTMENT_DESTINOS.find(function (d) { return d.key === e.destino; }) || { label: e.destino }).label;
-        const eCant = Number(e.cantidad) || 0;
+        // Lo que QUEDA de esta compra, no lo que se compró: si se vendieron 200
+        // de 1000, la fila muestra 800 y su rendimiento se mide sobre esos 800.
+        // Lo vendido ya se cobró y vive en el líquido de la cabecera.
+        const eCant = cantidadRestante(e);
         const ePrecio = Number(e.precio) || 0;
         const eTotal = eCant * ePrecio;
+        const eVendida = cantidadVendida(e);
+        const eRealizado = realizadoDeEntrada(e);
+        const eEstado = estadoEntrada(e);
         // Rendimiento de ESTA compra contra el precio actual del ticker.
         //   variación → cuánto se movió el papel por unidad, comparable entre
         //               compras del mismo ticker hechas a distinto precio.
@@ -17702,9 +17730,25 @@ function buildInvestmentDetailPanel(destinos, title) {
         const eGpSign = gpLote === null ? '' : (gpLote > 0 ? '+' : (gpLote < 0 ? '-' : ''));
         const na = '<span class="inv-na">—</span>';
         return '<tr class="inv-entry-row inv-detail-row hidden" data-ticker-detail="' + escapeHtmlSafe(tk) + '">' +
-          '<td class="inv-entry-actions"><button class="inv-delete-btn" data-action="delete-inv" data-inv-id="' + escapeHtmlSafe(e.id) + '" title="Eliminar esta compra"><i data-lucide="trash-2" style="width:11px;height:11px"></i></button></td>' +
+          '<td class="inv-entry-actions">' +
+            '<button class="inv-delete-btn" data-action="delete-inv" data-inv-id="' + escapeHtmlSafe(e.id) + '" title="Eliminar esta compra"><i data-lucide="trash-2" style="width:11px;height:11px"></i></button>' +
+            // Venta parcial: se registra sobre la compra, que es la que tiene el
+            // precio con el que se calcula la ganancia realizada.
+            (eCant > 0
+              ? '<button class="inv-delete-btn inv-vender-btn" data-action="vender-compra" data-inv-id="' + escapeHtmlSafe(e.id) + '" ' +
+                'title="Vender de esta compra — quedan ' + fmt(eCant) + '">' + ICONO_VENDER + '</button>'
+              : '') +
+          '</td>' +
           '<td>' + (showDestColumn ? escapeHtmlSafe(destLabel) : '') + '</td>' +
-          '<td class="inv-entry-fecha">' + fechaDisplay + '</td>' +
+          // Debajo de la fecha, lo vendido: es el dato que explica por qué esta
+          // fila muestra menos nominales de los que dice el archivo de origen.
+          '<td class="inv-entry-fecha">' + fechaDisplay +
+            (eVendida > 0
+              ? '<div class="inv-entry-vendido" title="Ganancia realizada: ' +
+                escapeHtmlSafe(monedaPrefix + ' ' + fmt(Math.abs(eRealizado))) + (eRealizado < 0 ? ' de pérdida' : '') + '">' +
+                'vendidas ' + fmt(eVendida) + (eEstado === 'vendida' ? ' · sin saldo' : '') + '</div>'
+              : '') +
+          '</td>' +
           '<td></td>' +
           '<td class="num">' + (eCant < 0 ? '-' : '') + fmt(Math.abs(eCant)) + '</td>' +
           '<td class="num">' + monedaPrefix + ' ' + fmt(ePrecio) + '</td>' +
@@ -17754,8 +17798,35 @@ function buildInvestmentDetailPanel(destinos, title) {
         const labels = brokerKeys.map(function (k) { return brokerLabel(k); }).join(', ');
         brokerCellHtml = '<td class="broker-cell"><span class="broker-chip broker-bg-multi" title="Múltiples brokers: ' + labels + '">MULTI</span></td>';
       }
+      // Ticker liquidado: no queda nada. Mostrarlo con la grilla normal daba una
+      // fila de ceros —PPC 0, invertido 0, variación 0%— que no significan nada:
+      // no es que valga cero, es que ya no está. Se muestra lo único que sigue
+      // siendo cierto, el resultado que dejó, y se conserva la fila para poder
+      // desplegar las compras y ver cuándo se vendió cada una.
+      const liquidado = (g.cantidadTotal <= 0 && g.vendida > 0);
+      if (liquidado) {
+        const rCls = g.realizado > 0 ? 'inv-gp-positive' : (g.realizado < 0 ? 'inv-gp-negative' : '');
+        return '<tr class="inv-ticker-row inv-ticker-liquidado" data-ticker="' + escapeHtmlSafe(tk) + '">' +
+          '<td class="inv-ticker-toggle"><button class="inv-toggle-btn" data-action="toggle-ticker" title="Ver las compras y sus ventas"><i data-lucide="chevron-right" style="width:13px;height:13px"></i></button></td>' +
+          brokerCellHtml +
+          '<td class="ticker">' + escapeHtmlSafe(tk) + '</td>' +
+          '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(tk) + '" value="' + escapeHtmlSafe(descripcion).replace(/"/g, '&quot;') + '" placeholder="ej: SPDR S&P 500 ETF"></td>' +
+          '<td class="num"><span class="inv-chip-liquidado">liquidado</span></td>' +
+          '<td class="num" colspan="4"><span class="inv-na">vendidos ' + fmt(g.vendida) + ' nominales por ' + monedaPrefix + ' ' + fmt(g.producto) + '</span></td>' +
+          '<td class="num ' + rCls + '" colspan="2">' + monedaPrefix + ' ' + fmt(Math.abs(g.realizado)) +
+            '<div class="inv-gp-pct">realizado</div></td>' +
+        '</tr>' + entriesHeadHtml + entriesRowsHtml;
+      }
       return '<tr class="inv-ticker-row" data-ticker="' + escapeHtmlSafe(tk) + '">' +
-        '<td class="inv-ticker-toggle"><button class="inv-toggle-btn" data-action="toggle-ticker" title="Ver compras individuales"><i data-lucide="chevron-right" style="width:13px;height:13px"></i></button></td>' +
+        '<td class="inv-ticker-toggle">' +
+          '<button class="inv-toggle-btn" data-action="toggle-ticker" title="Ver compras individuales"><i data-lucide="chevron-right" style="width:13px;height:13px"></i></button>' +
+          // Vender TODO el ticker. La venta parcial va en las filas de detalle,
+          // porque el costo de lo vendido sale del precio de cada compra.
+          (g.cantidadTotal > 0
+            ? '<button class="inv-delete-btn inv-vender-btn" data-action="vender-ticker" data-ticker="' + escapeHtmlSafe(tk) + '" ' +
+              'title="Vender todo: ' + fmt(g.cantidadTotal) + ' nominales">' + ICONO_VENDER + '</button>'
+            : '') +
+        '</td>' +
         brokerCellHtml +
         '<td class="ticker">' + escapeHtmlSafe(tk) + '</td>' +
         '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(tk) + '" value="' + escapeHtmlSafe(descripcion).replace(/"/g, '&quot;') + '" placeholder="ej: SPDR S&P 500 ETF"></td>' +
@@ -18343,11 +18414,198 @@ function fetchTickerPricesFromData912(destinos, btnEl) {
 
 // Bind handlers de los paneles de detalle (delegación a nivel document, idempotente).
 // Maneja: borrar entrada, toggle expand de ticker, editar descripción, editar precio actual.
+/* ==========================================================================
+   VENTA DE ACTIVOS
+   --------------------------------------------------------------------------
+   Liquidación total —desde la fila del ticker— o parcial —desde una compra del
+   detalle—. Es, para tenencias, lo que el cierre de operación es para la mesa
+   de trading: se registra cantidad, precio, total y cuándo, y lo cobrado pasa
+   al líquido del destino.
+
+   Una venta total se reparte entre las compras del ticker de la MÁS VIEJA a la
+   más nueva. No es una decisión estética: el costo de lo vendido sale del
+   precio de cada compra, así que el reparto define la ganancia realizada. Se
+   usa FIFO porque es el criterio contable habitual y el único que no depende
+   de qué compra elija el usuario.
+   ========================================================================== */
+const ventaState = { objetivo: null };
+
+function abrirModalVenta(opts) {
+  const ov = document.getElementById('ventaOverlay');
+  if (!ov) return;
+  const entries = Array.isArray(state.investmentEntries) ? state.investmentEntries : [];
+
+  let objetivo = null;
+  if (opts && opts.invId) {
+    const e = entries.find(function (x) { return x.id === opts.invId; });
+    if (!e) return;
+    objetivo = { tipo: 'compra', entradas: [e], ticker: e.ticker, moneda: e.moneda,
+                 disponible: cantidadRestante(e) };
+  } else if (opts && opts.ticker) {
+    const tk = String(opts.ticker).toUpperCase();
+    // De la más vieja a la más nueva: el reparto FIFO se aplica en ese orden.
+    const delTicker = entries
+      .filter(function (x) { return (x.ticker || '').toUpperCase() === tk && cantidadRestante(x) > 0; })
+      .sort(function (a, b) { return (a.fecha || '').localeCompare(b.fecha || ''); });
+    if (!delTicker.length) return;
+    objetivo = { tipo: 'ticker', entradas: delTicker, ticker: tk, moneda: delTicker[0].moneda,
+                 disponible: delTicker.reduce(function (s, x) { return s + cantidadRestante(x); }, 0) };
+  }
+  if (!objetivo || objetivo.disponible <= 0) return;
+
+  ventaState.objetivo = objetivo;
+  const info = (state.tickerInfo && state.tickerInfo[objetivo.ticker]) || {};
+  const simbolo = objetivo.moneda === 'USD' ? 'US$' : '$';
+
+  document.getElementById('ventaTitulo').textContent =
+    objetivo.tipo === 'ticker' ? 'Vender ' + objetivo.ticker : 'Vender parte de una compra';
+  document.getElementById('ventaSubtitulo').textContent =
+    objetivo.tipo === 'ticker'
+      ? (info.descripcion || objetivo.ticker) + ' · ' + objetivo.entradas.length +
+        (objetivo.entradas.length === 1 ? ' compra' : ' compras')
+      : objetivo.ticker + ' · compra del ' + (objetivo.entradas[0].fecha || '').split('-').reverse().join('/');
+  document.getElementById('ventaDisponible').innerHTML =
+    'Disponible para vender: <strong>' + fmt(objetivo.disponible) + '</strong> nominales.' +
+    (objetivo.tipo === 'ticker' && objetivo.entradas.length > 1
+      ? '<br>Se descuenta de las compras más viejas primero.'
+      : '');
+
+  // La cantidad viene precargada con todo lo disponible: vender el total es el
+  // caso más frecuente y el parcial se escribe encima.
+  document.getElementById('ventaCantidad').value = formatInputAR(objetivo.disponible);
+  document.getElementById('ventaPrecio').value =
+    (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
+      ? formatInputAR(Number(info.precioActual)) : '';
+
+  actualizarResumenVenta();
+  ov.classList.remove('hidden');
+  if (window.lucide && lucide.createIcons) lucide.createIcons();
+  setTimeout(function () {
+    const p = document.getElementById('ventaPrecio');
+    if (p && !p.value) p.focus(); else document.getElementById('ventaCantidad').focus();
+  }, 60);
+}
+
+function cerrarModalVenta() {
+  const ov = document.getElementById('ventaOverlay');
+  if (ov) ov.classList.add('hidden');
+  ventaState.objetivo = null;
+}
+
+// Total y ganancia realizada, recalculados con cada tecla. La ganancia se
+// muestra acá y no después: es el número que decide si conviene vender.
+function actualizarResumenVenta() {
+  const o = ventaState.objetivo;
+  const caja = document.getElementById('ventaResumen');
+  if (!o || !caja) return;
+  const simbolo = o.moneda === 'USD' ? 'US$' : '$';
+  const cant = parseInputAR(document.getElementById('ventaCantidad').value);
+  const prec = parseInputAR(document.getElementById('ventaPrecio').value);
+
+  if (!isFinite(cant) || cant <= 0 || !isFinite(prec) || prec <= 0) {
+    caja.innerHTML = '<span class="inv-na">Cargá cantidad y precio para ver el total.</span>';
+    return;
+  }
+  const total = cant * prec;
+  // Costo de lo que se vende, repartido igual que se va a repartir la venta.
+  const reparto = repartirVenta(o.entradas, cant);
+  const costo = reparto.reduce(function (s, r) { return s + r.cantidad * (Number(r.entrada.precio) || 0); }, 0);
+  const realizado = total - costo;
+  const cls = realizado > 0 ? 'inv-gp-positive' : (realizado < 0 ? 'inv-gp-negative' : '');
+  caja.innerHTML =
+    '<div>Total de la venta: <strong>' + simbolo + ' ' + fmt(total) + '</strong></div>' +
+    '<div>Costo de lo vendido: ' + simbolo + ' ' + fmt(costo) + '</div>' +
+    '<div>Resultado realizado: <strong class="' + cls + '">' + simbolo + ' ' + fmt(Math.abs(realizado)) +
+      (realizado < 0 ? ' de pérdida' : (realizado > 0 ? ' de ganancia' : '')) + '</strong></div>';
+}
+
+// Reparte una cantidad a vender entre varias compras, de la más vieja a la más
+// nueva. Devuelve [{ entrada, cantidad }] sólo con las que efectivamente ceden.
+function repartirVenta(entradas, cantidad) {
+  let resta = Number(cantidad) || 0;
+  const out = [];
+  for (let i = 0; i < entradas.length && resta > 0.0000001; i++) {
+    const disp = cantidadRestante(entradas[i]);
+    if (disp <= 0) continue;
+    const toma = Math.min(disp, resta);
+    out.push({ entrada: entradas[i], cantidad: toma });
+    resta -= toma;
+  }
+  return out;
+}
+
+function confirmarVenta() {
+  const o = ventaState.objetivo;
+  if (!o) return;
+  const cant = parseInputAR(document.getElementById('ventaCantidad').value);
+  const prec = parseInputAR(document.getElementById('ventaPrecio').value);
+
+  // La validación corre sobre el conjunto, no sobre cada compra: vender 300 de
+  // un ticker que tiene 100 + 250 repartidos en dos compras es válido.
+  const errores = [];
+  if (!isFinite(cant) || cant <= 0) errores.push('La cantidad tiene que ser mayor que cero.');
+  if (!isFinite(prec) || prec <= 0) errores.push('El precio tiene que ser mayor que cero.');
+  if (isFinite(cant) && cant > o.disponible + 0.000001) {
+    errores.push('Estás vendiendo ' + fmt(cant) + ' y hay ' + fmt(o.disponible) + ' disponibles.');
+  }
+  if (errores.length) {
+    appAlert({ title: 'Revisá la venta', message: errores.join(' '), danger: true });
+    return;
+  }
+
+  const ahora = new Date();
+  const iso = ahora.getFullYear() + '-' +
+    String(ahora.getMonth() + 1).padStart(2, '0') + '-' +
+    String(ahora.getDate()).padStart(2, '0');
+
+  repartirVenta(o.entradas, cant).forEach(function (r, i) {
+    if (!Array.isArray(r.entrada.ventas)) r.entrada.ventas = [];
+    r.entrada.ventas.push({
+      id: 'vta_' + ahora.getTime() + '_' + i,
+      ts: ahora.getTime(),
+      fecha: iso,
+      cantidad: r.cantidad,
+      precio: prec,
+      total: r.cantidad * prec
+    });
+  });
+
+  scheduleSave();
+  cerrarModalVenta();
+  if (typeof renderMainAssets === 'function') renderMainAssets();
+}
+
+function bindModalVenta() {
+  const ov = document.getElementById('ventaOverlay');
+  if (!ov || ov._bound) return;
+  ov._bound = true;
+  document.getElementById('ventaCloseBtn').addEventListener('click', cerrarModalVenta);
+  document.getElementById('ventaCancelBtn').addEventListener('click', cerrarModalVenta);
+  document.getElementById('ventaConfirmBtn').addEventListener('click', confirmarVenta);
+  ['ventaCantidad', 'ventaPrecio'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', actualizarResumenVenta);
+  });
+  // Click fuera del panel cierra, igual que el resto de los modales.
+  ov.addEventListener('click', function (e) { if (e.target === ov) cerrarModalVenta(); });
+}
+
 function bindInvestmentDetailDelegation() {
+  bindModalVenta();
   if (document._invDelegBound) return;
   document._invDelegBound = true;
 
   document.addEventListener('click', function (e) {
+    // Vender: total desde la fila del ticker, parcial desde una compra.
+    const venderTicker = e.target.closest('[data-action="vender-ticker"]');
+    if (venderTicker) {
+      abrirModalVenta({ ticker: venderTicker.getAttribute('data-ticker') });
+      return;
+    }
+    const venderCompra = e.target.closest('[data-action="vender-compra"]');
+    if (venderCompra) {
+      abrirModalVenta({ invId: venderCompra.getAttribute('data-inv-id') });
+      return;
+    }
     // Borrar una entrada individual
     const delBtn = e.target.closest('[data-action="delete-inv"]');
     if (delBtn) {

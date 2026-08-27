@@ -3038,6 +3038,76 @@ group('validarPlantilla — antes de dejar guardar una plantilla del usuario', f
   });
 });
 
+group('Ventas de activos — una compra se va vendiendo', function () {
+  const compra = function (cant, precio, ventas) {
+    return { id: 'x', ticker: 'SPY', cantidad: cant, precio: precio, ventas: ventas || [] };
+  };
+  test('sin ventas, queda todo y no hay nada realizado', function () {
+    const e = compra(1000, 1);
+    assertEqual(cantidadVendida(e), 0);
+    assertEqual(cantidadRestante(e), 1000);
+    assertEqual(invertidoRestante(e), 1000);
+    assertEqual(realizadoDeEntrada(e), 0);
+    assertEqual(estadoEntrada(e), 'abierta');
+  });
+  test('el caso del enunciado: 1000 nominales, vendo 200', function () {
+    const e = compra(1000, 1, [{ cantidad: 200, precio: 1.5, total: 300 }]);
+    assertEqual(cantidadRestante(e), 800);
+    assertEqual(invertidoRestante(e), 800);
+    assertEqual(productoVentas(e), 300);
+    assertEqual(costoVendido(e), 200);
+    assertEqual(realizadoDeEntrada(e), 100);
+    assertEqual(estadoEntrada(e), 'parcial');
+  });
+  test('vender todo deja la compra sin saldo', function () {
+    const e = compra(50, 10, [{ cantidad: 50, precio: 12, total: 600 }]);
+    assertEqual(cantidadRestante(e), 0);
+    assertEqual(invertidoRestante(e), 0);
+    assertEqual(realizadoDeEntrada(e), 100);
+    assertEqual(estadoEntrada(e), 'vendida');
+  });
+  test('varias ventas se acumulan', function () {
+    const e = compra(100, 10, [{ cantidad: 30, precio: 12 }, { cantidad: 20, precio: 11 }]);
+    assertEqual(cantidadVendida(e), 50);
+    assertEqual(cantidadRestante(e), 50);
+    assertEqual(productoVentas(e), 30 * 12 + 20 * 11);
+    assertEqual(realizadoDeEntrada(e), (360 + 220) - 500);
+  });
+  test('vender en pérdida da realizado negativo', function () {
+    const e = compra(10, 100, [{ cantidad: 10, precio: 80, total: 800 }]);
+    assertEqual(realizadoDeEntrada(e), -200);
+  });
+  test('sin campo total, el producto sale de cantidad × precio', function () {
+    const e = compra(10, 5, [{ cantidad: 4, precio: 7 }]);
+    assertEqual(productoVentas(e), 28);
+  });
+  test('el restante nunca es negativo aunque el dato venga inconsistente', function () {
+    const e = compra(10, 5, [{ cantidad: 40, precio: 7 }]);
+    assertEqual(cantidadRestante(e), 0);
+  });
+  test('una entrada sin ventas, null o rara no explota', function () {
+    assertEqual(cantidadVendida({ cantidad: 5, precio: 1 }), 0);
+    assertEqual(cantidadRestante(null), 0);
+    assertEqual(realizadoDeEntrada(undefined), 0);
+    assertEqual(ventasDeEntrada({ ventas: 'no soy un array' }).length, 0);
+  });
+  test('validarVenta rechaza cantidad y precio no positivos', function () {
+    const e = compra(100, 10);
+    assert(validarVenta(e, 0, 10).length > 0, 'cantidad cero debe fallar');
+    assert(validarVenta(e, -5, 10).length > 0, 'cantidad negativa debe fallar');
+    assert(validarVenta(e, 10, 0).length > 0, 'precio cero debe fallar');
+  });
+  test('validarVenta rechaza vender más de lo que queda', function () {
+    const e = compra(100, 10, [{ cantidad: 60, precio: 12 }]);
+    assert(validarVenta(e, 50, 12).length > 0, 'quedan 40, vender 50 debe fallar');
+    assertEqual(validarVenta(e, 40, 12).length, 0);
+  });
+  test('validarVenta tolera el redondeo de los nominales fraccionados', function () {
+    const e = compra(0.027778, 61200);
+    assertEqual(validarVenta(e, 0.027778, 64800).length, 0);
+  });
+});
+
 group('recortarTexto — longitudes máximas de los campos de texto', function () {
   test('los máximos son los acordados: 60 para descripción, 30 para nombres', function () {
     assertEqual(MAX_LEN_DESCRIPCION, 60);

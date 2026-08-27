@@ -1172,6 +1172,44 @@
 </div>
 
 <!-- MODAL EDITAR PRESUPUESTO ANUAL POR CATEGORÍA -->
+<!-- Venta de activos: liquidación total (desde la fila del ticker) o parcial
+     (desde una compra del detalle). El equivalente, para tenencias, del cierre
+     de una operación en la mesa de trading. -->
+<div class="modal-overlay hidden" id="ventaOverlay" style="z-index:200">
+  <div class="modal-card" style="max-width:560px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow" style="color:#6B8E4E">VENTA</div>
+        <h2 id="ventaTitulo">Vender</h2>
+        <div class="medical-period mono" id="ventaSubtitulo"></div>
+      </div>
+      <button class="modal-close" id="ventaCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+
+    <div class="alert-box" id="ventaDisponible"></div>
+
+    <div class="form-block" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <label class="period-label" for="ventaCantidad">Cantidad</label>
+        <input type="text" inputmode="decimal" id="ventaCantidad" class="period-select" style="width:100%" autocomplete="off">
+      </div>
+      <div>
+        <label class="period-label" for="ventaPrecio">Precio de venta</label>
+        <input type="text" inputmode="decimal" id="ventaPrecio" class="period-select" style="width:100%" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="info-box" id="ventaResumen"></div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" id="ventaCancelBtn">Cancelar</button>
+      <button class="upload-btn" id="ventaConfirmBtn">REGISTRAR VENTA</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="catBudgetOverlay">
   <div class="modal-card" style="max-width:760px">
     <div class="modal-header">
