@@ -62,6 +62,7 @@ Qué muestra cada una:
 | `02-ficha-medica.png` | Score, tarjetas de indicadores y distribución del gasto |
 | `03-diagnostico.png` | Avisos, flujo trimestral y evolución anual |
 | `04-salud-financiera.png` | Cartera por destino, con un activo desplegado |
+| `18-venta-activo.png` | El modal de venta de un activo |
 | `16-mesa-trading.png` | La mesa: operación, verificación, tamaño e historial |
 | `05-evolucion.png` | Presupuestado contra real, mes a mes |
 | `06-cargar-archivo.png` | Subida del resumen y últimas cargas por origen |

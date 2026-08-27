@@ -91,9 +91,9 @@ window.MANUAL = {
       h: 'Salud financiera',
       sub: '¿Cuánto tengo?',
       img: '04-salud-financiera',
-      imgCap: 'Cartera por destino, con el detalle de compras de un activo desplegado.',
+      imgCap: 'Los cinco destinos en orden, con el detalle de compras de un activo desplegado.',
       p: [
-        'Muestra el patrimonio repartido en cuatro destinos: Reserva, Inversiones, Trading y las dos Jubilaciones. Cada uno es un panel que se despliega. Trading es el único que no lista tenencias: su detalle es la mesa de operaciones, que se explica en el apartado siguiente.',
+        'Muestra el patrimonio repartido en cinco destinos, en este orden: Reserva, Inversiones, las dos Jubilaciones y Trading. El orden va del horizonte más corto al más largo, y deja Trading al final porque es el único que no agrupa tenencias sino operaciones: su detalle es la mesa, que se explica en el apartado siguiente. Cada destino es un panel que se despliega.',
         'Dentro de cada panel, los totales van separados por moneda —ARS, USD y el combinado— y distinguen el líquido (la plata que destinaste y todavía no invertiste) del invertido (lo que ya está en activos). La columna Variación compara lo invertido contra lo que vale hoy.',
         'La tabla lista los activos por ticker: nominales, precio promedio de compra, total invertido, precio actual, variación por nominal, total actualizado y ganancia o pérdida. Cada activo se despliega en sus compras individuales, y cada compra muestra cómo le fue contra el precio de hoy: en verde si gana, en rojo si pierde.'
       ],
@@ -104,12 +104,31 @@ window.MANUAL = {
       ]
     },
     {
+      h: 'Vender un activo',
+      sub: '¿Y cuando salgo?',
+      img: '18-venta-activo',
+      imgCap: 'La venta muestra el total, el costo de lo vendido y el resultado antes de confirmar.',
+      p: [
+        'Una tenencia no se liquida siempre de una vez: se va vendiendo. Por eso cada compra guarda su propia lista de ventas, igual que una operación de la mesa guarda sus cierres, y lo que se ve en pantalla sale de ahí.',
+        'El botón de vender —el mismo tilde que registra un cierre en la mesa— aparece en dos lugares y no hacen lo mismo. En la fila del ticker vende TODO el activo. En la fila de una compra del detalle vende sólo de esa compra. La diferencia importa: el costo de lo vendido sale del precio de la compra de la que sale, y ese costo es el que decide cuánta ganancia realizaste.',
+        'Se cargan cantidad y precio; el total, la fecha y la hora los pone la app. Antes de confirmar muestra las tres cifras que importan: cuánto entra, cuánto costó eso que estás vendiendo, y qué resultado te queda. Ese último número es el que decide si conviene vender ahora.'
+      ],
+      lista: [
+        'La cantidad viene precargada con todo lo disponible y el precio con el actual del ticker: vender todo al precio de hoy es el caso más frecuente, y lo demás se escribe encima.',
+        'Vendiendo todo un ticker que se compró en varias tandas, se descuenta de las compras más viejas primero. Está dicho en la pantalla, porque cambia la ganancia realizada.',
+        'La plata cobrada pasa al Líquido del destino. Ahí es donde queda disponible para volver a invertir o para sacar.',
+        'Después de vender, las columnas muestran lo que QUEDA. Si de 1.000 vendiste 200, la fila dice 800 y su rendimiento se mide sobre esos 800; debajo de la fecha aparece cuántos vendiste.',
+        'Un activo sin saldo no desaparece ni queda en cero: se marca como liquidado y muestra cuántos nominales se vendieron, por cuánto y qué resultado dejaron. Se sigue desplegando para ver la fecha de cada venta.'
+      ]
+    },
+    {
       h: 'La mesa de trading',
       sub: '¿Estoy operando o improvisando?',
       img: '16-mesa-trading',
-      imgCap: 'La mesa: la operación, la verificación y el tamaño, con el historial debajo.',
+      imgCap: 'La mesa con sus tres secciones abiertas: la operación, las métricas y el historial.',
       p: [
         'El panel de Trading no lista activos por ticker como los demás, y es a propósito. Una tenencia es una compra que se acumula y se valúa contra el precio de hoy. Una operación apalancada es otra cosa: un viaje completo —entrada, stop y salida— con apalancamiento, precio de liquidación, comisiones y funding, que termina con un resultado definitivo. Valuarla como si fuera un CEDEAR no diría nada.',
+        'El panel se divide en tres secciones —Mesa de trabajo, Métricas del historial e Historial de operaciones— que se pliegan y despliegan con un clic en el título. Vienen cerradas: abiertas de entrada el panel ocupaba varias pantallas y había que bajar hasta el final para llegar al historial, que es lo que más se consulta. Los botones de la mesa siguen a mano con la sección cerrada, y usarlos no la abre.',
         'La mesa se lee de izquierda a derecha en tres bloques: la operación (los niveles que la definen), la verificación (si cumple el sistema) y el tamaño (cuánto entra). Pasando el cursor por el nombre de cada campo se ve qué va adentro.',
         'Antes de abrir, calcula lo que el exchange no muestra junto: el tamaño de posición que sale del riesgo que elegiste, el precio de liquidación real —usando los tramos de margen de mantenimiento, no la fórmula de manual—, cuánto se evapora si te liquidan, y si la liquidación pega antes que tu stop. Ese último caso es el que importa: si pasa, el stop es decorativo.'
       ],

@@ -26,6 +26,10 @@ anamnesis parte de tres decisiones opuestas:
 
 **Salud financiera** — la cartera por destino, con líquido e invertido separados por moneda. Cada activo se despliega en sus compras individuales, y cada compra muestra cómo le fue contra el precio de hoy.
 
+**Y también se vende.** Un activo se liquida entero desde su fila, o parcialmente desde una compra del detalle. Se cargan cantidad y precio; el total, la fecha y la hora los pone la app, y antes de confirmar te muestra el resultado que estás realizando. Lo cobrado pasa al líquido del destino. Después de vender, las columnas muestran lo que queda: si de 1.000 vendiste 200, la fila dice 800 y su rendimiento se mide sobre esos 800.
+
+Vendiendo un ticker comprado en varias tandas, se descuenta de las más viejas primero — está dicho en la pantalla, porque el costo de lo vendido sale del precio de cada compra y eso cambia la ganancia realizada.
+
 ![Mesa de trading](docs/mesa-trading.png)
 
 **Mesa de trading** — el panel de Trading no lista tenencias: calcula el tamaño de posición desde el riesgo, el precio de liquidación real y las cinco compuertas del sistema, y en el historial compara las operaciones con stop contra las que fueron sin stop.
@@ -34,13 +38,15 @@ anamnesis parte de tres decisiones opuestas:
 
 **📄 [Manual de usuario (PDF)](docs/manual-de-usuario.pdf)** — índice navegable, una captura de cada pantalla y para qué sirve cada una.
 
+**📋 [Especificación funcional](docs/especificacion-funcional.md)** — cada funcionalidad, el modelo de datos, las reglas de negocio, las integraciones y los formatos.
+
 _Las tres capturas son del modo demo: los números son ficticios._
 
 ## Probarlo
 
 No hace falta instalar nada ni tener datos propios: abrí `dashboard.html` y hacé clic en **"Ver demo con datos de ejemplo"**.
 
-Eso carga un dataset ficticio de 573 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 CEDEARs comprados en 19 tandas y seis operaciones en la mesa de trading— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`, ni sale a la red.
+Eso carga un dataset ficticio de 573 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 CEDEARs comprados en 19 tandas, una venta parcial y seis operaciones en la mesa de trading— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`, ni sale a la red.
 
 Para usarlo con datos reales necesitás Chrome o Edge (la File System Access API no está en Firefox ni Safari) y servirlo por HTTP o abrirlo como archivo local.
 
@@ -53,7 +59,7 @@ La metáfora médica no es decorativa: cada solapa responde una pregunta distint
 | **Historia clínica** | ¿En qué se fue la plata? Movimientos del período, recategorizables, con etiquetas y formas de pago. Dos vistas: **Resumen**, una fila por categoría con su peso sobre el total, y **Completa**, cada movimiento editable en su fila. |
 | **Ficha médica** | ¿Cómo estoy hoy? KPIs configurables, score de salud, distribución por categoría, tipo, periodicidad y medio de pago. También en dos vistas: **Completa** con todos los gráficos, y **Resumen** con las secciones que elijas dejar. |
 | **Diagnóstico** | ¿Qué está pasando? Flujo trimestral, evolución anual e insights automáticos. |
-| **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y las dos jubilaciones, con precios actualizados desde el mercado. Cada activo se despliega en sus compras individuales, con el rendimiento de cada una contra el precio de hoy. Trading va último y aparte: es la [mesa de operaciones](#la-mesa-de-trading). |
+| **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y las dos jubilaciones, con precios actualizados desde el mercado. Cada activo se despliega en sus compras individuales, con el rendimiento de cada una contra el precio de hoy, y se puede **vender** entero o por partes. Trading va último y aparte: es la [mesa de operaciones](#la-mesa-de-trading). |
 | **Evolución** | ¿Estoy mejorando? Presupuestado contra real, mes a mes, con tendencias por categoría. |
 
 ## La mesa de trading
@@ -88,7 +94,7 @@ Los formatos incorporados también se editan, por si esas entidades cambian cóm
 
 **El navegador como runtime completo.** La persistencia usa la File System Access API contra un archivo que elige el usuario, con el handle guardado en IndexedDB para reconectar entre sesiones y guardado con debounce. No hay backend porque no hace falta.
 
-**Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado —parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas, parseo de resúmenes bancarios— y `tests.html` la cubre con **359 tests** en 44 grupos, incluidos casos de integración de un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
+**Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado —parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas, parseo de resúmenes bancarios— y `tests.html` la cubre con **370 tests** en 45 grupos, incluidos casos de integración de un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
 
 **Cada banco es un dato, no código.** Los parsers de Mercado Pago y Galicia eran el mismo algoritmo con constantes distintas, así que ese algoritmo vive una sola vez y cada entidad es una plantilla: qué columna trae la fecha, si el importe viene firmado o partido en débito y crédito, en qué formato están los números. Ocho campos cubren los dos bancos reales, y el motor trabaja sobre filas, así que da igual que el archivo sea CSV o Excel.
 
@@ -101,15 +107,15 @@ Los formatos incorporados también se editan, por si esas entidades cambian cóm
 ## Estructura
 
 ```
-dashboard.html    3.051 líneas    estructura, modales, formularios
-dashboard.css     7.689 líneas    estilos y theming claro/oscuro
-dashboard.js     21.730 líneas    lógica, render, estado, importación
-core.js           2.542 líneas    funciones puras + motor de plantillas
-mesa-trading.js   2.927 líneas    mesa de trading: riesgo, liquidación, historial
-mesa-trading.css    992 líneas    estilos de la mesa
+dashboard.html    3.089 líneas    estructura, modales, formularios
+dashboard.css     7.749 líneas    estilos y theming claro/oscuro
+dashboard.js     22.080 líneas    lógica, render, estado, importación
+core.js           2.624 líneas    funciones puras + motor de plantillas
+mesa-trading.js   2.985 líneas    mesa de trading: riesgo, liquidación, historial
+mesa-trading.css  1.029 líneas    estilos de la mesa
 sistema-4k.js       478 líneas    el reglamento de trading, consultable en la app
-demo-data.js        635 líneas    generador del dataset de demostración
-tests.html        3.171 líneas    359 tests sobre core.js
+demo-data.js        691 líneas    generador del dataset de demostración
+tests.html        3.241 líneas    370 tests sobre core.js
 ```
 
 ## Correr los tests
