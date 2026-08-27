@@ -2784,12 +2784,14 @@ group('Reglas que renombran la descripción', function () {
 });
 
 group('Categorías de flujo — qué entra, qué sale y qué no es gasto', function () {
-  // El balance de flujo es (Sueldo + Préstamo) − (todo el resto de flujo).
-  // Sueldo es lo cobrado por trabajo y Préstamo es deuda nueva tomada: entran.
-  // Reserva, Inversión, Trading y Jubilación son plata destinada a esos fines, y
-  // Devolución de capital es plata con la que se cancela deuda: salen.
-  const ENTRAN = ['Sueldo', 'Prestamo'];
-  const SALEN = ['Reserva', 'Inversion', 'Trading', 'Jubilacion', 'DevolucionCapital'];
+  // El balance de flujo es (lo que entra) − (todo el resto de flujo).
+  // Sueldo es lo cobrado por trabajo, Préstamo es deuda nueva tomada y Renta
+  // financiera es la ganancia ya realizada al vender un activo: entran.
+  // Reserva, Inversión, Trading y Jubilación son plata destinada a esos fines,
+  // Devolución de capital es plata con la que se cancela deuda, y Pérdida
+  // financiera es el resultado negativo de una venta: salen.
+  const ENTRAN = ['Sueldo', 'Prestamo', 'RentaFinanciera'];
+  const SALEN = ['Reserva', 'Inversion', 'Trading', 'Jubilacion', 'DevolucionCapital', 'PerdidaFinanciera'];
 
   test('todas las categorías de flujo están en NON_EXPENSE_CATS', function () {
     ENTRAN.concat(SALEN).forEach(function (c) {
@@ -3105,6 +3107,29 @@ group('Ventas de activos — una compra se va vendiendo', function () {
   test('validarVenta tolera el redondeo de los nominales fraccionados', function () {
     const e = compra(0.027778, 61200);
     assertEqual(validarVenta(e, 0.027778, 64800).length, 0);
+  });
+});
+
+group('Resultado realizado — categorías de flujo de la venta', function () {
+  test('las dos categorías nuevas son de flujo, no gastos', function () {
+    assert(NON_EXPENSE_CATS.indexOf('RentaFinanciera') >= 0, 'RentaFinanciera debe ser de flujo');
+    assert(NON_EXPENSE_CATS.indexOf('PerdidaFinanciera') >= 0, 'PerdidaFinanciera debe ser de flujo');
+  });
+  test('no se cuelan entre las básicas ni las discrecionales', function () {
+    ['RentaFinanciera', 'PerdidaFinanciera'].forEach(function (c) {
+      assert(BASIC_CATS.indexOf(c) < 0, c + ' no es básica');
+      assert(DISCRETIONARY_CATS.indexOf(c) < 0, c + ' no es discrecional');
+    });
+  });
+  test('la renta es de las que conviene que suban; la pérdida, al revés', function () {
+    assert(FLOW_CATS_HIGHER_BETTER.indexOf('RentaFinanciera') >= 0, 'más renta es mejor');
+    assert(FLOW_CATS_LOWER_BETTER.indexOf('PerdidaFinanciera') >= 0, 'menos pérdida es mejor');
+    assert(FLOW_CATS_HIGHER_BETTER.indexOf('PerdidaFinanciera') < 0, 'la pérdida no va en el otro grupo');
+  });
+  test('ninguna se contabiliza como no computable', function () {
+    ['RentaFinanciera', 'PerdidaFinanciera'].forEach(function (c) {
+      assert(NON_COUNTABLE_FLOW_CATS.indexOf(c) < 0, c + ' tiene que contar en los totalizadores');
+    });
   });
 });
 

@@ -490,6 +490,21 @@ function buildDemoSnapshot(mesesAtras) {
         // precio. Mismo formato que registra el modal de venta.
         ventas: (c.ventas || []).map(function (v, k) {
           const fv = new Date(hoy.getFullYear(), hoy.getMonth() - v.meses, v.dia);
+          // Cada venta deja su tx de resultado, igual que la genera la app al
+          // vender: sin ella el resultado realizado no aparecería en Historia
+          // clínica ni en Evolución, y la demo no mostraría esa mitad.
+          const realizado = v.cant * v.precio - v.cant * c.ppc;
+          if (Math.abs(realizado) >= 0.005) {
+            pushTx(fv.getFullYear(), DEMO_MESES[fv.getMonth()], {
+              id: 'tx_venta_demo_' + i + '_' + j + '_' + k,
+              fecha: fechaAR(fv.getFullYear(), fv.getMonth(), fv.getDate()),
+              descripcion: 'Venta ' + p.ticker + ' · ' + v.cant + ' nominales · Inversión',
+              monto: Math.abs(realizado),
+              categoria: realizado > 0 ? 'RentaFinanciera' : 'PerdidaFinanciera',
+              subcategoria: null,
+              origen: 'Venta de activos'
+            });
+          }
           return { id: 'vta_demo_' + i + '_' + j + '_' + k, ts: fv.getTime(), fecha: iso(fv),
                    cantidad: v.cant, precio: v.precio, total: v.cant * v.precio };
         })

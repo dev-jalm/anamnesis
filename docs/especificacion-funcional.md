@@ -240,6 +240,14 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-079k | Un ticker o una compra sin saldo no se presentan con la grilla de tenencias en cero. Se identifican como liquidados e informan cuántos nominales se vendieron, por cuánto y con qué resultado |
 | RF-079l | Una posición liquidada permanece en la lista y admite despliegue, de modo que la fecha de cada venta siga siendo consultable |
 | RF-079m | Registrar una venta no altera el estado de despliegue de los detalles que el usuario tenía abiertos |
+| RF-079n | Toda venta con resultado distinto de cero genera **una transacción con la fecha de la liquidación**, por el importe del resultado realizado |
+| RF-079o | La transacción se clasifica en **Renta financiera** cuando el resultado es positivo y en **Pérdida financiera** cuando es negativo |
+| RF-079p | La devolución del capital **no** genera transacción: ya está contemplada en la reducción del costo conservado. Se registra únicamente el resultado |
+| RF-079q | Las categorías de resultado no intervienen en el cálculo del aportado de un destino |
+
+**Fundamento de RF-079n.** El líquido ya cierra sin la transacción. Su propósito es que el resultado sea visible: sin ella, una venta con ganancia no aparecía en Historia clínica, no movía el score, y no figuraba en Diagnóstico ni en Evolución, que trabajan sobre transacciones.
+
+**Fundamento de RF-079q.** El aportado suma el valor absoluto de las transacciones de la categoría de flujo del destino. Clasificar el resultado como `Inversión` lo contaría dos veces en el líquido y, por el valor absoluto, una pérdida lo aumentaría en lugar de reducirlo.
 
 **Fundamento de RF-079g.** El costo de lo vendido se toma del precio de la compra de la que sale, de modo que el criterio de reparto determina el resultado realizado. Se adopta el criterio de primeras entradas, primeras salidas por ser el uso contable habitual y el único que no depende de qué compra elija el usuario en cada venta. El sistema lo informa en pantalla.
 
@@ -545,7 +553,9 @@ Compartida por todas las compras del mismo símbolo.
 
 **Categorías discrecionales (7):** Entretenimiento, Indumentaria, Cuidado personal, Extras, Turismo, Membresías, Gastronomía.
 
-**Categorías de flujo (7):** Sueldo, Préstamo, Reserva, Inversión, Trading, Jubilación, Devolución de capital.
+**Categorías de flujo (9):** Sueldo, Préstamo, Renta financiera, Reserva, Inversión, Trading, Jubilación, Devolución de capital, Pérdida financiera.
+
+> **Suman** en el balance de flujo: Sueldo, Préstamo y Renta financiera. El resto resta. Renta financiera y Pérdida financiera las genera el sistema al vender un activo; no se cargan a mano.
 
 > La clasificación básica/discrecional de cada categoría es modificable por el usuario. Los tres conjuntos son ampliables.
 
@@ -817,7 +827,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 370 pruebas en 44 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 374 pruebas en 46 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 
 **Fundamento de RNF-40.** Requerimiento explícito del cliente: una herramienta personal destinada a seguir operativa dentro de cinco años no puede depender de una cadena de compilación cuyas dependencias se degradan en meses.
@@ -829,7 +839,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | ID | Requerimiento |
 |---|---|
 | RF-220 | Accesible desde la pantalla de bienvenida, sin conectar archivo ni proveer datos |
-| RF-221 | Genera en memoria un conjunto de datos ficticio de 573 movimientos sobre 14 meses |
+| RF-221 | Genera en memoria un conjunto de datos ficticio de 574 movimientos sobre 14 meses |
 | RF-222 | El conjunto incluye sueldos con incremento progresivo, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 activos repartidos en 19 compras y 6 operaciones de trading |
 | RF-222b | Siete de los diez activos tienen **más de una compra sobre el mismo destino, en fechas distintas**, de modo que desplegar un activo muestre efectivamente su composición y el precio promedio de compra sea un promedio ponderado real y no la copia de un único valor |
 | RF-222c | Al menos un activo tiene una compra por encima de su precio actual, de modo que el conjunto exhiba una posición con resultado positivo que contiene una compra con resultado negativo |
@@ -938,7 +948,7 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 
 | Cambio | Requerimiento |
 |---|---|
-| Venta de activos, total y parcial | RF-079a a RF-079m |
+| Venta de activos, total y parcial | RF-079a a RF-079q |
 | Longitudes máximas en los campos de texto | RF-215 a RF-217 |
 | Trading en tres secciones plegables, cerradas por defecto | RF-078b a RF-078e |
 | Reordenamiento de los destinos de Salud financiera | RF-070 |

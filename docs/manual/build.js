@@ -118,7 +118,8 @@ window.MANUAL = {
         'Vendiendo todo un ticker que se compró en varias tandas, se descuenta de las compras más viejas primero. Está dicho en la pantalla, porque cambia la ganancia realizada.',
         'La plata cobrada pasa al Líquido del destino. Ahí es donde queda disponible para volver a invertir o para sacar.',
         'Después de vender, las columnas muestran lo que QUEDA. Si de 1.000 vendiste 200, la fila dice 800 y su rendimiento se mide sobre esos 800; debajo de la fecha aparece cuántos vendiste.',
-        'Un activo sin saldo no desaparece ni queda en cero: se marca como liquidado y muestra cuántos nominales se vendieron, por cuánto y qué resultado dejaron. Se sigue desplegando para ver la fecha de cada venta.'
+        'Un activo sin saldo no desaparece ni queda en cero: se marca como liquidado y muestra cuántos nominales se vendieron, por cuánto y qué resultado dejaron. Se sigue desplegando para ver la fecha de cada venta.',
+        'Cada venta deja además un movimiento con la fecha de la liquidación, por el resultado: Renta financiera si ganaste, Pérdida financiera si perdiste. Es lo que hace que la venta se vea también en Historia clínica y en Evolución, y no sólo acá. La devolución del capital no genera movimiento — eso ya está contemplado en que el invertido baje.'
       ]
     },
     {

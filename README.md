@@ -46,7 +46,7 @@ _Las tres capturas son del modo demo: los números son ficticios._
 
 No hace falta instalar nada ni tener datos propios: abrí `dashboard.html` y hacé clic en **"Ver demo con datos de ejemplo"**.
 
-Eso carga un dataset ficticio de 573 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 CEDEARs comprados en 19 tandas, una venta parcial y seis operaciones en la mesa de trading— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`, ni sale a la red.
+Eso carga un dataset ficticio de 574 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 CEDEARs comprados en 19 tandas, una venta parcial y seis operaciones en la mesa de trading— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`, ni sale a la red.
 
 Para usarlo con datos reales necesitás Chrome o Edge (la File System Access API no está en Firefox ni Safari) y servirlo por HTTP o abrirlo como archivo local.
 
@@ -94,7 +94,7 @@ Los formatos incorporados también se editan, por si esas entidades cambian cóm
 
 **El navegador como runtime completo.** La persistencia usa la File System Access API contra un archivo que elige el usuario, con el handle guardado en IndexedDB para reconectar entre sesiones y guardado con debounce. No hay backend porque no hace falta.
 
-**Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado —parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas, parseo de resúmenes bancarios— y `tests.html` la cubre con **370 tests** en 45 grupos, incluidos casos de integración de un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
+**Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado —parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas, parseo de resúmenes bancarios— y `tests.html` la cubre con **374 tests** en 46 grupos, incluidos casos de integración de un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
 
 **Cada banco es un dato, no código.** Los parsers de Mercado Pago y Galicia eran el mismo algoritmo con constantes distintas, así que ese algoritmo vive una sola vez y cada entidad es una plantilla: qué columna trae la fecha, si el importe viene firmado o partido en débito y crédito, en qué formato están los números. Ocho campos cubren los dos bancos reales, y el motor trabaja sobre filas, así que da igual que el archivo sea CSV o Excel.
 
@@ -115,7 +115,7 @@ mesa-trading.js   2.985 líneas    mesa de trading: riesgo, liquidación, histor
 mesa-trading.css  1.029 líneas    estilos de la mesa
 sistema-4k.js       478 líneas    el reglamento de trading, consultable en la app
 demo-data.js        691 líneas    generador del dataset de demostración
-tests.html        3.241 líneas    370 tests sobre core.js
+tests.html        3.268 líneas    374 tests sobre core.js
 ```
 
 ## Correr los tests

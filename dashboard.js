@@ -18,8 +18,16 @@ const INITIAL_CATEGORY_LABELS = {
   Gastronomia: 'Gastronomía',
   // Categorías reservadas: no son gastos, no se eliminan, no se clasifican como básicas/discrecionales.
   // DevolucionCapital se incluye después de Trading (mismo orden que NON_EXPENSE_CATS en core.js).
-  Reserva: 'Reserva', Inversion: 'Inversión', Trading: 'Trading', DevolucionCapital: 'Devolución de capital', Jubilacion: 'Jubilación', Sueldo: 'Sueldo', Prestamo: 'Préstamo'
+  Reserva: 'Reserva', Inversion: 'Inversión', Trading: 'Trading', DevolucionCapital: 'Devolución de capital', Jubilacion: 'Jubilación', Sueldo: 'Sueldo', Prestamo: 'Préstamo',
+  RentaFinanciera: 'Renta financiera', PerdidaFinanciera: 'Pérdida financiera'
 };
+
+// Categorías de flujo que ENTRAN plata. El resto la saca, así que definir esta
+// lista define el signo de cada una en el balance.
+//
+// Estaba escrita a mano en dos lugares distintos: agregar una categoría exigía
+// acordarse de los dos, y era cuestión de tiempo que se desincronizaran.
+const FLOW_INCOME_CATS = ['Sueldo', 'Prestamo', 'RentaFinanciera'];
 
 // La fórmula del balance de flujo, en UN solo lugar. Estaba escrita a mano en
 // tres textos distintos —el tooltip del totalizador, el de la tabla anual y los
@@ -27,8 +35,8 @@ const INITIAL_CATEGORY_LABELS = {
 // capital entraba o no. Un tooltip que promete una cuenta que el código no hace
 // es peor que no tener tooltip.
 const FORMULA_BALANCE_FLUJO =
-  '(Sueldo + Préstamo) − (Reserva + Inversión + Trading + Jubilación + Devolución de capital). ' +
-  'Sueldo y Préstamo entran plata; el resto la saca. Solo incluye categorías DE FLUJO — ' +
+  '(Sueldo + Préstamo + Renta financiera) − (Reserva + Inversión + Trading + Jubilación + Devolución de capital + Pérdida financiera). ' +
+  'Sueldo, Préstamo y Renta financiera entran plata; el resto la saca. Solo incluye categorías DE FLUJO — ' +
   'básicas y discrecionales quedan fuera.';
 
 const ICON_MAP = {
@@ -46,7 +54,7 @@ const ICON_MAP = {
   Turismo: 'plane',
   Membresias: 'badge-check',
   Gastronomia: 'utensils-crossed',
-  Reserva: 'piggy-bank', Inversion: 'line-chart', Trading: 'trending-up', DevolucionCapital: 'arrow-left-right', Jubilacion: 'briefcase', Sueldo: 'wallet', Prestamo: 'building-2'
+  Reserva: 'piggy-bank', Inversion: 'line-chart', Trading: 'trending-up', DevolucionCapital: 'arrow-left-right', Jubilacion: 'briefcase', Sueldo: 'wallet', Prestamo: 'building-2', RentaFinanciera: 'coins', PerdidaFinanciera: 'trending-down'
 };
 
 // Categorías reservadas del sistema: NON_EXPENSE_CATS, BASIC_CATS, DISCRETIONARY_CATS
@@ -18603,6 +18611,57 @@ function repartirVenta(entradas, cantidad) {
   return out;
 }
 
+/* Registra el resultado de una venta como transacción, con la fecha de la
+   liquidación.
+
+   POR QUÉ EXISTE. El líquido ya cerraba sin esto —sube exactamente lo cobrado—,
+   así que la tx no es para la cuenta del panel. Es para que el resultado se vea:
+   sin ella, vender con ganancia no aparecía en Historia clínica, no movía el
+   score, no figuraba en Evolución ni en el Diagnóstico. Cuatro solapas no se
+   enteraban de la venta.
+
+   POR QUÉ NO ES CATEGORÍA `Inversion`. sumTxByDestinos suma el valor ABSOLUTO
+   de las tx de esa categoría, así que el resultado se contaría dos veces en el
+   líquido, y una pérdida lo AUMENTARÍA en vez de bajarlo. Las categorías nuevas
+   quedan fuera de esa función a propósito.
+
+   POR QUÉ SON DOS. Los montos se guardan positivos y el signo lo pone la
+   categoría (RN-001): la ganancia entra en FLOW_INCOME_CATS y suma en el
+   balance, la pérdida queda afuera y resta.
+
+   La devolución del capital NO genera tx: ya está contemplada en la baja del
+   costo conservado. Acá se registra sólo el resultado. */
+function registrarTxDeResultado(objetivo, realizado, cuando, cantidad) {
+  if (!isFinite(realizado) || Math.abs(realizado) < 0.005) return;   // sin resultado, no hay nada que registrar
+  const year = cuando.getFullYear();
+  const month = MONTHS_ORDER[cuando.getMonth()];
+  if (!state.transactionsByYear) state.transactionsByYear = {};
+  if (!state.transactionsByYear[year]) state.transactionsByYear[year] = {};
+  if (!state.transactionsByYear[year][month]) state.transactionsByYear[year][month] = [];
+
+  const fechaAr = String(cuando.getDate()).padStart(2, '0') + '/' +
+    String(cuando.getMonth() + 1).padStart(2, '0') + '/' + year;
+  const destLabel = (INVESTMENT_DESTINOS.find(function (d) { return d.key === (objetivo.entradas[0] || {}).destino; }) ||
+    { label: '' }).label;
+
+  const tx = {
+    id: 'tx_venta_' + cuando.getTime(),
+    fecha: fechaAr,
+    descripcion: recortarTexto(
+      'Venta ' + objetivo.ticker + ' · ' + fmt(cantidad) + ' nominales' + (destLabel ? ' · ' + destLabel : ''),
+      MAX_LEN_DESCRIPCION),
+    monto: Math.abs(realizado),
+    categoria: realizado > 0 ? 'RentaFinanciera' : 'PerdidaFinanciera',
+    subcategoria: null,
+    origen: 'Venta de activos'
+  };
+  try { applyTravelTagsToNewTx(tx); } catch (e) {}
+  state.transactionsByYear[year][month].push(tx);
+  // dataByYear es la suma de tx por categoría: sin esto, los totales del mes
+  // quedan sin la venta hasta la próxima importación.
+  if (typeof recomputeDataByYearFromTxs === 'function') recomputeDataByYearFromTxs();
+}
+
 function confirmarVenta() {
   const o = ventaState.objetivo;
   if (!o) return;
@@ -18627,7 +18686,15 @@ function confirmarVenta() {
     String(ahora.getMonth() + 1).padStart(2, '0') + '-' +
     String(ahora.getDate()).padStart(2, '0');
 
-  repartirVenta(o.entradas, cant).forEach(function (r, i) {
+  // Costo de lo que se vende, para saber el resultado que se realiza. Se
+  // calcula ANTES de registrar las ventas: después, cantidadRestante ya cambió.
+  const reparto = repartirVenta(o.entradas, cant);
+  const costo = reparto.reduce(function (s, r) {
+    return s + r.cantidad * (Number(r.entrada.precio) || 0);
+  }, 0);
+  const realizado = (cant * prec) - costo;
+
+  reparto.forEach(function (r, i) {
     if (!Array.isArray(r.entrada.ventas)) r.entrada.ventas = [];
     r.entrada.ventas.push({
       id: 'vta_' + ahora.getTime() + '_' + i,
@@ -18639,6 +18706,7 @@ function confirmarVenta() {
     });
   });
 
+  registrarTxDeResultado(o, realizado, ahora, cant);
   scheduleSave();
   cerrarModalVenta();
   if (typeof renderMainAssets === 'function') renderMainAssets();
@@ -19368,7 +19436,7 @@ function updateMainMovSummary(items, allTxs) {
   // meten plata. El resto —Reserva, Inversión, Trading, Jubilación y Devolución
   // de capital— la saca. NO incluye básicas ni discrecionales (son "gastos", no
   // "flujo"); el interés de una cuota de préstamo va como gasto básico en Deuda.
-  const FLOW_INCOME = ['Sueldo', 'Prestamo'];
+  const FLOW_INCOME = FLOW_INCOME_CATS;
   let count = 0;
   let total = 0;
   let flowCount = 0;
@@ -20412,7 +20480,7 @@ function renderMainBudget() {
   // semántica: primero ingresos (Sueldo, Prestamo), después destinos no-gasto
   // ordenados por compromiso (Jubilacion, Reserva primero como "ahorro
   // forzado", después Inversion y Trading como destinos voluntarios).
-  const FLOW_TABLE_ORDER = ['Sueldo', 'Prestamo', 'Jubilacion', 'Reserva', 'Inversion', 'Trading', 'DevolucionCapital'];
+  const FLOW_TABLE_ORDER = ['Sueldo', 'Prestamo', 'RentaFinanciera', 'Jubilacion', 'Reserva', 'Inversion', 'Trading', 'DevolucionCapital', 'PerdidaFinanciera'];
   const system = allCatsRaw.filter(function (c) { return isNonExpenseCat(c); })
     .sort(function (a, b) {
       const ia = FLOW_TABLE_ORDER.indexOf(a);
@@ -20590,7 +20658,7 @@ function renderMainBudget() {
     // categoría desapareció del balance sin que nada lo señalara. Así, agregar
     // una categoría de flujo nueva la incluye automáticamente.
     const isFlowTable = wrapId === 'mainBudgetAnnualWrapSystem';
-    const FLOW_INCOME = ['Sueldo', 'Prestamo'];
+    const FLOW_INCOME = FLOW_INCOME_CATS;
     const FLOW_OUTFLOW = NON_EXPENSE_CATS.filter(function (c) {
       return FLOW_INCOME.indexOf(c) < 0 && NON_COUNTABLE_FLOW_CATS.indexOf(c) < 0;
     });

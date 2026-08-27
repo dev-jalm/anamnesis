@@ -27,7 +27,16 @@
 // por eso quedó excluida de los balances. Es lo contrario: es un egreso.
 // Antes se llamaba "Transferencias"; la migración del label se hace al cargar
 // el state en applySnapshot.
-const NON_EXPENSE_CATS = ['Reserva', 'Inversion', 'Trading', 'DevolucionCapital', 'Jubilacion', 'Sueldo', 'Prestamo'];
+// RentaFinanciera y PerdidaFinanciera registran el resultado YA REALIZADO al
+// vender un activo. Son dos y no una porque los montos se guardan positivos y
+// el signo lo decide la categoría (RN-001): una ganancia suma en el balance de
+// flujo y una pérdida resta, y eso no se puede expresar con una sola.
+//
+// NO entran en sumTxByDestinos: el líquido ya suma el realizado por su cuenta,
+// y contarlo también como aporte lo duplicaría. Estas tx existen para que el
+// resultado se vea en Historia clínica, Diagnóstico y Evolución, que trabajan
+// sobre transacciones y hasta ahora no se enteraban de una venta.
+const NON_EXPENSE_CATS = ['Reserva', 'Inversion', 'Trading', 'DevolucionCapital', 'Jubilacion', 'Sueldo', 'Prestamo', 'RentaFinanciera', 'PerdidaFinanciera'];
 
 // Categorías de flujo que NO se contabilizan en NINGÚN totalizador (balance,
 // KPIs, gasto total, score, sumas). Sirven para clasificar visualmente sin
@@ -790,9 +799,9 @@ function computeKpiOp(op, ctx) {
 // indicadores), nunca el cómputo del valor del KPI.
 
 // Categorías de flujo donde MÁS es mejor (entran al patrimonio o ahorro)
-const FLOW_CATS_HIGHER_BETTER = ['Sueldo', 'Inversion', 'Trading', 'Reserva', 'Jubilacion'];
-// Categorías de flujo donde MENOS es mejor (deuda nueva)
-const FLOW_CATS_LOWER_BETTER = ['Prestamo'];
+const FLOW_CATS_HIGHER_BETTER = ['Sueldo', 'Inversion', 'Trading', 'Reserva', 'Jubilacion', 'RentaFinanciera'];
+// Categorías de flujo donde MENOS es mejor (deuda nueva, resultado negativo)
+const FLOW_CATS_LOWER_BETTER = ['Prestamo', 'PerdidaFinanciera'];
 
 // Infiere trendDirection desde el op de un KPI cuando trendDirection==='auto'.
 // La lógica:
