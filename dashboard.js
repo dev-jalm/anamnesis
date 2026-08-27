@@ -17864,9 +17864,17 @@ function buildInvestmentDetailPanel(destinos, title) {
         // ese hueco, con el recuadro del campo cortando la columna al medio.
         (function () {
           const valorPrecio = precioActual !== null ? formatInputAR(precioActual) : '';
-          return '<td class="num inv-price-cell"><span class="inv-price-sym">' + monedaPrefix + '</span>' +
-            '<input type="text" inputmode="decimal" class="inv-price-input" size="' + Math.max(3, valorPrecio.length) + '" ' +
-            'data-ticker="' + escapeHtmlSafe(tk) + '" value="' + valorPrecio + '" title="' + escapeHtmlSafe(lastUpdateDisplay) + '"></td>';
+          // El flex va en un <span> adentro, NO en el <td>: un td con
+          // display:flex deja de ser celda de tabla y no se estira al alto de
+          // la fila —medido, 37px contra 47 de sus vecinas—, así que su borde
+          // inferior se dibujaba diez píxeles más arriba y, repetido en cada
+          // fila, formaba un recuadro que cortaba la columna.
+          return '<td class="num inv-price-cell">' +
+            '<span class="inv-price-wrap">' +
+              '<span class="inv-price-sym">' + monedaPrefix + '</span>' +
+              '<input type="text" inputmode="decimal" class="inv-price-input" size="' + Math.max(3, valorPrecio.length) + '" ' +
+              'data-ticker="' + escapeHtmlSafe(tk) + '" value="' + valorPrecio + '" title="' + escapeHtmlSafe(lastUpdateDisplay) + '">' +
+            '</span></td>';
         })() +
         // Variación por nominal del conjunto: precio actual contra el PPC.
         // Es el mismo dato que muestra cada compra en su fila, pero ponderado.
