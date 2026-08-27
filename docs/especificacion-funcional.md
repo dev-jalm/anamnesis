@@ -951,7 +951,7 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.1 | 26/08/2026 | Incorpora las definiciones del cliente sobre las cinco cuestiones abiertas. Se agregan las longitudes de campo (5.8), las dos vistas de Ficha médica (4.4), el orden de los destinos de Salud financiera (RF-070), las secciones plegables de Trading (RF-078b a RF-078e), la precisión sobre el filtro Todas (RF-021), la regla de alcance de las reglas (RN-015), los requerimientos derivados de PEND-04 y PEND-05, y la composición del conjunto de demostración con compras múltiples por activo (RF-222b, RF-222c) | Reemplazada |
 | 1.2 | 26/08/2026 | Incorpora la venta de activos: requerimientos (4.6.1), entidad Venta y sus derivados (5.2.1), cálculo del líquido (6.0) y reglas RN-016 a RN-018. Se agregan los criterios de signo en importes de resultado (RNF-02a a RNF-02c) y la venta en el conjunto de demostración (RF-222d) | Reemplazada |
 
-| 1.3 | 27/08/2026 | Incorpora el Anexo A, con el esfuerzo de construcción separado en sus dos períodos: el previo al repositorio, estimado, y el trazable, medido sobre las transcripciones de sesión. Incluye la estimación de lo que habría demandado un equipo humano | **Vigente** |
+| 1.3 | 27/08/2026 | Incorpora el Anexo A: el esfuerzo de construcción de los dos períodos, ambos medidos —el previo al repositorio sobre la exportación de conversaciones, el trazable sobre las transcripciones de sesión—, y la estimación de lo que habría demandado un equipo humano | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 
@@ -970,14 +970,14 @@ Los requerimientos RF-230 a RF-235 quedan **especificados y no implementados**, 
 
 Este anexo contrasta el esfuerzo real de construcción del producto contra el que habría demandado un equipo humano convencional.
 
-### A.1 El proyecto tiene dos períodos, y sólo uno es medible
+### A.1 El proyecto tiene dos períodos, con herramientas distintas
 
 La construcción no empezó con el repositorio. Se desarrolló en dos etapas, con herramientas distintas:
 
 | Período | Desde | Hasta | Herramienta | Trazabilidad |
 |---|---|---|---|---|
-| **1. Previo al repositorio** | 02/04/2026 | 27/07/2026 | Conversaciones y proyectos, pasando las versiones del producto de una a otra | Ninguna. No hay registro por sesión |
-| **2. Con repositorio** | 27/07/2026 | 26/08/2026 | Entorno con control de versiones | Completa. 104 commits fechados |
+| **1. Previo al repositorio** | 02/04/2026 | 27/07/2026 | Conversaciones y proyectos, pasando las versiones del producto de una a otra | Exportación de datos de la cuenta: 2.144 mensajes fechados |
+| **2. Con repositorio** | 27/07/2026 | 27/08/2026 | Entorno con control de versiones | Transcripciones de sesión: 9.286 eventos fechados |
 
 **Cuánto producto existía antes del primer commit.** El primer commit —titulado *Anamnesis: estado inicial*— no marca el inicio del desarrollo sino la incorporación al repositorio de un producto ya construido:
 
@@ -994,36 +994,43 @@ Sobre las 44.194 líneas actuales, eso es el **78 % del producto**. El período 
 
 Que en el primer commit ya haya cinco archivos es en sí mismo un dato: el producto nació como un único `dashboard.html` con la estructura, los estilos y la lógica adentro, y la separación en módulos —incluida la extracción de `core.js` como lógica pura y la de `tests.html` como suite— también ocurrió antes del repositorio.
 
-### A.2 Período 1: previo al repositorio — estimado
+### A.2 Período 1: previo al repositorio — medido
 
-No hay medición posible: las conversaciones no dejan registro de sesiones. Se acota por dos vías independientes.
+**Fuente.** La exportación de datos de la cuenta, que entrega cada conversación con la marca temporal de cada mensaje. Los 2.144 mensajes exportados conservan su fecha y hora en el 100 % de los casos, de modo que la medición no depende de que el texto se haya exportado, cosa que sólo ocurrió en el 20 %.
 
-**Por calendario.** Del 02/04 al 27/07 hay 116 días, unas 16,6 semanas.
+**Método.** El mismo del período 2: se agrupan los mensajes en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, y se suma la duración de cada una. Los mensajes de todas las conversaciones se unifican **antes** de agrupar, para que trabajar en dos chats la misma tarde no cuente el tiempo dos veces.
 
-| Intensidad | Horas del período |
+**Identificación de las conversaciones.** La cuenta tiene 40 conversaciones y sólo una parte corresponde al producto. Se incluyeron siete, por dos criterios:
+
+| Criterio | Conversaciones |
 |---|---|
-| 5 h/semana | 83 |
-| 8 h/semana | 133 |
-| 10 h/semana | 166 |
-| 12 h/semana | 199 |
-| 15 h/semana | 249 |
-| 20 h/semana | 331 |
+| Contenido verificado: mencionan el tablero, la clasificación de movimientos, Galicia o Mercado Pago | *Analizador de resúmenes financieros de Mercado Pago* (13/06 → 01/07) y *Análisis de ratios y flujos financieros* (15/06 → 17/06) |
+| Encadenamiento: conversaciones sin título que se suceden en el tiempo, del tamaño esperado para la construcción, en la ventana del proyecto | 16/04 → 02/05 (227 mensajes) · 01/05 → 08/05 (88) · 08/05 → 05/06 (163) · 15/05 → 13/06 (42) · **17/05 → 19/07 (1.024)** |
 
-**Por volumen.** El período medido produjo 9.505 líneas netas en 53,3 horas: 178 líneas por hora. Aplicado a las 34.689 líneas del primer commit, da **195 horas**, unas 12 horas semanales.
+La última cierra el 19/07, ocho días antes del primer commit. El encadenamiento coincide con la forma de trabajo de la etapa: abrir una conversación nueva cuando la anterior agotaba su contexto, y pasarle la última versión del archivo.
 
-**Ese número es un piso, no una estimación central.** Supone la misma productividad en las dos etapas, y hay tres razones para creer que la primera fue más lenta:
+**Resultado**
 
-1. **El costo de la herramienta.** Cada conversación nueva exigía reconstruir el contexto desde cero, y las versiones del producto se pasaban completas de una a otra. Ese trabajo no produce una sola línea de producto.
-2. **Sin red de seguridad.** No había control de versiones para volver atrás ni ejecución de la suite en cada cambio, de modo que cada regresión se detectaba probando a mano.
-3. **Una reestructuración que el método no ve.** El producto empezó como un único archivo `dashboard.html` con todo adentro y llegó al primer commit ya dividido en cinco. Esa separación ocurrió íntegramente en este período, y es trabajo que reorganiza sin agregar líneas: el método por volumen lo cuenta como cero.
+| Indicador | Valor |
+|---|---|
+| Período | 16/04/2026 a 19/07/2026 |
+| Conversaciones | 7 |
+| Mensajes | 1.636 |
+| Días con actividad | 70 |
+| Sesiones de trabajo | 176 |
+| **Horas medidas** | **≈ 165** |
 
-El valor real está por encima de 195 horas.
+**Sensibilidad a la identificación.** Es la variable que más pesa, más que el criterio de corte:
 
-**Valor adoptado: 250 horas**, equivalentes a unas 15 horas semanales.
+| Conjunto | Horas |
+|---|---|
+| Sólo la conversación principal | 110 |
+| **Las siete adoptadas** | **165** |
+| Las siete más tres conversaciones limítrofes sobre jubilación y operaciones | 168 |
 
-Sale de aplicar al piso una penalización del 25 % por las tres ineficiencias listadas. El porcentaje es un juicio, no una medición: es la única cifra del anexo que no se apoya en un dato. Se elige por debajo de lo que sugeriría el peso de esas tres razones, para que el número no infle el contraste final.
+Agregar las limítrofes mueve el total un 2 %, de modo que la cifra no es sensible a los casos dudosos.
 
-**Cómo reemplazar esta estimación por una medición.** Las conversaciones de ese período están en el servidor, no en la máquina. La exportación de datos de la cuenta —Configuración → Privacidad → Exportar datos— entrega un archivo con todas las conversaciones y la marca temporal de cada mensaje. Con eso, el período 1 se puede medir con el mismo método del período 2 y esta estimación deja de hacer falta.
+**Diferencia de densidad entre los dos períodos.** El período 1 registra 10 mensajes por hora y el 2 registra 175 eventos por hora. No son magnitudes comparables: en la etapa de conversaciones, entre un mensaje y el siguiente había que copiar el archivo, abrirlo y probarlo a mano. Ese tiempo es trabajo y queda dentro de la sesión mientras no supere los 90 minutos, que es lo que se busca medir.
 
 ### A.3 Período 2: con repositorio — medido
 
@@ -1062,11 +1069,11 @@ Se adopta el corte de 90 minutos, el mismo del conteo por commits, para que las 
 
 | Período | Horas | Origen del dato |
 |---|---|---|
-| 1. Previo al repositorio | ≈ 250 | Estimado (A.2) |
+| 1. Previo al repositorio | ≈ 165 | Medido (A.2) |
 | 2. Con repositorio | ≈ 53,3 | Medido (A.3) |
-| **Total** | **≈ 303** | |
+| **Total** | **≈ 218** | |
 
-El 82 % del esfuerzo corresponde al período sin trazabilidad. Es coherente con que ahí se construyó el 78 % del producto, en la etapa además menos eficiente de las dos.
+El 76 % del esfuerzo corresponde al período previo al repositorio, coherente con que ahí se construyó el 78 % del producto.
 
 ### A.5 Esfuerzo estimado de un equipo humano
 
@@ -1119,11 +1126,11 @@ El 82 % del esfuerzo corresponde al período sin trazabilidad. Es coherente con 
 
 | Concepto | Real | Equipo humano |
 |---|---|---|
-| Horas | ≈ 303 | ≈ 2.070 |
+| Horas | ≈ 218 | ≈ 2.070 |
 | Personas | 1 | 4 a 5 |
 | Calendario | 5 meses, en dedicación parcial | 3 a 4 meses, a tiempo completo |
 
-**Relación aproximada: 1 a 7.**
+**Relación aproximada: 1 a 9,5.**
 
 Conviene notar que el calendario real es **más largo** que el estimado para el equipo humano. La diferencia no está en terminar antes, sino en cuánta gente y cuántas horas hicieron falta para llegar al mismo lugar.
 
@@ -1131,9 +1138,10 @@ Conviene notar que el calendario real es **más largo** que el estimado para el 
 
 | # | Advertencia |
 |---|---|
-| 1 | Las cifras tienen tres grados de certeza distintos: las 53,3 horas del período 2 son una **medición** sobre 9.286 eventos fechados; las 250 del período 1, una **estimación acotada por dos métodos**; las 2.070 del equipo humano, una **estimación por componente** con los supuestos de A.5 |
-| 2 | Las 250 horas del período 1 son el número más débil del anexo. Su piso —195 horas— sí está fundado; el valor adoptado supone una productividad menor que la del período medido, por las razones de A.2, pero no hay forma de verificarlo |
-| 3 | En el período 2 se mide el lapso entre la primera y la última interacción de cada sesión. No distingue el tiempo de trabajo activo del de lectura o espera dentro de esa ventana |
-| 4 | La estimación del equipo humano supone construir **el producto terminado**, sin las exploraciones descartadas que un proyecto real atraviesa. En ese sentido es conservadora |
-| 5 | La comparación no mide productividad individual: las horas reales corresponden a dirección, decisión y validación, con la escritura de código asistida |
-| 6 | Un equipo humano habría producido decisiones de arquitectura distintas. La relación compara el costo de llegar a **este** producto, no a uno equivalente en funciones |
+| 1 | Las 218 horas del lado real son una **medición** sobre 10.922 mensajes y eventos fechados. Las 2.070 del equipo humano son una **estimación por componente**, con los supuestos de A.5. Sólo un lado del contraste es un dato |
+| 2 | El eslabón más débil del lado real ya no es una estimación de horas sino la **identificación** de qué conversaciones pertenecen al proyecto. El texto de las conversaciones grandes no vino en la exportación, así que cinco de las siete se incluyeron por encadenamiento y tamaño, no por contenido verificado. La sensibilidad está publicada en A.2: el rango va de 110 a 168 horas según qué se incluya |
+| 3 | En ambos períodos se mide el lapso entre la primera y la última interacción de cada sesión. No se distingue el tiempo de trabajo activo del de lectura o espera dentro de esa ventana |
+| 4 | Por el mismo motivo, las pausas de más de 90 minutos quedan fuera aunque hayan sido de trabajo. Las horas reales son un **piso**, no un techo |
+| 5 | La estimación del equipo humano supone construir **el producto terminado**, sin las exploraciones descartadas que un proyecto real atraviesa. En ese sentido es conservadora |
+| 6 | La comparación no mide productividad individual: las horas reales corresponden a dirección, decisión y validación, con la escritura de código asistida |
+| 7 | Un equipo humano habría producido decisiones de arquitectura distintas. La relación compara el costo de llegar a **este** producto, no a uno equivalente en funciones |
