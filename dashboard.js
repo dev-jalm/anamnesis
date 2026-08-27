@@ -18647,9 +18647,10 @@ function registrarTxDeResultado(objetivo, realizado, cuando, cantidad) {
   const tx = {
     id: 'tx_venta_' + cuando.getTime(),
     fecha: fechaAr,
-    descripcion: recortarTexto(
-      'Venta ' + objetivo.ticker + ' · ' + fmt(cantidad) + ' nominales' + (destLabel ? ' · ' + destLabel : ''),
-      MAX_LEN_DESCRIPCION),
+    descripcion: descripcionVenta(
+      objetivo.ticker,
+      ((state.tickerInfo && state.tickerInfo[objetivo.ticker]) || {}).descripcion,
+      fmt(cantidad), destLabel),
     monto: Math.abs(realizado),
     categoria: realizado > 0 ? 'RentaFinanciera' : 'PerdidaFinanciera',
     subcategoria: null,

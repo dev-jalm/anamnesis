@@ -238,6 +238,16 @@ const DEMO_TRADES = [
     salidaPor: 'manual', salida: 0.1782, costos: 2.1, pnl: 91.151534, r: null }
 ];
 
+// Nombre visible de cada destino, para la descripción de la tx de venta. Se
+// declara acá y no se toma de investmentDestinos() porque demo-data.js carga
+// ANTES que dashboard.js: el generador tiene que ser autónomo.
+const DEMO_DESTINO_LABEL = {
+  inversiones: 'Inversión',
+  reserva: 'Reserva',
+  jubilacion_jalm: 'Jubilación JALM',
+  jubilacion_clm: 'Jubilación CLM'
+};
+
 const DEMO_MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DEMO_ORIGENES = ['Mercado Pago', 'Banco Galicia', 'Efectivo'];
 
@@ -502,7 +512,7 @@ function buildDemoSnapshot(mesesAtras) {
             pushTx(fv.getFullYear(), DEMO_MESES[fv.getMonth()], {
               id: idTx,
               fecha: fechaAR(fv.getFullYear(), fv.getMonth(), fv.getDate()),
-              descripcion: 'Venta ' + p.ticker + ' · ' + v.cant + ' nominales · Inversión',
+              descripcion: descripcionVenta(p.ticker, p.desc, v.cant, DEMO_DESTINO_LABEL[p.destino] || ''),
               monto: Math.abs(realizado),
               categoria: realizado > 0 ? 'RentaFinanciera' : 'PerdidaFinanciera',
               subcategoria: null,

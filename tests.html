@@ -3110,6 +3110,39 @@ group('Ventas de activos — una compra se va vendiendo', function () {
   });
 });
 
+group('descripcionVenta — la línea que queda en el movimiento', function () {
+  test('arma el formato pedido', function () {
+    assertEqual(descripcionVenta('NVDA', 'NVIDIA Corporation', '18', 'Inversión'),
+                'Venta NVDA NVIDIA Corporation - 18 nominales - Inversión');
+  });
+  test('lo que se pasa de largo recorta el NOMBRE, no el origen', function () {
+    const s = descripcionVenta('KO', 'The Coca-Cola Company', '80', 'Jubilación JALM');
+    assert(s.length <= MAX_LEN_DESCRIPCION, 'debe entrar en el campo, mide ' + s.length);
+    assert(/^Venta KO /.test(s), 'el ticker queda entero');
+    assert(s.indexOf('80 nominales') >= 0, 'la cantidad queda entera');
+    assert(/Jubilación JALM$/.test(s), 'el origen queda entero y al final: ' + s);
+  });
+  test('el caso justo al límite no pierde nada', function () {
+    const s = descripcionVenta('GOLD', 'Barrick Gold Corporation', '55', 'Reserva');
+    assertEqual(s, 'Venta GOLD Barrick Gold Corporation - 55 nominales - Reserva');
+    assertEqual(s.length, 60);
+  });
+  test('sin nombre cargado no deja doble espacio', function () {
+    assertEqual(descripcionVenta('SPY', '', '42', 'Inversión'),
+                'Venta SPY - 42 nominales - Inversión');
+    assertEqual(descripcionVenta('SPY', null, '42', 'Inversión'),
+                'Venta SPY - 42 nominales - Inversión');
+  });
+  test('sin origen no deja el separador colgando', function () {
+    assertEqual(descripcionVenta('SPY', 'SPDR', '42', ''), 'Venta SPY SPDR - 42 nominales');
+  });
+  test('un nombre larguísimo se omite antes que romper el resto', function () {
+    const s = descripcionVenta('ABCDE', 'x'.repeat(200), '1000', 'Jubilación JALM');
+    assert(s.length <= MAX_LEN_DESCRIPCION, 'entra en el campo');
+    assert(/Jubilación JALM$/.test(s), 'el origen sobrevive: ' + s);
+  });
+});
+
 group('Resultado realizado — categorías de flujo de la venta', function () {
   test('las dos categorías nuevas son de flujo, no gastos', function () {
     assert(NON_EXPENSE_CATS.indexOf('RentaFinanciera') >= 0, 'RentaFinanciera debe ser de flujo');

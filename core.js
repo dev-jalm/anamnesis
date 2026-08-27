@@ -126,6 +126,25 @@ function estadoEntrada(e) {
   return cantidadRestante(e) > 0.0000001 ? 'parcial' : 'vendida';
 }
 
+/* Descripción de la tx que deja una venta:
+     "Venta NVDA NVIDIA Corporation - 18 nominales - Inversión"
+
+   El campo admite 60 caracteres y la línea completa se pasa en los casos de
+   jubilación. Recortar de punta a punta se comía el ORIGEN, que está al final y
+   es el dato que dice de qué destino salió. Así que lo único recortable es el
+   nombre del activo: ticker, cantidad y origen son datos y llegan siempre
+   enteros. Si no queda lugar ni para cuatro letras del nombre, se omite. */
+function descripcionVenta(ticker, nombre, cantidadTexto, origen, maximo) {
+  const max = (typeof maximo === 'number' && maximo > 0) ? maximo : MAX_LEN_DESCRIPCION;
+  const cabeza = 'Venta ' + String(ticker || '').trim();
+  const cola = ' - ' + String(cantidadTexto == null ? '' : cantidadTexto) + ' nominales' +
+               (origen ? ' - ' + origen : '');
+  const espacio = max - cabeza.length - cola.length - 1;
+  const limpio = String(nombre == null ? '' : nombre).trim();
+  const nombreCorto = (limpio && espacio >= 4) ? ' ' + recortarTexto(limpio, espacio) : '';
+  return recortarTexto(cabeza + nombreCorto + cola, max);
+}
+
 // Valida una venta antes de registrarla. Devuelve lista de errores, vacía si
 // está bien — mismo contrato que validarPlantilla.
 function validarVenta(e, cantidad, precio) {
@@ -2591,6 +2610,7 @@ if (typeof module !== 'undefined' && module.exports) {
     // ventas de activos
     ventasDeEntrada, cantidadVendida, cantidadRestante, productoVentas,
     costoVendido, realizadoDeEntrada, invertidoRestante, estadoEntrada, validarVenta,
+    descripcionVenta,
     HEALTH_SCORE_DEFAULTS,
     // strings
     norm, escapeHtmlSafe,
