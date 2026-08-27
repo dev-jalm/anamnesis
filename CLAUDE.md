@@ -188,6 +188,41 @@ Si medir es caro o no se puede —no hay screenshots en esta sesión, por
 ejemplo—, se dice que no se pudo verificar y qué se asumió. No se presenta una
 suposición como un hecho.
 
+### Medir bien no es saber qué se midió
+
+**Antes de decir qué significa un número, verificar que la fuente cubra lo que
+se afirma.** Es el error que más veces se cometió, y siempre igual: la medición
+correcta, el rótulo equivocado.
+
+Las tres veces que pasó, en una sola sesión:
+
+| Se midió | Se dijo | Qué faltaba |
+|---|---|---|
+| Historial de git | "esfuerzo real de construcción" | El proyecto empezó 4 meses antes del primer commit |
+| Procesos `claude.exe` | "21 sesiones abiertas" | Era UNA app: renderers y utilities del mismo Electron |
+| `grep -c "venta"` en el README | "el README no lo cubre" | Estaba, escrito como "se vende" y "vendiendo" |
+
+Las tres preguntas que lo habrían evitado, y que van antes de reportar:
+
+1. **¿Qué queda AFUERA de esta fuente?** Un repo empieza cuando se hace
+   `git init`, no cuando empieza el proyecto. Un `grep` encuentra la cadena que
+   se le pidió, no el concepto.
+2. **¿Cada fila es lo que creo que es?** Contar procesos no es contar sesiones;
+   contar líneas que matchean no es contar menciones.
+3. **¿El nombre que le voy a poner es el que el dato sostiene?** Si el rótulo
+   es más amplio que la fuente, se acota el rótulo o se amplía la fuente.
+
+### Sin evidencia no hay causa
+
+Cuando algo falla o aparece raro, **no se ofrece una explicación plausible como
+si fuera la explicación.** En esta sesión se propuso OneDrive y después sesiones
+paralelas para explicar una reversión de archivos: las dos sonaban razonables y
+las dos se cayeron al mirar los datos.
+
+Se dice "no sé qué lo causó" y se listan las hipótesis descartadas con su
+evidencia. Una causa afirmada de más manda a investigar en la dirección
+equivocada, que cuesta más que no decir nada.
+
 ### Medir, no afirmar
 
 Antes de decir que algo funciona: estilos computados, posiciones en píxeles, o

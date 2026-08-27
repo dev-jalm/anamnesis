@@ -30,6 +30,10 @@ anamnesis parte de tres decisiones opuestas:
 
 Vendiendo un ticker comprado en varias tandas, se descuenta de las más viejas primero — está dicho en la pantalla, porque el costo de lo vendido sale del precio de cada compra y eso cambia la ganancia realizada.
 
+Un activo que se vendió entero no queda en cero ni desaparece: se marca como liquidado y muestra cuántos nominales se vendieron, por cuánto y qué resultado dejaron. Cero no significa que valga cero, significa que ya no está.
+
+Y cada venta deja un movimiento con la fecha de la liquidación, por el resultado —Renta financiera o Pérdida financiera—, así la operación también se ve en Historia clínica y en Evolución y no sólo en la cartera.
+
 ![Mesa de trading](docs/mesa-trading.png)
 
 **Mesa de trading** — el panel de Trading no lista tenencias: calcula el tamaño de posición desde el riesgo, el precio de liquidación real y las cinco compuertas del sistema, y en el historial compara las operaciones con stop contra las que fueron sin stop.
