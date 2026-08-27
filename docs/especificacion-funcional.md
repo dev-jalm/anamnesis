@@ -951,7 +951,7 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.1 | 26/08/2026 | Incorpora las definiciones del cliente sobre las cinco cuestiones abiertas. Se agregan las longitudes de campo (5.8), las dos vistas de Ficha médica (4.4), el orden de los destinos de Salud financiera (RF-070), las secciones plegables de Trading (RF-078b a RF-078e), la precisión sobre el filtro Todas (RF-021), la regla de alcance de las reglas (RN-015), los requerimientos derivados de PEND-04 y PEND-05, y la composición del conjunto de demostración con compras múltiples por activo (RF-222b, RF-222c) | Reemplazada |
 | 1.2 | 26/08/2026 | Incorpora la venta de activos: requerimientos (4.6.1), entidad Venta y sus derivados (5.2.1), cálculo del líquido (6.0) y reglas RN-016 a RN-018. Se agregan los criterios de signo en importes de resultado (RNF-02a a RNF-02c) y la venta en el conjunto de demostración (RF-222d) | Reemplazada |
 
-| 1.3 | 27/08/2026 | Incorpora el Anexo A, con el esfuerzo de construcción separado en sus dos períodos —el previo al repositorio, estimado, y el trazable, medido— y la estimación de lo que habría demandado un equipo humano | **Vigente** |
+| 1.3 | 27/08/2026 | Incorpora el Anexo A, con el esfuerzo de construcción separado en sus dos períodos: el previo al repositorio, estimado, y el trazable, medido sobre las transcripciones de sesión. Incluye la estimación de lo que habría demandado un equipo humano | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 
@@ -1009,7 +1009,7 @@ No hay medición posible: las conversaciones no dejan registro de sesiones. Se a
 | 15 h/semana | 249 |
 | 20 h/semana | 331 |
 
-**Por volumen.** El período medido produjo 9.505 líneas netas en 40,5 horas: 235 líneas por hora. Aplicado a las 34.689 líneas del primer commit, da **148 horas**, unas 9 horas semanales.
+**Por volumen.** El período medido produjo 9.505 líneas netas en 53,3 horas: 178 líneas por hora. Aplicado a las 34.689 líneas del primer commit, da **195 horas**, unas 12 horas semanales.
 
 **Ese número es un piso, no una estimación central.** Supone la misma productividad en las dos etapas, y hay tres razones para creer que la primera fue más lenta:
 
@@ -1017,33 +1017,44 @@ No hay medición posible: las conversaciones no dejan registro de sesiones. Se a
 2. **Sin red de seguridad.** No había control de versiones para volver atrás ni ejecución de la suite en cada cambio, de modo que cada regresión se detectaba probando a mano.
 3. **Una reestructuración que el método no ve.** El producto empezó como un único archivo `dashboard.html` con todo adentro y llegó al primer commit ya dividido en cinco. Esa separación ocurrió íntegramente en este período, y es trabajo que reorganiza sin agregar líneas: el método por volumen lo cuenta como cero.
 
-El valor real está por encima de 148 horas.
+El valor real está por encima de 195 horas.
 
-**Valor adoptado: 200 horas**, equivalentes a unas 12 horas semanales.
+**Valor adoptado: 250 horas**, equivalentes a unas 15 horas semanales.
+
+Sale de aplicar al piso una penalización del 25 % por las tres ineficiencias listadas. El porcentaje es un juicio, no una medición: es la única cifra del anexo que no se apoya en un dato. Se elige por debajo de lo que sugeriría el peso de esas tres razones, para que el número no infle el contraste final.
+
+**Cómo reemplazar esta estimación por una medición.** Las conversaciones de ese período están en el servidor, no en la máquina. La exportación de datos de la cuenta —Configuración → Privacidad → Exportar datos— entrega un archivo con todas las conversaciones y la marca temporal de cada mensaje. Con eso, el período 1 se puede medir con el mismo método del período 2 y esta estimación deja de hacer falta.
 
 ### A.3 Período 2: con repositorio — medido
 
-**Método.** Las horas no se declaran: se derivan del historial. Los 104 commits se agrupan en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, se suma la duración de cada sesión y se agregan 30 minutos previos al primer commit de cada una, por el trabajo que ocurre antes de que exista algo para confirmar.
+**Método.** Las horas no se declaran: se derivan de las transcripciones de sesión del entorno de desarrollo, que registran cada interacción con su marca temporal. Los 9.286 eventos se agrupan en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, y se suma la duración de cada una.
 
 | Indicador | Valor |
 |---|---|
-| Período | 27/07/2026 a 26/08/2026 (31 días corridos) |
-| Días con actividad | 13 |
-| Commits | 104 |
-| Sesiones de trabajo | 23 |
-| **Horas medidas** | **≈ 40,5** |
-| Duración media por sesión | 1,8 h |
+| Período | 27/07/2026 a 27/08/2026 |
+| Días con actividad | 18 |
+| Eventos registrados | 9.286 |
+| Sesiones de trabajo | 32 |
+| **Horas medidas** | **≈ 53,3** |
+| Duración media por sesión | 1,7 h |
 
-**Sensibilidad del método.** El resultado es estable ante el criterio de corte, lo que da confianza en el orden de magnitud:
+**Por qué no se usan los commits.** Es la otra fuente disponible, y da menos: 40,5 horas en 23 sesiones sobre 13 días. La diferencia del 32 % no es ruido, son dos cosas que el historial de commits no puede ver:
+
+- Las sesiones que no terminaron en un commit —análisis, diagnóstico de un problema, revisión— no dejan rastro.
+- El primer commit de una sesión ocurre bastante después de que la sesión empezó, así que el arranque real queda fuera.
+
+Las transcripciones registran la primera y la última interacción de cada sesión, que es exactamente lo que se quiere medir. La cifra por commits queda como contraste: dos fuentes independientes, ambas del mismo orden.
+
+**Sensibilidad del método.** El resultado depende del criterio de corte más de lo que dependía en el conteo por commits, porque hay muchos más eventos y las pausas cortas son visibles:
 
 | Umbral de corte | Sesiones | Horas |
 |---|---|---|
-| 60 minutos | 27 | 37,7 |
-| **90 minutos** | **23** | **40,5** |
-| 120 minutos | 20 | 44,1 |
-| 180 minutos | 15 | 54,6 |
+| 30 minutos | 60 | 31,2 |
+| 60 minutos | 37 | 47,3 |
+| **90 minutos** | **32** | **53,3** |
+| 120 minutos | 26 | 64,1 |
 
-Se adopta el corte de 90 minutos. Los 180 minutos se descartan por unir sesiones que el calendario muestra separadas.
+Se adopta el corte de 90 minutos, el mismo del conteo por commits, para que las dos cifras sean comparables. Los 30 minutos se descartan por partir en dos una sesión con una pausa normal; los 120, por unir sesiones separadas por horas.
 
 **Naturaleza de esas horas.** Son horas de una única persona dirigiendo, decidiendo y validando, con la escritura de código asistida por IA. No son equivalentes a horas de programación manual, y por eso el contraste de A.6 no debe leerse como una medida de productividad individual.
 
@@ -1051,11 +1062,11 @@ Se adopta el corte de 90 minutos. Los 180 minutos se descartan por unir sesiones
 
 | Período | Horas | Origen del dato |
 |---|---|---|
-| 1. Previo al repositorio | ≈ 200 | Estimado (A.2) |
-| 2. Con repositorio | ≈ 40,5 | Medido (A.3) |
-| **Total** | **≈ 240** | |
+| 1. Previo al repositorio | ≈ 250 | Estimado (A.2) |
+| 2. Con repositorio | ≈ 53,3 | Medido (A.3) |
+| **Total** | **≈ 303** | |
 
-El 83 % del esfuerzo corresponde al período sin trazabilidad. Es coherente con que ahí se construyó el 78 % del producto, en la etapa además menos eficiente de las dos.
+El 82 % del esfuerzo corresponde al período sin trazabilidad. Es coherente con que ahí se construyó el 78 % del producto, en la etapa además menos eficiente de las dos.
 
 ### A.5 Esfuerzo estimado de un equipo humano
 
@@ -1108,11 +1119,11 @@ El 83 % del esfuerzo corresponde al período sin trazabilidad. Es coherente con 
 
 | Concepto | Real | Equipo humano |
 |---|---|---|
-| Horas | ≈ 240 | ≈ 2.070 |
+| Horas | ≈ 303 | ≈ 2.070 |
 | Personas | 1 | 4 a 5 |
 | Calendario | 5 meses, en dedicación parcial | 3 a 4 meses, a tiempo completo |
 
-**Relación aproximada: 1 a 8,6.**
+**Relación aproximada: 1 a 7.**
 
 Conviene notar que el calendario real es **más largo** que el estimado para el equipo humano. La diferencia no está en terminar antes, sino en cuánta gente y cuántas horas hicieron falta para llegar al mismo lugar.
 
@@ -1120,9 +1131,9 @@ Conviene notar que el calendario real es **más largo** que el estimado para el 
 
 | # | Advertencia |
 |---|---|
-| 1 | Las cifras tienen tres grados de certeza distintos: las 40,5 horas del período 2 son una **medición**; las 200 del período 1, una **estimación acotada por dos métodos**; las 2.070 del equipo humano, una **estimación por componente** con los supuestos de A.5 |
-| 2 | Las 200 horas del período 1 son el número más débil del anexo. Su piso —148 horas— sí está fundado; el valor adoptado supone una productividad menor que la del período medido, por las razones de A.2, pero no hay forma de verificarlo |
-| 3 | Dentro del período 2, el trabajo previo a un commit se aproxima con 30 minutos por sesión, y las sesiones que no produjeron commits no se cuentan. También ahí 40,5 es un piso |
+| 1 | Las cifras tienen tres grados de certeza distintos: las 53,3 horas del período 2 son una **medición** sobre 9.286 eventos fechados; las 250 del período 1, una **estimación acotada por dos métodos**; las 2.070 del equipo humano, una **estimación por componente** con los supuestos de A.5 |
+| 2 | Las 250 horas del período 1 son el número más débil del anexo. Su piso —195 horas— sí está fundado; el valor adoptado supone una productividad menor que la del período medido, por las razones de A.2, pero no hay forma de verificarlo |
+| 3 | En el período 2 se mide el lapso entre la primera y la última interacción de cada sesión. No distingue el tiempo de trabajo activo del de lectura o espera dentro de esa ventana |
 | 4 | La estimación del equipo humano supone construir **el producto terminado**, sin las exploraciones descartadas que un proyecto real atraviesa. En ese sentido es conservadora |
 | 5 | La comparación no mide productividad individual: las horas reales corresponden a dirección, decisión y validación, con la escritura de código asistida |
 | 6 | Un equipo humano habría producido decisiones de arquitectura distintas. La relación compara el costo de llegar a **este** producto, no a uno equivalente en funciones |
