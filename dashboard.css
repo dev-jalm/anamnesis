@@ -6140,9 +6140,18 @@ body[data-exporting="true"] .section-card {
   color: var(--accent);
   flex-shrink: 0;
 }
+/* El campo se dimensiona por su CONTENIDO, no por el `size` ni por el ancho
+   intrínseco del input. Con cualquiera de esos dos el número queda alineado a
+   la derecha dentro de una caja de ~75px y el símbolo, pegado al borde
+   izquierdo de la celda, terminaba separado del número por todo ese hueco —con
+   el recuadro del campo cortando la columna al medio.
+   field-sizing es de Chrome/Edge, que es donde la app se usa con datos reales;
+   el max-width es el respaldo para el resto. */
 .inv-price-cell .inv-price-input {
   width: auto;
   min-width: 0;
+  max-width: 9ch;
+  field-sizing: content;
   flex: 0 1 auto;
 }
 
@@ -6158,7 +6167,8 @@ body[data-exporting="true"] .section-card {
 }
 /* Ticker sin saldo: sigue en la lista para poder ver cuándo se vendió, pero
    atenuado, porque ya no es una tenencia. */
-.inv-ticker-liquidado { opacity: 0.72; }
+.inv-ticker-liquidado,
+.inv-entry-liquidada { opacity: 0.72; }
 .inv-chip-liquidado {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9px;

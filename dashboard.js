@@ -17729,6 +17729,26 @@ function buildInvestmentDetailPanel(destinos, title) {
         const eGpClass = gpLote === null ? '' : (gpLote > 0 ? 'inv-gp-positive' : (gpLote < 0 ? 'inv-gp-negative' : ''));
         const eGpSign = gpLote === null ? '' : (gpLote > 0 ? '+' : (gpLote < 0 ? '-' : ''));
         const na = '<span class="inv-na">—</span>';
+        // Compra liquidada por completo: mismo tratamiento que el ticker sin
+        // saldo en la fila de cabecera. Las columnas de tenencia no aplican —no
+        // es que valgan cero, es que ya no hay nada— y lo que sí sigue siendo
+        // cierto es qué se vendió, por cuánto y qué dejó.
+        if (eEstado === 'vendida') {
+          const rCls = eRealizado > 0 ? 'inv-gp-positive' : (eRealizado < 0 ? 'inv-gp-negative' : '');
+          return '<tr class="inv-entry-row inv-detail-row inv-entry-liquidada hidden" data-ticker-detail="' + escapeHtmlSafe(tk) + '">' +
+            '<td class="inv-entry-actions">' +
+              '<button class="inv-delete-btn" data-action="delete-inv" data-inv-id="' + escapeHtmlSafe(e.id) + '" title="Eliminar esta compra"><i data-lucide="trash-2" style="width:11px;height:11px"></i></button>' +
+            '</td>' +
+            '<td>' + (showDestColumn ? escapeHtmlSafe(destLabel) : '') + '</td>' +
+            '<td class="inv-entry-fecha">' + fechaDisplay + '</td>' +
+            '<td></td>' +
+            '<td class="num"><span class="inv-chip-liquidado">liquidada</span></td>' +
+            '<td class="num" colspan="4"><span class="inv-na">vendidos ' + fmt(eVendida) + ' nominales por ' +
+              monedaPrefix + ' ' + fmt(productoVentas(e)) + '</span></td>' +
+            '<td class="num ' + rCls + '" colspan="2">' + monedaPrefix + ' ' + fmt(Math.abs(eRealizado)) +
+              '<div class="inv-gp-pct">realizado</div></td>' +
+          '</tr>';
+        }
         return '<tr class="inv-entry-row inv-detail-row hidden" data-ticker-detail="' + escapeHtmlSafe(tk) + '">' +
           '<td class="inv-entry-actions">' +
             '<button class="inv-delete-btn" data-action="delete-inv" data-inv-id="' + escapeHtmlSafe(e.id) + '" title="Eliminar esta compra"><i data-lucide="trash-2" style="width:11px;height:11px"></i></button>' +
@@ -17839,8 +17859,15 @@ function buildInvestmentDetailPanel(destinos, title) {
         // El precio actual es editable, así que el símbolo va afuera del input:
         // adentro lo tendría que parsear al leerlo. Es la única celda de la
         // fila donde el importe salía sin moneda.
-        '<td class="num inv-price-cell"><span class="inv-price-sym">' + monedaPrefix + '</span>' +
-          '<input type="text" inputmode="decimal" class="inv-price-input" data-ticker="' + escapeHtmlSafe(tk) + '" value="' + (precioActual !== null ? formatInputAR(precioActual) : '') + '" title="' + escapeHtmlSafe(lastUpdateDisplay) + '"></td>' +
+        // El `size` se calcula sobre el valor: un input sin él mide su ancho
+        // intrínseco —80px— y dejaba el símbolo separado del número por todo
+        // ese hueco, con el recuadro del campo cortando la columna al medio.
+        (function () {
+          const valorPrecio = precioActual !== null ? formatInputAR(precioActual) : '';
+          return '<td class="num inv-price-cell"><span class="inv-price-sym">' + monedaPrefix + '</span>' +
+            '<input type="text" inputmode="decimal" class="inv-price-input" size="' + Math.max(3, valorPrecio.length) + '" ' +
+            'data-ticker="' + escapeHtmlSafe(tk) + '" value="' + valorPrecio + '" title="' + escapeHtmlSafe(lastUpdateDisplay) + '"></td>';
+        })() +
         // Variación por nominal del conjunto: precio actual contra el PPC.
         // Es el mismo dato que muestra cada compra en su fila, pero ponderado.
         // Sin signo: lo dice el color.
@@ -18430,6 +18457,40 @@ function fetchTickerPricesFromData912(destinos, btnEl) {
    ========================================================================== */
 const ventaState = { objetivo: null };
 
+/* Qué tickers están desplegados, para que un re-render no los cierre.
+   La clave lleva el panel además del ticker: el mismo símbolo puede estar en
+   dos destinos —JALM y CLM cargan los mismos CEDEARs— y una clave sólo por
+   ticker abriría el detalle en los dos a la vez. */
+const invTickersDesplegados = new Set();
+
+function claveDespliegue(row) {
+  if (!row) return null;
+  const cont = row.closest('[id$="Content"]');
+  const tk = row.getAttribute('data-ticker');
+  return (cont && tk) ? cont.id + '::' + tk : null;
+}
+
+// Vuelve a abrir los detalles que estaban abiertos antes de repintar.
+function restaurarDesplegados() {
+  if (!invTickersDesplegados.size) return;
+  Array.from(document.querySelectorAll('.inv-ticker-row')).forEach(function (row) {
+    const clave = claveDespliegue(row);
+    if (!clave || !invTickersDesplegados.has(clave)) return;
+    let sib = row.nextElementSibling;
+    let hubo = false;
+    while (sib && sib.classList.contains('inv-detail-row')) {
+      sib.classList.remove('hidden');
+      hubo = true;
+      sib = sib.nextElementSibling;
+    }
+    // El ticker se vendió entero y ya no tiene compras que mostrar: se olvida,
+    // así el Set no crece con claves muertas.
+    if (!hubo) { invTickersDesplegados.delete(clave); return; }
+    const icon = row.querySelector('[data-action="toggle-ticker"] i, [data-action="toggle-ticker"] svg');
+    if (icon) icon.style.transform = 'rotate(90deg)';
+  });
+}
+
 function abrirModalVenta(opts) {
   const ov = document.getElementById('ventaOverlay');
   if (!ov) return;
@@ -18649,6 +18710,11 @@ function bindInvestmentDetailDelegation() {
       // Rotar el chevron
       const icon = toggleBtn.querySelector('i, svg');
       if (icon) icon.style.transform = isExpanded ? '' : 'rotate(90deg)';
+      // Se recuerda para que un re-render no lo cierre. Registrar una venta
+      // vuelve a pintar el panel entero, y el detalle que se estaba mirando
+      // —justo el que se acaba de tocar— se cerraba solo.
+      const clave = claveDespliegue(row);
+      if (clave) { if (isExpanded) invTickersDesplegados.delete(clave); else invTickersDesplegados.add(clave); }
       return;
     }
     // Actualizar precios desde data912.com para los tickers del panel
@@ -18811,6 +18877,10 @@ function renderMainAssets() {
     const el = document.querySelector('.investment-detail-panel.inv-panel-' + key);
     if (el) el.setAttribute('open', '');
   });
+
+  // Los detalles que estaban desplegados vuelven a abrirse. Igual que arriba
+  // con los paneles: repintar no tiene que hacerle perder el lugar al usuario.
+  restaurarDesplegados();
 
   // Re-renderizar íconos lucide (los <i data-lucide="check"> de los reserva-checks
   // y cualquier otro ícono inyectado en este pase necesitan ser convertidos a SVG)
