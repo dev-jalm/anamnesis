@@ -21212,6 +21212,15 @@ function enterDemoMode() {
   // Mismo orden que el arranque normal con Drive: renderAll → setMainTab.
   if (typeof setMainTab === 'function') setMainTab('medical');
   if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons();
+
+  // Recorrido guiado. Va último y con un respiro, porque ilumina elementos
+  // midiendo su posición: si arranca antes de que la solapa termine de
+  // pintarse, el primer recuadro sale corrido.
+  //
+  // No se ofrece de nuevo si ya se cortó en esta sesión — eso lo decide el
+  // propio módulo, que además no persiste nada: el modo demo tiene prohibido
+  // escribir en localStorage.
+  if (window.TourGuiado) setTimeout(function () { window.TourGuiado.iniciar(); }, 500);
 }
 
 // Oculta el overlay de bloqueo. Llamado tras conexión exitosa con Drive.
