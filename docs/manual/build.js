@@ -32,6 +32,22 @@ window.MANUAL = {
       ]
     },
     {
+      h: 'El recorrido guiado',
+      sub: 'Once pasos para ubicarse',
+      img: '19-recorrido-guiado',
+      imgCap: 'Cada paso ilumina la parte de la pantalla que está explicando.',
+      p: [
+        'La primera vez que entrás al modo demo aparece solo: once pasos que recorren la app y muestran dónde está cada cosa. Cada paso ilumina la zona de la que habla y cambia de solapa por vos.',
+        'Empieza por la distribución general y las cinco solapas con su pregunta, sigue por el panel lateral, y después va solapa por solapa con su acción principal: en Historia clínica marca el botón de cargar movimientos, en Salud financiera explica la venta de activos y la mesa de trading.'
+      ],
+      lista: [
+        'Se corta en cualquier momento: con «Saltar recorrido», con la cruz, con la tecla Escape, o haciendo clic en la zona oscurecida.',
+        'Las flechas ← y → del teclado se mueven entre pasos.',
+        'Para volver a verlo, el botón RECORRIDO del panel lateral lo lanza de nuevo.',
+        'No queda registrado que ya lo viste: el modo demo no escribe nada, ni siquiera eso. Si recargás la página, vuelve a ofrecerse.'
+      ]
+    },
+    {
       h: 'Historia clínica',
       sub: '¿En qué se fue la plata?',
       img: '17-historia-clinica-resumen',
@@ -315,13 +331,25 @@ window.construirManual = async function () {
   const AN = 210, AL = 297;          // A4
   const MG = 20;                      // margen
   const ANU = AN - MG * 2;            // ancho util
-  const TINTA = [42, 37, 32];
-  const SUAVE = [122, 110, 96];
-  const ACENTO = [176, 132, 58];
+  /* Paleta del manual: la MISMA del tema oscuro de la app —los tokens de
+     dashboard.css— para que el documento y el producto se vean como lo mismo.
+     El manual va entero en oscuro, no sólo la portada: las capturas son del
+     tema oscuro, y sobre hoja blanca quedaban como recortes pegados encima. */
+  const FONDO  = [26, 23, 20];     // --bg-1
+  const TINTA  = [239, 231, 214];  // --ink
+  const SUAVE  = [148, 135, 117];  // --muted
+  const ACENTO = [232, 183, 101];  // --accent
+  const BORDE  = [47, 42, 36];     // --border
   let y = MG;
   let pagina = 1;
 
-  const nuevaPagina = () => { doc.addPage(); pagina++; y = MG; };
+  // Cada hoja nueva se pinta antes de escribir nada. jsPDF no tiene color de
+  // página: si no se rellena, queda blanca y el texto claro desaparece.
+  const fondoPagina = () => {
+    doc.setFillColor.apply(doc, FONDO);
+    doc.rect(0, 0, AN, AL, 'F');
+  };
+  const nuevaPagina = () => { doc.addPage(); pagina++; y = MG; fondoPagina(); };
   // Corta sólo si la página tiene algo: evita dejar una hoja en blanco cuando
   // lo anterior ya terminó justo arriba.
   const nuevaPaginaSiHayAlgo = () => { if (y > MG) nuevaPagina(); };
@@ -408,20 +436,20 @@ window.construirManual = async function () {
     const { img, w, h } = entrada;
     if (y + h + 8 > AL - MG) nuevaPagina();
     doc.addImage(img, 'PNG', MG + (ANU - w) / 2, y, w, h, undefined, 'FAST');
-    doc.setDrawColor(210, 200, 185); doc.setLineWidth(0.2);
+    doc.setDrawColor.apply(doc, BORDE); doc.setLineWidth(0.4);
     doc.rect(MG + (ANU - w) / 2, y, w, h);
     y += h + 3.5;
     if (caption) parrafo(caption, { size: 8.5, color: SUAVE, despues: 5 });
   }
 
   // ── Portada ──
-  doc.setFillColor(26, 23, 20); doc.rect(0, 0, AN, AL, 'F');
+  fondoPagina();
   const logo = logoDataUri();
   if (logo) {
     const L = 34;
     doc.addImage(logo, 'PNG', AN / 2 - L / 2, 78, L, L);
   }
-  doc.setTextColor(239, 231, 214);
+  doc.setTextColor.apply(doc, TINTA);
   // La marca va en Fraunces, igual que en la app.
   doc.setFont('Fraunces', 'normal'); doc.setFontSize(44);
   doc.text(window.MANUAL.titulo, AN / 2, 133, { align: 'center' });
@@ -437,18 +465,18 @@ window.construirManual = async function () {
     doc.text(txt, AN / 2 - anchoReal / 2, yPos, { charSpace: espaciado });
   }
   doc.setFont('JetBrains', 'normal'); doc.setFontSize(11);
-  doc.setTextColor(212, 162, 76);
+  doc.setTextColor.apply(doc, ACENTO);
   const bajada = window.MANUAL.bajada.toUpperCase().split(' ');
   const ultima = bajada.pop();
   centradoConEspaciado(bajada.join(' '), 144, 1.6);
   centradoConEspaciado(ultima, 151, 1.6);
-  doc.setDrawColor(212, 162, 76); doc.setLineWidth(0.4);
+  doc.setDrawColor.apply(doc, ACENTO); doc.setLineWidth(0.4);
   doc.line(AN / 2 - 22, 161, AN / 2 + 22, 161);
-  doc.setTextColor(239, 231, 214);
+  doc.setTextColor.apply(doc, TINTA);
   doc.setFont('Fraunces', 'normal'); doc.setFontSize(18);
   doc.text(window.MANUAL.subtitulo, AN / 2, 175, { align: 'center' });
   doc.setFont('Inter', 'normal'); doc.setFontSize(9);
-  doc.setTextColor(150, 138, 122);
+  doc.setTextColor.apply(doc, SUAVE);
   doc.text(window.MANUAL.nota, AN / 2, 250, { align: 'center', maxWidth: 140 });
 
   // ── Índice ──
@@ -473,7 +501,7 @@ window.construirManual = async function () {
       // son continuaciones y siguen a la anterior sin cortar.
       nuevaPaginaSiHayAlgo();
       indice.push({ titulo: s.h, sub: s.sub, pagina: pagina });
-      doc.setDrawColor(212, 162, 76); doc.setLineWidth(1.6);
+      doc.setDrawColor.apply(doc, ACENTO); doc.setLineWidth(1.6);
       doc.line(MG, y - 4.6, MG + 11, y - 4.6);
       parrafo(s.h, { familia: 'Fraunces', size: 15, despues: s.sub ? 0.5 : 3 });
       if (s.sub) parrafo(s.sub, { familia: 'JetBrains', size: 9.5, color: ACENTO, despues: 3.5 });
@@ -506,7 +534,7 @@ window.construirManual = async function () {
     const anchoNum = doc.getTextWidth(num);
     const desde = MG + 4 + anchoTitulo + (e.sub ? doc.getTextWidth(e.sub) + 4 : 0);
     const hasta = AN - MG - anchoNum - 2;
-    doc.setTextColor(190, 178, 160);
+    doc.setTextColor.apply(doc, SUAVE);
     if (hasta > desde) {
       let puntos = '';
       while (doc.getTextWidth(puntos + '.') < hasta - desde) puntos += '.';

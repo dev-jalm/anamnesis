@@ -15091,6 +15091,19 @@ document.getElementById('driveBtn').addEventListener('click', function () {
   else openDriveModal();
 });
 
+// Recorrido guiado a pedido. Va con `forzar` porque el arranque automático se
+// inhibe una vez que se cortó, y desde acá se lo pide explícitamente.
+// El panel se cierra primero: el recorrido lo abre solo cuando toca ese paso, y
+// dejarlo abierto tapa los objetivos de los pasos siguientes.
+(function () {
+  const btn = document.getElementById('tourBtn');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    if (typeof closeSidebar === 'function') closeSidebar();
+    if (window.TourGuiado) window.TourGuiado.iniciar({ forzar: true });
+  });
+})();
+
 // Hook: cada vez que se importa data, schedule save
 const _origMergeParsedData = mergeParsedData;
 mergeParsedData = function (parsed) {

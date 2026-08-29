@@ -27,6 +27,11 @@ El PDF se descarga. Reemplazá con él el de `docs/`.
 - **Tipografías:** las mismas de la app. jsPDF sólo trae las 14 estándar de
   PostScript, así que se incrustan los TTF estáticos de Fraunces (la marca y los
   títulos), Inter (el texto corrido) y JetBrains Mono (bajadas, epígrafes y pie).
+- **Tema oscuro en todas las páginas**, no sólo en la portada: el fondo, la
+  tinta, el apagado, el acento y los bordes son los tokens de `dashboard.css`
+  (`--bg-1`, `--ink`, `--muted`, `--accent`, `--border`). Cada página nueva pinta
+  su fondo antes de escribir nada; si se agrega una función que dibuje páginas,
+  tiene que llamar a `fondoPagina()` primero.
 - **Portada** con el logo de la app. No hay una copia del archivo: se lee del
   CSS creando un elemento con la clase `.brand-mark`, así el manual siempre
   lleva el logo vigente.
@@ -57,6 +62,7 @@ Qué muestra cada una:
 | Archivo | Pantalla |
 |---|---|
 | `00-conexion.png` | Bienvenida: conectar Drive o entrar a la demo |
+| `19-recorrido-guiado.png` | El recorrido guiado, once pasos sobre la app |
 | `17-historia-clinica-resumen.png` | Historia clínica, vista Resumen: una fila por categoría |
 | `01-historia-clinica-completa.png` | Historia clínica, vista Completa: cada movimiento editable |
 | `02-ficha-medica.png` | Score, tarjetas de indicadores y distribución del gasto |

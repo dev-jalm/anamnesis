@@ -5,8 +5,8 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.3 |
-| **Fecha** | 27 de agosto de 2026 |
+| **Versión** | 1.4 |
+| **Fecha** | 29 de agosto de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
 | **Alcance de la versión** | Funcionalidad implementada y verificada en la rama `main` |
@@ -750,6 +750,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-212 | Cada tema del manual comienza en página nueva |
 | RF-213 | El manual utiliza la identidad visual del producto: mismo logotipo y mismas tipografías |
 | RF-214 | Las capturas del manual se obtienen del modo demostración, de modo que no expongan información real |
+| RF-214b | El manual se compone íntegramente sobre el tema oscuro del producto: fondo, tipografía y acento son los mismos que en pantalla, en todas sus páginas y no sólo en la portada |
 
 ---
 
@@ -855,6 +856,27 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-224 | Las operaciones de trading de demostración cubren los casos límite: con stop y sin stop, abierta, parcial y cerrada, compra y venta, salida por objetivo, por stop y a mano, y cierre en dos tramos |
 | RF-225 | La demostración presenta una sola jubilación. La distinción entre las dos es personal del titular y no aporta a un visitante |
 
+### 10.1 Recorrido guiado
+
+Un visitante que entra a la demostración se encuentra con catorce meses de datos
+repartidos en seis solapas y no tiene modo de saber por dónde empezar. El
+recorrido resuelve eso: presenta la aplicación paso a paso, señalando en
+pantalla el elemento del que habla.
+
+| ID | Requerimiento |
+|---|---|
+| RF-240 | El recorrido se inicia solo al entrar al modo demostración, una vez cargado el conjunto de datos |
+| RF-241 | Consta de once pasos: bienvenida, la barra de las cinco solapas, el panel lateral, cada una de las cinco solapas con la pregunta que responde, la carga de datos, la mesa de trading y cierre |
+| RF-242 | Cada paso oscurece la pantalla y deja iluminado el elemento que describe. Los pasos sin un elemento concreto —bienvenida y cierre— oscurecen la pantalla completa y centran la tarjeta |
+| RF-243 | El paso que describe una solapa la deja seleccionada antes de iluminarla, de modo que el texto y lo que se ve en pantalla coincidan |
+| RF-244 | La tarjeta indica en qué paso se está sobre el total, y ofrece avanzar, retroceder y salir |
+| RF-245 | **El recorrido se puede abortar en cualquier momento**, por cuatro vías: el botón de salir, la cruz de la tarjeta, la tecla Escape y un clic sobre la zona oscurecida |
+| RF-246 | El elemento iluminado no es operable durante el recorrido: se muestra, no se delega el manejo de la aplicación en el medio de un paso |
+| RF-247 | Las flechas del teclado avanzan y retroceden |
+| RF-248 | Abortado el recorrido, no vuelve a aparecer solo en esa misma sesión |
+| RF-249 | El panel lateral ofrece un acceso —**RECORRIDO**— que lo vuelve a lanzar desde el primer paso. El acceso cierra el panel antes de arrancar, para no iluminar un elemento tapado |
+| RF-250 | El recorrido no escribe en el archivo ni en el almacenamiento local: su estado vive en memoria. En modo demostración no hay archivo donde persistir nada, y ese es precisamente el modo donde el recorrido corre |
+
 ---
 
 ## 11. Restricciones y supuestos
@@ -951,9 +973,18 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.1 | 26/08/2026 | Incorpora las definiciones del cliente sobre las cinco cuestiones abiertas. Se agregan las longitudes de campo (5.8), las dos vistas de Ficha médica (4.4), el orden de los destinos de Salud financiera (RF-070), las secciones plegables de Trading (RF-078b a RF-078e), la precisión sobre el filtro Todas (RF-021), la regla de alcance de las reglas (RN-015), los requerimientos derivados de PEND-04 y PEND-05, y la composición del conjunto de demostración con compras múltiples por activo (RF-222b, RF-222c) | Reemplazada |
 | 1.2 | 26/08/2026 | Incorpora la venta de activos: requerimientos (4.6.1), entidad Venta y sus derivados (5.2.1), cálculo del líquido (6.0) y reglas RN-016 a RN-018. Se agregan los criterios de signo en importes de resultado (RNF-02a a RNF-02c) y la venta en el conjunto de demostración (RF-222d) | Reemplazada |
 
-| 1.3 | 27/08/2026 | Incorpora el Anexo A: el esfuerzo de construcción en sus dos períodos —el trazable medido sobre las transcripciones de sesión, el previo estimado a 45 h/mes— y la estimación de lo que habría demandado un equipo humano | **Vigente** |
+| 1.3 | 27/08/2026 | Incorpora el Anexo A: el esfuerzo de construcción en sus dos períodos —el trazable medido sobre las transcripciones de sesión, el previo estimado a 45 h/mes— y la estimación de lo que habría demandado un equipo humano | Reemplazada |
+| 1.4 | 29/08/2026 | Incorpora el recorrido guiado del modo demostración (10.1, RF-240 a RF-250), su acceso desde el panel lateral (RF-249) y el criterio de tema oscuro íntegro para el manual (RF-214b) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Recorrido guiado de once pasos sobre el modo demostración | RF-240 a RF-250 |
+| Acceso RECORRIDO en el panel lateral | RF-249 |
+| Manual compuesto íntegramente en tema oscuro | RF-214b |
+
+**Implementados en la versión 1.3**
 
 | Cambio | Requerimiento |
 |---|---|
@@ -977,7 +1008,7 @@ La construcción no empezó con el repositorio. Se desarrolló en dos etapas, co
 | Período | Desde | Hasta | Herramienta | Trazabilidad |
 |---|---|---|---|---|
 | **1. Previo al repositorio** | 02/04/2026 | 27/07/2026 | Conversaciones y proyectos, pasando las versiones del producto de una a otra | Insuficiente: hay fechas pero no se puede aislar qué conversaciones son del producto |
-| **2. Con repositorio** | 27/07/2026 | 27/08/2026 | Entorno con control de versiones | Transcripciones de sesión: 9.286 eventos fechados |
+| **2. Con repositorio** | 27/07/2026 | 29/08/2026 | Entorno con control de versiones | Transcripciones de sesión: 10.252 eventos fechados |
 
 **Cuánto producto existía antes del primer commit.** El primer commit —titulado *Anamnesis: estado inicial*— no marca el inicio del desarrollo sino la incorporación al repositorio de un producto ya construido:
 
@@ -1015,17 +1046,17 @@ Identificarlas por fecha y tamaño daba resultados demasiado dispares —entre 1
 
 ### A.3 Período 2: con repositorio — medido
 
-**Método.** Las horas no se declaran: se derivan de las transcripciones de sesión del entorno de desarrollo, que registran cada interacción con su marca temporal. Las 9.682 interacciones se agrupan en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, y se suma la duración de cada una.
+**Método.** Las horas no se declaran: se derivan de las transcripciones de sesión del entorno de desarrollo, que registran cada interacción con su marca temporal. Las 10.252 interacciones se agrupan en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, y se suma la duración de cada una.
 
 **Fuente viva.** El cálculo está automatizado en `docs/horas-sesiones.js`, que regenera `docs/bitacora-sesiones.md` con el detalle sesión por sesión. Las cifras de esta tabla son las vigentes a la fecha del documento; la bitácora tiene siempre las actuales.
 
 | Indicador | Valor |
 |---|---|
-| Período | 27/07/2026 a 27/08/2026 |
-| Días con actividad | 18 |
-| Interacciones registradas | 9.682 |
-| Sesiones de trabajo | 33 |
-| **Horas medidas** | **≈ 55,9** |
+| Período | 27/07/2026 a 29/08/2026 |
+| Días con actividad | 19 |
+| Interacciones registradas | 10.252 |
+| Sesiones de trabajo | 35 |
+| **Horas medidas** | **≈ 60,2** |
 | Duración media por sesión | 1,7 h |
 
 **Por qué no se usan los commits.** Es la otra fuente disponible, y da menos: 40,5 horas en 23 sesiones sobre 13 días. La diferencia del 32 % no es ruido, son dos cosas que el historial de commits no puede ver:
@@ -1053,14 +1084,14 @@ Se adopta el corte de 90 minutos, el mismo del conteo por commits, para que las 
 | Período | Horas | Origen del dato |
 |---|---|---|
 | 1. Previo al repositorio | ≈ 171 | Estimado a 45 h/mes (A.2) |
-| 2. Con repositorio | ≈ 55,9 | Medido (A.3) |
-| **Total** | **≈ 227** | |
+| 2. Con repositorio | ≈ 60,2 | Medido (A.3) |
+| **Total** | **≈ 231** | |
 
 El 76 % del esfuerzo corresponde al período previo al repositorio, coherente con que ahí se construyó el 78 % del producto.
 
 ### A.5 Esfuerzo estimado de un equipo humano
 
-**Alcance a construir.** 44.194 líneas de código versionado, 380 pruebas automatizadas, 5 integraciones externas, un manual de 27 páginas con 19 capturas y su compilador, y esta especificación.
+**Alcance a construir.** 44.194 líneas de código versionado, 380 pruebas automatizadas, 5 integraciones externas, un manual de 28 páginas con 20 capturas y su compilador, y esta especificación.
 
 **Equipo mínimo viable**
 
@@ -1109,7 +1140,7 @@ El 76 % del esfuerzo corresponde al período previo al repositorio, coherente co
 
 | Concepto | Real | Equipo humano |
 |---|---|---|
-| Horas | ≈ 227 | ≈ 2.070 |
+| Horas | ≈ 231 | ≈ 2.070 |
 | Personas | 1 | 4 a 5 |
 | Calendario | 5 meses, en dedicación parcial | 3 a 4 meses, a tiempo completo |
 
@@ -1121,10 +1152,10 @@ Conviene notar que el calendario real es **más largo** que el estimado para el 
 
 | # | Advertencia |
 |---|---|
-| 1 | **De las 227 horas del lado real, sólo 55,9 son una medición.** Salen de 9.682 interacciones fechadas del período 2. Las 171 restantes son una dedicación estimada de 45 h/mes, adoptada por el cliente ante la falta de registro confiable |
+| 1 | **De las 231 horas del lado real, sólo 60,2 son una medición.** Salen de 10.252 interacciones fechadas del período 2. Las 171 restantes son una dedicación estimada de 45 h/mes, adoptada por el cliente ante la falta de registro confiable |
 | 2 | Las 2.070 del equipo humano son una **estimación por componente** con los supuestos de A.5. Ninguno de los dos lados del contraste es enteramente un dato |
 | 3 | La estimación del período 1 queda por debajo del piso que sugiere el volumen de código —195 horas, ver A.2—, de modo que subestima antes que exagerar |
-| 4 | En el período medido se toma el lapso entre la primera y la última interacción de cada sesión: no se distingue el trabajo activo de la lectura o la espera, y las pausas de más de 90 minutos quedan fuera aunque hayan sido de trabajo. Esas 55,9 horas son un **piso** |
+| 4 | En el período medido se toma el lapso entre la primera y la última interacción de cada sesión: no se distingue el trabajo activo de la lectura o la espera, y las pausas de más de 90 minutos quedan fuera aunque hayan sido de trabajo. Esas 60,2 horas son un **piso** |
 | 5 | La estimación del equipo humano supone construir **el producto terminado**, sin las exploraciones descartadas que un proyecto real atraviesa. En ese sentido es conservadora |
 | 6 | La comparación no mide productividad individual: las horas reales corresponden a dirección, decisión y validación, con la escritura de código asistida |
 | 7 | Un equipo humano habría producido decisiones de arquitectura distintas. La relación compara el costo de llegar a **este** producto, no a uno equivalente en funciones |

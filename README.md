@@ -52,6 +52,8 @@ No hace falta instalar nada ni tener datos propios: abrí `dashboard.html` y hac
 
 Eso carga un dataset ficticio de 574 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 CEDEARs comprados en 19 tandas, una venta parcial y seis operaciones en la mesa de trading— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`, ni sale a la red.
 
+Arranca solo un **recorrido guiado** de once pasos que va oscureciendo la pantalla e iluminando de qué habla: el panel lateral, cada solapa y las acciones de carga y administración. Se corta cuando quieras —con el botón de salir, la cruz, `Escape` o un clic afuera— y se vuelve a lanzar desde **RECORRIDO**, en el panel lateral.
+
 Para usarlo con datos reales necesitás Chrome o Edge (la File System Access API no está en Firefox ni Safari) y servirlo por HTTP o abrirlo como archivo local.
 
 ## Las cinco solapas
@@ -111,15 +113,17 @@ Los formatos incorporados también se editan, por si esas entidades cambian cóm
 ## Estructura
 
 ```
-dashboard.html    3.089 líneas    estructura, modales, formularios
+dashboard.html    3.097 líneas    estructura, modales, formularios
 dashboard.css     7.749 líneas    estilos y theming claro/oscuro
-dashboard.js     22.080 líneas    lógica, render, estado, importación
-core.js           2.624 líneas    funciones puras + motor de plantillas
+dashboard.js     22.178 líneas    lógica, render, estado, importación
+core.js           2.653 líneas    funciones puras + motor de plantillas
 mesa-trading.js   2.985 líneas    mesa de trading: riesgo, liquidación, historial
 mesa-trading.css  1.029 líneas    estilos de la mesa
 sistema-4k.js       478 líneas    el reglamento de trading, consultable en la app
-demo-data.js        691 líneas    generador del dataset de demostración
-tests.html        3.268 líneas    380 tests sobre core.js
+demo-data.js        724 líneas    generador del dataset de demostración
+tour.js             302 líneas    el recorrido guiado del modo demo
+tour.css            131 líneas    estilos del recorrido
+tests.html        3.299 líneas    380 tests sobre core.js
 ```
 
 ## Correr los tests
