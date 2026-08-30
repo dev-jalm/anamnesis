@@ -79,7 +79,7 @@ window.MANUAL = {
       ]
     },
     {
-      h: 'Cargar movimientos: desde un archivo',
+      h: 'Cargar movimientos desde un archivo',
       img: '06-cargar-archivo',
       imgCap: 'Subida del resumen bancario y las últimas cargas por origen.',
       p: [
