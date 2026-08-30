@@ -150,8 +150,6 @@ Siempre desde el modo demo: así las capturas no exponen información real.
 
 Proyecto personal en uso activo. La versión actual persiste contra Google Drive; está en evaluación migrar la capa de persistencia a una base de datos, manteniendo ambos backends detrás de una interfaz común.
 
-Lo que sigue pendiente: la categorización automática no se configura por entidad. Un banco nuevo importa bien, pero sus movimientos caen sin categoría hasta que las reglas y el historial aprenden. Es un problema distinto al de leer el archivo y todavía no está resuelto.
-
 ## Licencia
 
 Sin licencia definida — todos los derechos reservados. El código está publicado para consulta.
