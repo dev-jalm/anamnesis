@@ -35,7 +35,7 @@ window.MANUAL = {
       h: 'El recorrido guiado',
       sub: 'Once pasos para ubicarse',
       img: '19-recorrido-guiado',
-      imgCap: 'Cada paso ilumina la parte de la pantalla que está explicando.',
+      imgCap: 'El primer paso: la pantalla se atenúa y la tarjeta presenta la app.',
       p: [
         'La primera vez que entrás al modo demo aparece solo: once pasos que recorren la app y muestran dónde está cada cosa. Cada paso ilumina la zona de la que habla y cambia de solapa por vos.',
         'Empieza por la distribución general y las cinco solapas con su pregunta, sigue por el panel lateral, y después va solapa por solapa con su acción principal: en Historia clínica marca el botón de cargar movimientos, en Salud financiera explica la venta de activos y la mesa de trading.'
@@ -107,7 +107,7 @@ window.MANUAL = {
       h: 'Salud financiera',
       sub: '¿Cuánto tengo?',
       img: '04-salud-financiera',
-      imgCap: 'Los cinco destinos en orden, con el detalle de compras de un activo desplegado.',
+      imgCap: 'Los destinos en orden, con su líquido e invertido por moneda y tres activos ya liquidados.',
       p: [
         'Muestra el patrimonio repartido en cinco destinos, en este orden: Reserva, Inversiones, las dos Jubilaciones y Trading. El orden va del horizonte más corto al más largo, y deja Trading al final porque es el único que no agrupa tenencias sino operaciones: su detalle es la mesa, que se explica en el apartado siguiente. Cada destino es un panel que se despliega.',
         'Dentro de cada panel, los totales van separados por moneda —ARS, USD y el combinado— y distinguen el líquido (la plata que destinaste y todavía no invertiste) del invertido (lo que ya está en activos). La columna Variación compara lo invertido contra lo que vale hoy.',
@@ -123,7 +123,7 @@ window.MANUAL = {
       h: 'Vender un activo',
       sub: '¿Y cuando salgo?',
       img: '18-venta-activo',
-      imgCap: 'La venta muestra el total, el costo de lo vendido y el resultado antes de confirmar.',
+      imgCap: 'Venta parcial de una compra: el total, el costo de lo vendido y el resultado antes de confirmar.',
       p: [
         'Una tenencia no se liquida siempre de una vez: se va vendiendo. Por eso cada compra guarda su propia lista de ventas, igual que una operación de la mesa guarda sus cierres, y lo que se ve en pantalla sale de ahí.',
         'El botón de vender —el mismo tilde que registra un cierre en la mesa— aparece en dos lugares y no hacen lo mismo. En la fila del ticker vende TODO el activo. En la fila de una compra del detalle vende sólo de esa compra. La diferencia importa: el costo de lo vendido sale del precio de la compra de la que sale, y ese costo es el que decide cuánta ganancia realizaste.',
@@ -182,7 +182,7 @@ window.MANUAL = {
       ]
     },
     {
-      h: 'Cargar movimientos: a mano',
+      h: 'Cargar movimientos a mano',
       img: '07-cargar-manual',
       imgCap: 'Carga manual de movimientos, una fila por movimiento.',
       p: [
@@ -191,7 +191,7 @@ window.MANUAL = {
       ]
     },
     {
-      h: 'Cargar inversiones',
+      h: 'Cargar inversiones a mano',
       img: '08-cargar-inversiones',
       imgCap: 'Carga de activos: cada fila con su destino y su moneda.',
       p: [
@@ -212,7 +212,7 @@ window.MANUAL = {
       img: '15-formatos-editor',
       imgCap: 'El editor: se sube un ejemplo y se ve el resultado antes de guardar.',
       p: [
-        'Para agregar una entidad se sube un resumen de ejemplo. La app adivina cuál es la fila de títulos y qué columna es cada cosa; si se equivocó, se corrige con un click.',
+        'Para agregar una entidad se sube un resumen de ejemplo. La app detecta cuál es la fila de títulos y qué columna es cada cosa; si se equivocó, se corrige con un click.',
         'El último paso es el importante: muestra los movimientos reales que saldrían con esa configuración. Mapear columnas a ciegas es adivinar, y el error típico —leer 03/04 como 3 de abril cuando era 4 de marzo— no se nota hasta tener meses cargados mal. Acá se ve antes de guardar.'
       ],
       lista: [

@@ -22,6 +22,12 @@ await construirManual();
 
 El PDF se descarga. Reemplazá con él el de `docs/`.
 
+**Recargá la página antes de regenerar.** `build.js` declara sus constantes en el
+scope global, así que volver a inyectarlo con un `<script>` sobre una página que
+ya lo cargó tira `SyntaxError: Identifier ... has already been declared`, el
+archivo entero no se ejecuta y `construirManual()` compila con el `window.MANUAL`
+viejo — sin avisar. Si editaste el texto y el PDF sale igual que antes, es esto.
+
 ## Cómo se arma
 
 - **Tipografías:** las mismas de la app. jsPDF sólo trae las 14 estándar de
@@ -62,13 +68,13 @@ Qué muestra cada una:
 | Archivo | Pantalla |
 |---|---|
 | `00-conexion.png` | Bienvenida: conectar Drive o entrar a la demo |
-| `19-recorrido-guiado.png` | El recorrido guiado, once pasos sobre la app |
+| `19-recorrido-guiado.png` | El primer paso del recorrido guiado |
 | `17-historia-clinica-resumen.png` | Historia clínica, vista Resumen: una fila por categoría |
 | `01-historia-clinica-completa.png` | Historia clínica, vista Completa: cada movimiento editable |
 | `02-ficha-medica.png` | Score, tarjetas de indicadores y distribución del gasto |
 | `03-diagnostico.png` | Avisos, flujo trimestral y evolución anual |
-| `04-salud-financiera.png` | Cartera por destino, con un activo desplegado |
-| `18-venta-activo.png` | El modal de venta de un activo |
+| `04-salud-financiera.png` | Cartera por destino, con tres activos liquidados |
+| `18-venta-activo.png` | La venta parcial de una compra |
 | `16-mesa-trading.png` | La mesa: operación, verificación, tamaño e historial |
 | `05-evolucion.png` | Presupuestado contra real, mes a mes |
 | `06-cargar-archivo.png` | Subida del resumen y últimas cargas por origen |

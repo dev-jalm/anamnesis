@@ -24,7 +24,7 @@ anamnesis parte de tres decisiones opuestas:
 
 ![Salud financiera](docs/salud-financiera.png)
 
-**Salud financiera** — la cartera por destino, con líquido e invertido separados por moneda. Cada activo se despliega en sus compras individuales, y cada compra muestra cómo le fue contra el precio de hoy.
+**Salud financiera** — la cartera por destino, con líquido e invertido separados por moneda. Cada activo se despliega en sus compras individuales, y cada compra muestra cómo le fue contra el precio de hoy. Los que ya se vendieron enteros quedan marcados como liquidados, con lo que dejaron.
 
 **Y también se vende.** Un activo se liquida entero desde su fila, o parcialmente desde una compra del detalle. Se cargan cantidad y precio; el total, la fecha y la hora los pone la app, y antes de confirmar te muestra el resultado que estás realizando. Lo cobrado pasa al líquido del destino. Después de vender, las columnas muestran lo que queda: si de 1.000 vendiste 200, la fila dice 800 y su rendimiento se mide sobre esos 800.
 
