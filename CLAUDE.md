@@ -62,7 +62,7 @@ sobre el archivo tocado.
 
 Vanilla HTML/CSS/JS, **sin build step**. Todo global, sin módulos — el patrón es
 exponer en `window` al final del archivo. Dependencias por CDN: Chart.js, Lucide,
-html2canvas, jsPDF, SheetJS, pdf.js.
+html2canvas, jsPDF y SheetJS (esta última se pide recién al abrir un Excel).
 
 - `core.js` — lógica pura y testeable, sin DOM.
 - `dashboard.js` — todo lo que toca pantalla.

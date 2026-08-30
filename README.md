@@ -50,7 +50,7 @@ _Las tres capturas son del modo demo: los números son ficticios._
 
 No hace falta instalar nada ni tener datos propios: abrí `dashboard.html` y hacé clic en **"Ver demo con datos de ejemplo"**.
 
-Eso carga un dataset ficticio de 574 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 CEDEARs comprados en 19 tandas, una venta parcial y seis operaciones en la mesa de trading— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`, ni sale a la red.
+Eso carga un dataset ficticio de 574 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 CEDEARs comprados en 19 tandas, una venta parcial y seis operaciones en la mesa de trading— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`. Y no hace ninguna llamada por su cuenta: los auto-refrescos de cotización y precios están desactivados, así la demo se ve siempre igual. Sólo sale a la red si vos apretás actualizar precios o traer datos de mercado, y en ese caso pide precios públicos sin mandar nada tuyo.
 
 Arranca solo un **recorrido guiado** de once pasos que va oscureciendo la pantalla e iluminando de qué habla: el panel lateral, cada solapa y las acciones de carga y administración. Se corta cuando quieras —con el botón de salir, la cruz, `Escape` o un clic afuera— y se vuelve a lanzar desde **RECORRIDO**, al final del panel lateral. Justo debajo, **MANUAL** abre el PDF adentro de la app, sin salir de la pantalla donde estabas.
 
@@ -96,11 +96,11 @@ Los formatos incorporados también se editan, por si esas entidades cambian cóm
 
 ## Decisiones técnicas
 
-**Vanilla, sin build step.** HTML, CSS y JavaScript sin frameworks ni bundler. Se abre con doble clic y funciona. Las únicas dependencias externas van por CDN: Chart.js y Lucide para gráficos e íconos, más html2canvas y jsPDF que se cargan diferidos y solo intervienen al exportar. Es una decisión deliberada: una herramienta personal que quiero que siga andando dentro de cinco años no puede depender de una cadena de build que se pudre en seis meses.
+**Vanilla, sin build step.** HTML, CSS y JavaScript sin frameworks ni bundler. Se abre con doble clic y funciona. Las únicas dependencias externas van por CDN: Chart.js y Lucide para gráficos e íconos, html2canvas y jsPDF que solo intervienen al exportar, y SheetJS, que se descarga la primera vez que subís un Excel y no antes. Es una decisión deliberada: una herramienta personal que quiero que siga andando dentro de cinco años no puede depender de una cadena de build que se pudre en seis meses.
 
 **El navegador como runtime completo.** La persistencia usa la File System Access API contra un archivo que elige el usuario, con el handle guardado en IndexedDB para reconectar entre sesiones y guardado con debounce. No hay backend porque no hace falta.
 
-**Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado —parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas, parseo de resúmenes bancarios— y `tests.html` la cubre con **380 tests** en 47 grupos, incluidos casos de integración de un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
+**Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado —parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas, parseo de resúmenes bancarios— y `tests.html` la cubre con **380 tests** en 46 grupos, incluidos casos de integración de un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
 
 **Cada banco es un dato, no código.** Los parsers de Mercado Pago y Galicia eran el mismo algoritmo con constantes distintas, así que ese algoritmo vive una sola vez y cada entidad es una plantilla: qué columna trae la fecha, si el importe viene firmado o partido en débito y crédito, en qué formato están los números. Ocho campos cubren los dos bancos reales, y el motor trabaja sobre filas, así que da igual que el archivo sea CSV o Excel.
 
@@ -113,9 +113,9 @@ Los formatos incorporados también se editan, por si esas entidades cambian cóm
 ## Estructura
 
 ```
-dashboard.html    3.097 líneas    estructura, modales, formularios
-dashboard.css     7.749 líneas    estilos y theming claro/oscuro
-dashboard.js     22.178 líneas    lógica, render, estado, importación
+dashboard.html    3.131 líneas    estructura, modales, formularios
+dashboard.css     7.786 líneas    estilos y theming claro/oscuro
+dashboard.js     22.216 líneas    lógica, render, estado, importación
 core.js           2.653 líneas    funciones puras + motor de plantillas
 mesa-trading.js   2.985 líneas    mesa de trading: riesgo, liquidación, historial
 mesa-trading.css  1.029 líneas    estilos de la mesa
@@ -138,13 +138,15 @@ node --check dashboard.js
 
 ## Regenerar las capturas
 
-Si la interfaz cambia, las de `docs/` se rehacen así:
+Si la interfaz cambia, las tres de `docs/` se rehacen así:
 
 1. Abrí `dashboard.html` y entrá al modo demo.
-2. Capturá **Ficha médica** y **Salud financiera** (en Chrome: `Ctrl+Shift+P` → "Capture screenshot").
-3. Pisá `docs/ficha-medica.png` y `docs/salud-financiera.png`.
+2. Capturá **Ficha médica**, **Salud financiera** y la **mesa de trading** (en Chrome: `Ctrl+Shift+P` → "Capture screenshot").
+3. Pisá `docs/ficha-medica.png`, `docs/salud-financiera.png` y `docs/mesa-trading.png`.
 
 Siempre desde el modo demo: así las capturas no exponen información real.
+
+Las del manual son otras y viven en `docs/manual/`, con su propio instructivo en `docs/manual/README.md`.
 
 ## Estado
 

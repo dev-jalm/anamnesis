@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.6 |
+| **Versión** | 1.7 |
 | **Fecha** | 30 de agosto de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -137,7 +137,7 @@ Pantalla de listado y corrección de movimientos. **Tiene dos visualizaciones al
 | RF-021 | El filtro TIPO CATEGORÍAS restringe qué se muestra a: Todas, Básicas, Discrecionales o De flujo. **Todas** comprende básicas + discrecionales, es decir la totalidad del gasto. **No incluye las categorías de flujo**, que se consultan con su propia opción |
 | RF-022 | El buscador filtra simultáneamente por fecha, descripción, importe, origen, categoría, periodicidad, forma de pago y etiqueta |
 | RF-023 | El totalizador inferior derecho muestra **Movimientos** cuando se listan gastos y **Flujo** cuando se listan movimientos de flujo. Nunca ambos a la vez |
-| RF-024 | Cuando se muestran categorías de flujo, el totalizador presenta un balance: `(Sueldo + Préstamos) − (Inversiones + Jubilación + Reserva + Trading + Devolución de capital)` |
+| RF-024 | Cuando se muestran categorías de flujo, el totalizador presenta un balance: `(Sueldo + Préstamo + Renta financiera) − (Reserva + Inversión + Trading + Jubilación + Devolución de capital + Pérdida financiera)`, conforme al catálogo de 5.7 |
 | RF-025 | El botón CARGAR MOVIMIENTOS abre el asistente de importación |
 | RF-026 | El botón CSV descarga los movimientos actualmente filtrados |
 
@@ -700,9 +700,9 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | ID | Servicio | Endpoint | Uso | Tiempo máximo |
 |---|---|---|---|---|
 | INT-01 | dolarapi | `https://dolarapi.com/v1/dolares/bolsa` | Cotización MEP para valuar tenencias en dólares | 8 s |
-| INT-02 | data912 | `https://data912.com/live/arg_cedears` | Precios y descripciones de CEDEARs | 8 s |
+| INT-02 | data912 | `https://data912.com/live/arg_cedears` | Precios y descripciones de CEDEARs | 10 s |
 | INT-03 | argentinadatos | `https://api.argentinadatos.com/v1/cotizaciones/dolares/oficial/{aaaa/mm/dd}` | Cotización oficial al último día hábil del mes | — |
-| INT-04 | OKX | `https://www.okx.com/api/v5/market/candles` | Velas para la verificación automática de la mesa | — |
+| INT-04 | OKX | `https://www.okx.com/api/v5/market/candles` | Velas para la verificación automática de la mesa | 12 s |
 | INT-05 | OKX | `https://www.okx.com/api/v5/public/instruments?instType=SWAP` | Catálogo de instrumentos | — |
 
 **Requerimientos transversales de integración**
@@ -711,7 +711,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 |---|---|
 | RF-200 | Ninguna integración recibe datos del usuario. El intercambio se limita a consultar precios públicos |
 | RF-201 | La indisponibilidad de un servicio externo no impide operar: los valores quedan sin actualizar y la aplicación continúa |
-| RF-202 | Las consultas de cotización se cancelan a los 8 segundos |
+| RF-202 | Toda consulta a un servicio externo se cancela por tiempo, sin dejar la operación colgada: 8 segundos las de cotización, 10 las de precios de CEDEARs y 12 las de velas de mercado |
 | RF-203 | Las cotizaciones obtenidas se conservan en caché para no repetir consultas dentro de la misma sesión |
 
 **Dependencias de terceros embebidas**
@@ -722,8 +722,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | Lucide | última | Iconografía |
 | html2canvas | 1.4.1 | Captura de pantalla para exportación |
 | jsPDF | 2.5.1 | Generación de PDF |
-| SheetJS | — | Lectura de archivos Excel |
-| pdf.js | — | Lectura de PDF |
+| SheetJS | 0.18.5 | Lectura de archivos Excel |
 | Google Fonts | — | Tipografías |
 
 ---
@@ -840,7 +839,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 380 pruebas en 47 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 380 pruebas en 46 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 
 **Fundamento de RNF-40.** Requerimiento explícito del cliente: una herramienta personal destinada a seguir operativa dentro de cinco años no puede depender de una cadena de compilación cuyas dependencias se degradan en meses.
@@ -860,6 +859,9 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-223 | El conjunto es reproducible: la generación parte de una semilla fija |
 | RF-224 | Las operaciones de trading de demostración cubren los casos límite: con stop y sin stop, abierta, parcial y cerrada, compra y venta, salida por objetivo, por stop y a mano, y cierre en dos tramos |
 | RF-225 | La demostración presenta una sola jubilación. La distinción entre las dos es personal del titular y no aporta a un visitante |
+| RF-226 | La demostración no persiste nada: ni en el archivo, ni en el almacenamiento local del navegador |
+| RF-227 | La demostración no efectúa consultas externas por iniciativa propia: la actualización automática de cotización y de precios queda inhibida. El conjunto se ve siempre igual, y el visitante no genera tráfico que no pidió |
+| RF-228 | Las consultas externas que el visitante solicita de manera explícita —actualizar precios, traer datos de mercado— sí se ejecutan, porque son parte de la funcionalidad que la demostración exhibe. Ninguna de ellas transmite información del usuario (RF-200) |
 
 ### 10.1 Recorrido guiado
 
@@ -981,9 +983,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.3 | 27/08/2026 | Incorpora el Anexo A: el esfuerzo de construcción en sus dos períodos —el trazable medido sobre las transcripciones de sesión, el previo estimado a 45 h/mes— y la estimación de lo que habría demandado un equipo humano | Reemplazada |
 | 1.4 | 29/08/2026 | Incorpora el recorrido guiado del modo demostración (10.1, RF-240 a RF-250), su acceso desde el panel lateral (RF-249) y el criterio de tema oscuro íntegro para el manual (RF-214b) | Reemplazada |
 | 1.5 | 30/08/2026 | Actualiza las capturas del manual provistas por el cliente, corrige los títulos de las secciones de carga y sincroniza el Anexo A con la bitácora de sesiones vigente. Sin cambios de requerimientos | Reemplazada |
-| 1.6 | 30/08/2026 | Incorpora la consulta del manual desde dentro de la aplicación (RF-214c a RF-214e), el reordenamiento de los accesos de ayuda al final del panel lateral (RF-249) y los criterios generales de cierre y altura de los diálogos (RNF-15, RNF-16) | **Vigente** |
+| 1.6 | 30/08/2026 | Incorpora la consulta del manual desde dentro de la aplicación (RF-214c a RF-214e), el reordenamiento de los accesos de ayuda al final del panel lateral (RF-249) y los criterios generales de cierre y altura de los diálogos (RNF-15, RNF-16) | Reemplazada |
+| 1.7 | 30/08/2026 | Revisión de consistencia contra el producto construido. Se corrige la fórmula del balance de flujo (RF-024), que omitía Renta financiera y Pérdida financiera y contradecía al catálogo de 5.7; los tiempos máximos de las integraciones (INT-02, INT-04, RF-202); la cobertura de pruebas (RNF-43); y se elimina pdf.js del detalle de dependencias, que no se utiliza. Se explicita el comportamiento de red del modo demostración (RF-226 a RF-228) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+La versión 1.7 **no incorpora cambios de producto**: corrige el documento donde
+se había apartado de lo construido. El producto no se modificó; lo que se
+corrigió es lo que este documento afirmaba de él.
+
+**Implementados en la versión 1.6**
 
 | Cambio | Requerimiento |
 |---|---|
@@ -1025,7 +1034,7 @@ La construcción no empezó con el repositorio. Se desarrolló en dos etapas, co
 | Período | Desde | Hasta | Herramienta | Trazabilidad |
 |---|---|---|---|---|
 | **1. Previo al repositorio** | 02/04/2026 | 27/07/2026 | Conversaciones y proyectos, pasando las versiones del producto de una a otra | Insuficiente: hay fechas pero no se puede aislar qué conversaciones son del producto |
-| **2. Con repositorio** | 27/07/2026 | 30/08/2026 | Entorno con control de versiones | Transcripciones de sesión: 10.564 eventos fechados |
+| **2. Con repositorio** | 27/07/2026 | 30/08/2026 | Entorno con control de versiones | Transcripciones de sesión: 10.882 eventos fechados |
 
 **Cuánto producto existía antes del primer commit.** El primer commit —titulado *Anamnesis: estado inicial*— no marca el inicio del desarrollo sino la incorporación al repositorio de un producto ya construido:
 
@@ -1038,7 +1047,7 @@ La construcción no empezó con el repositorio. Se desarrolló en dos etapas, co
 | core.js | 1.962 |
 | **Total** | **34.689** |
 
-Sobre las 44.194 líneas actuales, eso es el **78 % del producto**. El período con repositorio aportó el 22 % restante, más la mesa de trading, la venta de activos, el manual y esta especificación.
+Sobre las 44.194 líneas medidas al cierre de la versión 1.3 de este documento —el volumen crece con cada entrega—, eso es el **78 % del producto**. El período con repositorio aportó el 22 % restante, más la mesa de trading, la venta de activos, el manual y esta especificación.
 
 Que en el primer commit ya haya cinco archivos es en sí mismo un dato: el producto nació como un único `dashboard.html` con la estructura, los estilos y la lógica adentro, y la separación en módulos —incluida la extracción de `core.js` como lógica pura y la de `tests.html` como suite— también ocurrió antes del repositorio.
 
@@ -1063,7 +1072,7 @@ Identificarlas por fecha y tamaño daba resultados demasiado dispares —entre 1
 
 ### A.3 Período 2: con repositorio — medido
 
-**Método.** Las horas no se declaran: se derivan de las transcripciones de sesión del entorno de desarrollo, que registran cada interacción con su marca temporal. Las 10.564 interacciones se agrupan en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, y se suma la duración de cada una.
+**Método.** Las horas no se declaran: se derivan de las transcripciones de sesión del entorno de desarrollo, que registran cada interacción con su marca temporal. Las 10.882 interacciones se agrupan en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, y se suma la duración de cada una.
 
 **Fuente viva.** El cálculo está automatizado en `docs/horas-sesiones.js`, que regenera `docs/bitacora-sesiones.md` con el detalle sesión por sesión. Las cifras de esta tabla son las vigentes a la fecha del documento; la bitácora tiene siempre las actuales.
 
@@ -1071,9 +1080,9 @@ Identificarlas por fecha y tamaño daba resultados demasiado dispares —entre 1
 |---|---|
 | Período | 27/07/2026 a 30/08/2026 |
 | Días con actividad | 20 |
-| Interacciones registradas | 10.564 |
-| Sesiones de trabajo | 36 |
-| **Horas medidas** | **≈ 61,0** |
+| Interacciones registradas | 10.882 |
+| Sesiones de trabajo | 37 |
+| **Horas medidas** | **≈ 62,2** |
 | Duración media por sesión | 1,7 h |
 
 **Por qué no se usan los commits.** Es la otra fuente disponible, y da menos: 40,5 horas en 23 sesiones sobre 13 días. La diferencia del 32 % no es ruido, son dos cosas que el historial de commits no puede ver:
@@ -1101,14 +1110,14 @@ Se adopta el corte de 90 minutos, el mismo del conteo por commits, para que las 
 | Período | Horas | Origen del dato |
 |---|---|---|
 | 1. Previo al repositorio | ≈ 171 | Estimado a 45 h/mes (A.2) |
-| 2. Con repositorio | ≈ 61,0 | Medido (A.3) |
-| **Total** | **≈ 232** | |
+| 2. Con repositorio | ≈ 62,2 | Medido (A.3) |
+| **Total** | **≈ 233** | |
 
 El 76 % del esfuerzo corresponde al período previo al repositorio, coherente con que ahí se construyó el 78 % del producto.
 
 ### A.5 Esfuerzo estimado de un equipo humano
 
-**Alcance a construir.** 44.194 líneas de código versionado, 380 pruebas automatizadas, 5 integraciones externas, un manual de 27 páginas con 20 capturas y su compilador, y esta especificación.
+**Alcance a construir.** 44.194 líneas de código versionado —medidas al cierre de la versión 1.3—, 380 pruebas automatizadas, 5 integraciones externas, un manual de 27 páginas con 20 capturas y su compilador, y esta especificación.
 
 **Equipo mínimo viable**
 
@@ -1157,7 +1166,7 @@ El 76 % del esfuerzo corresponde al período previo al repositorio, coherente co
 
 | Concepto | Real | Equipo humano |
 |---|---|---|
-| Horas | ≈ 232 | ≈ 2.070 |
+| Horas | ≈ 233 | ≈ 2.070 |
 | Personas | 1 | 4 a 5 |
 | Calendario | 5 meses, en dedicación parcial | 3 a 4 meses, a tiempo completo |
 
@@ -1169,10 +1178,10 @@ Conviene notar que el calendario real es **más largo** que el estimado para el 
 
 | # | Advertencia |
 |---|---|
-| 1 | **De las 232 horas del lado real, sólo 61,0 son una medición.** Salen de 10.564 interacciones fechadas del período 2. Las 171 restantes son una dedicación estimada de 45 h/mes, adoptada por el cliente ante la falta de registro confiable |
+| 1 | **De las 233 horas del lado real, sólo 62,2 son una medición.** Salen de 10.882 interacciones fechadas del período 2. Las 171 restantes son una dedicación estimada de 45 h/mes, adoptada por el cliente ante la falta de registro confiable |
 | 2 | Las 2.070 del equipo humano son una **estimación por componente** con los supuestos de A.5. Ninguno de los dos lados del contraste es enteramente un dato |
 | 3 | La estimación del período 1 queda por debajo del piso que sugiere el volumen de código —195 horas, ver A.2—, de modo que subestima antes que exagerar |
-| 4 | En el período medido se toma el lapso entre la primera y la última interacción de cada sesión: no se distingue el trabajo activo de la lectura o la espera, y las pausas de más de 90 minutos quedan fuera aunque hayan sido de trabajo. Esas 61,0 horas son un **piso** |
+| 4 | En el período medido se toma el lapso entre la primera y la última interacción de cada sesión: no se distingue el trabajo activo de la lectura o la espera, y las pausas de más de 90 minutos quedan fuera aunque hayan sido de trabajo. Esas 62,2 horas son un **piso** |
 | 5 | La estimación del equipo humano supone construir **el producto terminado**, sin las exploraciones descartadas que un proyecto real atraviesa. En ese sentido es conservadora |
 | 6 | La comparación no mide productividad individual: las horas reales corresponden a dirección, decisión y validación, con la escritura de código asistida |
 | 7 | Un equipo humano habría producido decisiones de arquitectura distintas. La relación compara el costo de llegar a **este** producto, no a uno equivalente en funciones |

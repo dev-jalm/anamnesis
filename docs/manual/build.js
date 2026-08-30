@@ -55,7 +55,7 @@ window.MANUAL = {
       imgCap: 'Vista Resumen: una fila por categoría, con su peso sobre el total.',
       p: [
         'Es el listado de todos los movimientos del período elegido, y tiene dos visualizaciones que se alternan con el par de botones de arriba a la derecha: Resumen y Completa. Las dos trabajan sobre los mismos movimientos y respetan los mismos filtros; lo que cambia es a qué distancia los mirás.',
-        'Arriba de todo, TIPO CATEGORÍAS filtra qué se muestra: Todas (los gastos, básicos y discrecionales), Básicas, Discrecionales o De flujo (sueldos, préstamos, aportes a reserva, inversión, trading y jubilación). El buscador de al lado filtra por cualquier campo a la vez.',
+        'Arriba de todo, TIPO CATEGORÍAS filtra qué se muestra: Todas (los gastos, básicos y discrecionales), Básicas, Discrecionales o De flujo (sueldos, préstamos, aportes a reserva, inversión, trading y jubilación, más la renta o la pérdida que dejan las ventas de activos). El buscador de al lado filtra por cualquier campo a la vez.',
         'RESUMEN es la vista de arriba hacia abajo: una fila por categoría, con cuántos movimientos tiene, cuánto suma y qué porcentaje del total representa. Sirve para la pregunta de dónde se fue la plata, sin el ruido de las transacciones una por una. Cada categoría se despliega con el chevron cuando querés bajar al detalle.'
       ],
       lista: [
