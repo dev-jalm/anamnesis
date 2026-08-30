@@ -52,7 +52,7 @@ No hace falta instalar nada ni tener datos propios: abrí `dashboard.html` y hac
 
 Eso carga un dataset ficticio de 574 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 CEDEARs comprados en 19 tandas, una venta parcial y seis operaciones en la mesa de trading— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`, ni sale a la red.
 
-Arranca solo un **recorrido guiado** de once pasos que va oscureciendo la pantalla e iluminando de qué habla: el panel lateral, cada solapa y las acciones de carga y administración. Se corta cuando quieras —con el botón de salir, la cruz, `Escape` o un clic afuera— y se vuelve a lanzar desde **RECORRIDO**, en el panel lateral.
+Arranca solo un **recorrido guiado** de once pasos que va oscureciendo la pantalla e iluminando de qué habla: el panel lateral, cada solapa y las acciones de carga y administración. Se corta cuando quieras —con el botón de salir, la cruz, `Escape` o un clic afuera— y se vuelve a lanzar desde **RECORRIDO**, al final del panel lateral. Justo debajo, **MANUAL** abre el PDF adentro de la app, sin salir de la pantalla donde estabas.
 
 Para usarlo con datos reales necesitás Chrome o Edge (la File System Access API no está en Firefox ni Safari) y servirlo por HTTP o abrirlo como archivo local.
 

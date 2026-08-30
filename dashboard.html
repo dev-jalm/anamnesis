@@ -126,12 +126,6 @@
         <i data-lucide="hard-drive" style="width:14px;height:14px"></i>
         <span id="driveBtnText">CONECTAR DRIVE</span>
       </button>
-      <!-- Vuelve a lanzar el recorrido guiado. Arranca solo la primera vez que
-           se entra al modo demo; después queda acá para repetirlo. -->
-      <button class="upload-btn csv-btn btn-icon-only" id="tourBtn" title="Ver el recorrido guiado de la app">
-        <i data-lucide="compass" style="width:14px;height:14px"></i>
-        <span>RECORRIDO</span>
-      </button>
       <!-- Exportar y Administración son el mismo control: un botón que
            despliega sus acciones debajo al pasar el mouse. Comparten
            .sidebar-submenu-wrap / .sidebar-submenu / .sidebar-submenu-item. -->
@@ -165,6 +159,16 @@
           </button>
         </div>
       </div>
+      <!-- Ayuda: el recorrido guiado y el manual. Van al final porque no se usan
+           en el trabajo diario, sino cuando alguien no sabe dónde está algo. -->
+      <button class="upload-btn csv-btn btn-icon-only" id="tourBtn" title="Ver el recorrido guiado de la app">
+        <i data-lucide="compass" style="width:14px;height:14px"></i>
+        <span>RECORRIDO</span>
+      </button>
+      <button class="upload-btn csv-btn btn-icon-only" id="manualBtn" title="Abrir el manual de usuario en PDF">
+        <i data-lucide="book-open" style="width:14px;height:14px"></i>
+        <span>MANUAL</span>
+      </button>
     </div>
   </aside>
 
@@ -1174,6 +1178,36 @@
         <i data-lucide="check" style="width:14px;height:14px"></i>
         CONFIRMAR
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Manual de usuario: se muestra dentro de la app, en el visor del navegador.
+     El modal es más ancho y más alto que el resto porque acá el contenido es
+     una página A4: achicarlo obligaría a scrollear en dos ejes. -->
+<div class="modal-overlay hidden" id="manualOverlay" style="z-index:200">
+  <div class="modal-card modal-manual">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow">AYUDA</div>
+        <h2>Manual de usuario</h2>
+        <div class="medical-period mono">Cada pantalla, con su explicación</div>
+      </div>
+      <button class="modal-close" id="manualCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+
+    <!-- El src se asigna al abrir, no acá: así el PDF no se descarga en cada
+         carga de la app, sino la primera vez que alguien lo pide. -->
+    <iframe class="manual-visor" id="manualVisor" title="Manual de usuario en PDF"></iframe>
+
+    <div class="modal-actions">
+      <a class="upload-btn csv-btn" id="manualNuevaPestana" href="docs/manual-de-usuario.pdf" target="_blank" rel="noopener">
+        <i data-lucide="external-link" style="width:14px;height:14px"></i>
+        ABRIR EN OTRA PESTAÑA
+      </a>
+      <button type="button" class="upload-btn csv-btn" id="manualCerrarBtn">CERRAR</button>
     </div>
   </div>
 </div>

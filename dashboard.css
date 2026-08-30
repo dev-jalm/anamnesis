@@ -7747,3 +7747,40 @@ body:not(.sidebar-pinned) .main-tab-panel {
   width: 110px;
   text-align: center;
 }
+
+/* ==========================================================================
+   MANUAL DE USUARIO — el PDF dentro de la app
+   --------------------------------------------------------------------------
+   Es el único modal cuyo contenido tiene un alto propio que no depende del
+   texto: una página A4. Por eso la tarjeta se estira a la ventana y el visor
+   se queda con lo que sobra, en vez de al revés.
+   ========================================================================== */
+.modal-card.modal-manual {
+  width: 100%;
+  max-width: 1100px;
+  height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* Header y acciones no se achican: sin esto el flex les come alto al visor
+   crecer, y la fila de botones queda partida. */
+.modal-manual .modal-header,
+.modal-manual .modal-actions {
+  flex-shrink: 0;
+}
+.modal-manual .modal-actions {
+  margin-top: 16px;
+  align-items: center;
+}
+/* El visor toma todo el alto libre. `min-height: 0` es lo que permite que un
+   hijo flex se achique por debajo de su contenido; sin eso el iframe empuja la
+   tarjeta y desborda la ventana. */
+.manual-visor {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-1);
+}

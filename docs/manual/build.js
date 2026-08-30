@@ -44,6 +44,7 @@ window.MANUAL = {
         'Se corta en cualquier momento: con «Saltar recorrido», con la cruz, con la tecla Escape, o haciendo clic en la zona oscurecida.',
         'Las flechas ← y → del teclado se mueven entre pasos.',
         'Para volver a verlo, el botón RECORRIDO del panel lateral lo lanza de nuevo.',
+        'Debajo está MANUAL, que abre este mismo PDF adentro de la app. Los dos accesos van al final del panel: no son del trabajo diario, son para cuando no encontrás algo.',
         'No queda registrado que ya lo viste: el modo demo no escribe nada, ni siquiera eso. Si recargás la página, vuelve a ofrecerse.'
       ]
     },

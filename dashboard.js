@@ -15104,6 +15104,44 @@ document.getElementById('driveBtn').addEventListener('click', function () {
   });
 })();
 
+// Manual de usuario. Se muestra adentro de la app, en el visor de PDF del
+// navegador. El src se asigna al abrir y se limpia al cerrar: si quedara puesto,
+// el PDF —tres megas— seguiría en memoria toda la sesión aunque nadie lo mire.
+(function () {
+  const btn = document.getElementById('manualBtn');
+  const overlay = document.getElementById('manualOverlay');
+  const visor = document.getElementById('manualVisor');
+  if (!btn || !overlay || !visor) return;
+
+  const RUTA = 'docs/manual-de-usuario.pdf';
+
+  function abrir() {
+    if (typeof closeSidebar === 'function') closeSidebar();
+    // #view=FitH hace que el visor arranque ajustado al ancho, que es como se
+    // lee un manual: con la página entera visible de lado a lado.
+    if (!visor.getAttribute('src')) visor.setAttribute('src', RUTA + '#view=FitH');
+    overlay.classList.remove('hidden');
+  }
+
+  function cerrar() {
+    overlay.classList.add('hidden');
+    visor.removeAttribute('src');
+  }
+
+  btn.addEventListener('click', abrir);
+  const cerrarX = document.getElementById('manualCloseBtn');
+  const cerrarBtn = document.getElementById('manualCerrarBtn');
+  if (cerrarX) cerrarX.addEventListener('click', cerrar);
+  if (cerrarBtn) cerrarBtn.addEventListener('click', cerrar);
+  // Click en el fondo, igual que el resto de los modales de la app.
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) cerrar();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !overlay.classList.contains('hidden')) cerrar();
+  });
+})();
+
 // Hook: cada vez que se importa data, schedule save
 const _origMergeParsedData = mergeParsedData;
 mergeParsedData = function (parsed) {
