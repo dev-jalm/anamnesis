@@ -71,15 +71,15 @@ Qué muestra cada una:
 | `19-recorrido-guiado.png` | El primer paso del recorrido guiado |
 | `17-historia-clinica-resumen.png` | Historia clínica, vista Resumen: una fila por categoría |
 | `01-historia-clinica-completa.png` | Historia clínica, vista Completa: cada movimiento editable |
+| `06-cargar-archivo.png` | Subida del resumen y últimas cargas por origen |
+| `07-cargar-manual.png` | Carga manual, una fila por movimiento |
+| `08-cargar-inversiones.png` | Carga de activos con destino y moneda |
 | `02-ficha-medica.png` | Score, tarjetas de indicadores y distribución del gasto |
 | `03-diagnostico.png` | Avisos, flujo trimestral y evolución anual |
 | `04-salud-financiera.png` | Cartera por destino, con tres activos liquidados |
 | `18-venta-activo.png` | La venta parcial de una compra |
 | `16-mesa-trading.png` | La mesa: operación, verificación, tamaño e historial |
 | `05-evolucion.png` | Presupuestado contra real, mes a mes |
-| `06-cargar-archivo.png` | Subida del resumen y últimas cargas por origen |
-| `07-cargar-manual.png` | Carga manual, una fila por movimiento |
-| `08-cargar-inversiones.png` | Carga de activos con destino y moneda |
 | `14-formatos-lista.png` | Los formatos de importación configurados |
 | `15-formatos-editor.png` | El editor de formatos con el preview |
 | `09-admin-categorias.png` | Categorías, subcategorías y etiquetas |

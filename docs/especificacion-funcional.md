@@ -1034,7 +1034,7 @@ La construcción no empezó con el repositorio. Se desarrolló en dos etapas, co
 | Período | Desde | Hasta | Herramienta | Trazabilidad |
 |---|---|---|---|---|
 | **1. Previo al repositorio** | 02/04/2026 | 27/07/2026 | Conversaciones y proyectos, pasando las versiones del producto de una a otra | Insuficiente: hay fechas pero no se puede aislar qué conversaciones son del producto |
-| **2. Con repositorio** | 27/07/2026 | 30/08/2026 | Entorno con control de versiones | Transcripciones de sesión: 10.882 eventos fechados |
+| **2. Con repositorio** | 27/07/2026 | 30/08/2026 | Entorno con control de versiones | Transcripciones de sesión: 10.963 eventos fechados |
 
 **Cuánto producto existía antes del primer commit.** El primer commit —titulado *Anamnesis: estado inicial*— no marca el inicio del desarrollo sino la incorporación al repositorio de un producto ya construido:
 
@@ -1072,7 +1072,7 @@ Identificarlas por fecha y tamaño daba resultados demasiado dispares —entre 1
 
 ### A.3 Período 2: con repositorio — medido
 
-**Método.** Las horas no se declaran: se derivan de las transcripciones de sesión del entorno de desarrollo, que registran cada interacción con su marca temporal. Las 10.882 interacciones se agrupan en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, y se suma la duración de cada una.
+**Método.** Las horas no se declaran: se derivan de las transcripciones de sesión del entorno de desarrollo, que registran cada interacción con su marca temporal. Las 10.963 interacciones se agrupan en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, y se suma la duración de cada una.
 
 **Fuente viva.** El cálculo está automatizado en `docs/horas-sesiones.js`, que regenera `docs/bitacora-sesiones.md` con el detalle sesión por sesión. Las cifras de esta tabla son las vigentes a la fecha del documento; la bitácora tiene siempre las actuales.
 
@@ -1080,9 +1080,9 @@ Identificarlas por fecha y tamaño daba resultados demasiado dispares —entre 1
 |---|---|
 | Período | 27/07/2026 a 30/08/2026 |
 | Días con actividad | 20 |
-| Interacciones registradas | 10.882 |
-| Sesiones de trabajo | 37 |
-| **Horas medidas** | **≈ 62,2** |
+| Interacciones registradas | 10.963 |
+| Sesiones de trabajo | 38 |
+| **Horas medidas** | **≈ 62,5** |
 | Duración media por sesión | 1,7 h |
 
 **Por qué no se usan los commits.** Es la otra fuente disponible, y da menos: 40,5 horas en 23 sesiones sobre 13 días. La diferencia del 32 % no es ruido, son dos cosas que el historial de commits no puede ver:
@@ -1110,7 +1110,7 @@ Se adopta el corte de 90 minutos, el mismo del conteo por commits, para que las 
 | Período | Horas | Origen del dato |
 |---|---|---|
 | 1. Previo al repositorio | ≈ 171 | Estimado a 45 h/mes (A.2) |
-| 2. Con repositorio | ≈ 62,2 | Medido (A.3) |
+| 2. Con repositorio | ≈ 62,5 | Medido (A.3) |
 | **Total** | **≈ 233** | |
 
 El 76 % del esfuerzo corresponde al período previo al repositorio, coherente con que ahí se construyó el 78 % del producto.
@@ -1178,10 +1178,10 @@ Conviene notar que el calendario real es **más largo** que el estimado para el 
 
 | # | Advertencia |
 |---|---|
-| 1 | **De las 233 horas del lado real, sólo 62,2 son una medición.** Salen de 10.882 interacciones fechadas del período 2. Las 171 restantes son una dedicación estimada de 45 h/mes, adoptada por el cliente ante la falta de registro confiable |
+| 1 | **De las 233 horas del lado real, sólo 62,5 son una medición.** Salen de 10.963 interacciones fechadas del período 2. Las 171 restantes son una dedicación estimada de 45 h/mes, adoptada por el cliente ante la falta de registro confiable |
 | 2 | Las 2.070 del equipo humano son una **estimación por componente** con los supuestos de A.5. Ninguno de los dos lados del contraste es enteramente un dato |
 | 3 | La estimación del período 1 queda por debajo del piso que sugiere el volumen de código —195 horas, ver A.2—, de modo que subestima antes que exagerar |
-| 4 | En el período medido se toma el lapso entre la primera y la última interacción de cada sesión: no se distingue el trabajo activo de la lectura o la espera, y las pausas de más de 90 minutos quedan fuera aunque hayan sido de trabajo. Esas 62,2 horas son un **piso** |
+| 4 | En el período medido se toma el lapso entre la primera y la última interacción de cada sesión: no se distingue el trabajo activo de la lectura o la espera, y las pausas de más de 90 minutos quedan fuera aunque hayan sido de trabajo. Esas 62,5 horas son un **piso** |
 | 5 | La estimación del equipo humano supone construir **el producto terminado**, sin las exploraciones descartadas que un proyecto real atraviesa. En ese sentido es conservadora |
 | 6 | La comparación no mide productividad individual: las horas reales corresponden a dirección, decisión y validación, con la escritura de código asistida |
 | 7 | Un equipo humano habría producido decisiones de arquitectura distintas. La relación compara el costo de llegar a **este** producto, no a uno equivalente en funciones |

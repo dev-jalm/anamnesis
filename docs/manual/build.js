@@ -73,9 +73,41 @@ window.MANUAL = {
         'Los campos se editan en la misma fila, sin abrir nada. Los cambios quedan pendientes hasta que apretás GUARDAR: hasta entonces podés seguir corrigiendo o cancelar.',
         'La letra al lado de la fecha es el origen del movimiento, para saber de qué resumen salió sin tener que abrirlo.',
         'Un valor editado a mano se muestra en color de acento y guarda el original en el tooltip, así siempre se puede ver qué decía el archivo.',
-        'CARGAR MOVIMIENTOS abre la pantalla de importación (ver más adelante).',
+        'CARGAR MOVIMIENTOS abre la pantalla de importación, que es lo que sigue.',
         'CSV baja los movimientos filtrados a una planilla.',
         'El totalizador de abajo a la derecha muestra Movimientos cuando estás viendo gastos y Flujo cuando estás viendo movimientos de flujo. Nunca los dos: el listado muestra unos u otros.'
+      ]
+    },
+    {
+      h: 'Cargar movimientos: desde un archivo',
+      img: '06-cargar-archivo',
+      imgCap: 'Subida del resumen bancario y las últimas cargas por origen.',
+      p: [
+        'Se entra desde Historia clínica, con el botón CARGAR MOVIMIENTOS de arriba a la derecha. Es la vía principal para que los datos lleguen a la app: subís el resumen tal como lo bajás del banco —CSV o Excel— y lo lee sola, sin convertirlo ni pegarlo en ningún lado. El texto debajo del recuadro enumera las entidades configuradas.',
+        'La app reconoce de qué banco es el archivo por su contenido, no por el nombre, así que no hay que elegir el origen de antemano. Si tu banco todavía no está configurado, se agrega desde Formatos de importación, más adelante en este manual.'
+      ],
+      lista: [
+        'Podés subir resúmenes que se solapen. Si cargás del 1 al 10 y después del 8 al 20, los movimientos repetidos se descartan solos.',
+        'Y si entre una carga y otra corregiste la descripción, el monto o la fecha de un movimiento, se lo sigue reconociendo como el mismo: la app lo identifica por la clave que tenía en el archivo del que salió, no por lo que muestra la pantalla.',
+        'El panel ÚLTIMAS CARGAS guarda las tres más recientes de cada origen, con fecha, hora y cuántos movimientos quedaron sobre cuántos traía el archivo.'
+      ]
+    },
+    {
+      h: 'Cargar movimientos a mano',
+      img: '07-cargar-manual',
+      imgCap: 'Carga manual de movimientos, una fila por movimiento.',
+      p: [
+        'Para lo que no figura en ningún resumen: gastos en efectivo, préstamos entre personas, ajustes.',
+        'Cada fila es un movimiento completo: fecha, descripción, monto, categoría, periodicidad y forma de pago. Con + AGREGAR FILA sumás las que necesites y guardás todas juntas. El monto se formatea con separador de miles al salir del campo.'
+      ]
+    },
+    {
+      h: 'Cargar inversiones a mano',
+      img: '08-cargar-inversiones',
+      imgCap: 'Carga de activos: cada fila con su destino y su moneda.',
+      p: [
+        'Las compras de activos se cargan acá. No se contabilizan como transacciones: se guardan como detalle del portfolio y aparecen en Salud financiera dentro del destino que elijas.',
+        'Cada fila lleva su propio destino y su propia moneda, así que una misma carga puede mezclar pesos y dólares y repartirse entre varios destinos. El total del lote se muestra separado por moneda, porque sumar pesos con dólares no daría un número con significado.'
       ]
     },
     {
@@ -110,9 +142,9 @@ window.MANUAL = {
       img: '04-salud-financiera',
       imgCap: 'Los destinos en orden, con su líquido e invertido por moneda y tres activos ya liquidados.',
       p: [
-        'Muestra el patrimonio repartido en cinco destinos, en este orden: Reserva, Inversiones, las dos Jubilaciones y Trading. El orden va del horizonte más corto al más largo, y deja Trading al final porque es el único que no agrupa tenencias sino operaciones: su detalle es la mesa, que se explica en el apartado siguiente. Cada destino es un panel que se despliega.',
+        'Muestra el patrimonio repartido en cinco destinos, en este orden: Reserva, Inversiones, las dos Jubilaciones y Trading. El orden va del horizonte más corto al más largo, y deja Trading al final porque es el único que no agrupa tenencias sino operaciones: su detalle es la mesa, que tiene su propio apartado más adelante. Cada destino es un panel que se despliega.',
         'Dentro de cada panel, los totales van separados por moneda —ARS, USD y el combinado— y distinguen el líquido (la plata que destinaste y todavía no invertiste) del invertido (lo que ya está en activos). La columna Variación compara lo invertido contra lo que vale hoy.',
-        'La tabla lista los activos por ticker: nominales, precio promedio de compra, total invertido, precio actual, variación por nominal, total actualizado y ganancia o pérdida. Cada activo se despliega en sus compras individuales, y cada compra muestra cómo le fue contra el precio de hoy: en verde si gana, en rojo si pierde.'
+        'La tabla lista los activos que cargaste en Cargar inversiones, agrupados por ticker: nominales, precio promedio de compra, total invertido, precio actual, variación por nominal, total actualizado y ganancia o pérdida. Cada activo se despliega en sus compras individuales, y cada compra muestra cómo le fue contra el precio de hoy: en verde si gana, en rojo si pierde.'
       ],
       lista: [
         'El botón de refresco al lado de ARS actualiza precios y descripciones desde data912.com.',
@@ -166,38 +198,6 @@ window.MANUAL = {
       p: [
         'Compara lo que presupuestaste contra lo que gastaste realmente, mes a mes y categoría por categoría. Cada fila lleva su total del año y una línea de tendencia.',
         'Las categorías de flujo no se suman como el resto: su fila de cierre es un balance —lo que entra menos lo que sale— porque sumar un sueldo con un aporte a la reserva no daría un número con sentido.'
-      ]
-    },
-    {
-      h: 'Cargar movimientos: desde un archivo',
-      img: '06-cargar-archivo',
-      imgCap: 'Subida del resumen bancario y las últimas cargas por origen.',
-      p: [
-        'Es la vía principal. Subís el resumen tal como lo bajás del banco —CSV o Excel— y la app lo lee sola: no hay que convertirlo ni pegarlo en ningún lado. El texto debajo del recuadro enumera las entidades configuradas.',
-        'La app reconoce de qué banco es el archivo por su contenido, no por el nombre, así que no hay que elegir el origen de antemano.'
-      ],
-      lista: [
-        'Podés subir resúmenes que se solapen. Si cargás del 1 al 10 y después del 8 al 20, los movimientos repetidos se descartan solos.',
-        'Y si entre una carga y otra corregiste la descripción, el monto o la fecha de un movimiento, se lo sigue reconociendo como el mismo: la app lo identifica por la clave que tenía en el archivo del que salió, no por lo que muestra la pantalla.',
-        'El panel ÚLTIMAS CARGAS guarda las tres más recientes de cada origen, con fecha, hora y cuántos movimientos quedaron sobre cuántos traía el archivo.'
-      ]
-    },
-    {
-      h: 'Cargar movimientos a mano',
-      img: '07-cargar-manual',
-      imgCap: 'Carga manual de movimientos, una fila por movimiento.',
-      p: [
-        'Para lo que no figura en ningún resumen: gastos en efectivo, préstamos entre personas, ajustes.',
-        'Cada fila es un movimiento completo: fecha, descripción, monto, categoría, periodicidad y forma de pago. Con + AGREGAR FILA sumás las que necesites y guardás todas juntas. El monto se formatea con separador de miles al salir del campo.'
-      ]
-    },
-    {
-      h: 'Cargar inversiones a mano',
-      img: '08-cargar-inversiones',
-      imgCap: 'Carga de activos: cada fila con su destino y su moneda.',
-      p: [
-        'Las compras de activos se cargan acá. No se contabilizan como transacciones: se guardan como detalle del portfolio y aparecen en Salud financiera dentro del destino que elijas.',
-        'Cada fila lleva su propio destino y su propia moneda, así que una misma carga puede mezclar pesos y dólares y repartirse entre varios destinos. El total del lote se muestra separado por moneda, porque sumar pesos con dólares no daría un número con significado.'
       ]
     },
     {
