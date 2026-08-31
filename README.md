@@ -74,7 +74,7 @@ Las tres secciones —mesa de trabajo, métricas e historial— vienen plegadas.
 
 La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite: con stop y sin stop, abiertas, parciales y cerradas, long y short, salida por objetivo, por stop y a mano, y una que cierra en dos tramos. Una de las que va sin stop cierra **en ganancia**, a propósito: ganar no valida el proceso.
 
-## Decisiones técnicas
+## Cómo se construyó
 
 - **Vanilla, sin build step.** HTML, CSS y JavaScript sin frameworks ni bundler, que se abre con doble clic y funciona. Las únicas dependencias externas van por CDN: Chart.js y Lucide para gráficos e íconos, html2canvas y jsPDF que solo intervienen al exportar, y SheetJS, que se descarga la primera vez que subís un Excel y no antes. Es una decisión deliberada: una herramienta personal que quiero que siga andando dentro de cinco años no puede depender de una cadena de build que se pudre en seis meses.
 
@@ -92,7 +92,7 @@ La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite
 
 - **Aritmética con signo explícito.** Todos los montos se guardan positivos, sin excepción, y el signo lo aplica cada operación según su semántica (`+ Sueldo − gastos − Inversión…`). Suena menor, pero es lo que permite que una misma transacción cuente distinto según el KPI que la mire. La devolución de capital es el caso que lo justifica: resta en el balance de flujo, porque es plata que salió del bolsillo.
 
-### Estructura
+### Cómo se organiza
 
 ```
 dashboard.html    3.131 líneas    estructura, modales, formularios
@@ -108,7 +108,7 @@ tour.css            131 líneas    estilos del recorrido
 tests.html        3.299 líneas    380 tests sobre core.js
 ```
 
-### Correr los tests
+### Cómo se prueba
 
 Abrí `tests.html` en el navegador. No requiere Node, ni instalación, ni servidor.
 
@@ -126,7 +126,7 @@ Proyecto personal en uso activo. La versión actual persiste contra un archivo d
 
 Sin licencia definida — todos los derechos reservados. El código está publicado para consulta.
 
-## Probarlo
+## Cómo se prueba
 
 No hace falta instalar nada ni tener datos propios.
 
