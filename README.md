@@ -126,7 +126,7 @@ Proyecto personal en uso activo. La versión actual persiste contra un archivo d
 
 Sin licencia definida — todos los derechos reservados. El código está publicado para consulta.
 
-## Cómo se prueba
+## Probala vos
 
 No hace falta instalar nada ni tener datos propios.
 
