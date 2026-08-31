@@ -114,18 +114,6 @@ Para validar sintaxis antes de commitear:
 node --check dashboard.js
 ```
 
-## Regenerar las capturas
-
-Si la interfaz cambia, las tres de `docs/` se rehacen así:
-
-1. Abrí `dashboard.html` y entrá al modo demo.
-2. Capturá **Ficha médica**, **Salud financiera** y la **mesa de trading** (en Chrome: `Ctrl+Shift+P` → "Capture screenshot").
-3. Pisá `docs/ficha-medica.png`, `docs/salud-financiera.png` y `docs/mesa-trading.png`.
-
-Siempre desde el modo demo: así las capturas no exponen información real.
-
-Las del manual son otras y viven en `docs/manual/`, con su propio instructivo en `docs/manual/README.md`.
-
 ## Estado
 
 Proyecto personal en uso activo. La versión actual persiste contra Google Drive; está en evaluación migrar la capa de persistencia a una base de datos, manteniendo ambos backends detrás de una interfaz común.
@@ -136,15 +124,18 @@ Sin licencia definida — todos los derechos reservados. El código está public
 
 ## Probarlo
 
-No hace falta instalar nada ni tener datos propios: abrí `dashboard.html` y hacé clic en **"Ver demo con datos de ejemplo"**.
+No hace falta instalar nada ni tener datos propios.
 
-Eso carga un dataset ficticio de 574 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 CEDEARs comprados en 19 tandas, una venta parcial y seis operaciones en la mesa de trading— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`. Y no hace ninguna llamada por su cuenta: los auto-refrescos de cotización y precios están desactivados, así la demo se ve siempre igual. Sólo sale a la red si vos apretás actualizar precios o traer datos de mercado, y en ese caso pide precios públicos sin mandar nada tuyo.
+**▶ La app en vivo: [anamnesis-7zs.pages.dev](https://anamnesis-7zs.pages.dev/)** — entrá con "Ver demo con datos de ejemplo", no hace falta conectar nada.
+
+También podés bajarte el repo y abrir `dashboard.html` —servido por HTTP o como archivo local—: es el mismo botón.
+
+La demo carga un dataset ficticio de 574 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 CEDEARs comprados en 19 tandas, una venta parcial y seis operaciones en la mesa de trading— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`. Y no hace ninguna llamada por su cuenta: los auto-refrescos de cotización y precios están desactivados, así la demo se ve siempre igual. Sólo sale a la red si vos apretás actualizar precios o traer datos de mercado, y en ese caso pide precios públicos sin mandar nada tuyo.
 
 Arranca solo un **recorrido guiado** de once pasos que va oscureciendo la pantalla e iluminando de qué habla: el panel lateral, cada solapa y las acciones de carga y administración. Se corta cuando quieras —con el botón de salir, la cruz, `Escape` o un clic afuera— y se vuelve a lanzar desde **RECORRIDO**, al final del panel lateral. Justo debajo, **MANUAL** abre el PDF adentro de la app, sin salir de la pantalla donde estabas.
 
-Para usarlo con datos reales necesitás Chrome o Edge (la File System Access API no está en Firefox ni Safari) y servirlo por HTTP o abrirlo como archivo local.
-
-**▶ La app en vivo: [anamnesis-7zs.pages.dev](https://anamnesis-7zs.pages.dev/)** — entrá con "Ver demo con datos de ejemplo", no hace falta conectar nada.
+> [!WARNING]
+> **Para usarlo con datos reales necesitás Chrome o Edge.** La File System Access API, que es con la que la app escribe tu archivo, no existe en Firefox ni en Safari. El modo demo sí funciona en cualquier navegador.
 
 **📄 [Manual de usuario (PDF)](docs/manual-de-usuario.pdf)** — índice navegable, una captura de cada pantalla y para qué sirve cada una.
 
