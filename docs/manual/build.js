@@ -24,10 +24,10 @@ window.MANUAL = {
     {
       h: 'Primeros pasos',
       img: '00-conexion',
-      imgCap: 'Pantalla de bienvenida: conectar Drive o entrar a la demostración.',
+      imgCap: 'Pantalla de bienvenida: conectar tu archivo o entrar a la demostración.',
       p: [
         'Al abrir la app por primera vez aparece esta pantalla. Hay dos caminos.',
-        'CONECTAR GOOGLE DRIVE abre el selector de archivos del navegador. Ahí elegís un archivo .json existente para seguir trabajando, o creás uno nuevo si arrancás de cero. Ese archivo es toda tu información: si lo copiás a otra computadora y lo abrís desde ahí, tenés el mismo tablero. El navegador recuerda el archivo entre sesiones, así que sólo hay que elegirlo una vez.',
+        'CONECTAR JSON abre el selector de archivos del sistema. Ahí elegís un archivo .json existente para seguir trabajando, o creás uno nuevo si arrancás de cero, en la carpeta que quieras de tu computadora. Ese archivo es toda tu información: si lo copiás a otra computadora y lo abrís desde ahí, tenés el mismo tablero. El navegador recuerda el archivo entre sesiones, así que sólo hay que elegirlo una vez.',
         'VER DEMO CON DATOS DE EJEMPLO carga un juego de datos ficticios en memoria para recorrer la app sin conectar nada. El modo demo no escribe absolutamente nada: ni en el disco, ni en el navegador. Sirve para explorar sin riesgo; al salir, no queda rastro.'
       ]
     },
@@ -283,7 +283,7 @@ window.MANUAL = {
       h: 'Guardar y respaldos',
       p: [
         'Los cambios de las pantallas de administración quedan pendientes hasta que apretás GUARDAR: el pie del modal indica cuántos hay. Eso permite revisar antes de confirmar, y descartar todo si te arrepentís.',
-        'El resto de la app guarda sola contra el archivo de Drive, con una demora corta para no escribir en cada tecla. Si en algún momento se pierde el permiso sobre el archivo, la app avisa y ofrece volver a autorizarlo sin perder lo que hiciste.'
+        'El resto de la app guarda sola contra tu archivo, con una demora corta para no escribir en cada tecla. Si en algún momento se pierde el permiso sobre el archivo, la app avisa y ofrece volver a autorizarlo sin perder lo que hiciste.'
       ]
     }
   ]

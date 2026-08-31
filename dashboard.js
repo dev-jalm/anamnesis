@@ -14559,7 +14559,7 @@ function tryRestoreFromPreWrite(handle, reason) {
     appConfirm({
       title: 'No se pudo leer el archivo',
       eyebrow: 'ERROR DE LECTURA',
-      message: 'El archivo conectado parece corrupto (' + reason + ') y no hay backup local disponible. Podés probar abriendo otro archivo desde el botón de Drive, o revisar versiones anteriores en Google Drive si está vinculado.',
+      message: 'El archivo conectado parece corrupto (' + reason + ') y no hay backup local disponible. Podés probar abriendo otro archivo desde el botón CONECTAR JSON, o buscar versiones anteriores en tu servicio de sincronización, si la carpeta está en uno.',
       confirmLabel: 'OK',
       cancelLabel: null,
       icon: 'alert-circle'
@@ -14704,7 +14704,7 @@ function askConflictResolution(handle, externalFile) {
       title: 'El archivo cambió afuera',
       eyebrow: 'CONFLICTO DE GUARDADO',
       messageHtml:
-        'El archivo <strong>' + escapeHtmlSafe(handle.name) + '</strong> fue modificado fuera de este dashboard (otra pestaña, otra computadora vía Google Drive, etc.).<br><br>' +
+        'El archivo <strong>' + escapeHtmlSafe(handle.name) + '</strong> fue modificado fuera de este dashboard (otra pestaña, u otra computadora si la carpeta está sincronizada).<br><br>' +
         '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--muted-2);line-height:1.7">' +
         '• Última modificación externa: <strong style="color:var(--ink)">' + escapeHtmlSafe(extDate) + '</strong><br>' +
         '• ¿Qué querés hacer con tus cambios actuales?' +
@@ -14825,7 +14825,7 @@ function openDriveModal() {
     appConfirm({
       title: 'Salir del modo demo',
       eyebrow: 'MODO DEMO ACTIVO',
-      message: 'Estás viendo datos de ejemplo. Para conectar tu Google Drive hay que salir del demo, así no queda nada de la demostración mezclado con tu información real. Se recarga la página y después podés conectar normalmente.',
+      message: 'Estás viendo datos de ejemplo. Para conectar tu archivo hay que salir del demo, así no queda nada de la demostración mezclado con tu información real. Se recarga la página y después podés conectar normalmente.',
       confirmLabel: 'Salir y recargar',
       cancelLabel: 'Seguir en el demo',
       icon: 'flask-conical'
@@ -14947,7 +14947,7 @@ async function connectDrive() {
       console.error('Error conectando:', e);
       setSyncStatus('error', 'Error al conectar');
     } else {
-      setSyncStatus('', 'Sin conexión a Drive');
+      setSyncStatus('', 'Sin archivo conectado');
     }
   }
 }
@@ -15042,8 +15042,8 @@ function updateDriveBtn() {
   const btn = document.getElementById('driveBtn');
   const txt = document.getElementById('driveBtnText');
   if (driveHandle) {
-    btn.title = 'Desconectar Drive (' + driveHandle.name + ')';
-    txt.textContent = 'DESCONECTAR DRIVE';
+    btn.title = 'Desconectar el archivo (' + driveHandle.name + ')';
+    txt.textContent = 'DESCONECTAR JSON';
     // Estado conectado: ocultar overlay de bloqueo (si estaba) y banner
     // de desconexión (si estaba). Centralizar acá garantiza que TODAS las
     // rutas de conexión (init, modal save, modal open, replace, etc.) van
@@ -15065,8 +15065,8 @@ function updateDriveBtn() {
       }
     }
   } else {
-    btn.title = 'Sincronizar con Google Drive';
-    txt.textContent = 'CONECTAR DRIVE';
+    btn.title = 'Conectar el archivo de datos';
+    txt.textContent = 'CONECTAR JSON';
   }
 }
 
@@ -16779,7 +16779,7 @@ function bindStatementFileImport() {
         const guardado = await saveToFile(driveHandle);
         if (!guardado) {
           mostrar('error',
-            '<strong>Se importó, pero falta tu permiso para escribir en Drive.</strong> ' +
+            '<strong>Se importó, pero falta tu permiso para escribir el archivo.</strong> ' +
             'Los ' + r.leidas + ' movimientos están cargados en esta sesión. ' +
             'Apretá el botón para autorizarlo y guardar.' +
             '<div style="margin-top:10px"><button type="button" class="upload-btn" id="fileImportAuthBtn">' +
@@ -16791,10 +16791,10 @@ function bindStatementFileImport() {
               const ok = await saveToFile(driveHandle);
               if (ok) {
                 mostrar('success', '<strong>Guardado.</strong> Los ' + r.leidas +
-                  ' movimientos quedaron respaldados en Drive.');
+                  ' movimientos quedaron guardados en el archivo.');
               } else {
                 mostrar('error', '<strong>No se pudo guardar.</strong> Probá reconectar el ' +
-                  'archivo desde el botón de Drive del panel lateral.');
+                  'archivo desde el botón CONECTAR JSON del panel lateral.');
               }
             });
           }

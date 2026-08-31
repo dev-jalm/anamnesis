@@ -24,7 +24,7 @@
 <link rel="stylesheet" href="tour.css">
 </head>
 <body>
-<!-- Overlay de bloqueo: se muestra al inicio cuando no hay conexión con Drive.
+<!-- Overlay de bloqueo: se muestra al inicio cuando no hay archivo conectado.
      El dashboard es inutilizable hasta que el usuario conecte. No tiene cerrar.
      Se oculta automáticamente apenas se conecta. -->
 <div class="drive-required-overlay" id="driveRequiredOverlay">
@@ -36,35 +36,36 @@
         <span class="drive-required-brand-tag">Diagnóstico financiero</span>
       </div>
     </div>
-    <h2 class="drive-required-title">Conectá tu Google Drive</h2>
+    <h2 class="drive-required-title">Conectá tu archivo de datos</h2>
     <p class="drive-required-message">
-      <strong>anamnesis</strong> guarda toda tu información en Google Drive
-      para que esté disponible en cualquier dispositivo y respaldada
-      automáticamente. Necesitás conectar Drive para empezar a usar el dashboard.
+      <strong>anamnesis</strong> guarda toda tu información en un archivo
+      <strong>.json</strong> tuyo, en el disco de tu computadora. Si lo dejás en una
+      carpeta sincronizada —Drive, OneDrive, Dropbox—, el respaldo lo hace ese
+      cliente, no la app.
     </p>
     <button class="upload-btn drive-required-cta" id="driveRequiredConnectBtn">
       <i data-lucide="link" style="width:14px;height:14px"></i>
-      Conectar Google Drive
+      CONECTAR JSON
     </button>
     <!-- Entrada al modo demo: carga un dataset ficticio en memoria para poder
          recorrer la app sin conectar nada. Pensado para mostrarla como
-         portfolio. No toca Drive ni el archivo real (ver enterDemoMode). -->
+         portfolio. No toca el archivo real (ver enterDemoMode). -->
     <button class="drive-required-demo" id="driveRequiredDemoBtn">
       <i data-lucide="play-circle" style="width:13px;height:13px"></i>
       Ver demo con datos de ejemplo
     </button>
     <div class="drive-required-help">
-      Tu información queda en tu propio Drive · anamnesis no guarda nada en sus servidores
+      Tu información queda en un archivo tuyo · anamnesis no guarda nada en sus servidores
     </div>
   </div>
 </div>
 <div class="container">
-<!-- Banner persistente cuando Drive se desconecta durante una sesión activa.
+<!-- Banner persistente cuando el archivo se desconecta durante una sesión activa.
      No bloquea (sigue trabajando con localStorage como red de seguridad) pero
      alerta al usuario para que reconecte. Se muestra/oculta vía JS. -->
 <div class="drive-disconnected-banner hidden" id="driveDisconnectedBanner">
   <i data-lucide="wifi-off" style="width:13px;height:13px"></i>
-  <span>Drive desconectado — los cambios no se están respaldando</span>
+  <span>Archivo desconectado — los cambios no se están guardando</span>
   <button id="driveBannerReconnectBtn">Reconectar</button>
 </div>
 <!-- Banner del modo demo. Tiene que ser imposible de pasar por alto: si el
@@ -122,9 +123,9 @@
         <i data-lucide="moon" style="width:14px;height:14px" id="themeIcon"></i>
         <span id="themeBtnText">DARK</span>
       </button>
-      <button class="upload-btn csv-btn btn-icon-only" id="driveBtn" title="Sincronizar con Google Drive">
+      <button class="upload-btn csv-btn btn-icon-only" id="driveBtn" title="Conectar el archivo de datos">
         <i data-lucide="hard-drive" style="width:14px;height:14px"></i>
-        <span id="driveBtnText">CONECTAR DRIVE</span>
+        <span id="driveBtnText">CONECTAR JSON</span>
       </button>
       <!-- Exportar y Administración son el mismo control: un botón que
            despliega sus acciones debajo al pasar el mouse. Comparten
@@ -191,7 +192,7 @@
       <div class="load-reminders-wrap hidden" id="loadRemindersWrap"></div>
       <div id="syncStatus" class="sync-status">
         <span class="sync-dot"></span>
-        <span id="syncStatusText">Sin conexión a Drive</span>
+        <span id="syncStatusText">Sin archivo conectado</span>
       </div>
     </div>
   </div>
@@ -1294,7 +1295,7 @@
     <div class="modal-header">
       <div>
         <div class="modal-eyebrow" style="color:#6B8E4E">SINCRONIZACIÓN</div>
-        <h2>Conectar con Drive</h2>
+        <h2>Conectar el archivo de datos</h2>
       </div>
       <button class="modal-close" id="driveModalCloseBtn">
         <i data-lucide="x" style="width:20px;height:20px"></i>
@@ -1302,7 +1303,7 @@
     </div>
     <div class="info-box">
       <div class="info-text">
-        Elegí cómo querés conectar el dashboard con tu archivo de datos. Para que sincronice con Google Drive, el archivo debe estar en una carpeta de Drive sincronizada localmente en tu equipo.
+        Elegí cómo querés conectar el dashboard con tu archivo de datos. El archivo se guarda en tu disco; si querés respaldo automático, dejalo en una carpeta que ya sincronices con Drive, OneDrive o Dropbox.
       </div>
     </div>
     <div class="form-block">
@@ -1775,7 +1776,7 @@
     <div class="modal-header">
       <div>
         <div class="modal-eyebrow" style="color:#C8553D">SINCRONIZACIÓN</div>
-        <h2>Desconectar Drive</h2>
+        <h2>Desconectar el archivo</h2>
       </div>
       <button class="modal-close" id="driveDisconnectCloseBtn">
         <i data-lucide="x" style="width:20px;height:20px"></i>
@@ -1786,7 +1787,7 @@
       <div>
         <strong>Tus datos no se borran.</strong>
         <div style="margin-top:6px;font-size:12px">
-          Los datos siguen guardándose localmente en el navegador. Podés volver a conectar Drive cuando quieras para sincronizar.
+          Los datos siguen guardándose localmente en el navegador. Podés volver a conectar el archivo cuando quieras.
         </div>
       </div>
     </div>
@@ -1821,7 +1822,7 @@
       <div>
         <strong>Esta acción no se puede deshacer.</strong>
         <div style="margin-top:6px;font-size:12px">
-          Los datos seleccionados se borrarán del navegador y, si hay un archivo de Drive conectado, también se sincronizarán los cambios.
+          Los datos seleccionados se borrarán del navegador y, si hay un archivo conectado, también se escribirán ahí los cambios.
         </div>
       </div>
     </div>
@@ -2949,7 +2950,7 @@
         <div class="param-row param-row-vertical">
           <div class="param-info">
             <div class="param-label">Backup completo de configuración</div>
-            <div class="param-desc">Exportá o importá tu configuración completa (reglas + categorías + etiquetas) en un solo archivo. Útil para backup, migrar a otra cuenta de Drive o compartir tu setup. Al exportar/importar podés elegir qué secciones incluir.</div>
+            <div class="param-desc">Exportá o importá tu configuración completa (reglas + categorías + etiquetas) en un solo archivo. Útil para backup, migrar a otra computadora o compartir tu setup. Al exportar/importar podés elegir qué secciones incluir.</div>
           </div>
           <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
             <button class="upload-btn" id="exportFullConfigBtn">
