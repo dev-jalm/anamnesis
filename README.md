@@ -14,7 +14,7 @@ anamnesis parte de tres decisiones opuestas:
 
 - **Tus datos son tuyos.** No hay backend, no hay cuenta, no hay servidor que los vea. La app lee y escribe un `.json` que vos elegís, mediante la File System Access API del navegador. Y si esa carpeta la tenés sincronizada con Drive, OneDrive, Dropbox o lo que uses, el respaldo te queda hecho sin que la app se entere: sincroniza tu cliente, no ella.
 - **La categorización es el producto.** Importás el resumen del banco tal como lo bajás —CSV o Excel, sin pasarlo por ningún lado— y la app aprende a clasificar tus movimientos, con reglas explícitas primero y aprendizaje sobre tu propio historial después.
-- **Un número, no un tablero.** El score de salud financiera resume cinco dimensiones en un valor de 0 a 100, para que sepas si vas bien sin tener que interpretar seis gráficos.
+- **Un número que te guía, y atrás el contexto para entenderlo.** El score de salud financiera resume cinco dimensiones —margen libre, ahorro más inversión, deuda nueva, gasto discrecional y meses de reserva— en un valor de 0 a 100, y muestra cuánto aportó cada una: no es sólo cómo venís, es por qué. Cuando ese número no alcanza, la vista completa abre todo lo que hay detrás: las tarjetas del período y los gráficos que reparten el gasto por categoría, tipo, periodicidad y forma de pago. Y los pesos y umbrales de cada dimensión los definís vos, así que el número termina midiendo lo que a vos te importa.
 
 ## Cómo se ve
 
