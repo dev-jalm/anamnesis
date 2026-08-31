@@ -44,7 +44,7 @@ La metáfora médica no es decorativa: cada solapa responde una pregunta distint
 | **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y las dos jubilaciones, con precios actualizados desde el mercado. Cada activo se despliega en sus compras individuales, con el rendimiento de cada una contra el precio de hoy, y se puede **vender** entero o por partes. Trading va último y aparte: es la [mesa de operaciones](#la-mesa-de-trading). |
 | **Evolución** | ¿Estoy mejorando? Presupuestado contra real, mes a mes, con tendencias por categoría. |
 
-## Importar los resúmenes
+### Importar los resúmenes
 
 Subís el archivo tal como lo bajás del banco —CSV o Excel— y la app lo lee sola. **Mercado Pago** y **Banco Galicia** vienen configurados, pero cualquier entidad se puede agregar desde la propia app: subís un resumen de ejemplo, marcás cuál es la fila de títulos, decís qué columna es cada cosa y ves el resultado antes de guardar.
 
@@ -54,7 +54,7 @@ Los formatos incorporados también se editan, por si esas entidades cambian cóm
 
 **Cargas parciales sin duplicar.** Podés subir el resumen del 1 al 10 y después el del 8 al 20: las transacciones que se repiten se descartan solas. Y si entre una carga y otra le corregiste la descripción, el monto o la fecha a una transacción, se sigue reconociendo como la misma —la clave de deduplicación es la que tenía en el archivo del que salió, no la que muestra la pantalla.
 
-## La mesa de trading
+### La mesa de trading
 
 Trading era el único destino de la cartera que no encajaba con lo que la pantalla mostraba. Una tenencia es una compra que se acumula y se valúa contra el precio de hoy. Una operación apalancada es otra cosa: un viaje completo —entrada, stop, salida— con apalancamiento, precio de liquidación, comisiones y funding, que termina con un resultado definitivo. Valuarla como si fuera un CEDEAR no dice nada.
 
@@ -88,7 +88,7 @@ La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite
 
 - **Aritmética con signo explícito.** Todos los montos se guardan positivos, sin excepción, y el signo lo aplica cada operación según su semántica (`+ Sueldo − gastos − Inversión…`). Suena menor, pero es lo que permite que una misma transacción cuente distinto según el KPI que la mire. La devolución de capital es el caso que lo justifica: resta en el balance de flujo, porque es plata que salió del bolsillo.
 
-## Estructura
+### Estructura
 
 ```
 dashboard.html    3.131 líneas    estructura, modales, formularios
@@ -104,7 +104,7 @@ tour.css            131 líneas    estilos del recorrido
 tests.html        3.299 líneas    380 tests sobre core.js
 ```
 
-## Correr los tests
+### Correr los tests
 
 Abrí `tests.html` en el navegador. No requiere Node, ni instalación, ni servidor.
 
