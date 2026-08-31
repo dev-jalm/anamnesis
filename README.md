@@ -30,7 +30,11 @@ anamnesis parte de tres decisiones opuestas:
 
 **Mesa de trading** — la operación, la verificación de las cinco compuertas y el tamaño de posición que sale del riesgo, uno al lado del otro. Debajo, la fila de números que el exchange no muestra junta: liquidación, pérdida en stop, colchón hasta la liquidación y R:R de cada objetivo.
 
-_Las tres capturas son del modo demo: los números son ficticios._
+![Evolución](docs/evolucion.png)
+
+**Evolución** — cada categoría contra su presupuesto, mes a mes: arriba lo presupuestado, abajo lo real, y la celda en verde cuando el gasto quedó por debajo o en rojo cuando lo superó. A la derecha, el total del año y la tendencia de cada categoría; abajo de cada bloque, el subtotal y cuánto se corrió del plan.
+
+_Las cuatro capturas son del modo demo: los números son ficticios._
 
 ## Cómo funciona
 
