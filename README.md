@@ -12,7 +12,7 @@ Las apps de finanzas personales suelen fallar en lo mismo: te piden las credenci
 
 anamnesis parte de tres decisiones opuestas:
 
-- **Tus datos son tuyos y se quedan en tu Drive.** No hay backend, no hay cuenta, no hay servidor que los vea. La app lee y escribe un `.json` que vos elegís, mediante la File System Access API del navegador.
+- **Tus datos son tuyos.** No hay backend, no hay cuenta, no hay servidor que los vea. La app lee y escribe un `.json` que vos elegís, mediante la File System Access API del navegador. Y si esa carpeta la tenés sincronizada con Drive, OneDrive, Dropbox o lo que uses, el respaldo te queda hecho sin que la app se entere: sincroniza tu cliente, no ella.
 - **La categorización es el producto.** Importás el resumen del banco tal como lo bajás —CSV o Excel, sin pasarlo por ningún lado— y la app aprende a clasificar tus movimientos, con reglas explícitas primero y aprendizaje sobre tu propio historial después.
 - **Un número, no un tablero.** El score de salud financiera resume cinco dimensiones en un valor de 0 a 100, para que sepas si vas bien sin tener que interpretar seis gráficos.
 
@@ -120,7 +120,7 @@ node --check dashboard.js
 
 ## Estado
 
-Proyecto personal en uso activo. La versión actual persiste contra Google Drive; está en evaluación migrar la capa de persistencia a una base de datos, manteniendo ambos backends detrás de una interfaz común.
+Proyecto personal en uso activo. La versión actual persiste contra un archivo del sistema de archivos; está en evaluación migrar la capa de persistencia a una base de datos, manteniendo ambos backends detrás de una interfaz común.
 
 ## Licencia
 

@@ -13,7 +13,7 @@ window.MANUAL = {
       h: 'Qué es anamnesis',
       p: [
         'anamnesis es un tablero de finanzas personales que trata tu economía como una historia clínica: registra los síntomas (los movimientos), mide los signos vitales (los indicadores) y arriesga un diagnóstico (un score de salud financiera).',
-        'Funciona entero en tu navegador. No hay servidor, no hay cuenta y no hay que registrarse: la información se guarda en un archivo que elegís vos, dentro de tu propio Google Drive. Nadie más lo ve.',
+        'Funciona entero en tu navegador. No hay servidor, no hay cuenta y no hay que registrarse: la información se guarda en un archivo tuyo, en la carpeta que elijas de tu computadora. Nadie más lo ve, y si esa carpeta está sincronizada con Drive, OneDrive o Dropbox, el respaldo queda hecho solo.',
         'Está pensada para el contexto argentino: pesos y dólares conviviendo, cotización MEP y precios de CEDEARs que se actualizan solos.'
       ],
       lista: [
