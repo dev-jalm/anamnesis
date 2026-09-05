@@ -18354,9 +18354,18 @@ function fetchCotizacionMepInline(btnEl) {
 // Fuente: BYMA. Estos ratios cambian ocasionalmente (típicamente por splits o
 // ajustes de BYMA), así que si data912 incluye ratio en su respuesta, ese tiene
 // prioridad. Esto es solo fallback para tickers comunes.
+// Ratios CEDEAR/subyacente. No es un respaldo: es la UNICA fuente. Se verifico
+// contra data912 —el servicio de precios— y ninguno de sus 983 instrumentos
+// informa el ratio, asi que getRatio() siempre termina acá.
+//
+// Un ratio desactualizado no rompe nada visible: devuelve un precio en dolares
+// creible pero equivocado, en la misma proporcion del error. BYMA los cambia con
+// splits —SPY paso de 20:1 a 60:1 entre el 29/05/2026 y el 01/06/2026, con dos
+// CEDEARs acreditados por cada uno—, asi que conviene revisarlos cuando un precio
+// derivado no se parezca al del mercado.
 const CEDEAR_RATIOS_FALLBACK = {
   AAPL: 10, MSFT: 10, GOOGL: 25, GOOG: 25, AMZN: 24, META: 10, NVDA: 30,
-  TSLA: 10, NFLX: 5, DIS: 4, KO: 5, MELI: 1, SPY: 20, IBIT: 5,
+  TSLA: 10, NFLX: 5, DIS: 4, KO: 5, MELI: 1, SPY: 60, IBIT: 5,
   QQQ: 20, V: 10, MA: 5, JNJ: 5, WMT: 5, PG: 4, JPM: 10,
   BAC: 4, XOM: 5, CVX: 5, PFE: 5, T: 4, VZ: 5, NKE: 10,
   MCD: 10, CSCO: 5, INTC: 4, AMD: 10, ORCL: 10, IBM: 8, SBUX: 5,
