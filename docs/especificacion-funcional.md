@@ -222,8 +222,9 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-076 | Si un activo no tiene precio actual cargado, sus columnas de resultado muestran un guión, no un cero |
 | RF-076a | El precio se registra **por ticker y por moneda**. Un mismo símbolo tenido en pesos y en dólares son dos precios distintos —el CEDEAR y la acción— y ninguno sustituye al otro |
 | RF-076b | No se exhibe un precio en una moneda distinta de la del activo. Si no hay precio para esa combinación corresponde el guión de RF-076: un importe en la moneda equivocada es peor que la ausencia del dato |
-| RF-077 | Una acción de actualización trae precios y descripciones desde el servicio de cotizaciones |
+| RF-077 | Una acción de actualización trae los precios desde el servicio de cotizaciones. Las descripciones no provienen de allí —el servicio no las informa— sino del listado de BYMA, y sólo se completan cuando el activo no tiene una: una descripción escrita por el usuario nunca se sustituye |
 | RF-078 | Los tickers en dólares no se consultan por separado: se derivan del CEDEAR en pesos aplicando su ratio y la cotización MEP |
+| RF-078f | El ratio y el nombre de cada instrumento se obtienen del **listado oficial de BYMA de CEDEARs negociables**, incorporado al producto con su fecha de publicación. Un ticker ausente del listado no recibe precio derivado: queda sin actualizar antes que exhibir un valor construido con un ratio supuesto |
 | RF-079 | El destino Trading no lista tenencias por ticker. Su detalle es la mesa de operaciones (sección 4.7) |
 
 #### 4.6.1 Venta de activos
@@ -910,8 +911,8 @@ pantalla el elemento del que habla.
 | RES-03 | La File System Access API limita el uso con datos reales a navegadores basados en Chromium |
 | RES-04 | Las cotizaciones dependen de servicios gratuitos sin acuerdo de nivel de servicio |
 | RES-05 | La detección de cambio de ticker y de baja de cotización (RF-230, RF-231) queda condicionada a que el servicio de cotizaciones exponga esa información. Si no la expone, el requerimiento no es realizable con las fuentes actuales |
-| RES-06 | **El servicio de cotizaciones no informa el ratio de los CEDEARs.** Se verificó sobre la totalidad de los instrumentos que publica: ninguno lo trae. El ratio con el que se deriva el precio en dólares (RF-078) proviene, entonces, de una tabla mantenida en el producto |
-| RES-07 | Un ratio desactualizado no se manifiesta como error: devuelve un precio en dólares verosímil pero equivocado, en la proporción del cambio. El mercado los modifica mediante splits —SPY pasó de 20:1 a 60:1 entre el 29/05/2026 y el 01/06/2026—, de modo que la tabla requiere revisión periódica. Es la contrapartida de derivar el precio en lugar de consultarlo |
+| RES-06 | **El servicio de cotizaciones no informa el ratio ni el nombre de los CEDEARs.** Se verificó sobre la totalidad de los instrumentos que publica: ninguno los trae. Ambos datos provienen del listado oficial de BYMA, incorporado al producto como archivo propio |
+| RES-07 | Un ratio desactualizado no se manifiesta como error: devuelve un precio en dólares verosímil pero equivocado, en la proporción del cambio. El mercado los modifica mediante splits —SPY pasó de 20:1 a 60:1 entre el 29/05/2026 y el 01/06/2026—, de modo que el listado requiere reposición cuando BYMA publique uno nuevo. Es la contrapartida de derivar el precio en lugar de consultarlo |
 
 **Supuestos**
 
@@ -1001,7 +1002,7 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.6 | 30/08/2026 | Incorpora la consulta del manual desde dentro de la aplicación (RF-214c a RF-214e), el reordenamiento de los accesos de ayuda al final del panel lateral (RF-249) y los criterios generales de cierre y altura de los diálogos (RNF-15, RNF-16) | Reemplazada |
 | 1.7 | 30/08/2026 | Revisión de consistencia contra el producto construido. Se corrige la fórmula del balance de flujo (RF-024), que omitía Renta financiera y Pérdida financiera y contradecía al catálogo de 5.7; los tiempos máximos de las integraciones (INT-02, INT-04, RF-202); la cobertura de pruebas (RNF-43); y se elimina pdf.js del detalle de dependencias, que no se utiliza. Se explicita el comportamiento de red del modo demostración (RF-226 a RF-228) | Reemplazada |
 | 1.8 | 31/08/2026 | Normaliza el criterio de guardado en todo el producto y su documentación: el archivo es local y el respaldo lo provee el cliente de sincronización del usuario (RF-008a, RF-008b, OBJ-1). El acceso de conexión pasa a llamarse CONECTAR JSON | Reemplazada |
-| 1.10 | 06/09/2026 | Corrige el registro de precios, que no distinguía la moneda: un mismo ticker tenido en pesos y en dólares compartía un único precio y uno de los dos se mostraba en la moneda ajena (RF-076a, RF-076b). El esquema del archivo pasa a versión 4, con migración automática. Se documenta el origen de los ratios de CEDEAR y el riesgo de su desactualización (RES-06, RES-07) | **Vigente** |
+| 1.10 | 06/09/2026 | Corrige el registro de precios, que no distinguía la moneda: un mismo ticker tenido en pesos y en dólares compartía un único precio y uno de los dos se mostraba en la moneda ajena (RF-076a, RF-076b). El esquema del archivo pasa a versión 4, con migración automática. Se incorpora el listado oficial de BYMA como origen de los ratios y de los nombres de instrumento (RF-078f, RF-077), y se documentan sus límites (RES-06, RES-07) | **Vigente** |
 | 1.9 | 05/09/2026 | Incorpora tres funcionalidades vigentes que el documento no recogía: el acceso al editor desde el ícono de cada tarjeta (RF-053a), la carga del presupuesto anual por categoría desde Evolución (RF-103 a RF-107) y la incorporación de un movimiento al presupuesto desde Historia clínica (RF-108 a RF-109a) | Reemplazada |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión

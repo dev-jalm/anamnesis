@@ -95,13 +95,14 @@ La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite
 ### Cómo se organiza
 
 ```
-dashboard.html    3.131 líneas    estructura, modales, formularios
+dashboard.html    3.135 líneas    estructura, modales, formularios
 dashboard.css     7.786 líneas    estilos y theming claro/oscuro
-dashboard.js     22.228 líneas    lógica, render, estado, importación
+dashboard.js     22.236 líneas    lógica, render, estado, importación
 core.js           2.695 líneas    funciones puras + motor de plantillas
 mesa-trading.js   2.985 líneas    mesa de trading: riesgo, liquidación, historial
 mesa-trading.css  1.029 líneas    estilos de la mesa
 sistema-4k.js       478 líneas    el reglamento de trading, consultable en la app
+cedears-byma.js     476 líneas    ratio y nombre de los CEDEARs de BYMA
 demo-data.js        727 líneas    generador del dataset de demostración
 tour.js             302 líneas    el recorrido guiado del modo demo
 tour.css            131 líneas    estilos del recorrido

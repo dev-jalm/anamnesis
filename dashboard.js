@@ -18250,11 +18250,7 @@ function autoFetchSaludFinancieraIfStale() {
           const desc = item.name || item.description || item.descripcion || null;
           byTicker[sym] = { price: price, ratio: ratio, desc: desc };
         });
-        function getRatio(tk) {
-          if (byTicker[tk] && byTicker[tk].ratio && byTicker[tk].ratio > 0) return byTicker[tk].ratio;
-          if (CEDEAR_RATIOS_FALLBACK[tk]) return CEDEAR_RATIOS_FALLBACK[tk];
-          return null;
-        }
+        function getRatio(tk) { return ratioDeCedear(tk); }
         if (!state.tickerInfo) state.tickerInfo = {};
         const now = new Date().toISOString();
         wantedArs.forEach(function (tk) {
@@ -18264,7 +18260,8 @@ function autoFetchSaludFinancieraIfStale() {
           if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
           state.tickerInfo[k].precioActual = Number(info.price);
           state.tickerInfo[k].moneda = 'ARS';
-          if (info.desc && !state.tickerInfo[k].descripcion) state.tickerInfo[k].descripcion = info.desc;
+          const desc = info.desc || nombreDeCedear(tk);
+          if (desc && !state.tickerInfo[k].descripcion) state.tickerInfo[k].descripcion = desc;
           state.tickerInfo[k].lastUpdate = now;
           state.tickerInfo[k].source = 'data912';
         });
@@ -18278,7 +18275,8 @@ function autoFetchSaludFinancieraIfStale() {
           if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
           state.tickerInfo[k].precioActual = precioUsd;
           state.tickerInfo[k].moneda = 'USD';
-          if (info.desc && !state.tickerInfo[k].descripcion) state.tickerInfo[k].descripcion = info.desc;
+          const desc = info.desc || nombreDeCedear(tk);
+          if (desc && !state.tickerInfo[k].descripcion) state.tickerInfo[k].descripcion = desc;
           state.tickerInfo[k].lastUpdate = now;
           state.tickerInfo[k].source = 'data912-cedear';
         });
@@ -18354,24 +18352,27 @@ function fetchCotizacionMepInline(btnEl) {
 // Fuente: BYMA. Estos ratios cambian ocasionalmente (típicamente por splits o
 // ajustes de BYMA), así que si data912 incluye ratio en su respuesta, ese tiene
 // prioridad. Esto es solo fallback para tickers comunes.
-// Ratios CEDEAR/subyacente. No es un respaldo: es la UNICA fuente. Se verifico
-// contra data912 —el servicio de precios— y ninguno de sus 983 instrumentos
-// informa el ratio, asi que getRatio() siempre termina acá.
-//
-// Un ratio desactualizado no rompe nada visible: devuelve un precio en dolares
-// creible pero equivocado, en la misma proporcion del error. BYMA los cambia con
-// splits —SPY paso de 20:1 a 60:1 entre el 29/05/2026 y el 01/06/2026, con dos
-// CEDEARs acreditados por cada uno—, asi que conviene revisarlos cuando un precio
-// derivado no se parezca al del mercado.
-const CEDEAR_RATIOS_FALLBACK = {
-  AAPL: 10, MSFT: 10, GOOGL: 25, GOOG: 25, AMZN: 24, META: 10, NVDA: 30,
-  TSLA: 10, NFLX: 5, DIS: 4, KO: 5, MELI: 1, SPY: 60, IBIT: 5,
-  QQQ: 20, V: 10, MA: 5, JNJ: 5, WMT: 5, PG: 4, JPM: 10,
-  BAC: 4, XOM: 5, CVX: 5, PFE: 5, T: 4, VZ: 5, NKE: 10,
-  MCD: 10, CSCO: 5, INTC: 4, AMD: 10, ORCL: 10, IBM: 8, SBUX: 5,
-  PEP: 10, COST: 30, BABA: 6, BRK: 100, ABNB: 10, UBER: 10, PYPL: 8,
-  PLTR: 5, SHOP: 5, COIN: 5, GLD: 10, EWZ: 4, ARKK: 5
-};
+// Ratio y nombre de cada CEDEAR salen de cedears-byma.js, que es el listado
+// oficial de BYMA. Se lee desde ahi y no desde una copia local: es el unico
+// lugar que hay que reponer cuando BYMA publica un listado nuevo.
+function cedearDeByma(tk) {
+  const cat = window.CEDEARS_BYMA && window.CEDEARS_BYMA.instrumentos;
+  return (cat && cat[String(tk || '').toUpperCase()]) || null;
+}
+
+// El ratio con el que se deriva el precio en dolares. Null si el ticker no esta
+// en el listado: sin ratio no se inventa un precio, el activo queda sin actualizar.
+function ratioDeCedear(tk) {
+  const c = cedearDeByma(tk);
+  return (c && c.r > 0) ? c.r : null;
+}
+
+// El nombre del instrumento segun BYMA. Sirve para completar la descripcion de
+// un ticker recien cargado: el servicio de precios no informa nombres.
+function nombreDeCedear(tk) {
+  const c = cedearDeByma(tk);
+  return (c && c.n) ? c.n : null;
+}
 
 // Actualiza precios y descripciones desde data912.com.
 // Para tickers ARS: precio directo del CEDEAR.
@@ -18441,11 +18442,7 @@ function fetchTickerPricesFromData912(destinos, btnEl) {
       });
 
       // Helper para resolver ratio del CEDEAR
-      function getRatio(tk) {
-        if (byTicker[tk] && byTicker[tk].ratio && byTicker[tk].ratio > 0) return byTicker[tk].ratio;
-        if (CEDEAR_RATIOS_FALLBACK[tk]) return CEDEAR_RATIOS_FALLBACK[tk];
-        return null;
-      }
+      function getRatio(tk) { return ratioDeCedear(tk); }
 
       if (!state.tickerInfo) state.tickerInfo = {};
       const now = new Date().toISOString();
@@ -18460,7 +18457,8 @@ function fetchTickerPricesFromData912(destinos, btnEl) {
         if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
         state.tickerInfo[k].precioActual = Number(info.price);
         state.tickerInfo[k].moneda = 'ARS';
-        if (info.desc && !state.tickerInfo[k].descripcion) state.tickerInfo[k].descripcion = info.desc;
+        const desc = info.desc || nombreDeCedear(tk);
+        if (desc && !state.tickerInfo[k].descripcion) state.tickerInfo[k].descripcion = desc;
         state.tickerInfo[k].lastUpdate = now;
         state.tickerInfo[k].source = 'data912';
         updatedArs += 1;
@@ -18478,7 +18476,8 @@ function fetchTickerPricesFromData912(destinos, btnEl) {
         if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
         state.tickerInfo[k].precioActual = precioUsdImplicito;
         state.tickerInfo[k].moneda = 'USD';
-        if (info.desc && !state.tickerInfo[k].descripcion) state.tickerInfo[k].descripcion = info.desc;
+        const desc = info.desc || nombreDeCedear(tk);
+        if (desc && !state.tickerInfo[k].descripcion) state.tickerInfo[k].descripcion = desc;
         state.tickerInfo[k].lastUpdate = now;
         state.tickerInfo[k].source = 'data912-cedear';
         updatedUsd += 1;

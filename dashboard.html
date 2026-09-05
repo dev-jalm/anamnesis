@@ -18,6 +18,9 @@
 <!-- Generador del dataset de demostración. Depende de las constantes de core.js
      (SCHEMA_VERSION), así que va después. Solo define window.buildDemoSnapshot:
      no se ejecuta nada hasta que el usuario aprieta "Ver demo". -->
+<!-- Listado de CEDEARs de BYMA: ratio y nombre de cada instrumento. Va antes
+     que dashboard.js, que lo consulta para derivar el precio en dolares. -->
+<script src="cedears-byma.js"></script>
 <script src="demo-data.js"></script>
 <link rel="stylesheet" href="dashboard.css">
 <link rel="stylesheet" href="mesa-trading.css">
