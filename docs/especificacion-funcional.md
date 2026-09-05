@@ -5,8 +5,8 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.8 |
-| **Fecha** | 31 de agosto de 2026 |
+| **Versión** | 1.9 |
+| **Fecha** | 5 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
 | **Alcance de la versión** | Funcionalidad implementada y verificada en la rama `main` |
@@ -176,6 +176,7 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-051 | Presenta un conjunto de tarjetas de indicadores configurables por el usuario |
 | RF-052 | Presenta la distribución del gasto por categoría, por tipo, por periodicidad y por forma de pago |
 | RF-053 | El valor de una tarjeta cuyo cálculo sea una suma de movimientos o el gasto total es accionable: al activarlo, navega a Historia clínica con el filtro correspondiente aplicado |
+| RF-053a | El ícono de una tarjeta abre el editor de esa misma tarjeta, sin pasar por Administración. Es el acceso directo a lo que RF-181 define, aplicado a la tarjeta sobre la que se está mirando |
 | RF-054 | Un control adicional permite expresar los indicadores en pesos o convertidos a dólares MEP |
 
 #### 4.4.2 Vista Completa
@@ -311,6 +312,11 @@ Módulo de gestión de riesgo por operación apalancada.
 | RF-100 | Compara lo presupuestado contra lo efectivamente gastado, mes a mes y categoría por categoría |
 | RF-101 | Cada fila presenta su total anual y una línea de tendencia |
 | RF-102 | Las categorías de flujo no se totalizan por suma: su fila de cierre es un balance entre entradas y salidas |
+| RF-103 | El nombre de cada categoría abre la carga de su presupuesto anual: una planilla con los doce meses del año seleccionado |
+| RF-104 | Cada mes de esa planilla exhibe junto al campo el importe realmente gastado en ese mes, o la indicación de que no hubo gasto. El presupuesto se decide contra el dato, no de memoria |
+| RF-105 | La planilla totaliza el presupuesto anual mientras se edita, antes de confirmar |
+| RF-106 | Los cambios se confirman en bloque. Cerrar con modificaciones pendientes solicita confirmación y advierte que se perderán |
+| RF-107 | El presupuesto se define por categoría, mes y año. Cambiar el año seleccionado abre la planilla de ese año |
 
 ---
 
@@ -987,9 +993,15 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.5 | 30/08/2026 | Actualiza las capturas del manual provistas por el cliente, corrige los títulos de las secciones de carga y sincroniza el Anexo A con la bitácora de sesiones vigente. Sin cambios de requerimientos | Reemplazada |
 | 1.6 | 30/08/2026 | Incorpora la consulta del manual desde dentro de la aplicación (RF-214c a RF-214e), el reordenamiento de los accesos de ayuda al final del panel lateral (RF-249) y los criterios generales de cierre y altura de los diálogos (RNF-15, RNF-16) | Reemplazada |
 | 1.7 | 30/08/2026 | Revisión de consistencia contra el producto construido. Se corrige la fórmula del balance de flujo (RF-024), que omitía Renta financiera y Pérdida financiera y contradecía al catálogo de 5.7; los tiempos máximos de las integraciones (INT-02, INT-04, RF-202); la cobertura de pruebas (RNF-43); y se elimina pdf.js del detalle de dependencias, que no se utiliza. Se explicita el comportamiento de red del modo demostración (RF-226 a RF-228) | Reemplazada |
-| 1.8 | 31/08/2026 | Normaliza el criterio de guardado en todo el producto y su documentación: el archivo es local y el respaldo lo provee el cliente de sincronización del usuario (RF-008a, RF-008b, OBJ-1). El acceso de conexión pasa a llamarse CONECTAR JSON | **Vigente** |
+| 1.8 | 31/08/2026 | Normaliza el criterio de guardado en todo el producto y su documentación: el archivo es local y el respaldo lo provee el cliente de sincronización del usuario (RF-008a, RF-008b, OBJ-1). El acceso de conexión pasa a llamarse CONECTAR JSON | Reemplazada |
+| 1.9 | 05/09/2026 | Incorpora dos funcionalidades vigentes que el documento no recogía: el acceso al editor desde el ícono de cada tarjeta (RF-053a) y la carga del presupuesto anual por categoría desde Evolución (RF-103 a RF-107) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+La versión 1.9 **no incorpora cambios de producto**: documenta funcionalidad que
+ya estaba construida y que este documento no recogía.
+
+**Implementados en la versión 1.8**
 
 | Cambio | Requerimiento |
 |---|---|
@@ -1041,7 +1053,7 @@ La construcción no empezó con el repositorio. Se desarrolló en dos etapas, co
 | Período | Desde | Hasta | Herramienta | Trazabilidad |
 |---|---|---|---|---|
 | **1. Previo al repositorio** | 02/04/2026 | 27/07/2026 | Conversaciones y proyectos, pasando las versiones del producto de una a otra | Insuficiente: hay fechas pero no se puede aislar qué conversaciones son del producto |
-| **2. Con repositorio** | 27/07/2026 | 31/08/2026 | Entorno con control de versiones | Transcripciones de sesión: 11.531 eventos fechados |
+| **2. Con repositorio** | 27/07/2026 | 05/09/2026 | Entorno con control de versiones | Transcripciones de sesión: 11.959 eventos fechados |
 
 **Cuánto producto existía antes del primer commit.** El primer commit —titulado *Anamnesis: estado inicial*— no marca el inicio del desarrollo sino la incorporación al repositorio de un producto ya construido:
 
@@ -1079,17 +1091,17 @@ Identificarlas por fecha y tamaño daba resultados demasiado dispares —entre 1
 
 ### A.3 Período 2: con repositorio — medido
 
-**Método.** Las horas no se declaran: se derivan de las transcripciones de sesión del entorno de desarrollo, que registran cada interacción con su marca temporal. Las 11.531 interacciones se agrupan en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, y se suma la duración de cada una.
+**Método.** Las horas no se declaran: se derivan de las transcripciones de sesión del entorno de desarrollo, que registran cada interacción con su marca temporal. Las 11.959 interacciones se agrupan en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, y se suma la duración de cada una.
 
 **Fuente viva.** El cálculo está automatizado en `docs/horas-sesiones.js`, que regenera `docs/bitacora-sesiones.md` con el detalle sesión por sesión. Las cifras de esta tabla son las vigentes a la fecha del documento; la bitácora tiene siempre las actuales.
 
 | Indicador | Valor |
 |---|---|
-| Período | 27/07/2026 a 31/08/2026 |
-| Días con actividad | 21 |
-| Interacciones registradas | 11.531 |
-| Sesiones de trabajo | 39 |
-| **Horas medidas** | **≈ 65,9** |
+| Período | 27/07/2026 a 05/09/2026 |
+| Días con actividad | 23 |
+| Interacciones registradas | 11.959 |
+| Sesiones de trabajo | 42 |
+| **Horas medidas** | **≈ 68,5** |
 | Duración media por sesión | 1,7 h |
 
 **Por qué no se usan los commits.** Es la otra fuente disponible, y da menos: 40,5 horas en 23 sesiones sobre 13 días. La diferencia del 32 % no es ruido, son dos cosas que el historial de commits no puede ver:
@@ -1117,8 +1129,8 @@ Se adopta el corte de 90 minutos, el mismo del conteo por commits, para que las 
 | Período | Horas | Origen del dato |
 |---|---|---|
 | 1. Previo al repositorio | ≈ 171 | Estimado a 45 h/mes (A.2) |
-| 2. Con repositorio | ≈ 65,9 | Medido (A.3) |
-| **Total** | **≈ 237** | |
+| 2. Con repositorio | ≈ 68,5 | Medido (A.3) |
+| **Total** | **≈ 240** | |
 
 El 76 % del esfuerzo corresponde al período previo al repositorio, coherente con que ahí se construyó el 78 % del producto.
 
@@ -1173,7 +1185,7 @@ El 76 % del esfuerzo corresponde al período previo al repositorio, coherente co
 
 | Concepto | Real | Equipo humano |
 |---|---|---|
-| Horas | ≈ 237 | ≈ 2.070 |
+| Horas | ≈ 240 | ≈ 2.070 |
 | Personas | 1 | 4 a 5 |
 | Calendario | 5 meses, en dedicación parcial | 3 a 4 meses, a tiempo completo |
 
@@ -1185,10 +1197,10 @@ Conviene notar que el calendario real es **más largo** que el estimado para el 
 
 | # | Advertencia |
 |---|---|
-| 1 | **De las 237 horas del lado real, sólo 65,9 son una medición.** Salen de 11.531 interacciones fechadas del período 2. Las 171 restantes son una dedicación estimada de 45 h/mes, adoptada por el cliente ante la falta de registro confiable |
+| 1 | **De las 240 horas del lado real, sólo 68,5 son una medición.** Salen de 11.959 interacciones fechadas del período 2. Las 171 restantes son una dedicación estimada de 45 h/mes, adoptada por el cliente ante la falta de registro confiable |
 | 2 | Las 2.070 del equipo humano son una **estimación por componente** con los supuestos de A.5. Ninguno de los dos lados del contraste es enteramente un dato |
 | 3 | La estimación del período 1 queda por debajo del piso que sugiere el volumen de código —195 horas, ver A.2—, de modo que subestima antes que exagerar |
-| 4 | En el período medido se toma el lapso entre la primera y la última interacción de cada sesión: no se distingue el trabajo activo de la lectura o la espera, y las pausas de más de 90 minutos quedan fuera aunque hayan sido de trabajo. Esas 65,9 horas son un **piso** |
+| 4 | En el período medido se toma el lapso entre la primera y la última interacción de cada sesión: no se distingue el trabajo activo de la lectura o la espera, y las pausas de más de 90 minutos quedan fuera aunque hayan sido de trabajo. Esas 68,5 horas son un **piso** |
 | 5 | La estimación del equipo humano supone construir **el producto terminado**, sin las exploraciones descartadas que un proyecto real atraviesa. En ese sentido es conservadora |
 | 6 | La comparación no mide productividad individual: las horas reales corresponden a dirección, decisión y validación, con la escritura de código asistida |
 | 7 | Un equipo humano habría producido decisiones de arquitectura distintas. La relación compara el costo de llegar a **este** producto, no a uno equivalente en funciones |

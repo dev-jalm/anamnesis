@@ -64,6 +64,7 @@ window.MANUAL = {
       ]
     },
     {
+      nuevaPagina: true,
       img: '01-historia-clinica-completa',
       imgCap: 'Vista Completa: cada movimiento en su fila, editable en el lugar.',
       p: [
@@ -84,12 +85,34 @@ window.MANUAL = {
       imgCap: 'Subida del resumen bancario y las últimas cargas por origen.',
       p: [
         'Se entra desde Historia clínica, con el botón CARGAR MOVIMIENTOS de arriba a la derecha. Es la vía principal para que los datos lleguen a la app: subís el resumen tal como lo bajás del banco —CSV o Excel— y lo lee sola, sin convertirlo ni pegarlo en ningún lado. El texto debajo del recuadro enumera las entidades configuradas.',
-        'La app reconoce de qué banco es el archivo por su contenido, no por el nombre, así que no hay que elegir el origen de antemano. Si tu banco todavía no está configurado, se agrega desde Formatos de importación, más adelante en este manual.'
+        'La app reconoce de qué banco es el archivo por su contenido, no por el nombre, así que no hay que elegir el origen de antemano. Si tu banco todavía no está configurado, se agrega desde Formatos de importación, que es la sección que sigue.'
       ],
       lista: [
         'Podés subir resúmenes que se solapen. Si cargás del 1 al 10 y después del 8 al 20, los movimientos repetidos se descartan solos.',
         'Y si entre una carga y otra corregiste la descripción, el monto o la fecha de un movimiento, se lo sigue reconociendo como el mismo: la app lo identifica por la clave que tenía en el archivo del que salió, no por lo que muestra la pantalla.',
         'El panel ÚLTIMAS CARGAS guarda las tres más recientes de cada origen, con fecha, hora y cuántos movimientos quedaron sobre cuántos traía el archivo.'
+      ]
+    },
+    {
+      h: 'Formatos de importación',
+      img: '14-formatos-lista',
+      imgCap: 'Los formatos configurados. Los incorporados también se editan.',
+      p: [
+        'Acá se define cómo viene armado el archivo de cada entidad. Mercado Pago y Banco Galicia vienen configurados, pero cualquier banco se puede agregar sin tocar código.',
+        'Los formatos incorporados también se editan, por si esas entidades cambian cómo generan sus archivos. Tu versión reemplaza a la de la app, y el botón RESTAURAR vuelve a la original cuando quieras.'
+      ]
+    },
+    {
+      img: '15-formatos-editor',
+      imgCap: 'El editor: se sube un ejemplo y se ve el resultado antes de guardar.',
+      p: [
+        'Para agregar una entidad se sube un resumen de ejemplo. La app detecta cuál es la fila de títulos y qué columna es cada cosa; si se equivocó, se corrige con un click.',
+        'El último paso es el importante: muestra los movimientos reales que saldrían con esa configuración. Mapear columnas a ciegas es adivinar, y el error típico —leer 03/04 como 3 de abril cuando era 4 de marzo— no se nota hasta tener meses cargados mal. Acá se ve antes de guardar.'
+      ],
+      lista: [
+        'El importe puede venir en una columna con signo, o partido en dos columnas de débito y crédito.',
+        'El formato de fecha y el de los números se declaran: 1.234,56 no es lo mismo que 1,234.56.',
+        'Se pueden ignorar filas por su texto, para descartar totales y encabezados repetidos.'
       ]
     },
     {
@@ -123,7 +146,8 @@ window.MANUAL = {
       lista: [
         'El interruptor ARS / USD convierte todos los montos usando la cotización MEP configurada.',
         'RESUMEN / COMPLETA alterna entre lo esencial sin scroll y el detalle entero. Qué entra en cada modo se define en Administración → Ficha médica.',
-        'Al hacer click en el monto de una tarjeta, la app salta a Historia clínica ya filtrada por esos movimientos.'
+        'Al hacer click en el monto de una tarjeta, la app salta a Historia clínica ya filtrada por esos movimientos.',
+        'Y el ícono de la tarjeta abre su editor: ahí se le cambia el nombre, el color del borde, el ícono, la posición y si va en la grilla o en la columna del score. Abajo del todo se define qué suma y qué resta —categoría, subcategoría y periodicidad de cada operando—, así que la tarjeta mide lo que vos quieras y no una cuenta fija.'
       ]
     },
     {
@@ -197,29 +221,12 @@ window.MANUAL = {
       imgCap: 'Presupuestado contra real, mes a mes, por categoría.',
       p: [
         'Compara lo que presupuestaste contra lo que gastaste realmente, mes a mes y categoría por categoría. Cada fila lleva su total del año y una línea de tendencia.',
-        'Las categorías de flujo no se suman como el resto: su fila de cierre es un balance —lo que entra menos lo que sale— porque sumar un sueldo con un aporte a la reserva no daría un número con sentido.'
-      ]
-    },
-    {
-      h: 'Formatos de importación',
-      img: '14-formatos-lista',
-      imgCap: 'Los formatos configurados. Los incorporados también se editan.',
-      p: [
-        'Acá se define cómo viene armado el archivo de cada entidad. Mercado Pago y Banco Galicia vienen configurados, pero cualquier banco se puede agregar sin tocar código.',
-        'Los formatos incorporados también se editan, por si esas entidades cambian cómo generan sus archivos. Tu versión reemplaza a la de la app, y el botón RESTAURAR vuelve a la original cuando quieras.'
-      ]
-    },
-    {
-      img: '15-formatos-editor',
-      imgCap: 'El editor: se sube un ejemplo y se ve el resultado antes de guardar.',
-      p: [
-        'Para agregar una entidad se sube un resumen de ejemplo. La app detecta cuál es la fila de títulos y qué columna es cada cosa; si se equivocó, se corrige con un click.',
-        'El último paso es el importante: muestra los movimientos reales que saldrían con esa configuración. Mapear columnas a ciegas es adivinar, y el error típico —leer 03/04 como 3 de abril cuando era 4 de marzo— no se nota hasta tener meses cargados mal. Acá se ve antes de guardar.'
+        'Las categorías de flujo no se suman como el resto: su fila de cierre es un balance —lo que entra menos lo que sale— porque sumar un sueldo con un aporte a la reserva no daría un número con sentido.',
+        'Los presupuestos se cargan desde acá mismo: al hacer click en el nombre de una categoría se abre su planilla del año, con los doce meses uno debajo del otro. Cada mes muestra al lado lo que realmente gastaste —o «Sin gasto real» si todavía no hay nada—, así el número que ponés arriba se decide mirando el anterior y no de memoria. Abajo se ve el total anual presupuestado mientras vas escribiendo.'
       ],
       lista: [
-        'El importe puede venir en una columna con signo, o partido en dos columnas de débito y crédito.',
-        'El formato de fecha y el de los números se declaran: 1.234,56 no es lo mismo que 1,234.56.',
-        'Se pueden ignorar filas por su texto, para descartar totales y encabezados repetidos.'
+        'Se guarda todo junto con CONFIRMAR. Si cerrás con cambios sin guardar, la app avisa antes de descartarlos.',
+        'El presupuesto es por categoría, por mes y por año: cambiar el año arriba abre la planilla de ese año.'
       ]
     },
     {
@@ -497,6 +504,10 @@ window.construirManual = async function () {
   // que el título quede al pie con la imagen en la página siguiente.
   await precargar();
   for (const s of window.MANUAL.secciones) {
+    // Una continuación puede pedir página propia con `nuevaPagina: true`. Sirve
+    // para las que arrancan un tema distinto sin merecer entrada en el índice:
+    // cortan la hoja pero no aparecen como sección aparte.
+    if (!s.h && s.nuevaPagina) nuevaPaginaSiHayAlgo();
     if (s.h) {
       // Cada entrada del índice abre su propia página. Las secciones sin título
       // son continuaciones y siguen a la anterior sin cortar.

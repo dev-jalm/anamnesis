@@ -45,7 +45,9 @@ viejo — sin avisar. Si editaste el texto y el PDF sale igual que antes, es est
   interno a esa página. Se dibuja al final, cuando ya se sabe dónde cayó cada
   sección; la hoja se reserva antes y se completa después.
 - **Cada sección con título abre su propia página.** Las secciones sin `h` son
-  continuaciones y siguen a la anterior sin cortar.
+  continuaciones y siguen a la anterior sin cortar, salvo que declaren
+  `nuevaPagina: true`: eso corta la hoja sin agregar una entrada al índice, para
+  las continuaciones que arrancan un tema distinto.
 - Dentro de cada una: título, texto, imagen, viñetas. La figura va después de la
   explicación, y eso además evita que un título quede al pie con su imagen en la
   página siguiente.
@@ -55,6 +57,7 @@ viejo — sin avisar. Si editaste el texto y el PDF sale igual que antes, es est
 Está todo en `window.MANUAL` dentro de `build.js`, una entrada por sección:
 
 - `h` — título · `sub` — bajada · `p` — párrafos · `lista` — viñetas
+- `nuevaPagina` — sólo para secciones sin `h`: las hace empezar en hoja nueva
 - `img` — nombre del archivo en esta carpeta, sin extensión · `imgCap` — epígrafe
 
 ## Rehacer una captura
@@ -67,11 +70,13 @@ Qué muestra cada una:
 
 | Archivo | Pantalla |
 |---|---|
-| `00-conexion.png` | Bienvenida: conectar Drive o entrar a la demo |
+| `00-conexion.png` | Bienvenida: CONECTAR JSON o entrar a la demo |
 | `19-recorrido-guiado.png` | El primer paso del recorrido guiado |
 | `17-historia-clinica-resumen.png` | Historia clínica, vista Resumen: una fila por categoría |
 | `01-historia-clinica-completa.png` | Historia clínica, vista Completa: cada movimiento editable |
 | `06-cargar-archivo.png` | Subida del resumen y últimas cargas por origen |
+| `14-formatos-lista.png` | Los formatos de importación configurados |
+| `15-formatos-editor.png` | El editor de formatos con el preview |
 | `07-cargar-manual.png` | Carga manual, una fila por movimiento |
 | `08-cargar-inversiones.png` | Carga de activos con destino y moneda |
 | `02-ficha-medica.png` | Score, tarjetas de indicadores y distribución del gasto |
@@ -80,8 +85,6 @@ Qué muestra cada una:
 | `18-venta-activo.png` | La venta parcial de una compra |
 | `16-mesa-trading.png` | La mesa: operación, verificación, tamaño e historial |
 | `05-evolucion.png` | Presupuestado contra real, mes a mes |
-| `14-formatos-lista.png` | Los formatos de importación configurados |
-| `15-formatos-editor.png` | El editor de formatos con el preview |
 | `09-admin-categorias.png` | Categorías, subcategorías y etiquetas |
 | `10-admin-reglas.png` | Reglas de categorización automática |
 | `11-admin-viaje.png` | Modo viaje con su rango de fechas |
