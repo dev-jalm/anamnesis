@@ -1430,7 +1430,23 @@ function getReservaAcumulado(activeYear, activeMonth) {
 //   4. publicar
 // Los archivos viejos se migrarán solos al primer load.
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
+
+// Clave con la que se guarda el precio de un ticker. Lleva la moneda porque el
+// mismo símbolo vale dos cosas distintas según en qué se tenga: el CEDEAR de SPY
+// cotiza en pesos y la acción SPY en dólares. Con una clave por ticker a secas,
+// el que se actualizaba último pisaba al otro y su precio aparecía en la moneda
+// equivocada, sin aviso.
+function claveTickerInfo(ticker, moneda) {
+  return String(ticker || '').toUpperCase() + '|' + (moneda === 'USD' ? 'USD' : 'ARS');
+}
+
+// Lectura defensiva: devuelve {} si no hay precio para esa combinación, que es
+// lo que la app ya sabe mostrar como guión.
+function infoDeTicker(tickerInfo, ticker, moneda) {
+  if (!tickerInfo) return {};
+  return tickerInfo[claveTickerInfo(ticker, moneda)] || {};
+}
 
 const MIGRATIONS = {
   // v0 → v1: archivos pre-versionados. El formato actual ya es v1, no hay nada
@@ -1560,6 +1576,30 @@ const MIGRATIONS = {
         existingCls[subKey] = newCls[subKey];
       });
     });
+    return snap;
+  },
+
+  // v3 → v4: tickerInfo pasa a indexarse por ticker + moneda. Antes la clave era
+  // sólo el ticker, así que un mismo símbolo tenido en pesos y en dólares
+  // compartía un único precio y uno de los dos lo mostraba en la moneda ajena.
+  //
+  // Para saber en qué moneda quedó cada precio guardado se usa, en orden: la
+  // moneda declarada en el registro, el origen —la rama que derivaba el precio en
+  // dólares desde el CEDEAR lo marcaba como data912-cedear— y, si no hay ninguna
+  // de las dos, pesos, que es lo que la aplicación venía escribiendo por defecto.
+  4: function (snap) {
+    if (!snap.tickerInfo || typeof snap.tickerInfo !== 'object') { snap.tickerInfo = {}; return snap; }
+    const migrado = {};
+    Object.keys(snap.tickerInfo).forEach(function (clave) {
+      const reg = snap.tickerInfo[clave] || {};
+      // Ya migrada: no volver a componer la clave sobre una que la tiene.
+      if (clave.indexOf('|') >= 0) { migrado[clave] = reg; return; }
+      const moneda = (reg.moneda === 'USD' || reg.source === 'data912-cedear') ? 'USD' : 'ARS';
+      const copia = Object.assign({}, reg);
+      copia.moneda = moneda;
+      migrado[claveTickerInfo(clave, moneda)] = copia;
+    });
+    snap.tickerInfo = migrado;
     return snap;
   }
 };
@@ -2607,6 +2647,8 @@ if (typeof module !== 'undefined' && module.exports) {
     // constants
     NON_EXPENSE_CATS, NON_COUNTABLE_FLOW_CATS, BASIC_CATS, DISCRETIONARY_CATS, MONTHS_ORDER, SCHEMA_VERSION,
     MAX_LEN_DESCRIPCION, MAX_LEN_NOMBRE, recortarTexto,
+    // precios por ticker y moneda
+    claveTickerInfo, infoDeTicker,
     // ventas de activos
     ventasDeEntrada, cantidadVendida, cantidadRestante, productoVentas,
     costoVendido, realizadoDeEntrada, invertidoRestante, estadoEntrada, validarVenta,

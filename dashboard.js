@@ -17492,7 +17492,7 @@ function buildInvestmentDetailPanel(destinos, title) {
     let totInv = 0, totAct = 0, totRealizado = 0, allHavePrecio = (tickers.length > 0);
     tickers.forEach(function (tk) {
       const g = groups[tk];
-      const info = (state.tickerInfo && state.tickerInfo[tk]) || {};
+      const info = infoDeTicker(state.tickerInfo, tk, g.moneda);
       totInv += g.invertidoBruto;
       totRealizado += (g.realizado || 0);
       const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
@@ -17743,7 +17743,7 @@ function buildInvestmentDetailPanel(destinos, title) {
     if (tickers.length === 0) return '';
     return tickers.map(function (tk) {
       const g = groups[tk];
-      const info = (state.tickerInfo && state.tickerInfo[tk]) || {};
+      const info = infoDeTicker(state.tickerInfo, tk, g.moneda);
       const descripcion = info.descripcion || '';
       const precioActual = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
         ? Number(info.precioActual) : null;
@@ -17889,7 +17889,7 @@ function buildInvestmentDetailPanel(destinos, title) {
           '<td class="inv-ticker-toggle"><button class="inv-toggle-btn" data-action="toggle-ticker" title="Ver las compras y sus ventas"><i data-lucide="chevron-right" style="width:13px;height:13px"></i></button></td>' +
           brokerCellHtml +
           '<td class="ticker">' + escapeHtmlSafe(tk) + '</td>' +
-          '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(tk) + '" value="' + escapeHtmlSafe(descripcion).replace(/"/g, '&quot;') + '" placeholder="ej: SPDR S&P 500 ETF"></td>' +
+          '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(tk) + '" data-moneda="' + escapeHtmlSafe(g.moneda || 'ARS') + '" value="' + escapeHtmlSafe(descripcion).replace(/"/g, '&quot;') + '" placeholder="ej: SPDR S&P 500 ETF"></td>' +
           '<td class="num"><span class="inv-chip-liquidado">liquidado</span></td>' +
           '<td class="num" colspan="4"><span class="inv-na">vendidos ' + fmt(g.vendida) + ' nominales por ' + monedaPrefix + ' ' + fmt(g.producto) + '</span></td>' +
           '<td class="num ' + rCls + '" colspan="2">' + monedaPrefix + ' ' + fmt(Math.abs(g.realizado)) +
@@ -17908,7 +17908,7 @@ function buildInvestmentDetailPanel(destinos, title) {
         '</td>' +
         brokerCellHtml +
         '<td class="ticker">' + escapeHtmlSafe(tk) + '</td>' +
-        '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(tk) + '" value="' + escapeHtmlSafe(descripcion).replace(/"/g, '&quot;') + '" placeholder="ej: SPDR S&P 500 ETF"></td>' +
+        '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(tk) + '" data-moneda="' + escapeHtmlSafe(g.moneda || 'ARS') + '" value="' + escapeHtmlSafe(descripcion).replace(/"/g, '&quot;') + '" placeholder="ej: SPDR S&P 500 ETF"></td>' +
         '<td class="num">' + (g.cantidadTotal < 0 ? '-' : '') + fmt(Math.abs(g.cantidadTotal)) + '</td>' +
         // PPC sin decimales, igual que el resto de los importes de la fila. Era
         // la única celda con dos decimales y desalineaba la columna: el
@@ -17932,7 +17932,7 @@ function buildInvestmentDetailPanel(destinos, title) {
             '<span class="inv-price-wrap">' +
               '<span class="inv-price-sym">' + monedaPrefix + '</span>' +
               '<input type="text" inputmode="decimal" class="inv-price-input" size="' + Math.max(3, valorPrecio.length) + '" ' +
-              'data-ticker="' + escapeHtmlSafe(tk) + '" value="' + valorPrecio + '" title="' + escapeHtmlSafe(lastUpdateDisplay) + '">' +
+              'data-ticker="' + escapeHtmlSafe(tk) + '" data-moneda="' + escapeHtmlSafe(g.moneda || 'ARS') + '" value="' + valorPrecio + '" title="' + escapeHtmlSafe(lastUpdateDisplay) + '">' +
             '</span></td>';
         })() +
         // Variación por nominal del conjunto: precio actual contra el PPC.
@@ -18260,11 +18260,13 @@ function autoFetchSaludFinancieraIfStale() {
         wantedArs.forEach(function (tk) {
           const info = byTicker[tk];
           if (!info || info.price === null) return;
-          if (!state.tickerInfo[tk]) state.tickerInfo[tk] = {};
-          state.tickerInfo[tk].precioActual = Number(info.price);
-          if (info.desc && !state.tickerInfo[tk].descripcion) state.tickerInfo[tk].descripcion = info.desc;
-          state.tickerInfo[tk].lastUpdate = now;
-          state.tickerInfo[tk].source = 'data912';
+          const k = claveTickerInfo(tk, 'ARS');
+          if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
+          state.tickerInfo[k].precioActual = Number(info.price);
+          state.tickerInfo[k].moneda = 'ARS';
+          if (info.desc && !state.tickerInfo[k].descripcion) state.tickerInfo[k].descripcion = info.desc;
+          state.tickerInfo[k].lastUpdate = now;
+          state.tickerInfo[k].source = 'data912';
         });
         wantedUsd.forEach(function (tk) {
           const info = byTicker[tk];
@@ -18272,11 +18274,13 @@ function autoFetchSaludFinancieraIfStale() {
           const ratio = getRatio(tk);
           if (!ratio || ratio <= 0) return;
           const precioUsd = (Number(info.price) * ratio) / cotMep;
-          if (!state.tickerInfo[tk]) state.tickerInfo[tk] = {};
-          state.tickerInfo[tk].precioActual = precioUsd;
-          if (info.desc && !state.tickerInfo[tk].descripcion) state.tickerInfo[tk].descripcion = info.desc;
-          state.tickerInfo[tk].lastUpdate = now;
-          state.tickerInfo[tk].source = 'data912-cedear';
+          const k = claveTickerInfo(tk, 'USD');
+          if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
+          state.tickerInfo[k].precioActual = precioUsd;
+          state.tickerInfo[k].moneda = 'USD';
+          if (info.desc && !state.tickerInfo[k].descripcion) state.tickerInfo[k].descripcion = info.desc;
+          state.tickerInfo[k].lastUpdate = now;
+          state.tickerInfo[k].source = 'data912-cedear';
         });
         if (!state.params) state.params = {};
         state.params.tickersUpdatedAt = Date.now();
@@ -18443,11 +18447,13 @@ function fetchTickerPricesFromData912(destinos, btnEl) {
       wantedArs.forEach(function (tk) {
         const info = byTicker[tk];
         if (!info || info.price === null) { notFound.push(tk + ' (ARS)'); return; }
-        if (!state.tickerInfo[tk]) state.tickerInfo[tk] = {};
-        state.tickerInfo[tk].precioActual = Number(info.price);
-        if (info.desc && !state.tickerInfo[tk].descripcion) state.tickerInfo[tk].descripcion = info.desc;
-        state.tickerInfo[tk].lastUpdate = now;
-        state.tickerInfo[tk].source = 'data912';
+        const k = claveTickerInfo(tk, 'ARS');
+        if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
+        state.tickerInfo[k].precioActual = Number(info.price);
+        state.tickerInfo[k].moneda = 'ARS';
+        if (info.desc && !state.tickerInfo[k].descripcion) state.tickerInfo[k].descripcion = info.desc;
+        state.tickerInfo[k].lastUpdate = now;
+        state.tickerInfo[k].source = 'data912';
         updatedArs += 1;
       });
 
@@ -18459,11 +18465,13 @@ function fetchTickerPricesFromData912(destinos, btnEl) {
         const ratio = getRatio(tk);
         if (!ratio || ratio <= 0) { noRatio.push(tk); return; }
         const precioUsdImplicito = (Number(info.price) * ratio) / cotMep;
-        if (!state.tickerInfo[tk]) state.tickerInfo[tk] = {};
-        state.tickerInfo[tk].precioActual = precioUsdImplicito;
-        if (info.desc && !state.tickerInfo[tk].descripcion) state.tickerInfo[tk].descripcion = info.desc;
-        state.tickerInfo[tk].lastUpdate = now;
-        state.tickerInfo[tk].source = 'data912-cedear';
+        const k = claveTickerInfo(tk, 'USD');
+        if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
+        state.tickerInfo[k].precioActual = precioUsdImplicito;
+        state.tickerInfo[k].moneda = 'USD';
+        if (info.desc && !state.tickerInfo[k].descripcion) state.tickerInfo[k].descripcion = info.desc;
+        state.tickerInfo[k].lastUpdate = now;
+        state.tickerInfo[k].source = 'data912-cedear';
         updatedUsd += 1;
       });
 
@@ -18582,7 +18590,7 @@ function abrirModalVenta(opts) {
   if (!objetivo || objetivo.disponible <= 0) return;
 
   ventaState.objetivo = objetivo;
-  const info = (state.tickerInfo && state.tickerInfo[objetivo.ticker]) || {};
+  const info = infoDeTicker(state.tickerInfo, objetivo.ticker, objetivo.moneda);
   const simbolo = objetivo.moneda === 'USD' ? 'US$' : '$';
 
   document.getElementById('ventaTitulo').textContent =
@@ -18700,7 +18708,7 @@ function registrarTxDeResultado(objetivo, realizado, cuando, cantidad) {
     fecha: fechaAr,
     descripcion: descripcionVenta(
       objetivo.ticker,
-      ((state.tickerInfo && state.tickerInfo[objetivo.ticker]) || {}).descripcion,
+      infoDeTicker(state.tickerInfo, objetivo.ticker, objetivo.moneda).descripcion,
       fmt(cantidad), destLabel),
     monto: Math.abs(realizado),
     categoria: realizado > 0 ? 'RentaFinanciera' : 'PerdidaFinanciera',
@@ -18891,9 +18899,11 @@ function bindInvestmentDetailDelegation() {
       const tk = descInput.getAttribute('data-ticker');
       if (!tk) return;
       if (!state.tickerInfo) state.tickerInfo = {};
-      if (!state.tickerInfo[tk]) state.tickerInfo[tk] = {};
-      state.tickerInfo[tk].descripcion = descInput.value.trim();
-      state.tickerInfo[tk].lastUpdate = state.tickerInfo[tk].lastUpdate || new Date().toISOString();
+      const k = claveTickerInfo(tk, descInput.getAttribute('data-moneda'));
+      if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
+      state.tickerInfo[k].descripcion = descInput.value.trim();
+      state.tickerInfo[k].moneda = (descInput.getAttribute('data-moneda') === 'USD') ? 'USD' : 'ARS';
+      state.tickerInfo[k].lastUpdate = state.tickerInfo[k].lastUpdate || new Date().toISOString();
       scheduleSave();
       // No re-renderizamos: el cambio ya está visible
       return;
@@ -18903,12 +18913,14 @@ function bindInvestmentDetailDelegation() {
       const tk = priceInput.getAttribute('data-ticker');
       if (!tk) return;
       if (!state.tickerInfo) state.tickerInfo = {};
-      if (!state.tickerInfo[tk]) state.tickerInfo[tk] = {};
+      const k = claveTickerInfo(tk, priceInput.getAttribute('data-moneda'));
+      if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
       const v = priceInput.value.trim();
       // Parsear formato AR (1.234,56) o US (1234.56) → number limpio
       const parsed = parseInputAR(v);
-      state.tickerInfo[tk].precioActual = parsed;
-      state.tickerInfo[tk].lastUpdate = new Date().toISOString();
+      state.tickerInfo[k].precioActual = parsed;
+      state.tickerInfo[k].moneda = (priceInput.getAttribute('data-moneda') === 'USD') ? 'USD' : 'ARS';
+      state.tickerInfo[k].lastUpdate = new Date().toISOString();
       scheduleSave();
       // Re-renderizar para recalcular Actualizado y G/P de esta fila
       if (typeof renderMainAssets === 'function') renderMainAssets();

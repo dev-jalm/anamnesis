@@ -5,8 +5,8 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.9 |
-| **Fecha** | 5 de septiembre de 2026 |
+| **Versión** | 1.10 |
+| **Fecha** | 6 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
 | **Alcance de la versión** | Funcionalidad implementada y verificada en la rama `main` |
@@ -111,7 +111,7 @@ La estructura de navegación sigue deliberadamente una historia clínica. No es 
 | Mecanismo de archivo | File System Access API del navegador |
 | Reconexión entre sesiones | Referencia al archivo almacenada en IndexedDB, base `finanzas_drive_handles`, clave `main_file` |
 | Copia local de trabajo | `localStorage`, clave `finanzas_dashboard_state_v4` |
-| Versión de esquema del archivo | 3 |
+| Versión de esquema del archivo | 4 |
 | Versión de estructura de estado | 4 |
 | Retardo de guardado | 800 ms |
 
@@ -220,6 +220,8 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-074 | Cada activo se despliega en sus compras individuales, y cada compra muestra su resultado contra el precio vigente |
 | RF-075 | Ganancia se representa en verde y pérdida en rojo, sin excepción, en todas las secciones de la pantalla |
 | RF-076 | Si un activo no tiene precio actual cargado, sus columnas de resultado muestran un guión, no un cero |
+| RF-076a | El precio se registra **por ticker y por moneda**. Un mismo símbolo tenido en pesos y en dólares son dos precios distintos —el CEDEAR y la acción— y ninguno sustituye al otro |
+| RF-076b | No se exhibe un precio en una moneda distinta de la del activo. Si no hay precio para esa combinación corresponde el guión de RF-076: un importe en la moneda equivocada es peor que la ausencia del dato |
 | RF-077 | Una acción de actualización trae precios y descripciones desde el servicio de cotizaciones |
 | RF-078 | Los tickers en dólares no se consultan por separado: se derivan del CEDEAR en pesos aplicando su ratio y la cotización MEP |
 | RF-079 | El destino Trading no lista tenencias por ticker. Su detalle es la mesa de operaciones (sección 4.7) |
@@ -850,7 +852,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 380 pruebas en 46 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 390 pruebas en 47 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 
 **Fundamento de RNF-40.** Requerimiento explícito del cliente: una herramienta personal destinada a seguir operativa dentro de cinco años no puede depender de una cadena de compilación cuyas dependencias se degradan en meses.
@@ -997,12 +999,17 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.6 | 30/08/2026 | Incorpora la consulta del manual desde dentro de la aplicación (RF-214c a RF-214e), el reordenamiento de los accesos de ayuda al final del panel lateral (RF-249) y los criterios generales de cierre y altura de los diálogos (RNF-15, RNF-16) | Reemplazada |
 | 1.7 | 30/08/2026 | Revisión de consistencia contra el producto construido. Se corrige la fórmula del balance de flujo (RF-024), que omitía Renta financiera y Pérdida financiera y contradecía al catálogo de 5.7; los tiempos máximos de las integraciones (INT-02, INT-04, RF-202); la cobertura de pruebas (RNF-43); y se elimina pdf.js del detalle de dependencias, que no se utiliza. Se explicita el comportamiento de red del modo demostración (RF-226 a RF-228) | Reemplazada |
 | 1.8 | 31/08/2026 | Normaliza el criterio de guardado en todo el producto y su documentación: el archivo es local y el respaldo lo provee el cliente de sincronización del usuario (RF-008a, RF-008b, OBJ-1). El acceso de conexión pasa a llamarse CONECTAR JSON | Reemplazada |
-| 1.9 | 05/09/2026 | Incorpora tres funcionalidades vigentes que el documento no recogía: el acceso al editor desde el ícono de cada tarjeta (RF-053a), la carga del presupuesto anual por categoría desde Evolución (RF-103 a RF-107) y la incorporación de un movimiento al presupuesto desde Historia clínica (RF-108 a RF-109a) | **Vigente** |
+| 1.10 | 06/09/2026 | Corrige el registro de precios, que no distinguía la moneda: un mismo ticker tenido en pesos y en dólares compartía un único precio y uno de los dos se mostraba en la moneda ajena (RF-076a, RF-076b). El esquema del archivo pasa a versión 4, con migración automática | **Vigente** |
+| 1.9 | 05/09/2026 | Incorpora tres funcionalidades vigentes que el documento no recogía: el acceso al editor desde el ícono de cada tarjeta (RF-053a), la carga del presupuesto anual por categoría desde Evolución (RF-103 a RF-107) y la incorporación de un movimiento al presupuesto desde Historia clínica (RF-108 a RF-109a) | Reemplazada |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 
-La versión 1.9 **no incorpora cambios de producto**: documenta funcionalidad que
-ya estaba construida y que este documento no recogía.
+| Cambio | Requerimiento |
+|---|---|
+| Precios registrados por ticker y moneda, con migración del archivo a la versión 4 de esquema | RF-076a, RF-076b |
+
+La versión 1.9 no incorporó cambios de producto: documentó funcionalidad que ya
+estaba construida y que este documento no recogía.
 
 **Implementados en la versión 1.8**
 
@@ -1056,7 +1063,7 @@ La construcción no empezó con el repositorio. Se desarrolló en dos etapas, co
 | Período | Desde | Hasta | Herramienta | Trazabilidad |
 |---|---|---|---|---|
 | **1. Previo al repositorio** | 02/04/2026 | 27/07/2026 | Conversaciones y proyectos, pasando las versiones del producto de una a otra | Insuficiente: hay fechas pero no se puede aislar qué conversaciones son del producto |
-| **2. Con repositorio** | 27/07/2026 | 05/09/2026 | Entorno con control de versiones | Transcripciones de sesión: 11.959 eventos fechados |
+| **2. Con repositorio** | 27/07/2026 | 06/09/2026 | Entorno con control de versiones | Transcripciones de sesión: 12.300 eventos fechados |
 
 **Cuánto producto existía antes del primer commit.** El primer commit —titulado *Anamnesis: estado inicial*— no marca el inicio del desarrollo sino la incorporación al repositorio de un producto ya construido:
 
@@ -1094,17 +1101,17 @@ Identificarlas por fecha y tamaño daba resultados demasiado dispares —entre 1
 
 ### A.3 Período 2: con repositorio — medido
 
-**Método.** Las horas no se declaran: se derivan de las transcripciones de sesión del entorno de desarrollo, que registran cada interacción con su marca temporal. Las 11.959 interacciones se agrupan en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, y se suma la duración de cada una.
+**Método.** Las horas no se declaran: se derivan de las transcripciones de sesión del entorno de desarrollo, que registran cada interacción con su marca temporal. Las 12.300 interacciones se agrupan en sesiones cortando cuando entre dos consecutivos pasan más de 90 minutos, y se suma la duración de cada una.
 
 **Fuente viva.** El cálculo está automatizado en `docs/horas-sesiones.js`, que regenera `docs/bitacora-sesiones.md` con el detalle sesión por sesión. Las cifras de esta tabla son las vigentes a la fecha del documento; la bitácora tiene siempre las actuales.
 
 | Indicador | Valor |
 |---|---|
-| Período | 27/07/2026 a 05/09/2026 |
+| Período | 27/07/2026 a 06/09/2026 |
 | Días con actividad | 23 |
-| Interacciones registradas | 11.959 |
-| Sesiones de trabajo | 42 |
-| **Horas medidas** | **≈ 68,5** |
+| Interacciones registradas | 12.300 |
+| Sesiones de trabajo | 43 |
+| **Horas medidas** | **≈ 71,3** |
 | Duración media por sesión | 1,7 h |
 
 **Por qué no se usan los commits.** Es la otra fuente disponible, y da menos: 40,5 horas en 23 sesiones sobre 13 días. La diferencia del 32 % no es ruido, son dos cosas que el historial de commits no puede ver:
@@ -1132,14 +1139,14 @@ Se adopta el corte de 90 minutos, el mismo del conteo por commits, para que las 
 | Período | Horas | Origen del dato |
 |---|---|---|
 | 1. Previo al repositorio | ≈ 171 | Estimado a 45 h/mes (A.2) |
-| 2. Con repositorio | ≈ 68,5 | Medido (A.3) |
-| **Total** | **≈ 240** | |
+| 2. Con repositorio | ≈ 71,3 | Medido (A.3) |
+| **Total** | **≈ 242** | |
 
 El 76 % del esfuerzo corresponde al período previo al repositorio, coherente con que ahí se construyó el 78 % del producto.
 
 ### A.5 Esfuerzo estimado de un equipo humano
 
-**Alcance a construir.** 44.194 líneas de código versionado —medidas al cierre de la versión 1.3—, 380 pruebas automatizadas, 5 integraciones externas, un manual de 28 páginas con 20 capturas y su compilador, y esta especificación.
+**Alcance a construir.** 44.194 líneas de código versionado —medidas al cierre de la versión 1.3—, 390 pruebas automatizadas, 5 integraciones externas, un manual de 28 páginas con 20 capturas y su compilador, y esta especificación.
 
 **Equipo mínimo viable**
 
@@ -1188,7 +1195,7 @@ El 76 % del esfuerzo corresponde al período previo al repositorio, coherente co
 
 | Concepto | Real | Equipo humano |
 |---|---|---|
-| Horas | ≈ 240 | ≈ 2.070 |
+| Horas | ≈ 242 | ≈ 2.070 |
 | Personas | 1 | 4 a 5 |
 | Calendario | 5 meses, en dedicación parcial | 3 a 4 meses, a tiempo completo |
 
@@ -1200,10 +1207,10 @@ Conviene notar que el calendario real es **más largo** que el estimado para el 
 
 | # | Advertencia |
 |---|---|
-| 1 | **De las 240 horas del lado real, sólo 68,5 son una medición.** Salen de 11.959 interacciones fechadas del período 2. Las 171 restantes son una dedicación estimada de 45 h/mes, adoptada por el cliente ante la falta de registro confiable |
+| 1 | **De las 242 horas del lado real, sólo 71,3 son una medición.** Salen de 12.300 interacciones fechadas del período 2. Las 171 restantes son una dedicación estimada de 45 h/mes, adoptada por el cliente ante la falta de registro confiable |
 | 2 | Las 2.070 del equipo humano son una **estimación por componente** con los supuestos de A.5. Ninguno de los dos lados del contraste es enteramente un dato |
 | 3 | La estimación del período 1 queda por debajo del piso que sugiere el volumen de código —195 horas, ver A.2—, de modo que subestima antes que exagerar |
-| 4 | En el período medido se toma el lapso entre la primera y la última interacción de cada sesión: no se distingue el trabajo activo de la lectura o la espera, y las pausas de más de 90 minutos quedan fuera aunque hayan sido de trabajo. Esas 68,5 horas son un **piso** |
+| 4 | En el período medido se toma el lapso entre la primera y la última interacción de cada sesión: no se distingue el trabajo activo de la lectura o la espera, y las pausas de más de 90 minutos quedan fuera aunque hayan sido de trabajo. Esas 71,3 horas son un **piso** |
 | 5 | La estimación del equipo humano supone construir **el producto terminado**, sin las exploraciones descartadas que un proyecto real atraviesa. En ese sentido es conservadora |
 | 6 | La comparación no mide productividad individual: las horas reales corresponden a dirección, decisión y validación, con la escritura de código asistida |
 | 7 | Un equipo humano habría producido decisiones de arquitectura distintas. La relación compara el costo de llegar a **este** producto, no a uno equivalente en funciones |

@@ -1174,6 +1174,66 @@ group('getReservaAcumulado — progreso del plan', function () {
 // SUITE — SCHEMA VERSIONING
 // ============================================================
 
+group('tickerInfo por ticker y moneda', function () {
+  test('la clave separa el mismo ticker segun la moneda', function () {
+    assertEqual(claveTickerInfo('SPY', 'ARS'), 'SPY|ARS');
+    assertEqual(claveTickerInfo('SPY', 'USD'), 'SPY|USD');
+    assert(claveTickerInfo('SPY', 'ARS') !== claveTickerInfo('SPY', 'USD'), 'no pueden colisionar');
+  });
+  test('normaliza el ticker y trata cualquier moneda desconocida como pesos', function () {
+    assertEqual(claveTickerInfo('spy', 'USD'), 'SPY|USD');
+    assertEqual(claveTickerInfo('SPY', ''), 'SPY|ARS');
+    assertEqual(claveTickerInfo('SPY', undefined), 'SPY|ARS');
+    assertEqual(claveTickerInfo('SPY', 'EUR'), 'SPY|ARS');
+  });
+  test('el precio en pesos no se devuelve para el activo en dolares', function () {
+    const ti = { 'SPY|ARS': { precioActual: 28650, moneda: 'ARS' } };
+    assertEqual(infoDeTicker(ti, 'SPY', 'ARS').precioActual, 28650);
+    // Este era el bug: sin precio propio, la fila en dolares mostraba los pesos.
+    assertEqual(infoDeTicker(ti, 'SPY', 'USD').precioActual, undefined);
+  });
+  test('cada moneda conserva su precio sin pisar a la otra', function () {
+    const ti = {
+      'SPY|ARS': { precioActual: 28650, moneda: 'ARS' },
+      'SPY|USD': { precioActual: 445.91, moneda: 'USD' }
+    };
+    assertEqual(infoDeTicker(ti, 'SPY', 'ARS').precioActual, 28650);
+    assertEqual(infoDeTicker(ti, 'SPY', 'USD').precioActual, 445.91);
+  });
+  test('sin tickerInfo o sin el ticker devuelve vacio, no rompe', function () {
+    assertEqual(typeof infoDeTicker(null, 'SPY', 'ARS'), 'object');
+    assertEqual(infoDeTicker({}, 'SPY', 'ARS').precioActual, undefined);
+  });
+  test('v3 a v4: los precios existentes se asumen en pesos', function () {
+    const input = { schemaVersion: 3, tickerInfo: { SPY: { precioActual: 28650, descripcion: 'SPDR' } } };
+    const r = migrateSnapshot(input);
+    assertEqual(r.snap.tickerInfo['SPY|ARS'].precioActual, 28650);
+    assertEqual(r.snap.tickerInfo['SPY|ARS'].moneda, 'ARS');
+    assertEqual(r.snap.tickerInfo.SPY, undefined);
+  });
+  test('v3 a v4: el precio derivado del CEDEAR se reconoce como dolares', function () {
+    const input = { schemaVersion: 3, tickerInfo: { AAPL: { precioActual: 210.5, source: 'data912-cedear' } } };
+    const r = migrateSnapshot(input);
+    assertEqual(r.snap.tickerInfo['AAPL|USD'].precioActual, 210.5);
+    assertEqual(r.snap.tickerInfo['AAPL|USD'].moneda, 'USD');
+  });
+  test('v3 a v4: respeta la moneda declarada en el registro', function () {
+    const input = { schemaVersion: 3, tickerInfo: { NVDA: { precioActual: 120, moneda: 'USD' } } };
+    const r = migrateSnapshot(input);
+    assertEqual(r.snap.tickerInfo['NVDA|USD'].precioActual, 120);
+  });
+  test('v3 a v4 es idempotente: no vuelve a componer una clave ya migrada', function () {
+    const input = { schemaVersion: 3, tickerInfo: { 'SPY|USD': { precioActual: 445.91, moneda: 'USD' } } };
+    const r = migrateSnapshot(input);
+    assertEqual(r.snap.tickerInfo['SPY|USD'].precioActual, 445.91);
+    assertEqual(r.snap.tickerInfo['SPY|USD|ARS'], undefined);
+  });
+  test('v3 a v4 sin tickerInfo: lo deja como objeto vacio', function () {
+    const r = migrateSnapshot({ schemaVersion: 3 });
+    assertEqual(typeof r.snap.tickerInfo, 'object');
+  });
+});
+
 group('migrateSnapshot — migración entre versiones', function () {
   test('snapshot sin versión (v0) → migración a versión actual aplicada', function () {
     const input = {
@@ -1182,16 +1242,16 @@ group('migrateSnapshot — migración entre versiones', function () {
     };
     const r = migrateSnapshot(input);
     assertEqual(r.fromVersion, 0);
-    assertEqual(r.toVersion, 3);
-    assertEqual(r.migrationsApplied, [1, 2, 3]);
+    assertEqual(r.toVersion, SCHEMA_VERSION);
+    assertEqual(r.migrationsApplied, [1, 2, 3, 4]);
     assertEqual(r.futureWarning, false);
-    assertEqual(r.snap.schemaVersion, 3);
+    assertEqual(r.snap.schemaVersion, SCHEMA_VERSION);
   });
   test('snapshot ya en versión actual no migra', function () {
-    const input = { schemaVersion: 3, categoryLabels: {}, transactionsByYear: {} };
+    const input = { schemaVersion: SCHEMA_VERSION, categoryLabels: {}, transactionsByYear: {} };
     const r = migrateSnapshot(input);
-    assertEqual(r.fromVersion, 3);
-    assertEqual(r.toVersion, 3);
+    assertEqual(r.fromVersion, SCHEMA_VERSION);
+    assertEqual(r.toVersion, SCHEMA_VERSION);
     assertEqual(r.migrationsApplied, []);
   });
   test('snapshot de versión futura → futureWarning, no migra', function () {
@@ -1205,7 +1265,7 @@ group('migrateSnapshot — migración entre versiones', function () {
   test('migración v0→vCurrent inicializa campos faltantes', function () {
     const input = {};  // archivo súper viejo o vacío
     const r = migrateSnapshot(input);
-    assertEqual(r.snap.schemaVersion, 3);
+    assertEqual(r.snap.schemaVersion, SCHEMA_VERSION);
     assertEqual(typeof r.snap.categoryLabels, 'object');
     assertEqual(typeof r.snap.transactionsByYear, 'object');
     assert(Array.isArray(r.snap.categoryRules), 'categoryRules debe ser array');
@@ -1235,7 +1295,7 @@ group('migrateSnapshot — migración entre versiones', function () {
       subcategoryLabels: { Educacion: { Colegio: 'Colegio', Cursos: 'Cursos' } }
     };
     const r = migrateSnapshot(input);
-    assertEqual(r.toVersion, 3);
+    assertEqual(r.toVersion, SCHEMA_VERSION);
     assertEqual(r.snap.subcategoryLabels.Educacion.HerramientasYAplicaciones, 'Herramientas y Aplicaciones');
     // No tocó las subs existentes
     assertEqual(r.snap.subcategoryLabels.Educacion.Colegio, 'Colegio');

@@ -528,7 +528,10 @@ function buildDemoSnapshot(mesesAtras) {
         })
       });
     });
-    tickerInfo[p.ticker] = {
+    // La clave lleva la moneda: el mismo ticker vale distinto segun en que se
+    // tenga, y con la clave a secas el precio en pesos se mostraba tambien en la
+    // fila en dolares. La cartera demo es toda en pesos.
+    tickerInfo[claveTickerInfo(p.ticker, 'ARS')] = {
       descripcion: p.desc,
       precioActual: p.actual,
       moneda: 'ARS',
@@ -570,7 +573,7 @@ function buildDemoSnapshot(mesesAtras) {
     });
 
   const snap = {
-    schemaVersion: (typeof SCHEMA_VERSION !== 'undefined' ? SCHEMA_VERSION : 3),
+    schemaVersion: (typeof SCHEMA_VERSION !== 'undefined' ? SCHEMA_VERSION : 4),
     version: (typeof STATE_VERSION !== 'undefined' ? STATE_VERSION : 4),
     savedAt: new Date().toISOString(),
     _demo: true,                    // marca para que la app sepa que no es real
