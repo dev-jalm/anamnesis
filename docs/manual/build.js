@@ -76,6 +76,7 @@ window.MANUAL = {
         'Un valor editado a mano se muestra en color de acento y guarda el original en el tooltip, así siempre se puede ver qué decía el archivo.',
         'CARGAR MOVIMIENTOS abre la pantalla de importación, que es lo que sigue.',
         'CSV baja los movimientos filtrados a una planilla.',
+        'INCLUIR EN PRESUPUESTO, en cada fila, manda ese gasto al presupuesto de su categoría —a un mes o a un rango— sin salir de acá. Se explica entero en Evolución.',
         'El totalizador de abajo a la derecha muestra Movimientos cuando estás viendo gastos y Flujo cuando estás viendo movimientos de flujo. Nunca los dos: el listado muestra unos u otros.'
       ]
     },
@@ -226,7 +227,9 @@ window.MANUAL = {
       ],
       lista: [
         'Se guarda todo junto con CONFIRMAR. Si cerrás con cambios sin guardar, la app avisa antes de descartarlos.',
-        'El presupuesto es por categoría, por mes y por año: cambiar el año arriba abre la planilla de ese año.'
+        'El presupuesto es por categoría, por mes y por año: cambiar el año arriba abre la planilla de ese año.',
+        'Hay una segunda vía, para cuando el número ya lo tenés adelante: en Historia clínica, vista Completa, cada movimiento trae un botón INCLUIR EN PRESUPUESTO. Abre el mismo presupuesto con la fecha, el monto y la descripción de ese movimiento ya cargados, y sólo hay que decidir a qué mes va —o a qué rango, si es algo que se repite—. Sirve para armar el presupuesto del año que viene a partir de lo que gastaste este.',
+        'Un movimiento ya incorporado queda marcado en su fila, así se ve de un vistazo qué se presupuestó y qué no. Se puede volver a incluir en otro período: marcarlo no lo bloquea.'
       ]
     },
     {

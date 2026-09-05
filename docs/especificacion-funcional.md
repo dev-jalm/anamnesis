@@ -317,6 +317,9 @@ Módulo de gestión de riesgo por operación apalancada.
 | RF-105 | La planilla totaliza el presupuesto anual mientras se edita, antes de confirmar |
 | RF-106 | Los cambios se confirman en bloque. Cerrar con modificaciones pendientes solicita confirmación y advierte que se perderán |
 | RF-107 | El presupuesto se define por categoría, mes y año. Cambiar el año seleccionado abre la planilla de ese año |
+| RF-108 | El presupuesto admite una segunda vía de carga, desde la vista Completa de Historia clínica: cada movimiento ofrece incorporarse al presupuesto de su categoría |
+| RF-109 | Esa vía toma del movimiento la fecha, el importe y la descripción, y sólo requiere indicar el destino: un mes determinado o un rango de meses, para lo que se repite |
+| RF-109a | El movimiento ya incorporado queda señalado en su fila. La marca es informativa: el mismo movimiento puede incorporarse a otro período |
 
 ---
 
@@ -994,7 +997,7 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.6 | 30/08/2026 | Incorpora la consulta del manual desde dentro de la aplicación (RF-214c a RF-214e), el reordenamiento de los accesos de ayuda al final del panel lateral (RF-249) y los criterios generales de cierre y altura de los diálogos (RNF-15, RNF-16) | Reemplazada |
 | 1.7 | 30/08/2026 | Revisión de consistencia contra el producto construido. Se corrige la fórmula del balance de flujo (RF-024), que omitía Renta financiera y Pérdida financiera y contradecía al catálogo de 5.7; los tiempos máximos de las integraciones (INT-02, INT-04, RF-202); la cobertura de pruebas (RNF-43); y se elimina pdf.js del detalle de dependencias, que no se utiliza. Se explicita el comportamiento de red del modo demostración (RF-226 a RF-228) | Reemplazada |
 | 1.8 | 31/08/2026 | Normaliza el criterio de guardado en todo el producto y su documentación: el archivo es local y el respaldo lo provee el cliente de sincronización del usuario (RF-008a, RF-008b, OBJ-1). El acceso de conexión pasa a llamarse CONECTAR JSON | Reemplazada |
-| 1.9 | 05/09/2026 | Incorpora dos funcionalidades vigentes que el documento no recogía: el acceso al editor desde el ícono de cada tarjeta (RF-053a) y la carga del presupuesto anual por categoría desde Evolución (RF-103 a RF-107) | **Vigente** |
+| 1.9 | 05/09/2026 | Incorpora tres funcionalidades vigentes que el documento no recogía: el acceso al editor desde el ícono de cada tarjeta (RF-053a), la carga del presupuesto anual por categoría desde Evolución (RF-103 a RF-107) y la incorporación de un movimiento al presupuesto desde Historia clínica (RF-108 a RF-109a) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 
@@ -1136,7 +1139,7 @@ El 76 % del esfuerzo corresponde al período previo al repositorio, coherente co
 
 ### A.5 Esfuerzo estimado de un equipo humano
 
-**Alcance a construir.** 44.194 líneas de código versionado —medidas al cierre de la versión 1.3—, 380 pruebas automatizadas, 5 integraciones externas, un manual de 27 páginas con 20 capturas y su compilador, y esta especificación.
+**Alcance a construir.** 44.194 líneas de código versionado —medidas al cierre de la versión 1.3—, 380 pruebas automatizadas, 5 integraciones externas, un manual de 28 páginas con 20 capturas y su compilador, y esta especificación.
 
 **Equipo mínimo viable**
 
