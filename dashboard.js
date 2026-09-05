@@ -546,11 +546,12 @@ function fmtPrecio(n) {
   return new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(n));
 }
 
-// Nominales: hasta tres decimales, y ninguno si es un entero. Las fracciones de
-// nominal existen —un canje, una suscripción parcial— y truncarlas descuadraba
-// la cantidad contra el total que sale de multiplicarla por el precio.
+// Nominales: hasta siete decimales, y ninguno cuando es un entero. Siete porque
+// una tenencia cripto se mide en fracciones —0,0034512 de un bitcoin— y
+// truncarla la deja en cero o descuadrada contra el total. Un CEDEAR entero
+// sigue viéndose entero: los decimales aparecen sólo si el número los tiene.
 function fmtNominales(n) {
-  return new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 3 }).format(Math.abs(n));
+  return new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 7 }).format(Math.abs(n));
 }
 
 // ============================================================
@@ -6024,7 +6025,9 @@ function renderInvestmentList() {
     // es solo para mostrar. Al input type="text" + inputmode="decimal" le agregamos
     // un handler que reformatea al escribir.
     const cantDisplay = (r.cantidad !== '' && r.cantidad != null) ? formatInputAR(r.cantidad) : '';
-    const precDisplay = (r.precio !== '' && r.precio != null) ? formatInputAR(r.precio) : '';
+    // El precio va con dos decimales, como en la tabla de la cartera. La cantidad
+    // conserva los que tenga: un CEDEAR es entero y una fraccion de cripto no.
+    const precDisplay = (r.precio !== '' && r.precio != null) ? fmtPrecio(r.precio) : '';
     return '<div class="manual-row investment-row" data-id="' + r.id + '">' +
       '<input type="date" data-field="fecha" value="' + r.fecha + '" title="Fecha">' +
       '<select data-field="broker" class="inv-broker-sel broker-bg-' + (r.broker || 'BALANZ') + '" title="Broker o exchange">' +
