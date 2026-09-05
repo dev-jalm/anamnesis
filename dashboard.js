@@ -538,6 +538,21 @@ function fmt(n) {
   return new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(Math.abs(n));
 }
 
+// Precios de la cartera: PPC, precio de compra, precio actual y variación por
+// nominal. Van con dos decimales porque en esas columnas conviven un CEDEAR de
+// cinco dígitos con una acción en dólares de dos, y redondear al entero se come
+// la diferencia entera de los papeles baratos.
+function fmtPrecio(n) {
+  return new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(n));
+}
+
+// Nominales: hasta tres decimales, y ninguno si es un entero. Las fracciones de
+// nominal existen —un canje, una suscripción parcial— y truncarlas descuadraba
+// la cantidad contra el total que sale de multiplicarla por el precio.
+function fmtNominales(n) {
+  return new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 3 }).format(Math.abs(n));
+}
+
 // ============================================================
 // KPI CURRENCY (ARS/USD) — Ficha Médica
 // ============================================================
@@ -17802,7 +17817,7 @@ function buildInvestmentDetailPanel(destinos, title) {
             '<td class="inv-entry-fecha">' + fechaDisplay + '</td>' +
             '<td></td>' +
             '<td class="num"><span class="inv-chip-liquidado">liquidada</span></td>' +
-            '<td class="num" colspan="4"><span class="inv-na">vendidos ' + fmt(eVendida) + ' nominales por ' +
+            '<td class="num" colspan="4"><span class="inv-na">vendidos ' + fmtNominales(eVendida) + ' nominales por ' +
               monedaPrefix + ' ' + fmt(productoVentas(e)) + '</span></td>' +
             '<td class="num ' + rCls + '" colspan="2">' + monedaPrefix + ' ' + fmt(Math.abs(eRealizado)) +
               '<div class="inv-gp-pct">realizado</div></td>' +
@@ -17815,7 +17830,7 @@ function buildInvestmentDetailPanel(destinos, title) {
             // precio con el que se calcula la ganancia realizada.
             (eCant > 0
               ? '<button class="inv-delete-btn inv-vender-btn" data-action="vender-compra" data-inv-id="' + escapeHtmlSafe(e.id) + '" ' +
-                'title="Vender de esta compra — quedan ' + fmt(eCant) + '">' + ICONO_VENDER + '</button>'
+                'title="Vender de esta compra — quedan ' + fmtNominales(eCant) + '">' + ICONO_VENDER + '</button>'
               : '') +
           '</td>' +
           '<td>' + (showDestColumn ? escapeHtmlSafe(destLabel) : '') + '</td>' +
@@ -17825,20 +17840,20 @@ function buildInvestmentDetailPanel(destinos, title) {
             (eVendida > 0
               ? '<div class="inv-entry-vendido" title="Ganancia realizada: ' +
                 escapeHtmlSafe(monedaPrefix + ' ' + fmt(Math.abs(eRealizado))) + (eRealizado < 0 ? ' de pérdida' : '') + '">' +
-                'vendidas ' + fmt(eVendida) + (eEstado === 'vendida' ? ' · sin saldo' : '') + '</div>'
+                'vendidas ' + fmtNominales(eVendida) + (eEstado === 'vendida' ? ' · sin saldo' : '') + '</div>'
               : '') +
           '</td>' +
           '<td></td>' +
-          '<td class="num">' + (eCant < 0 ? '-' : '') + fmt(Math.abs(eCant)) + '</td>' +
-          '<td class="num">' + monedaPrefix + ' ' + fmt(ePrecio) + '</td>' +
+          '<td class="num">' + (eCant < 0 ? '-' : '') + fmtNominales(eCant) + '</td>' +
+          '<td class="num">' + monedaPrefix + ' ' + fmtPrecio(ePrecio) + '</td>' +
           '<td class="num">' + (eTotal < 0 ? '-' : '') + monedaPrefix + ' ' + fmt(Math.abs(eTotal)) + '</td>' +
-          '<td class="num">' + (precioActual !== null ? monedaPrefix + ' ' + fmt(precioActual) : na) + '</td>' +
+          '<td class="num">' + (precioActual !== null ? monedaPrefix + ' ' + fmtPrecio(precioActual) : na) + '</td>' +
           // Sin signo en los importes: el verde y el rojo ya dicen si ganó o
           // perdió, y el "+$" delante de un numero verde es la misma
           // informacion dos veces. El porcentaje si lo conserva, que es donde
           // la direccion no se lee del color sino de la magnitud.
           '<td class="num ' + eGpClass + '">' + (varUnit !== null
-            ? monedaPrefix + ' ' + fmt(Math.abs(varUnit))
+            ? monedaPrefix + ' ' + fmtPrecio(varUnit)
             : na) + '</td>' +
           '<td class="num ' + eGpClass + '">' + (eActualizado !== null ? monedaPrefix + ' ' + fmt(eActualizado) : na) + '</td>' +
           '<td class="num ' + eGpClass + '">' + (gpLote !== null
@@ -17903,17 +17918,17 @@ function buildInvestmentDetailPanel(destinos, title) {
           // porque el costo de lo vendido sale del precio de cada compra.
           (g.cantidadTotal > 0
             ? '<button class="inv-delete-btn inv-vender-btn" data-action="vender-ticker" data-ticker="' + escapeHtmlSafe(tk) + '" ' +
-              'title="Vender todo: ' + fmt(g.cantidadTotal) + ' nominales">' + ICONO_VENDER + '</button>'
+              'title="Vender todo: ' + fmtNominales(g.cantidadTotal) + ' nominales">' + ICONO_VENDER + '</button>'
             : '') +
         '</td>' +
         brokerCellHtml +
         '<td class="ticker">' + escapeHtmlSafe(tk) + '</td>' +
         '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(tk) + '" data-moneda="' + escapeHtmlSafe(g.moneda || 'ARS') + '" value="' + escapeHtmlSafe(descripcion).replace(/"/g, '&quot;') + '" placeholder="ej: SPDR S&P 500 ETF"></td>' +
-        '<td class="num">' + (g.cantidadTotal < 0 ? '-' : '') + fmt(Math.abs(g.cantidadTotal)) + '</td>' +
+        '<td class="num">' + (g.cantidadTotal < 0 ? '-' : '') + fmtNominales(g.cantidadTotal) + '</td>' +
         // PPC sin decimales, igual que el resto de los importes de la fila. Era
         // la única celda con dos decimales y desalineaba la columna: el
         // promedio ponderado de compras enteras no gana nada con los centavos.
-        '<td class="num">' + monedaPrefix + ' ' + fmt(g.ppc) + '</td>' +
+        '<td class="num">' + monedaPrefix + ' ' + fmtPrecio(g.ppc) + '</td>' +
         '<td class="num">' + (invertido < 0 ? '-' : '') + monedaPrefix + ' ' + fmt(Math.abs(invertido)) + '</td>' +
         // El precio actual es editable, así que el símbolo va afuera del input:
         // adentro lo tendría que parsear al leerlo. Es la única celda de la
@@ -17922,7 +17937,10 @@ function buildInvestmentDetailPanel(destinos, title) {
         // intrínseco —80px— y dejaba el símbolo separado del número por todo
         // ese hueco, con el recuadro del campo cortando la columna al medio.
         (function () {
-          const valorPrecio = precioActual !== null ? formatInputAR(precioActual) : '';
+          // Dos decimales fijos, igual que el resto de los precios de la tabla.
+          // parseInputAR lee este formato al volver a guardarlo: la coma es el
+          // separador decimal y el punto el de miles.
+          const valorPrecio = precioActual !== null ? fmtPrecio(precioActual) : '';
           // El flex va en un <span> adentro, NO en el <td>: un td con
           // display:flex deja de ser celda de tabla y no se estira al alto de
           // la fila —medido, 37px contra 47 de sus vecinas—, así que su borde
@@ -17939,7 +17957,7 @@ function buildInvestmentDetailPanel(destinos, title) {
         // Es el mismo dato que muestra cada compra en su fila, pero ponderado.
         // Sin signo: lo dice el color.
         '<td class="num ' + gpClass + '">' + (precioActual !== null
-          ? monedaPrefix + ' ' + fmt(Math.abs(precioActual - g.ppc))
+          ? monedaPrefix + ' ' + fmtPrecio(precioActual - g.ppc)
           : '<span class="inv-na">—</span>') + '</td>' +
         '<td class="num ' + gpClass + '">' + (actualizado !== null ? monedaPrefix + ' ' + fmt(actualizado) : '<span class="inv-na">—</span>') + '</td>' +
         '<td class="num ' + gpClass + '">' +
