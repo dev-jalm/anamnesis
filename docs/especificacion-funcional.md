@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.10 |
+| **Versión** | 1.11 |
 | **Fecha** | 6 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -225,6 +225,9 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-077 | Una acción de actualización trae los precios desde el servicio de cotizaciones. Las descripciones no provienen de allí —el servicio no las informa— sino del listado de BYMA, y sólo se completan cuando el activo no tiene una: una descripción escrita por el usuario nunca se sustituye |
 | RF-078 | Los tickers en dólares no se consultan por separado: se derivan del CEDEAR en pesos aplicando su ratio y la cotización MEP |
 | RF-078f | El ratio y el nombre de cada instrumento se obtienen del **listado oficial de BYMA de CEDEARs negociables**, incorporado al producto con su fecha de publicación. Un ticker ausente del listado no recibe precio derivado: queda sin actualizar antes que exhibir un valor construido con un ratio supuesto |
+| RF-078g | Las tenencias en cripto obtienen su precio de un servicio distinto —el mercado donde cotizan— y no del circuito de CEDEARs |
+| RF-078h | Una tenencia se declara cripto **por su ticker, que nombra el par completo**: `BTC-USDT`. El símbolo suelto no alcanza: cinco de ellos —AI, CAT, CVX, NMR y T— designan a la vez un CEDEAR y una cripto, de modo que resolver por símbolo asignaría a una tenencia el precio del otro instrumento sin señal alguna |
+| RF-078i | El precio de cripto se expresa en la unidad del par consultado. Se considera equivalente al dólar a los fines de la valuación |
 | RF-079 | El destino Trading no lista tenencias por ticker. Su detalle es la mesa de operaciones (sección 4.7) |
 
 #### 4.6.1 Venta de activos
@@ -718,6 +721,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | INT-03 | argentinadatos | `https://api.argentinadatos.com/v1/cotizaciones/dolares/oficial/{aaaa/mm/dd}` | Cotización oficial al último día hábil del mes | — |
 | INT-04 | OKX | `https://www.okx.com/api/v5/market/candles` | Velas para la verificación automática de la mesa | 12 s |
 | INT-05 | OKX | `https://www.okx.com/api/v5/public/instruments?instType=SWAP` | Catálogo de instrumentos | — |
+| INT-06 | OKX | `https://www.okx.com/api/v5/market/tickers?instType=SPOT` | Precio de las tenencias en cripto | 10 s |
 
 **Requerimientos transversales de integración**
 
@@ -1002,6 +1006,7 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.6 | 30/08/2026 | Incorpora la consulta del manual desde dentro de la aplicación (RF-214c a RF-214e), el reordenamiento de los accesos de ayuda al final del panel lateral (RF-249) y los criterios generales de cierre y altura de los diálogos (RNF-15, RNF-16) | Reemplazada |
 | 1.7 | 30/08/2026 | Revisión de consistencia contra el producto construido. Se corrige la fórmula del balance de flujo (RF-024), que omitía Renta financiera y Pérdida financiera y contradecía al catálogo de 5.7; los tiempos máximos de las integraciones (INT-02, INT-04, RF-202); la cobertura de pruebas (RNF-43); y se elimina pdf.js del detalle de dependencias, que no se utiliza. Se explicita el comportamiento de red del modo demostración (RF-226 a RF-228) | Reemplazada |
 | 1.8 | 31/08/2026 | Normaliza el criterio de guardado en todo el producto y su documentación: el archivo es local y el respaldo lo provee el cliente de sincronización del usuario (RF-008a, RF-008b, OBJ-1). El acceso de conexión pasa a llamarse CONECTAR JSON | Reemplazada |
+| 1.11 | 06/09/2026 | Incorpora el precio de las tenencias en cripto desde el mercado donde cotizan (RF-078g a RF-078i, INT-06), y la precisión necesaria para operarlas: siete decimales en los nominales y dos en los precios | **Vigente** |
 | 1.10 | 06/09/2026 | Corrige el registro de precios, que no distinguía la moneda: un mismo ticker tenido en pesos y en dólares compartía un único precio y uno de los dos se mostraba en la moneda ajena (RF-076a, RF-076b). El esquema del archivo pasa a versión 4, con migración automática. Se incorpora el listado oficial de BYMA como origen de los ratios y de los nombres de instrumento (RF-078f, RF-077), y se documentan sus límites (RES-06, RES-07) | **Vigente** |
 | 1.9 | 05/09/2026 | Incorpora tres funcionalidades vigentes que el documento no recogía: el acceso al editor desde el ícono de cada tarjeta (RF-053a), la carga del presupuesto anual por categoría desde Evolución (RF-103 a RF-107) y la incorporación de un movimiento al presupuesto desde Historia clínica (RF-108 a RF-109a) | Reemplazada |
 

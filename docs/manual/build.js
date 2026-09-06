@@ -131,7 +131,8 @@ window.MANUAL = {
       imgCap: 'Carga de activos: cada fila con su destino y su moneda.',
       p: [
         'Las compras de activos se cargan acá. No se contabilizan como transacciones: se guardan como detalle del portfolio y aparecen en Salud financiera dentro del destino que elijas.',
-        'Cada fila lleva su propio destino y su propia moneda, así que una misma carga puede mezclar pesos y dólares y repartirse entre varios destinos. El total del lote se muestra separado por moneda, porque sumar pesos con dólares no daría un número con significado.'
+        'Cada fila lleva su propio destino y su propia moneda, así que una misma carga puede mezclar pesos y dólares y repartirse entre varios destinos. El total del lote se muestra separado por moneda, porque sumar pesos con dólares no daría un número con significado.',
+        'Para una cripto el ticker se escribe con el par completo —BTC-USDT, ETH-USDT—, no con el símbolo solo. Así la app sabe que ese precio lo tiene que buscar en el mercado cripto y no entre los CEDEARs, donde cinco símbolos significan otra cosa: CVX es Chevron y no Convex, T es AT&T y no Threshold. La cantidad admite hasta siete decimales, para las fracciones.'
       ]
     },
     {

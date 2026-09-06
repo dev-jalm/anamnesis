@@ -18232,15 +18232,42 @@ function autoFetchSaludFinancieraIfStale() {
     const all = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
       .filter(function (e) { return allDestinos.indexOf(e.destino) >= 0; });
     if (all.length === 0) return Promise.resolve();
-    const arsTickers = {}, usdTickers = {};
+    const arsTickers = {}, usdTickers = {}, criptoTickers = {};
     all.forEach(function (e) {
       const tk = (e.ticker || '').toUpperCase();
       if (!tk) return;
+      // Las cripto no salen de data912: se atienden aparte, contra OKX.
+      if (esTickerCripto(tk)) { criptoTickers[tk] = (e.moneda === 'USD') ? 'USD' : 'ARS'; return; }
       if (e.moneda === 'USD') usdTickers[tk] = true;
       else arsTickers[tk] = true;
     });
     const wantedArs = Object.keys(arsTickers);
     const wantedUsd = Object.keys(usdTickers);
+    const wantedCripto = Object.keys(criptoTickers);
+
+    // Las cripto van por su lado y no dependen de que data912 responda. Se
+    // dispara ya mismo, en paralelo: acá nadie espera un aviso al final.
+    if (wantedCripto.length > 0) {
+      traerPreciosCripto(wantedCripto).then(function (precios) {
+        let hubo = false;
+        // Esta rama corre antes que la de CEDEARs, así que no puede dar por
+        // hecho que el mapa ya exista.
+        if (!state.tickerInfo) state.tickerInfo = {};
+        wantedCripto.forEach(function (par) {
+          const px = precios[par];
+          if (!px) return;
+          const k = claveTickerInfo(par, criptoTickers[par]);
+          if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
+          state.tickerInfo[k].precioActual = px;
+          state.tickerInfo[k].moneda = criptoTickers[par];
+          state.tickerInfo[k].lastUpdate = new Date().toISOString();
+          state.tickerInfo[k].source = 'okx-spot';
+          hubo = true;
+        });
+        if (hubo) { scheduleSave(); if (typeof renderMainAssets === 'function') renderMainAssets(); }
+      });
+    }
+
     if (wantedArs.length === 0 && wantedUsd.length === 0) return Promise.resolve();
 
     const controller = new AbortController();
@@ -18395,6 +18422,49 @@ function nombreDeCedear(tk) {
   return (c && c.n) ? c.n : null;
 }
 
+// Precios de cripto, desde OKX. Un activo se reconoce como cripto por su ticker:
+// lleva el par completo, BTC-USDT. Es explicito a proposito. Cinco simbolos
+// existen en los dos mundos —AI, CAT, CVX, NMR y T—: CVX es Chevron en BYMA y
+// Convex Finance en OKX, T es AT&T y Threshold. Resolviendo por simbolo suelto,
+// una tenencia de Convex recibiria el precio de Chevron sin ninguna senal.
+//
+// El precio viene en USDT y se guarda como USD. La brecha entre ambos rondaba el
+// 0,04% al momento de escribir esto; para una cartera personal no cambia nada,
+// pero no son la misma unidad.
+const OKX_SPOT_TICKERS = 'https://www.okx.com/api/v5/market/tickers?instType=SPOT';
+
+// Un ticker es cripto si nombra un par contra USDT. La app no adivina el par:
+// lo escribe el usuario.
+function esTickerCripto(tk) {
+  return /-USDT$/.test(String(tk || '').toUpperCase());
+}
+
+// Devuelve un mapa { 'BTC-USDT': precio } con los pares pedidos. Si el servicio
+// no responde devuelve un mapa vacio: los activos quedan sin actualizar, que es
+// lo mismo que hace la rama de CEDEARs cuando data912 falla.
+function traerPreciosCripto(pares) {
+  if (!pares || pares.length === 0) return Promise.resolve({});
+  const ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+  const corte = setTimeout(function () { if (ctrl) ctrl.abort(); }, 10000);
+  return fetch(OKX_SPOT_TICKERS, ctrl ? { signal: ctrl.signal } : undefined)
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      clearTimeout(corte);
+      if (!j || j.code !== '0' || !Array.isArray(j.data)) return {};
+      const buscados = {};
+      pares.forEach(function (p) { buscados[p.toUpperCase()] = true; });
+      const out = {};
+      j.data.forEach(function (x) {
+        const id = String(x.instId || '').toUpperCase();
+        if (!buscados[id]) return;
+        const px = Number(x.last);
+        if (isFinite(px) && px > 0) out[id] = px;
+      });
+      return out;
+    })
+    .catch(function () { clearTimeout(corte); return {}; });
+}
+
 // Actualiza precios y descripciones desde data912.com.
 // Para tickers ARS: precio directo del CEDEAR.
 // Para tickers USD: precio implícito calculado como (precio_cedear_ARS × ratio) / MEP.
@@ -18404,20 +18474,25 @@ function nombreDeCedear(tk) {
 function fetchTickerPricesFromData912(destinos, btnEl) {
   if (!destinos || destinos.length === 0) return;
 
-  // Separar tickers por moneda. Pedimos AMBOS porque ambos usan data912.
+  // Separar tickers por origen. Los CEDEARs —en pesos o en dólares— salen de
+  // data912; las cripto de OKX, que es otro servicio y otra llamada.
   const all = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
     .filter(function (e) { return destinos.indexOf(e.destino) >= 0; });
-  const arsTickers = {}, usdTickers = {};
+  const arsTickers = {}, usdTickers = {}, criptoTickers = {};
   all.forEach(function (e) {
     const tk = (e.ticker || '').toUpperCase();
     if (!tk) return;
+    // Una cripto se reconoce por el par completo del ticker, no por la moneda:
+    // el símbolo suelto es ambiguo para los cinco que existen de los dos lados.
+    if (esTickerCripto(tk)) { criptoTickers[tk] = (e.moneda === 'USD') ? 'USD' : 'ARS'; return; }
     if (e.moneda === 'USD') usdTickers[tk] = true;
     else arsTickers[tk] = true;
   });
   const wantedArs = Object.keys(arsTickers);
   const wantedUsd = Object.keys(usdTickers);
+  const wantedCripto = Object.keys(criptoTickers);
 
-  if (wantedArs.length === 0 && wantedUsd.length === 0) {
+  if (wantedArs.length === 0 && wantedUsd.length === 0 && wantedCripto.length === 0) {
     appAlert('No hay tickers cargados en este panel.');
     return;
   }
@@ -18504,6 +18579,26 @@ function fetchTickerPricesFromData912(destinos, btnEl) {
         updatedUsd += 1;
       });
 
+      // ─── Cripto: precio spot de OKX, en su propia llamada ───
+      // Va anidado y no en paralelo porque el aviso final necesita el conteo de
+      // las tres ramas. Si OKX no responde, `precios` viene vacío y esas
+      // tenencias quedan sin actualizar, igual que un CEDEAR que data912 no trae.
+      return traerPreciosCripto(wantedCripto).then(function (precios) {
+      let updatedCripto = 0;
+      wantedCripto.forEach(function (par) {
+        const px = precios[par];
+        if (!px) { notFound.push(par + ' (cripto)'); return; }
+        // El precio de OKX viene en USDT y se guarda en la moneda que el usuario
+        // le puso al activo: para una cartera personal, USDT y dólar son lo mismo.
+        const k = claveTickerInfo(par, criptoTickers[par]);
+        if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
+        state.tickerInfo[k].precioActual = px;
+        state.tickerInfo[k].moneda = criptoTickers[par];
+        state.tickerInfo[k].lastUpdate = now;
+        state.tickerInfo[k].source = 'okx-spot';
+        updatedCripto += 1;
+      });
+
       // Marcar timestamp de "tickers actualizados hoy" para que el auto-fetch
       // diario no vuelva a disparar después de un refresh manual.
       if (!state.params) state.params = {};
@@ -18516,17 +18611,19 @@ function fetchTickerPricesFromData912(destinos, btnEl) {
       const parts = [];
       if (updatedArs > 0) parts.push('✓ ' + updatedArs + ' ARS desde CEDEAR');
       if (updatedUsd > 0) parts.push('✓ ' + updatedUsd + ' USD implícito desde CEDEAR (al MEP $' + fmt(cotMep) + ')');
+      if (updatedCripto > 0) parts.push('✓ ' + updatedCripto + ' cripto desde OKX');
       let msg = parts.length > 0 ? parts.join('\n') : 'No se actualizó ningún ticker.';
       if (notFound.length > 0) {
-        msg += '\n\nNo encontrados en data912:\n  ' + notFound.join(', ');
+        msg += '\n\nNo encontrados:\n  ' + notFound.join(', ');
       }
       if (noRatio.length > 0) {
         msg += '\n\nSin ratio de CEDEAR conocido (editalos a mano):\n  ' + noRatio.join(', ');
       }
       if (notFound.length > 0 || noRatio.length > 0) {
-        msg += '\n\nNota: data912 cubre CEDEARs argentinos. Crypto y ETFs poco operados no aparecen.';
+        msg += '\n\nNota: los CEDEARs salen de data912 y las cripto de OKX, que las nombra por su par: BTC-USDT.';
       }
       appAlert(msg);
+      });
     })
     .catch(function (err) {
       clearTimeout(timeoutId);
