@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.11 |
+| **Versión** | 1.12 |
 | **Fecha** | 6 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -407,6 +407,8 @@ Cinco pantallas.
 | RF-165 | Una regla es válida si ejecuta al menos una de las tres acciones. No se exige categoría cuando la acción es descartar o renombrar |
 | RF-166 | Ante múltiples coincidencias, se aplica la primera regla que coincida. El orden lo controla el usuario |
 | RF-167 | Una regla puede desactivarse sin eliminarla |
+| RF-167a | La edición de una regla existente alcanza a la totalidad de los campos de su alta: patrón, modo de coincidencia, acción, categoría, subcategoría, periodicidad, renombre y etiquetas. La validez exigida es la de RF-165 |
+| RF-167b | Al pasar una regla a descartar se eliminan los datos que esa acción no utiliza —categoría, periodicidad, renombre y etiquetas—, de modo que no reaparezcan si más tarde vuelve a clasificar |
 | RF-168 | Las reglas se agrupan visualmente. El grupo de reglas de descarte se presenta siempre visible, con independencia del filtro activo |
 | RF-169 | La re-aplicación de reglas sobre movimientos ya cargados requiere confirmación explícita, indicando la cantidad exacta de movimientos que se eliminarían |
 
@@ -1006,15 +1008,30 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.6 | 30/08/2026 | Incorpora la consulta del manual desde dentro de la aplicación (RF-214c a RF-214e), el reordenamiento de los accesos de ayuda al final del panel lateral (RF-249) y los criterios generales de cierre y altura de los diálogos (RNF-15, RNF-16) | Reemplazada |
 | 1.7 | 30/08/2026 | Revisión de consistencia contra el producto construido. Se corrige la fórmula del balance de flujo (RF-024), que omitía Renta financiera y Pérdida financiera y contradecía al catálogo de 5.7; los tiempos máximos de las integraciones (INT-02, INT-04, RF-202); la cobertura de pruebas (RNF-43); y se elimina pdf.js del detalle de dependencias, que no se utiliza. Se explicita el comportamiento de red del modo demostración (RF-226 a RF-228) | Reemplazada |
 | 1.8 | 31/08/2026 | Normaliza el criterio de guardado en todo el producto y su documentación: el archivo es local y el respaldo lo provee el cliente de sincronización del usuario (RF-008a, RF-008b, OBJ-1). El acceso de conexión pasa a llamarse CONECTAR JSON | Reemplazada |
-| 1.11 | 06/09/2026 | Incorpora el precio de las tenencias en cripto desde el mercado donde cotizan (RF-078g a RF-078i, INT-06), y la precisión necesaria para operarlas: siete decimales en los nominales y dos en los precios | **Vigente** |
-| 1.10 | 06/09/2026 | Corrige el registro de precios, que no distinguía la moneda: un mismo ticker tenido en pesos y en dólares compartía un único precio y uno de los dos se mostraba en la moneda ajena (RF-076a, RF-076b). El esquema del archivo pasa a versión 4, con migración automática. Se incorpora el listado oficial de BYMA como origen de los ratios y de los nombres de instrumento (RF-078f, RF-077), y se documentan sus límites (RES-06, RES-07) | **Vigente** |
 | 1.9 | 05/09/2026 | Incorpora tres funcionalidades vigentes que el documento no recogía: el acceso al editor desde el ícono de cada tarjeta (RF-053a), la carga del presupuesto anual por categoría desde Evolución (RF-103 a RF-107) y la incorporación de un movimiento al presupuesto desde Historia clínica (RF-108 a RF-109a) | Reemplazada |
+| 1.10 | 06/09/2026 | Corrige el registro de precios, que no distinguía la moneda: un mismo ticker tenido en pesos y en dólares compartía un único precio y uno de los dos se mostraba en la moneda ajena (RF-076a, RF-076b). El esquema del archivo pasa a versión 4, con migración automática. Se incorpora el listado oficial de BYMA como origen de los ratios y de los nombres de instrumento (RF-078f, RF-077), y se documentan sus límites (RES-06, RES-07) | Reemplazada |
+| 1.11 | 06/09/2026 | Incorpora el precio de las tenencias en cripto desde el mercado donde cotizan (RF-078g a RF-078i, INT-06), y la precisión necesaria para operarlas: siete decimales en los nominales y dos en los precios | Reemplazada |
+| 1.12 | 06/09/2026 | Corrige la edición de reglas, que no alcanzaba a todos los campos del alta: el renombre no se podía modificar y una regla de descarte no se podía editar sin convertirla en otra cosa (RF-167a, RF-167b) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 
 | Cambio | Requerimiento |
 |---|---|
+| La edición de una regla alcanza a todos los campos de su alta, incluidos el renombre y la acción de descartar | RF-167a, RF-167b |
+
+**Implementados en la versión 1.11**
+
+| Cambio | Requerimiento |
+|---|---|
+| Precio de las tenencias en cripto tomado del mercado donde cotizan, declaradas por su par completo | RF-078g, RF-078h, RF-078i, INT-06 |
+| Siete decimales en los nominales y dos en los precios, en la cartera y en la carga manual | RF-078i |
+
+**Implementados en la versión 1.10**
+
+| Cambio | Requerimiento |
+|---|---|
 | Precios registrados por ticker y moneda, con migración del archivo a la versión 4 de esquema | RF-076a, RF-076b |
+| Listado oficial de BYMA como origen de los ratios y de los nombres de instrumento | RF-077, RF-078f |
 
 La versión 1.9 no incorporó cambios de producto: documentó funcionalidad que ya
 estaba construida y que este documento no recogía.

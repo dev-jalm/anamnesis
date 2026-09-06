@@ -1508,7 +1508,7 @@
     <div class="modal-header">
       <div>
         <div class="modal-eyebrow" style="color:#D4A24C">EDITAR REGLA</div>
-        <h2>Modificar regla de categorización</h2>
+        <h2>Modificar regla</h2>
       </div>
       <button class="modal-close" id="ruleEditorCloseBtn">
         <i data-lucide="x" style="width:20px;height:20px"></i>
@@ -1547,6 +1547,14 @@
             <option value="esporadico">Esporádico</option>
             <option value="imprevisto">Imprevisto</option>
           </select>
+        </div>
+      </div>
+      <div class="rule-add-row">
+        <div class="rule-field" style="flex:1">
+          <label class="rule-label" for="ruleEditRenameInput">
+            Renombrar a <span class="rule-label-hint">(opcional)</span>
+          </label>
+          <input type="text" id="ruleEditRenameInput" class="period-select" maxlength="60" placeholder="ej: Starbucks" style="background-image:none;padding-right:12px" title="Reemplaza la descripción que trae el archivo. La original queda guardada y se ve al pasar el mouse.">
         </div>
       </div>
       <div class="rule-add-row">
@@ -2619,7 +2627,7 @@
             <label class="rule-label">Asignar categoría</label>
             <select class="period-select" id="ruleCategorySel"></select>
           </div>
-          <div class="rule-field" style="flex:1 1 200px;min-width:170px" id="ruleRenameField">
+          <div class="rule-field" style="flex:1 1 200px;min-width:170px">
             <label class="rule-label" for="ruleRenameInput">
               Renombrar a <span class="rule-label-hint">(opcional)</span>
             </label>

@@ -8600,13 +8600,13 @@ function addRuleFromForm() {
   const categoria = esDescarte ? '' : (idx >= 0 ? catValue.substring(0, idx) : catValue);
   const subcategoria = (esDescarte || idx < 0) ? '' : catValue.substring(idx + 2);
   if (!pattern || (!categoria && !esDescarte && !renombrar)) {
-    alert('Tenés que ingresar un patrón y, al menos, una categoría o una descripción de reemplazo.');
+    appAlert('Tenés que ingresar un patrón y, al menos, una categoría o una descripción de reemplazo.');
     return;
   }
   // Validar regex si aplica
   if (matchType === 'regex') {
     try { new RegExp(pattern); }
-    catch (e) { alert('Regex inválida: ' + e.message); return; }
+    catch (e) { appAlert('Regex inválida: ' + e.message); return; }
   }
   const newRule = esDescarte
     ? {
@@ -9060,17 +9060,27 @@ function openRuleEditor(ruleId) {
   // Cargar valores actuales
   document.getElementById('ruleEditPatternInput').value = rule.pattern || '';
   document.getElementById('ruleEditMatchType').value = rule.matchType || 'contains';
-  // Categoría: usar el mismo schema que el form de creación, con valor pre-seleccionado
-  const catVal = (rule.categoria || '') + '::' + (rule.subcategoria || '');
+  // Categoría: usar el mismo schema que el form de creación, con valor
+  // pre-seleccionado. El selector incluye la acción de descartar, igual que el
+  // alta: sin esa opción, abrir una regla de descarte la mostraba sin categoría
+  // y guardarla la convertía en una regla de clasificación.
+  const esDescarte = esReglaDescarte(rule);
+  const catVal = rule.categoria ? (rule.categoria + '::' + (rule.subcategoria || '')) : '';
   const catSel = document.getElementById('ruleEditCategorySel');
   if (catSel) {
-    catSel.innerHTML = buildCatSubOptionsByClassification(catVal, { placeholderText: '— elegir categoría —' });
+    catSel.innerHTML = buildCatSubOptionsByClassification(catVal, { placeholderText: '— elegir categoría —' }) +
+      '<optgroup label="Otra acción">' +
+        '<option value="' + REGLA_DESCARTAR + '"' + (esDescarte ? ' selected' : '') + '>— Descartar el movimiento —</option>' +
+      '</optgroup>';
   }
   document.getElementById('ruleEditPeriodicitySel').value = rule.periodicidad || '';
+  const renombrarInput = document.getElementById('ruleEditRenameInput');
+  if (renombrarInput) renombrarInput.value = descripcionDeRegla(rule) || '';
   // Tags: cargar las que tiene
   const ruleTags = Array.isArray(rule.tags) ? rule.tags : (rule.tag ? [rule.tag] : []);
   ruleEditorState.selectedTags = new Set(ruleTags);
   renderRuleEditorTagsPicker();
+  sincronizarEditorReglaDescarte();
   // Mostrar
   document.getElementById('ruleEditorOverlay').classList.remove('hidden');
   if (window.lucide) lucide.createIcons();
@@ -9121,6 +9131,29 @@ function renderRuleEditorTagsPicker() {
   if (window.lucide) lucide.createIcons();
 }
 
+// Mismo criterio que el form de alta: con "descartar" elegido, renombrar,
+// periodicidad y etiquetas no tienen a qué aplicarse, así que se ocultan.
+function sincronizarEditorReglaDescarte() {
+  const sel = document.getElementById('ruleEditCategorySel');
+  if (!sel) return;
+  const descarta = sel.value === REGLA_DESCARTAR;
+  const peri = document.getElementById('ruleEditPeriodicitySel');
+  const tags = document.getElementById('ruleEditTagsPicker');
+  const renombrar = document.getElementById('ruleEditRenameInput');
+  [peri, tags, renombrar].forEach(function (el) {
+    const campo = el && el.closest('.rule-field');
+    if (campo) campo.classList.toggle('hidden', descarta);
+  });
+  if (descarta) {
+    if (peri) peri.value = '';
+    if (renombrar) renombrar.value = '';
+    if (ruleEditorState.selectedTags && ruleEditorState.selectedTags.size > 0) {
+      ruleEditorState.selectedTags.clear();
+      renderRuleEditorTagsPicker();
+    }
+  }
+}
+
 function saveRuleEdit() {
   const ruleId = ruleEditorState.ruleId;
   if (!ruleId) return;
@@ -9131,23 +9164,42 @@ function saveRuleEdit() {
   const matchType = document.getElementById('ruleEditMatchType').value || 'contains';
   const catValue = document.getElementById('ruleEditCategorySel').value || '';
   const periodicidad = document.getElementById('ruleEditPeriodicitySel').value || '';
+  const renombrarInput = document.getElementById('ruleEditRenameInput');
+  const renombrar = renombrarInput ? renombrarInput.value.trim() : '';
+  const esDescarte = catValue === REGLA_DESCARTAR;
   const idx = catValue.indexOf('::');
-  const categoria = idx >= 0 ? catValue.substring(0, idx) : catValue;
-  const subcategoria = idx >= 0 ? catValue.substring(idx + 2) : '';
-  if (!pattern || !categoria) {
-    alert('Tenés que ingresar al menos un patrón y una categoría.');
+  const categoria = esDescarte ? '' : (idx >= 0 ? catValue.substring(0, idx) : catValue);
+  const subcategoria = (esDescarte || idx < 0) ? '' : catValue.substring(idx + 2);
+  // Misma validación que el alta: la regla vale si hace algo — clasificar,
+  // descartar o renombrar. Exigir categoría siempre dejaba sin poder guardar a
+  // las reglas que sólo renombran, que el alta sí permite crear.
+  if (!pattern || (!categoria && !esDescarte && !renombrar)) {
+    appAlert('Tenés que ingresar un patrón y, al menos, una categoría o una descripción de reemplazo.');
     return;
   }
   if (matchType === 'regex') {
     try { new RegExp(pattern); }
-    catch (e) { alert('Regex inválida: ' + e.message); return; }
+    catch (e) { appAlert('Regex inválida: ' + e.message); return; }
   }
   rule.pattern = pattern;
   rule.matchType = matchType;
-  rule.categoria = categoria;
-  rule.subcategoria = subcategoria;
-  rule.periodicidad = periodicidad;
-  rule.tags = Array.from(ruleEditorState.selectedTags);
+  if (esDescarte) {
+    // Al pasar a descarte se limpia todo lo que la regla ya no usa, para que no
+    // queden restos que reaparezcan si después vuelve a clasificar.
+    rule.accion = REGLA_DESCARTAR;
+    rule.categoria = '';
+    rule.subcategoria = '';
+    rule.periodicidad = '';
+    rule.descripcionNueva = '';
+    rule.tags = [];
+  } else {
+    delete rule.accion;
+    rule.categoria = categoria;
+    rule.subcategoria = subcategoria;
+    rule.periodicidad = periodicidad;
+    rule.descripcionNueva = renombrar;
+    rule.tags = Array.from(ruleEditorState.selectedTags);
+  }
   scheduleSave();
   closeRuleEditor();
   renderRulesList();
@@ -9282,6 +9334,9 @@ function closeCatRedirectPicker() {
   if (closeBtn) closeBtn.addEventListener('click', closeRuleEditor);
   if (cancelBtn) cancelBtn.addEventListener('click', closeRuleEditor);
   if (saveBtn) saveBtn.addEventListener('click', saveRuleEdit);
+  // El modal cambia de forma según se clasifique o se descarte, igual que el alta.
+  const catSel = document.getElementById('ruleEditCategorySel');
+  if (catSel) catSel.addEventListener('change', sincronizarEditorReglaDescarte);
   if (overlay) overlay.addEventListener('click', function (e) {
     if (e.target === overlay) closeRuleEditor();
   });

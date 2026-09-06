@@ -249,9 +249,11 @@ window.MANUAL = {
       imgCap: 'Reglas de categorización automática, agrupadas por categoría.',
       p: [
         'Las reglas categorizan solas los movimientos al importarlos. Se evalúan en orden y la primera que coincide define la categoría.',
-        'Una regla mira la descripción del movimiento y puede exigir que contenga un texto, que sea exacto, que empiece con algo o que coincida con una expresión regular. Además de la categoría, puede asignar periodicidad y etiquetas.'
+        'Una regla mira la descripción del movimiento y puede exigir que contenga un texto, que sea exacto, que empiece con algo o que coincida con una expresión regular. Además de la categoría, puede asignar periodicidad y etiquetas.',
+        'Una regla hace una de tres cosas: clasificar, descartar el movimiento al importarlo, o renombrar su descripción por un texto legible —"MERPAGO*STARBUCKS 0034512" pasa a ser "Starbucks" y la original queda guardada—. Renombrar se puede combinar con clasificar.'
       ],
       lista: [
+        'El lápiz de cada fila abre la regla con todos sus campos, los mismos del alta. Se puede cambiar hasta lo que la regla hace: una que clasifica puede pasar a descartar, y al revés.',
         'APRENDER REGLAS revisa lo que clasificaste a mano en los últimos meses y propone reglas para los patrones que se repiten. Vos elegís cuáles crear.',
         'RE-APLICAR A TX EXISTENTES corre todas las reglas sobre los movimientos ya cargados.',
         'Lo que no matchea ninguna regla lo resuelve un clasificador que aprende de tu propio historial. Cuando corregís una categoría a mano, esa corrección pasa a ser insumo del clasificador.'
