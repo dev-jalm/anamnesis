@@ -192,7 +192,7 @@ window.MANUAL = {
         'La Liquidez también aparece en la composición, pero no se asigna a ningún activo: es la plata del destino que todavía no invertiste, y el número es el mismo que el Líquido de la cabecera del panel. Si el Líquido da negativo, no aparece.'
       ],
       lista: [
-        'Cada sector tiene su color, y es el mismo en todas las carteras: si Tecnología es azul en Inversiones, es azul en Jubilación. Índices, Renta fija y Liquidez van en tonos neutros, y lo que no tiene sector va rayado.',
+        'Cada sector tiene su color, de la misma gama que la barra de distribución de la cabecera, y es el mismo en todas las carteras: si Tecnología es azul en Inversiones, es azul en Jubilación. Índices, Renta fija y Liquidez van en tonos neutros, y lo que no tiene sector va rayado.',
         'Si la barra es muy corta para escribir los activos adentro, van al lado. Si tampoco entran ahí, se ven al pasar el mouse por la fila.',
         'Si cambiás el sector de un activo, el valor queda marcado como editado y, al pasar el mouse, muestra cuál era el del listado. Si volvés a elegir el del listado, deja de estar marcado.',
         'El sector es del activo, no de la moneda: SPY en pesos y SPY en dólares son el mismo sector.',

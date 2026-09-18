@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.14 |
+| **Versión** | 1.15 |
 | **Fecha** | 18 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -281,7 +281,7 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-073g | Un sector asignado que difiere del automático se señala como valor editado e informa el original |
 | RF-073h | Cada destino de tenencias —Reserva, Inversiones y las dos Jubilaciones— presenta la **concentración por sector**: la participación de cada sector en el valor del destino, ordenada de mayor a menor, con el umbral marcado. Cada fila presenta, en este orden, el sector, su porcentaje y una barra con los activos que lo componen escritos dentro de ella |
 | RF-073n | La composición incluye **Liquidez**: el importe Líquido de la fila ARS+USD de la cabecera del destino, con su mismo valor. Si el Líquido es negativo no se incluye, porque no constituye tenencia |
-| RF-073o | Cada sector se representa con un color propio, el mismo en todos los destinos de la pantalla. Los colores provienen de un conjunto validado de siete tonos distinguibles, que se asignan a los sectores presentes en el orden del catálogo, no por tamaño, de modo que un cambio de montos no altere el color de un sector. Las clases que no son sectores —Índices, Renta fija, Liquidez— se representan en tonos neutros, y las tenencias sin sector con un rayado |
+| RF-073o | Cada sector se representa con un color propio, el mismo en todos los destinos de la pantalla. Los colores son los de la **barra de distribución por ticker de la cabecera**, para que el panel use una sola gama; se asignan a los sectores presentes en el orden del catálogo, no por tamaño, de modo que un cambio de montos no altere el color de un sector. Las clases que no son sectores —Índices, Renta fija, Liquidez— se representan en tonos neutros, y las tenencias sin sector con un rayado |
 | RF-073p | El texto de los activos se ubica dentro de la barra cuando cabe con margen; si no cabe, a continuación de ella; si tampoco cabe allí, se omite y permanece disponible en la información emergente de la fila. Nunca se presenta recortado |
 | RF-073i | El valor de cada tenencia es nominales por precio actual. Sin precio actual se toma el costo, y el sistema informa qué tenencias se valuaron así. Las tenencias en dólares se convierten a pesos a la cotización MEP. Las posiciones liquidadas no intervienen |
 | RF-073j | Las tenencias sin sector se presentan en un renglón propio y cuentan en el total, indicando cuáles son |
@@ -295,7 +295,7 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 
 **Fundamento de RF-073n.** Sin la liquidez, un destino con un único activo figuraba con el 100% en ese sector aunque la mayor parte estuviera sin invertir: la Reserva de la demostración aparecía 100% en Materiales con el 92% de su valor en efectivo.
 
-**Fundamento de RF-073o.** La paleta general del producto se descartó por medición: contiene pares de colores con una diferencia perceptual de 2,4, indistinguibles a simple vista (el mínimo aceptable es 15), y en tema oscuro sus tonos quedan agrisados. Más de siete tonos no pueden mantenerse distinguibles entre sí; a partir del octavo sector en uso se recurre a un neutro, y la identificación recae en el nombre escrito junto a cada barra. El rojo se excluye porque en este gráfico se leería como alerta.
+**Fundamento de RF-073o.** Se adopta la gama de la barra de la cabecera a pedido del cliente, para que las dos barras de un panel se lean como parte de lo mismo. Medida con un validador de paletas, esa gama no separa todos sus pares —dos de sus tonos se confunden bajo daltonismo—, de modo que la identificación del sector no recae en el color sino en el nombre escrito en cada fila. De sus diez tonos se asignan ocho: los dos marrones quedan para las clases neutras, y uno coincide con el de Renta fija. El rojo se asigna último porque en este gráfico se leería como alerta. A partir del noveno sector en uso se recurre a un neutro.
 
 **Fundamento de RF-073h.** Se representa con barras sobre una escala del 0 al 100% del destino, y no con un gráfico de torta: el dato es comparar cada participación contra un límite, y eso se lee en una longitud. La escala es la del destino entero, no la del sector mayor, para que la línea del umbral quede en la misma posición en todas las filas.
 
@@ -1053,9 +1053,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.11 | 06/09/2026 | Incorpora el precio de las tenencias en cripto desde el mercado donde cotizan (RF-078g a RF-078i, INT-06), y la precisión necesaria para operarlas: siete decimales en los nominales y dos en los precios | Reemplazada |
 | 1.12 | 06/09/2026 | Corrige la edición de reglas, que no alcanzaba a todos los campos del alta: el renombre no se podía modificar y una regla de descarte no se podía editar sin convertirla en otra cosa (RF-167a, RF-167b) | Reemplazada |
 | 1.13 | 18/09/2026 | Incorpora el sector de los activos y la concentración por sector de cada cartera, con su gráfico y sus alertas (RF-073a a RF-073m, RF-064, RF-135, RF-136, RF-193). Documenta que ninguna fuente accesible informa el sector (RES-08), y restringe el listado incorporado a los CEDEARs que cotizan (RES-09) | Reemplazada |
-| 1.14 | 18/09/2026 | Rediseña la concentración por sector: un color por sector, el orden sector · porcentaje · barra y los activos dentro de la barra (RF-073h, RF-073o, RF-073p). La Liquidez deja de ser asignable a un activo y pasa a tomarse del Líquido de la cabecera del destino (RF-073b, RF-073n) | **Vigente** |
+| 1.14 | 18/09/2026 | Rediseña la concentración por sector: un color por sector, el orden sector · porcentaje · barra y los activos dentro de la barra (RF-073h, RF-073o, RF-073p). La Liquidez deja de ser asignable a un activo y pasa a tomarse del Líquido de la cabecera del destino (RF-073b, RF-073n) | Reemplazada |
+| 1.15 | 18/09/2026 | Los colores de los sectores pasan a ser los de la barra de distribución de la cabecera (RF-073o) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Colores de los sectores tomados de la gama de la barra de la cabecera | RF-073o |
+
+**Implementados en la versión 1.14**
 
 | Cambio | Requerimiento |
 |---|---|

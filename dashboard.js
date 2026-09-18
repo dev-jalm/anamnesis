@@ -17354,6 +17354,13 @@ function buildReservaMetaRow() {
 // Cada segmento tiene ancho proporcional al invertido del ticker, color
 // asignado deterministícamente a partir del ticker, y un title con
 // "TICKER: prefix monto (pct%)" para tooltip al hover.
+// Paleta de las barras de distribución del patrimonio: la de la cabecera de
+// cada panel (por ticker) y la de concentración por sector. Es la misma para
+// que las dos barras de un panel se lean como parte de lo mismo.
+// El orden importa acá: la barra por ticker indexa por hash, así que cambiarlo
+// le cambia el color a cada ticker.
+const PALETA_DISTRIBUCION = ['#D4A24C','#8E5A9E','#4A6B8A','#6B8E4E','#C8553D','#A88A6B','#8B7355','#D4849E','#5B8F9F','#B98D5C'];
+
 function buildDistributionBar(groups, tickers, prefix) {
   if (!tickers || tickers.length === 0) {
     return '<div class="inv-distbar inv-distbar-empty" title="Sin activos cargados"></div>';
@@ -17364,8 +17371,8 @@ function buildDistributionBar(groups, tickers, prefix) {
   if (total === 0) {
     return '<div class="inv-distbar inv-distbar-empty" title="Invertido total = 0"></div>';
   }
-  // Paleta consistente con el resto del dashboard
-  const palette = ['#D4A24C','#8E5A9E','#4A6B8A','#6B8E4E','#C8553D','#A88A6B','#8B7355','#D4849E','#5B8F9F','#B98D5C'];
+  // Paleta compartida con las barras de sector (PALETA_DISTRIBUCION)
+  const palette = PALETA_DISTRIBUCION;
   // Hash simple de string para indexar la paleta — así un ticker siempre tiene
   // el mismo color en cualquier panel donde aparezca.
   function colorFor(tk) {
@@ -17765,13 +17772,30 @@ function textoAlertaSector(s, nombreCartera, umbral) {
 
 // ─── Colores de los sectores ───
 // Cada sector tiene su color, y es el mismo en todas las carteras de la
-// pantalla: Tecnología no puede ser azul en Inversiones y naranja en
-// Jubilación. Los siete tonos validados (--sector-1..7) se reparten entre los
-// sectores que aparecen en ALGUNA cartera, en el orden del catálogo —no por
-// tamaño, que cambiaría el color al cambiar los montos—. Con siete o menos
-// sectores en uso, ninguno se repite. Si hubiera más, los que sobran van en un
-// tono neutro: generar un octavo color lo haría indistinguible de otro, y el
-// nombre del sector ya está escrito al lado de cada barra.
+// pantalla: Tecnología no puede ser azul en Inversiones y dorado en
+// Jubilación. Los tonos son los de la barra de distribución de la cabecera
+// (PALETA_DISTRIBUCION), para que el panel use una sola gama. Se reparten
+// entre los sectores que aparecen en ALGUNA cartera, en el orden del catálogo
+// —no por tamaño, que cambiaría el color al cambiar los montos—.
+//
+// Medida con el validador de paletas, esa gama no separa bien todos sus pares
+// (celeste y rosa se confunden con daltonismo; los dos marrones, a simple
+// vista). Por eso el nombre del sector va siempre escrito en la fila: la
+// identidad no depende sólo del color. Y el orden deja al final el rojo, que
+// en este gráfico se leería como alerta.
+// Los dos marrones de la gama no se asignan a sectores: son los tonos de las
+// clases neutras (índices, renta fija, liquidez) y uno es idéntico al de Renta
+// fija. Con más sectores en uso que tonos, los que sobran van en un neutro.
+const ORDEN_COLOR_SECTOR = [
+  PALETA_DISTRIBUCION[2], // azul
+  PALETA_DISTRIBUCION[0], // dorado
+  PALETA_DISTRIBUCION[1], // violeta
+  PALETA_DISTRIBUCION[3], // verde
+  PALETA_DISTRIBUCION[7], // rosa
+  PALETA_DISTRIBUCION[8], // celeste
+  PALETA_DISTRIBUCION[9], // ocre
+  PALETA_DISTRIBUCION[4]  // rojo terracota
+];
 //
 // Las clases que no son sectores van siempre en neutros, que es lo que son:
 // ni el índice, ni la renta fija, ni la plata sin invertir hablan de un rubro.
@@ -17781,7 +17805,6 @@ const COLOR_SECTOR_NEUTRO = {
   renta_fija: 'var(--sector-neutro-2)',
   liquidez: 'var(--sector-neutro-3)'
 };
-const SLOTS_COLOR_SECTOR = 7;
 let _coloresSector = null;
 
 function asignarColoresSectores() {
@@ -17793,8 +17816,8 @@ function asignarColoresSectores() {
   let slot = 0;
   SECTORES.forEach(function (s) {
     if (!presentes[s.key] || COLOR_SECTOR_NEUTRO[s.key]) return;
+    mapa[s.key] = slot < ORDEN_COLOR_SECTOR.length ? ORDEN_COLOR_SECTOR[slot] : 'var(--muted)';
     slot++;
-    mapa[s.key] = slot <= SLOTS_COLOR_SECTOR ? 'var(--sector-' + slot + ')' : 'var(--muted)';
   });
   _coloresSector = mapa;
   return mapa;

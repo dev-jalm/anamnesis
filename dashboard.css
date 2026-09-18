@@ -22,19 +22,9 @@
   --tooltip-text: #F5F1E8;
   --on-dark-bg: #2A2520;
   --on-dark-text: #F5F1E8;
-  /* Colores de los sectores en el gráfico de concentración. NO son la paleta
-     de la app (PALETTE / KPI_EVO_PALETTE): medida con el validador, tenía pares
-     con ΔE 2,4 —indistinguibles— y en oscuro todos sus tonos quedaban grises.
-     Son siete tonos validados como conjunto, en este orden, para los dos temas.
-     Falta el rojo a propósito: en este gráfico se leería como alerta. */
-  --sector-1: #2a78d6;
-  --sector-2: #eb6834;
-  --sector-3: #1baf7a;
-  --sector-4: #eda100;
-  --sector-5: #e87ba4;
-  --sector-6: #008300;
-  --sector-7: #4a3aa7;
-  /* Neutros para lo que no es un sector (índices, renta fija, liquidez) y el
+  /* Los colores de los sectores salen de PALETA_DISTRIBUCION (dashboard.js),
+     la misma gama de la barra de distribución de la cabecera.
+     Neutros para lo que no es un sector (índices, renta fija, liquidez) y el
      rayado de "sin sector". No se reusan --grid ni --border: en oscuro quedaban
      casi del color de la pista y la barra no se veía. */
   --sector-neutro-1: #6B5B4A;
@@ -68,14 +58,6 @@
   --tooltip-text: #1A1714;
   --on-dark-bg: #0F0D0B;
   --on-dark-text: #EFE7D6;
-  /* Los mismos siete tonos, en los pasos validados para fondo oscuro */
-  --sector-1: #3987e5;
-  --sector-2: #d95926;
-  --sector-3: #199e70;
-  --sector-4: #c98500;
-  --sector-5: #d55181;
-  --sector-6: #008300;
-  --sector-7: #9085e9;
   --sector-neutro-1: #B5A892;
   --sector-neutro-2: #948775;
   --sector-neutro-3: #6E6353;
