@@ -102,11 +102,11 @@ core.js           2.810 líneas    funciones puras + motor de plantillas
 mesa-trading.js   2.985 líneas    mesa de trading: riesgo, liquidación, historial
 mesa-trading.css  1.029 líneas    estilos de la mesa
 sistema-4k.js       478 líneas    el reglamento de trading, consultable en la app
-cedears-byma.js     489 líneas    ratio, nombre y sector de los CEDEARs de BYMA
+cedears-byma.js     462 líneas    ratio, nombre y sector de los CEDEARs de BYMA
 demo-data.js        731 líneas    generador del dataset de demostración
 tour.js             302 líneas    el recorrido guiado del modo demo
 tour.css            131 líneas    estilos del recorrido
-tests.html        3.456 líneas    404 tests sobre core.js
+tests.html        3.458 líneas    404 tests sobre core.js
 ```
 
 ### Cómo se prueba

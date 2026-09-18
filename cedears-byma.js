@@ -11,7 +11,23 @@
    COMO SE ACTUALIZA
    BYMA publica el listado en PDF. Cuando salga uno nuevo se reemplaza este
    archivo y se actualiza `fecha`. Es el unico lugar que hay que tocar, pero
-   ojo con el sector: ver "EL SECTOR NO VIENE DE BYMA" mas abajo.
+   ojo con el sector —ver "EL SECTOR NO VIENE DE BYMA"— y con el filtro de
+   "SOLO LO QUE COTIZA", que hay que volver a aplicar.
+
+   SOLO LO QUE COTIZA
+   El PDF del 03/09/2026 trae 440 instrumentos. Se sacaron los 44 que no
+   aparecian en data912 el 18/09/2026: sin data912 la app no tiene de donde
+   traerles precio, asi que tenerlos no servia para nada. Quedan 396. El grupo
+   mezcla empresas que dejaron de existir (Twitter, Credit Suisse, Altaba,
+   Yamana, Silvergate, Shapeways), las rusas (Gazprom, Lukoil, Tatneft,
+   Novolipetsk) y empresas vivas cuyo CEDEAR no opera (BNY Mellon, Electronic
+   Arts, Embraer, Mercedes-Benz, Samsung...).
+   Sacados: AABA ADS AOCA ATAD AUY BAS BK BRFS BSN CAJ CBRD CS DTEA EA EBR ELP
+   EOAN ERJ FMCC HHPD HNPIY LFC LKOD MBG MBT MMC NEC1 NLM NSAN OGZD ORAN PCRF
+   PSO PTR RCTB4 SHPW SI SMSN SNP TIIAY TTM TWTR WBA YZCA.
+   Al reponer el listado: cruzar contra https://data912.com/live/arg_cedears y
+   dejar solo los simbolos que aparecen ahi. Si alguno de estos vuelve a
+   operar, vuelve a entrar en esa pasada.
 
    POR QUE IMPORTA MANTENERLO
    Un ratio viejo no produce ningun error visible: devuelve un precio en dolares
@@ -28,10 +44,11 @@
 
    EL SECTOR NO VIENE DE BYMA
    El PDF no lo informa, ni ninguno de los servicios que usa la app. Se armo una
-   vez, el 18/09/2026: 311 por el mismo simbolo en Yahoo Finance, 44 buscando
-   por el nombre de BYMA (revisados uno por uno) y 85 a mano —los ETF, las
-   empresas que ya no cotizan y cinco en las que Yahoo devolvia otra empresa:
-   SI, TEN, BAYN, BRFS y TIMS3—. Los ETF sectoriales (XLE, SMH, IBB...) llevan
+   vez, el 18/09/2026. De los 396 que quedan: 308 por el mismo simbolo en Yahoo
+   Finance, 22 buscando por el nombre de BYMA (revisados uno por uno) y 66 a
+   mano —los ETF, nueve acciones brasilenas y mexicanas que Yahoo no encontro
+   (PETR3, ITUB3, KOFM...) y tres en las que Yahoo devolvia otra
+   empresa: TEN, BAYN y TIMS3—. Los ETF sectoriales (XLE, SMH, IBB...) llevan
    el sector que siguen; los amplios (SPY, QQQ, EWZ...) van a `indices`.
    Al reemplazar el archivo por un listado nuevo hay que conservar `s` de los
    tickers que ya estaban y asignarlo a los nuevos: si falta, el activo aparece
@@ -45,7 +62,6 @@ window.CEDEARS_BYMA = {
   fuente: 'BYMA — CEDEARs negociables',
   fecha: '2026-09-03',
   instrumentos: {
-    AABA: { r: 3, n: 'Altaba Inc.', s: 'financiero' },
     AAL: { r: 2, n: 'American Airlines Group Inc', s: 'industria' },
     AAP: { r: 14, n: 'Advanced Auto Parts Inc', s: 'consumo_discrecional' },
     AAPL: { r: 20, n: 'Apple Inc.', s: 'tecnologia' },
@@ -60,7 +76,6 @@ window.CEDEARS_BYMA = {
     ADGO: { r: 1, n: 'Adecoagro S.A.', s: 'consumo_basico' },
     ADI: { r: 15, n: 'Analog Devices', s: 'tecnologia' },
     ADP: { r: 6, n: 'Automatic Data Processing Inc.', s: 'tecnologia' },
-    ADS: { r: 22, n: 'Adidas AG', s: 'consumo_discrecional' },
     AEG: { r: 1, n: 'Aegon N.V.', s: 'financiero' },
     AEM: { r: 6, n: 'Agnico Eagle Mines Limited', s: 'materiales' },
     AI: { r: 5, n: 'C3.AI INC', s: 'tecnologia' },
@@ -74,15 +89,12 @@ window.CEDEARS_BYMA = {
     AMZN: { r: 144, n: 'Amazon.Com, Inc.', s: 'consumo_discrecional' },
     ANET: { r: 29, n: 'Arista Networks Inc.', s: 'tecnologia' },
     ANF: { r: 1, n: 'Abercrombie & Fitch Co', s: 'consumo_discrecional' },
-    AOCA: { r: 1, n: 'Aluminum Corp Of China', s: 'materiales' },
     ARCO: { r: 1/2, n: 'Arcos Dorados Holdings Inc.', s: 'consumo_discrecional' },
     ARKK: { r: 10, n: 'ARK INNOVATION', s: 'tecnologia' },
     ARM: { r: 27, n: 'ARM Holdings Plc', s: 'tecnologia' },
     ASML: { r: 146, n: 'ASML HOLDING NV', s: 'tecnologia' },
     ASR: { r: 20, n: 'Grupo Aeroportuario Del Sureste , S.A.B. de C.V.', s: 'industria' },
     ASTS: { r: 15, n: 'AST SpaceMobile Inc', s: 'tecnologia' },
-    ATAD: { r: 4, n: 'Pjsc Tatneft', s: 'energia' },
-    AUY: { r: 1, n: 'Yamana Gold Inc.', s: 'materiales' },
     AVGO: { r: 39, n: 'Broadcom Inc.', s: 'tecnologia' },
     AVY: { r: 18, n: 'Avery Dennison Corp.', s: 'consumo_discrecional' },
     AXP: { r: 15, n: 'American Express Co', s: 'financiero' },
@@ -92,7 +104,6 @@ window.CEDEARS_BYMA = {
     'BA.C': { r: 4, n: 'Bank Of America Corporation', s: 'financiero' },
     BABA: { r: 9, n: 'Alibaba Group Holding Limited', s: 'consumo_discrecional' },
     BAK: { r: 2, n: 'Braskem SA', s: 'materiales' },
-    BAS: { r: 2, n: 'Basf SE', s: 'materiales' },
     BAYN: { r: 3, n: 'Bayer AG', s: 'salud' },
     BB: { r: 3, n: 'Blackberry Limited', s: 'tecnologia' },
     BBAS3: { r: 2, n: 'Banco do Brasil S.A.', s: 'financiero' },
@@ -104,7 +115,6 @@ window.CEDEARS_BYMA = {
     BIDU: { r: 11, n: 'Baidu, Inc.', s: 'comunicaciones' },
     BIIB: { r: 13, n: 'Biogen Inc.', s: 'salud' },
     BIOX: { r: 1, n: 'Bioceres Crop Solutions Corp.', s: 'materiales' },
-    BK: { r: 2, n: 'The Bank Of New York Mellon Corp.', s: 'financiero' },
     BKNG: { r: 700, n: 'Booking', s: 'consumo_discrecional' },
     BKR: { r: 7, n: 'Baker Hughes Co', s: 'energia' },
     BMNR: { r: 8, n: 'Bitmine Inmersion Technologies, Inc.', s: 'financiero' },
@@ -112,18 +122,14 @@ window.CEDEARS_BYMA = {
     BNG: { r: 5, n: 'Bunge Limited', s: 'consumo_basico' },
     BP: { r: 5, n: 'BP PCL', s: 'energia' },
     BPA11: { r: 1, n: 'Banco BTG Pactual S.A.', s: 'financiero' },
-    BRFS: { r: 1/3, n: 'BRF S.A.', s: 'consumo_basico' },
     BRKB: { r: 22, n: 'Berkshire Hathaway Inc.', s: 'financiero' },
     BSBR: { r: 1, n: 'Banco Santander (Brasil) S.A.', s: 'financiero' },
-    BSN: { r: 20, n: 'Danone', s: 'consumo_basico' },
     BX: { r: 30, n: 'Blackstone Inc.', s: 'financiero' },
     C: { r: 3, n: 'Citigroup Inc', s: 'financiero' },
     CAAP: { r: 1/4, n: 'Corporación America Airports S.A.', s: 'industria' },
     CAH: { r: 3, n: 'Cardinal Health Inc', s: 'salud' },
-    CAJ: { r: 2, n: 'Canon Inc', s: 'tecnologia' },
     CAR: { r: 26, n: 'Avis Budget Group Inc.', s: 'industria' },
     CAT: { r: 20, n: 'Caterpillar Inc', s: 'industria' },
-    CBRD: { r: 1, n: 'Companhia Brasileira De Dis NPV ADR', s: 'consumo_basico' },
     CCJ: { r: 23, n: 'Cameco Corporation', s: 'energia' },
     CCL: { r: 3, n: 'Carnival', s: 'consumo_discrecional' },
     CDE: { r: 1, n: 'Coeur Mining Inc.', s: 'materiales' },
@@ -138,7 +144,6 @@ window.CEDEARS_BYMA = {
     CRM: { r: 18, n: 'Salesforce Inc.', s: 'tecnologia' },
     CRWD: { r: 79, n: 'CrowdStrike Holdings, Inc.', s: 'tecnologia' },
     CRWV: { r: 27, n: 'CoreWeave Inc', s: 'tecnologia' },
-    CS: { r: 1, n: 'Credit Suisse Group', s: 'financiero' },
     CSCO: { r: 5, n: 'Cisco Systems Inc', s: 'tecnologia' },
     CSNA3: { r: 1, n: 'Companhia Siderúrgica Nacional S.A.', s: 'materiales' },
     CVS: { r: 15, n: 'CVS Health', s: 'salud' },
@@ -155,20 +160,14 @@ window.CEDEARS_BYMA = {
     DISN: { r: 12, n: 'The Walt Disney Co.', s: 'comunicaciones' },
     DOCU: { r: 22, n: 'DocuSign Inc.', s: 'tecnologia' },
     DOW: { r: 6, n: 'DOW Inc', s: 'materiales' },
-    DTEA: { r: 3, n: 'Deutsche Telekom Ag', s: 'comunicaciones' },
     E: { r: 4, n: 'Eni Spa', s: 'energia' },
-    EA: { r: 14, n: 'Electronic Arts Inc', s: 'comunicaciones' },
     EBAY: { r: 2, n: 'Ebay Inc.', s: 'consumo_discrecional' },
-    EBR: { r: 1/4, n: 'Centrais Eléctricas Brasileiras S.A. - Eletrobras', s: 'servicios_publicos' },
     ECL: { r: 56, n: 'Ecolab Inc', s: 'materiales' },
     EEM: { r: 5, n: 'ISHARES MSCI EMERGING MARKET', s: 'indices' },
     EFA: { r: 18, n: 'iShares MSCI EAFE ETF', s: 'indices' },
     EFX: { r: 16, n: 'Equifax Inc.', s: 'industria' },
-    ELP: { r: 1/3, n: 'Companhia Paranaense de Energía - COPEL', s: 'servicios_publicos' },
-    EOAN: { r: 6, n: 'E.On Se', s: 'servicios_publicos' },
     EQNR: { r: 6, n: 'Equinor Asa', s: 'energia' },
     ERIC: { r: 2, n: 'Lm Ericsson Telephone Co.', s: 'tecnologia' },
-    ERJ: { r: 1, n: 'Embraer-Empresa Brasileira de Aeronáutica S.A.', s: 'industria' },
     ESGU: { r: 30, n: 'IShares ESG Aware MSCI USA ETF', s: 'indices' },
     ETHA: { r: 5, n: 'ISHARES ETHEREUM TR ETF', s: 'cripto' },
     ETSY: { r: 16, n: 'Etsy Inc.', s: 'consumo_discrecional' },
@@ -179,7 +178,6 @@ window.CEDEARS_BYMA = {
     FCX: { r: 3, n: 'Freeport Mcmoran Copper & Gold Inc.', s: 'materiales' },
     FDX: { r: 10, n: 'Fedex Corp', s: 'industria' },
     FISV: { r: 11, n: 'Fiserv, Inc.', s: 'tecnologia' },
-    FMCC: { r: 1, n: 'Freddie Mac (Federal Home Loan)', s: 'financiero' },
     FMX: { r: 6, n: 'Fomento Economico Mexicano - Femsa', s: 'consumo_basico' },
     FNMA: { r: 1, n: 'Fed. Natl, Mortgage - Fannie Mae', s: 'financiero' },
     FSLR: { r: 18, n: 'First Solar Inc.', s: 'tecnologia' },
@@ -205,12 +203,10 @@ window.CEDEARS_BYMA = {
     HAPV3: { r: 1, n: 'Hapvida Participacoes E Investimentos S.A.', s: 'salud' },
     HD: { r: 32, n: 'The Home Depot Inc.', s: 'consumo_discrecional' },
     HDB: { r: 2, n: 'Hdfc Bank Limited.', s: 'financiero' },
-    HHPD: { r: 2, n: 'Hon Hai Precision Industry Co. Ltd.', s: 'tecnologia' },
     HIMS: { r: 4, n: 'Hims & Hers Health, Inc.', s: 'salud' },
     HL: { r: 1, n: 'Hecla Mining Co .', s: 'materiales' },
     HMC: { r: 1, n: 'Honda Motor Co. Ltd', s: 'consumo_discrecional' },
     HMY: { r: 1, n: 'Harmony Gold Mining Company Ltd.', s: 'materiales' },
-    HNPIY: { r: 1, n: 'Huaneng Power Intl', s: 'servicios_publicos' },
     HOG: { r: 3, n: 'Harley-Davidson Inc.', s: 'consumo_discrecional' },
     HON: { r: 8, n: 'Honeywell International Inc.', s: 'industria' },
     HOOD: { r: 29, n: 'Robinhood Markets Inc', s: 'financiero' },
@@ -259,9 +255,7 @@ window.CEDEARS_BYMA = {
     KOFM: { r: 2, n: 'Coca-Cola Femsa, S.A.B. De C.V.', s: 'consumo_basico' },
     LAC: { r: 1, n: 'Lithium Americas Corp', s: 'materiales' },
     LAR: { r: 1, n: 'Lithium Americas (Argentina) Corp', s: 'materiales' },
-    LFC: { r: 2, n: 'China Life Insurance', s: 'financiero' },
     LIN: { r: 102, n: 'LINDE PLC', s: 'materiales' },
-    LKOD: { r: 4, n: 'Pjsc Lukoil', s: 'energia' },
     LLY: { r: 56, n: 'Eli Lilly and Company', s: 'salud' },
     LMT: { r: 20, n: 'Lockheed Martin Corporation', s: 'industria' },
     LND: { r: 1, n: 'Brasilagro - Co Brasileira de Propriedades Agrícolas', s: 'consumo_basico' },
@@ -270,8 +264,6 @@ window.CEDEARS_BYMA = {
     LVS: { r: 2, n: 'Las Vegas Sands Corp', s: 'consumo_discrecional' },
     LYG: { r: 2, n: 'Lloyds Banking Group Plc', s: 'financiero' },
     MA: { r: 33, n: 'Mastercard Inc.', s: 'financiero' },
-    MBG: { r: 4, n: 'Mercedes-Benz Group AG', s: 'consumo_discrecional' },
-    MBT: { r: 2, n: 'Mobile Telesystems', s: 'comunicaciones' },
     MCD: { r: 24, n: 'Mcdonald\'S Corp.', s: 'consumo_discrecional' },
     MDLZ: { r: 15, n: 'Mondelez', s: 'consumo_basico' },
     MDT: { r: 4, n: 'Medtronic Public Limited Company', s: 'salud' },
@@ -279,7 +271,6 @@ window.CEDEARS_BYMA = {
     META: { r: 24, n: 'Meta Platforms Inc', s: 'comunicaciones' },
     MFG: { r: 1, n: 'Mizuho Financial Group', s: 'financiero' },
     MGLU3: { r: 1, n: 'Magazine Luiza S.A.', s: 'consumo_discrecional' },
-    MMC: { r: 16, n: 'Marsh & Mclennan Companies Inc.', s: 'financiero' },
     MMM: { r: 10, n: '3M Company', s: 'industria' },
     MO: { r: 4, n: 'Altria Group Inc.', s: 'consumo_basico' },
     MOS: { r: 5, n: 'The Mosaic Co', s: 'materiales' },
@@ -296,7 +287,6 @@ window.CEDEARS_BYMA = {
     MUX: { r: 2, n: 'McEwen Mining Inc', s: 'materiales' },
     NATU3: { r: 1, n: 'NATURA COSMETICOS SA', s: 'consumo_basico' },
     NBIS: { r: 27, n: 'Nebius Group N.V.', s: 'comunicaciones' },
-    NEC1: { r: 1/3, n: 'Nec Corporation', s: 'tecnologia' },
     NEE: { r: 19, n: 'NextEra Energy, Inc.', s: 'servicios_publicos' },
     NEM: { r: 3, n: 'Newmont Corporation', s: 'materiales' },
     NFLX: { r: 48, n: 'Netflix, Inc.', s: 'comunicaciones' },
@@ -304,11 +294,9 @@ window.CEDEARS_BYMA = {
     NGG: { r: 2, n: 'National Grid Plc', s: 'servicios_publicos' },
     NIO: { r: 4, n: 'NIO Inc.', s: 'consumo_discrecional' },
     NKE: { r: 12, n: 'Nike Inc.', s: 'consumo_discrecional' },
-    NLM: { r: 2, n: 'Novolipetsk Steel PJSC', s: 'materiales' },
     NMR: { r: 1, n: 'Nomura Holdings, Inc', s: 'financiero' },
     NOKA: { r: 1, n: 'Nokia Corporation', s: 'tecnologia' },
     NOW: { r: 172, n: 'SERVICENOW INC', s: 'tecnologia' },
-    NSAN: { r: 1, n: 'Nissan Motor Co., Ltd', s: 'consumo_discrecional' },
     NTES: { r: 14, n: 'Netease, Inc', s: 'comunicaciones' },
     NTRA: { r: 51, n: 'NATERA INC', s: 'salud' },
     NU: { r: 2, n: 'NU Holdings Ltd/Cayman Islands', s: 'financiero' },
@@ -318,10 +306,8 @@ window.CEDEARS_BYMA = {
     NVS: { r: 4, n: 'Novartis Ag', s: 'salud' },
     NXE: { r: 1, n: 'Nexgen Energy LTD', s: 'energia' },
     O: { r: 13, n: 'Realty Income Corp.', s: 'inmobiliario' },
-    OGZD: { r: 2, n: 'Pjsc Gazprom', s: 'energia' },
     OKLO: { r: 28, n: 'Oklo Inc', s: 'servicios_publicos' },
     ONDS: { r: 2, n: 'Ondas Holdings Inc.', s: 'tecnologia' },
-    ORAN: { r: 1, n: 'Orange S.A.', s: 'comunicaciones' },
     ORCL: { r: 3, n: 'Oracle Corporation', s: 'tecnologia' },
     ORLY: { r: 222, n: 'O\'reilly Automotive Inc', s: 'consumo_discrecional' },
     OXY: { r: 5, n: 'Occidental Petroleum Corp.', s: 'energia' },
@@ -333,7 +319,6 @@ window.CEDEARS_BYMA = {
     PBI: { r: 1, n: 'Pitney Bowes Inc', s: 'industria' },
     PBR: { r: 1, n: 'Petrobras (ADR)', s: 'energia' },
     PCAR: { r: 3, n: 'Paccar Inc.', s: 'industria' },
-    PCRF: { r: 2, n: 'Panasonic Corporation', s: 'tecnologia' },
     PDD: { r: 25, n: 'PDD HOLDINGS INC', s: 'consumo_discrecional' },
     PEP: { r: 18, n: 'Pepsico Inc', s: 'consumo_basico' },
     PETR3: { r: 1, n: 'Petrobras - Petróleo Brasileiro S.A.', s: 'energia' },
@@ -346,16 +331,13 @@ window.CEDEARS_BYMA = {
     PLTR: { r: 3, n: 'Palantir Technologies Inc', s: 'tecnologia' },
     PM: { r: 18, n: 'Philip Morris International', s: 'consumo_basico' },
     PRIO3: { r: 2, n: 'Petro Rio S.A.', s: 'energia' },
-    PSO: { r: 1, n: 'Pearson Plc', s: 'comunicaciones' },
     PSQ: { r: 8, n: 'PROSHARES SHORT QQQ', s: 'indices' },
     PSX: { r: 6, n: 'Phillips 66', s: 'energia' },
-    PTR: { r: 4, n: 'Petrochina Co Ltd', s: 'energia' },
     PYPL: { r: 8, n: 'Paypal Holdings, Inc.', s: 'financiero' },
     QCOM: { r: 11, n: 'Qualcomm Inc.', s: 'tecnologia' },
     QQQ: { r: 20, n: 'INVESCO QQQ TRUST', s: 'indices' },
     RACE: { r: 83, n: 'Ferrari', s: 'consumo_discrecional' },
     RBLX: { r: 2, n: 'Roblox Corp.', s: 'comunicaciones' },
-    RCTB4: { r: 1/1000, n: 'Telebras PN', s: 'comunicaciones' },
     RENT3: { r: 2, n: 'Localiza Rent A Car S.A.', s: 'industria' },
     RGTI: { r: 2, n: 'RIGETTI COMPUTING INC', s: 'tecnologia' },
     RIO: { r: 8, n: 'Rio Tinto Plc', s: 'materiales' },
@@ -378,21 +360,17 @@ window.CEDEARS_BYMA = {
     SH: { r: 8, n: 'PROSHARES SHORT S&P500', s: 'indices' },
     SHEL: { r: 2, n: 'Royal Dutch Shell Plc', s: 'energia' },
     SHOP: { r: 107, n: 'Shopify Inc.', s: 'tecnologia' },
-    SHPW: { r: 1/2, n: 'Shapeways Holdings Inc', s: 'industria' },
     SHW: { r: 69, n: 'SHERWIN-WILLIAMS CO/THE', s: 'materiales' },
-    SI: { r: 10, n: 'Silvergate Bancorp', s: 'financiero' },
     SID: { r: 1/8, n: 'Companhia Siderúrgica Nacional', s: 'materiales' },
     SIEGY: { r: 3, n: 'Siemens Ag Adr', s: 'industria' },
     SKHY: { r: 25, n: 'SK HYNIX INC', s: 'tecnologia' },
     SLB: { r: 3, n: 'Schlumberger Ltd', s: 'energia' },
     SLV: { r: 6, n: 'iShares SILVER TRUST', s: 'commodities' },
     SMH: { r: 50, n: 'VAN ECK SEMICONDUCTOR ETF', s: 'tecnologia' },
-    SMSN: { r: 14, n: 'Samsung Electronics Co. Ltd.', s: 'tecnologia' },
     SNA: { r: 6, n: 'Snap-On Inc', s: 'industria' },
     SNAP: { r: 1, n: 'Snap Inc.', s: 'comunicaciones' },
     SNDK: { r: 170, n: 'Sandisk Corporation', s: 'tecnologia' },
     SNOW: { r: 30, n: 'Snowflake Inc.', s: 'tecnologia' },
-    SNP: { r: 3, n: 'China Petroleum & Chem', s: 'energia' },
     SONY: { r: 8, n: 'Sony Group Corporation', s: 'tecnologia' },
     SPCE: { r: 1/2, n: 'Virgin Galactic', s: 'industria' },
     SPCX: { r: 50, n: 'SPACE EXPLORATION TECHNOLOGIES CORP.', s: 'industria' },
@@ -413,7 +391,6 @@ window.CEDEARS_BYMA = {
     TEM: { r: 12, n: 'TEMPUS AI INC', s: 'salud' },
     TEN: { r: 1, n: 'Tenaris', s: 'energia' },
     TGT: { r: 24, n: 'Target Corporation', s: 'consumo_basico' },
-    TIIAY: { r: 1, n: 'Telecom Italia S.P.A. Ordinary Shares', s: 'comunicaciones' },
     TIMB: { r: 1, n: 'Tim Participações S.A.', s: 'comunicaciones' },
     TIMS3: { r: 1, n: 'TIM S.A.', s: 'comunicaciones' },
     TJX: { r: 22, n: 'TJX Companies Inc/The', s: 'consumo_discrecional' },
@@ -427,10 +404,8 @@ window.CEDEARS_BYMA = {
     TSLA: { r: 15, n: 'Tesla, Inc.', s: 'consumo_discrecional' },
     TSM: { r: 9, n: 'Taiwan Semiconductor Manufacturing', s: 'tecnologia' },
     TTE: { r: 3, n: 'TotalEnergies SE', s: 'energia' },
-    TTM: { r: 1, n: 'Tata Motors Ltd', s: 'consumo_discrecional' },
     TV: { r: 3, n: 'Grupo Televisa S.A.', s: 'comunicaciones' },
     TWLO: { r: 36, n: 'Twilio Inc', s: 'tecnologia' },
-    TWTR: { r: 2, n: 'Twitter, Inc.', s: 'comunicaciones' },
     TXN: { r: 5, n: 'Texas Instruments Inc', s: 'tecnologia' },
     TXR: { r: 4, n: 'Ternium S.A.', s: 'materiales' },
     UAL: { r: 5, n: 'United Airlines Holdings Inc.', s: 'industria' },
@@ -458,7 +433,6 @@ window.CEDEARS_BYMA = {
     VST: { r: 26, n: 'VISTRA CORPORATION', s: 'servicios_publicos' },
     VXX: { r: 5, n: 'iPath Series B S&P 500 VIX', s: 'indices' },
     VZ: { r: 4, n: 'Verizon Communications Inc.', s: 'comunicaciones' },
-    WBA: { r: 3, n: 'Walgreens Boots Alliance Inc.', s: 'salud' },
     WBO: { r: 6, n: 'Weibo Corporation', s: 'comunicaciones' },
     WDC: { r: 92, n: 'WESTERN DIGITAL CORP', s: 'tecnologia' },
     WEGE3: { r: 1, n: 'Weg S.A.', s: 'industria' },
@@ -483,7 +457,6 @@ window.CEDEARS_BYMA = {
     XROX: { r: 1, n: 'Xerox Holding Corporation', s: 'industria' },
     XYZ: { r: 20, n: 'Square Inc.', s: 'tecnologia' },
     YELP: { r: 2, n: 'Yelp Inc.', s: 'comunicaciones' },
-    YZCA: { r: 2, n: 'Yanzhou Coal Mining Co. Ltd.', s: 'energia' },
     ZM: { r: 47, n: 'Zoom Video Communications Inc.', s: 'tecnologia' },
   }
 };

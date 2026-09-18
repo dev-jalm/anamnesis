@@ -1275,7 +1275,9 @@ group('Sector de los activos', function () {
     const inst = window.CEDEARS_BYMA.instrumentos;
     const malos = Object.keys(inst).filter(function (tk) { return !sectorPorClave(inst[tk].s); });
     assertEqual(malos.join(' '), '');
-    assertEqual(Object.keys(inst).length, 440);
+    // 440 del PDF de BYMA menos los 44 que no cotizaban en data912 (ver el
+    // encabezado de cedears-byma.js).
+    assertEqual(Object.keys(inst).length, 396);
   });
   test('concentracion: reparte por valor y ordena de mayor a menor', function () {
     const c = concentracionPorSector([

@@ -950,7 +950,8 @@ pantalla el elemento del que habla.
 | RES-05 | La detección de cambio de ticker y de baja de cotización (RF-230, RF-231) queda condicionada a que el servicio de cotizaciones exponga esa información. Si no la expone, el requerimiento no es realizable con las fuentes actuales |
 | RES-06 | **El servicio de cotizaciones no informa el ratio ni el nombre de los CEDEARs.** Se verificó sobre la totalidad de los instrumentos que publica: ninguno los trae. Ambos datos provienen del listado oficial de BYMA, incorporado al producto como archivo propio |
 | RES-07 | Un ratio desactualizado no se manifiesta como error: devuelve un precio en dólares verosímil pero equivocado, en la proporción del cambio. El mercado los modifica mediante splits —SPY pasó de 20:1 a 60:1 entre el 29/05/2026 y el 01/06/2026—, de modo que el listado requiere reposición cuando BYMA publique uno nuevo. Es la contrapartida de derivar el precio en lugar de consultarlo |
-| RES-08 | **Ninguna fuente accesible informa el sector.** El listado de BYMA no lo trae, ni el servicio de cotizaciones, ni el de cripto; el único servicio relevado que lo expone no admite consultas desde el navegador. El sector del listado se incorporó una vez, el 18/09/2026: 311 instrumentos por coincidencia de símbolo con ese servicio, 44 por nombre con revisión uno a uno y 85 asignados a mano. Al reponer el listado (RES-07) debe conservarse el sector de los instrumentos existentes y asignarse el de los nuevos. Las acciones locales, los bonos y todo instrumento ausente del listado requieren asignación manual |
+| RES-08 | **Ninguna fuente accesible informa el sector.** El listado de BYMA no lo trae, ni el servicio de cotizaciones, ni el de cripto; el único servicio relevado que lo expone no admite consultas desde el navegador. El sector del listado se incorporó una vez, el 18/09/2026. De los 396 instrumentos vigentes (RES-09): 308 por coincidencia de símbolo con ese servicio, 22 por nombre con revisión uno a uno y 66 asignados a mano. Al reponer el listado (RES-07) debe conservarse el sector de los instrumentos existentes y asignarse el de los nuevos. Las acciones locales, los bonos y todo instrumento ausente del listado requieren asignación manual |
+| RES-09 | **El listado incorporado contiene sólo los CEDEARs que cotizan.** Del listado de BYMA del 03/09/2026 —440 instrumentos— se excluyeron los 44 ausentes del servicio de cotizaciones al 18/09/2026: sin cotización, el producto no puede asignarles precio (RF-078f). El grupo reúne empresas disueltas, fusionadas o retiradas de la oferta pública, emisoras rusas y emisoras vigentes cuyo CEDEAR no registra operaciones. La exclusión se repite en cada reposición del listado (RES-07), contra el servicio de cotizaciones vigente en ese momento, y un instrumento excluido vuelve a incorporarse si pasa a cotizar |
 
 **Supuestos**
 
@@ -1044,7 +1045,7 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.10 | 06/09/2026 | Corrige el registro de precios, que no distinguía la moneda: un mismo ticker tenido en pesos y en dólares compartía un único precio y uno de los dos se mostraba en la moneda ajena (RF-076a, RF-076b). El esquema del archivo pasa a versión 4, con migración automática. Se incorpora el listado oficial de BYMA como origen de los ratios y de los nombres de instrumento (RF-078f, RF-077), y se documentan sus límites (RES-06, RES-07) | Reemplazada |
 | 1.11 | 06/09/2026 | Incorpora el precio de las tenencias en cripto desde el mercado donde cotizan (RF-078g a RF-078i, INT-06), y la precisión necesaria para operarlas: siete decimales en los nominales y dos en los precios | Reemplazada |
 | 1.12 | 06/09/2026 | Corrige la edición de reglas, que no alcanzaba a todos los campos del alta: el renombre no se podía modificar y una regla de descarte no se podía editar sin convertirla en otra cosa (RF-167a, RF-167b) | Reemplazada |
-| 1.13 | 18/09/2026 | Incorpora el sector de los activos y la concentración por sector de cada cartera, con su gráfico y sus alertas (RF-073a a RF-073m, RF-064, RF-135, RF-136, RF-193). Documenta que ninguna fuente accesible informa el sector (RES-08) | **Vigente** |
+| 1.13 | 18/09/2026 | Incorpora el sector de los activos y la concentración por sector de cada cartera, con su gráfico y sus alertas (RF-073a a RF-073m, RF-064, RF-135, RF-136, RF-193). Documenta que ninguna fuente accesible informa el sector (RES-08), y restringe el listado incorporado a los CEDEARs que cotizan (RES-09) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 
@@ -1053,6 +1054,7 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | Sector de cada activo: del listado de BYMA, cripto por par, o asignado a mano en la carga o en la tabla | RF-073a a RF-073g, RF-135, RF-136 |
 | Concentración por sector de cada cartera, con la línea del umbral | RF-073h a RF-073j |
 | Alertas de concentración en el panel y en Diagnóstico, con umbral configurable | RF-073k a RF-073m, RF-064, RF-193 |
+| El listado de CEDEARs se reduce a los 396 que cotizan | RES-09 |
 
 **Implementados en la versión 1.12**
 
