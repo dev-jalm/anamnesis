@@ -83,6 +83,7 @@ Qué muestra cada una:
 | `03-diagnostico.png` | Avisos, flujo trimestral y evolución anual |
 | `04-salud-financiera.png` | Cartera por destino, con tres activos liquidados |
 | `18-venta-activo.png` | La venta parcial de una compra |
+| `20-concentracion-sector.png` | Concentración por sector de Inversiones, con la alerta |
 | `16-mesa-trading.png` | La mesa: operación, verificación, tamaño e historial |
 | `05-evolucion.png` | Presupuestado contra real, mes a mes |
 | `09-admin-categorias.png` | Categorías, subcategorías y etiquetas |
@@ -102,3 +103,8 @@ Un detalle si las regenerás con html2canvas: la versión 1.4.1 no entiende
 `color(srgb ...)`, que es como Chrome computa el tinte de los paneles de
 inversión. Hay que convertirlo a `rgba()` en el clon (`onclone`) o el render
 falla.
+
+Y otro: si el elemento capturado no tiene fondo propio, el PNG sale
+transparente, y en tema oscuro el texto claro queda invisible sobre el blanco
+del visor —pasó con `20-concentracion-sector.png`—. Hay que pasarle a
+html2canvas `backgroundColor` con el fondo del primer ancestro opaco.

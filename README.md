@@ -45,7 +45,7 @@ La metáfora médica no es decorativa: cada solapa responde una pregunta distint
 | **Historia clínica** | ¿En qué se fue la plata? Movimientos del período, recategorizables, con etiquetas y formas de pago. Dos vistas: **Resumen**, una fila por categoría con su peso sobre el total, y **Completa**, cada movimiento editable en su fila. |
 | **Ficha médica** | ¿Cómo estoy hoy? KPIs configurables, score de salud, distribución por categoría, tipo, periodicidad y medio de pago. También en dos vistas: **Completa** con todos los gráficos, y **Resumen** con las secciones que elijas dejar. |
 | **Diagnóstico** | ¿Qué está pasando? Flujo trimestral, evolución anual e insights automáticos. |
-| **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y las dos jubilaciones, con precios actualizados desde el mercado. Cada activo se despliega en sus compras individuales, con el rendimiento de cada una contra el precio de hoy, y se puede **vender** entero o por partes. Trading va último y aparte: es la [mesa de operaciones](#la-mesa-de-trading). |
+| **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y las dos jubilaciones, con precios actualizados desde el mercado. Cada activo se despliega en sus compras individuales, con el rendimiento de cada una contra el precio de hoy, y se puede **vender** entero o por partes. Cada cartera muestra cuánto de su valor está en cada **sector**, y avisa cuando uno pasa el límite que elegiste. Trading va último y aparte: es la [mesa de operaciones](#la-mesa-de-trading). |
 | **Evolución** | ¿Estoy mejorando? Presupuestado contra real, mes a mes, con tendencias por categoría. |
 
 ### Importar los resúmenes
@@ -80,7 +80,7 @@ La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite
 
 - **El navegador como runtime completo.** La persistencia usa la File System Access API contra un archivo que elige el usuario, con guardado por debounce para no escribir en cada tecla. El handle queda en IndexedDB, así que la app reconecta sola con el mismo archivo en la sesión siguiente y solo hay que elegirlo una vez. No hay backend porque no hace falta.
 
-- **Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado: parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas y parseo de resúmenes bancarios. `tests.html` la cubre con **390 tests** en 47 grupos, incluidos casos de integración sobre un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
+- **Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado: parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas y parseo de resúmenes bancarios. `tests.html` la cubre con **404 tests** en 48 grupos, incluidos casos de integración sobre un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
 
 - **Cada banco es un dato, no código.** Los parsers de Mercado Pago y Galicia eran el mismo algoritmo con constantes distintas, así que ese algoritmo vive una sola vez y cada entidad es una plantilla. Ocho campos alcanzan para describir un resumen: qué columna trae la fecha, si el importe viene firmado o partido en débito y crédito, en qué formato están los números, qué filas hay que ignorar. El motor trabaja sobre filas, así que da igual que el archivo sea CSV o Excel.
 
@@ -95,18 +95,18 @@ La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite
 ### Cómo se organiza
 
 ```
-dashboard.html    3.135 líneas    estructura, modales, formularios
-dashboard.css     7.786 líneas    estilos y theming claro/oscuro
-dashboard.js     22.236 líneas    lógica, render, estado, importación
-core.js           2.695 líneas    funciones puras + motor de plantillas
+dashboard.html    3.154 líneas    estructura, modales, formularios
+dashboard.css     7.935 líneas    estilos y theming claro/oscuro
+dashboard.js     22.666 líneas    lógica, render, estado, importación
+core.js           2.810 líneas    funciones puras + motor de plantillas
 mesa-trading.js   2.985 líneas    mesa de trading: riesgo, liquidación, historial
 mesa-trading.css  1.029 líneas    estilos de la mesa
 sistema-4k.js       478 líneas    el reglamento de trading, consultable en la app
-cedears-byma.js     476 líneas    ratio y nombre de los CEDEARs de BYMA
-demo-data.js        727 líneas    generador del dataset de demostración
+cedears-byma.js     489 líneas    ratio, nombre y sector de los CEDEARs de BYMA
+demo-data.js        731 líneas    generador del dataset de demostración
 tour.js             302 líneas    el recorrido guiado del modo demo
 tour.css            131 líneas    estilos del recorrido
-tests.html        3.359 líneas    390 tests sobre core.js
+tests.html        3.456 líneas    404 tests sobre core.js
 ```
 
 ### Cómo se prueba

@@ -387,6 +387,7 @@ const state = {
   params: {
     diasBajo: 50000, // umbral para "Días bajo $X" en saldo MP
     periFugaPct: 40,   // umbral % de fuga: gastos de una periodicidad sobre gastos básicos
+    concentracionSectorPct: 30, // umbral % de un sector sobre el valor de una cartera; 0 desactiva
     learnRulesMonths: 3, // cantidad de meses hacia atrás de los que se aprenden reglas
     // Cotización MEP del USD/ARS — usada para convertir tickers USD a ARS
     // y mostrar el total combinado en Salud financiera. Editable en Parámetros.
@@ -1652,6 +1653,26 @@ function renderInsights(curIng, total, agg, activeMonths) {
       html: 'Gastaste solo el <span class="neg">' + (100 - ahorroPct).toFixed(0) + '%</span> de lo que ganaste. Te queda <strong>' + fmtMoney(curIng.sueldo - total) + '</strong> para ahorro o inversiones.'
     });
   }
+
+  // 6. CONCENTRACIÓN POR SECTOR en una cartera. No depende del período elegido:
+  // mira la cartera de hoy, que es la que corre el riesgo. Mismo texto que la
+  // alerta del panel en Salud financiera.
+  try {
+    const umbral = umbralConcentracionSector();
+    if (umbral > 0) {
+      const carteras = [
+        { destinos: ['inversiones'], nombre: 'Inversiones' },
+        { destinos: ['jubilacion_jalm'], nombre: window.DEMO_MODE ? 'Jubilación' : labelJubilacion(1) },
+        { destinos: ['reserva'], nombre: 'Reserva' }
+      ];
+      if (!window.DEMO_MODE) carteras.push({ destinos: ['jubilacion_clm'], nombre: labelJubilacion(2) });
+      carteras.forEach(function (ct) {
+        concentracionDeCartera(ct.destinos).concentrados.forEach(function (s) {
+          insights.push({ type: 'alert', icon: 'pie-chart', html: textoAlertaSector(s, ct.nombre, umbral) });
+        });
+      });
+    }
+  } catch (e) { console.error('alertas de concentración:', e); }
 
   // Render
   if (insights.length === 0) {
@@ -6058,6 +6079,11 @@ function renderInvestmentList() {
           return '<option value="' + m + '"' + ((r.moneda || 'ARS') === m ? ' selected' : '') + '>' + m + '</option>';
         }).join('') +
       '</select>' +
+      // Sector: se completa solo con el del listado de BYMA (o cripto) al
+      // escribir el ticker; si no está, o si no estás de acuerdo, se elige acá.
+      '<select data-field="sector" class="inv-row-sector" title="Sector del activo. Se completa solo si el ticker está en el listado de CEDEARs de BYMA.">' +
+        opcionesSector(valorSectorFila(r), true) +
+      '</select>' +
       '<span class="investment-row-total mono" title="Cantidad × Precio">' + totalStr + '</span>' +
       '<button class="manual-row-delete" data-action="delete-row" title="Borrar fila">' +
         '<i data-lucide="trash-2" style="width:13px;height:13px"></i>' +
@@ -6107,6 +6133,13 @@ function renderInvestmentList() {
           }
         }
         input.classList.remove('invalid');
+        // Mientras el sector no se haya elegido a mano, sigue al ticker: al
+        // escribir AAPL aparece Tecnología. Se toca sólo el <select>, sin
+        // re-renderizar la fila, para no perder el foco del ticker.
+        if ((field === 'ticker' || field === 'moneda') && !row.sector) {
+          const secSel = rowEl.querySelector('[data-field="sector"]');
+          if (secSel) secSel.innerHTML = opcionesSector(valorSectorFila(row), true);
+        }
         // Se recalcula en cada tecla, no al perder el foco. Y también cuando
         // cambia 'moneda': mueve el importe de una columna de moneda a la otra,
         // así que los totales dejan de ser los que estaban mostrados.
@@ -6137,6 +6170,14 @@ function renderInvestmentList() {
     }
   });
   if (window.lucide) lucide.createIcons();
+}
+
+// Sector que muestra una fila del alta: el elegido a mano en esa fila, o si no,
+// el que ya tiene el ticker (del listado, cripto, o cargado antes a mano).
+function valorSectorFila(row) {
+  if (row && row.sector) return row.sector;
+  const tk = row && row.ticker ? row.ticker.trim() : '';
+  return tk ? (sectorDeTenencia(tk, row.moneda).sector || '') : '';
 }
 
 // Símbolo de una fila puntual. Desde que la moneda es por fila, no hay un
@@ -6236,6 +6277,9 @@ function validateAndSaveInvestmentRows() {
       moneda: (r.moneda === 'USD') ? 'USD' : 'ARS',
       createdAt: now
     });
+    // El sector es del ticker, no de la compra: va a tickerInfo, donde lo lee
+    // la cartera. Sólo si se eligió a mano; el del listado no se copia.
+    if (r.sector) guardarSectorManual(r.ticker.trim().toUpperCase(), (r.moneda === 'USD') ? 'USD' : 'ARS', r.sector);
   });
   scheduleSave();
 
@@ -11439,6 +11483,31 @@ function renderParamsTab() {
     }
   }
 
+  // Umbral de concentración por sector (porcentaje 0..100; 0 desactiva)
+  const concInput = document.getElementById('paramConcSectorInput');
+  if (concInput) {
+    const actual = umbralConcentracionSector();
+    const pend = catModalState.pendingParamChanges.concentracionSectorPct;
+    concInput.value = String(pend !== undefined ? pend : actual);
+    concInput.classList.toggle('modified', pend !== undefined && pend !== actual);
+    if (!concInput._bound) {
+      concInput.addEventListener('input', function (e) {
+        const cleaned = e.target.value.replace(/[^\d]/g, '');
+        if (cleaned !== e.target.value) e.target.value = cleaned;
+        let val = parseInt(cleaned || '0', 10);
+        if (val > 100) val = 100;
+        if (val === umbralConcentracionSector()) {
+          delete catModalState.pendingParamChanges.concentracionSectorPct;
+        } else {
+          catModalState.pendingParamChanges.concentracionSectorPct = val;
+        }
+        concInput.classList.toggle('modified', catModalState.pendingParamChanges.concentracionSectorPct !== undefined);
+        updateCatModalStatus();
+      });
+      concInput._bound = true;
+    }
+  }
+
   // Reserva
   renderReservaParam();
 
@@ -13537,6 +13606,9 @@ function applyCategoryChanges() {
   }
   if (catModalState.pendingParamChanges.periFugaPct !== undefined) {
     state.params.periFugaPct = catModalState.pendingParamChanges.periFugaPct;
+  }
+  if (catModalState.pendingParamChanges.concentracionSectorPct !== undefined) {
+    state.params.concentracionSectorPct = catModalState.pendingParamChanges.concentracionSectorPct;
   }
   if (catModalState.pendingParamChanges.learnRulesMonths !== undefined) {
     state.params.learnRulesMonths = catModalState.pendingParamChanges.learnRulesMonths;
@@ -17545,6 +17617,172 @@ function getKpiAccentForDestinos(destinos) {
   return '#8B7355';
 }
 
+// ─── SECTOR DE LOS ACTIVOS ───
+// El catálogo y el cálculo viven en core.js (SECTORES, sectorDeActivo,
+// concentracionPorSector, sectoresConcentrados). Acá, lo que toca pantalla.
+
+function listadoCedears() {
+  return (window.CEDEARS_BYMA && window.CEDEARS_BYMA.instrumentos) || {};
+}
+
+function sectorDeTenencia(tk, moneda) {
+  return sectorDeActivo(tk, moneda, state.tickerInfo, listadoCedears());
+}
+
+// El sector que tendría el activo sin carga manual: el del listado o cripto.
+// Sirve para saber si lo elegido a mano difiere de lo automático.
+function sectorAutomatico(tk, moneda) {
+  return sectorDeActivo(tk, moneda, {}, listadoCedears()).sector;
+}
+
+// Umbral de las alertas de concentración, en %. Configurable en Parámetros.
+function umbralConcentracionSector() {
+  const v = state.params && state.params.concentracionSectorPct;
+  return (v !== undefined && v !== null && v !== '') ? Number(v) : 30;
+}
+
+// Guarda el sector elegido a mano. Si coincide con el automático no se guarda
+// nada —y se borra el que hubiera—: así, si el listado se corrige más adelante,
+// el activo toma la corrección en vez de quedar congelado en una copia.
+function guardarSectorManual(tk, moneda, sector) {
+  if (!tk) return;
+  if (!state.tickerInfo) state.tickerInfo = {};
+  const k = claveTickerInfo(tk, moneda);
+  const auto = sectorAutomatico(tk, moneda);
+  // El sector es de la empresa, no de la moneda: se limpia también el de la
+  // otra moneda para que no quede uno viejo ganándole a este.
+  const otra = claveTickerInfo(tk, moneda === 'USD' ? 'ARS' : 'USD');
+  if (state.tickerInfo[otra] && state.tickerInfo[otra].sector) delete state.tickerInfo[otra].sector;
+  if (!sector || sector === auto) {
+    if (state.tickerInfo[k]) delete state.tickerInfo[k].sector;
+    return;
+  }
+  if (!state.tickerInfo[k]) state.tickerInfo[k] = { moneda: moneda === 'USD' ? 'USD' : 'ARS' };
+  state.tickerInfo[k].sector = sector;
+}
+
+// <option>s del selector de sector. `conVacio` agrega "sin sector" al principio,
+// que sólo se ofrece cuando no hay uno asignado: elegir "ninguno" sobre un
+// activo que el listado clasifica no tiene sentido.
+function opcionesSector(seleccionado, conVacio) {
+  return (conVacio ? '<option value=""' + (!seleccionado ? ' selected' : '') + '>— sin sector —</option>' : '') +
+    SECTORES.map(function (s) {
+      return '<option value="' + s.key + '"' + (s.key === seleccionado ? ' selected' : '') + '>' + escapeHtmlSafe(s.label) + '</option>';
+    }).join('');
+}
+
+// Celda de sector de la fila de un ticker en la cartera. Editable: lo elegido
+// a mano se marca con `modified` y el title dice cuál era el automático, que
+// es el criterio de la app para todo valor que difiere del original.
+function celdaSectorTicker(tk, moneda) {
+  const r = sectorDeTenencia(tk, moneda);
+  const auto = sectorAutomatico(tk, moneda);
+  const esManual = r.origen === 'manual' && auto && auto !== r.sector;
+  const title = esManual
+    ? 'Original: ' + etiquetaSector(auto)
+    : (r.origen === 'listado' ? 'Del listado de CEDEARs de BYMA' : (r.origen === 'cripto' ? 'Par cripto' : (r.sector ? 'Cargado a mano' : 'Sin sector: elegilo de la lista')));
+  return '<td><select class="inv-sector-sel' + (esManual ? ' modified' : '') + (r.sector ? '' : ' inv-sector-vacio') + '" ' +
+    'data-ticker="' + escapeHtmlSafe(tk) + '" data-moneda="' + escapeHtmlSafe(moneda || 'ARS') + '" title="' + escapeHtmlSafe(title) + '">' +
+    opcionesSector(r.sector, !r.sector) +
+  '</select></td>';
+}
+
+// Concentración por sector de una cartera. Se valúa cada tenencia en pesos:
+// a precio actual cuando lo hay, a costo cuando no —y se informa cuáles, para
+// que el porcentaje no se lea como más preciso de lo que es—. Los dólares se
+// pasan a pesos al MEP, igual que la fila ARS+USD de la cabecera.
+function concentracionDeCartera(destinos) {
+  const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+  const entries = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
+    .filter(function (e) { return destinos.indexOf(e.destino) >= 0; });
+  const posiciones = [];
+  ['ARS', 'USD'].forEach(function (mon) {
+    const groups = groupInvestmentEntriesByTicker(entries.filter(function (e) {
+      return (e.moneda === 'USD' ? 'USD' : 'ARS') === mon;
+    }));
+    Object.keys(groups).forEach(function (tk) {
+      const g = groups[tk];
+      // Lo liquidado no es tenencia: no concentra nada.
+      if (!(g.cantidadTotal > 0)) return;
+      const info = infoDeTicker(state.tickerInfo, tk, mon);
+      const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
+        ? Number(info.precioActual) : null;
+      const valorMon = (pa !== null) ? pa * g.cantidadTotal : g.invertidoBruto;
+      posiciones.push({
+        ticker: tk,
+        sector: sectorDeTenencia(tk, mon).sector,
+        valor: mon === 'USD' ? valorMon * mep : valorMon,
+        aCosto: pa === null
+      });
+    });
+  });
+  const c = concentracionPorSector(posiciones);
+  c.aCosto = posiciones.filter(function (p) { return p.aCosto && p.valor > 0; }).map(function (p) { return p.ticker; });
+  c.concentrados = sectoresConcentrados(c, umbralConcentracionSector());
+  return c;
+}
+
+// Texto de la alerta de un sector concentrado. Lo usan el panel de la cartera y
+// los avisos de Diagnóstico, para que digan lo mismo con las mismas palabras.
+function textoAlertaSector(s, nombreCartera, umbral) {
+  return '<strong>' + escapeHtmlSafe(etiquetaSector(s.sector)) + '</strong> concentra el <strong>' +
+    s.pct.toFixed(0) + '%</strong> de ' + escapeHtmlSafe(nombreCartera) +
+    ' (' + escapeHtmlSafe(s.tickers.join(', ')) + '), por encima del ' + umbral + '% configurado.';
+}
+
+// Bloque "Concentración por sector" del cuerpo de una cartera: una barra por
+// sector, de mayor a menor, con el umbral marcado. Barras y no torta: el dato es
+// comparar tamaños contra un límite, y eso se lee en una longitud, no en un
+// ángulo. Un solo color —el de la cartera— porque lo que importa es la
+// magnitud, no distinguir sectores entre sí; lo que supera el umbral pasa a
+// rojo, con ícono y texto, para no depender sólo del color.
+function buildSectorConcentrationBlock(destinos, nombreCartera) {
+  const c = concentracionDeCartera(destinos);
+  if (!c.total || c.sectores.length === 0) return '';
+  const umbral = umbralConcentracionSector();
+  const concentrados = {};
+  c.concentrados.forEach(function (s) { concentrados[s.sector] = true; });
+  const filas = c.sectores.map(function (s) {
+    const over = !!(s.sector && concentrados[s.sector]);
+    const sinSector = !s.sector;
+    const pctTxt = s.pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+    const tip = etiquetaSector(s.sector) + ': ' + pctTxt + ' · $ ' + fmt(Math.round(s.valor)) + ' · ' + s.tickers.join(', ');
+    return '<div class="inv-sector-row' + (over ? ' is-over' : '') + (sinSector ? ' is-none' : '') + '" title="' + escapeHtmlSafe(tip) + '">' +
+      '<span class="inv-sector-name">' +
+        (over ? '<i data-lucide="alert-triangle" style="width:11px;height:11px"></i>' : '') +
+        escapeHtmlSafe(etiquetaSector(s.sector)) +
+      '</span>' +
+      '<span class="inv-sector-track">' +
+        '<span class="inv-sector-bar" style="width:' + Math.max(0.5, s.pct).toFixed(2) + '%"></span>' +
+        (umbral > 0 ? '<span class="inv-sector-umbral" style="left:' + Math.min(100, umbral) + '%"></span>' : '') +
+      '</span>' +
+      '<span class="inv-sector-pct">' + pctTxt + '</span>' +
+      '<span class="inv-sector-tickers">' + escapeHtmlSafe(s.tickers.join(', ')) + '</span>' +
+    '</div>';
+  }).join('');
+  const alertas = c.concentrados.map(function (s) {
+    return '<div class="inv-sector-alert"><i data-lucide="alert-triangle" style="width:13px;height:13px"></i>' +
+      '<span>' + textoAlertaSector(s, nombreCartera, umbral) + '</span></div>';
+  }).join('');
+  const notas = [];
+  if (c.aCosto.length) notas.push('Valuados a costo por no tener precio actual: ' + c.aCosto.join(', ') + '.');
+  const sinSector = c.sectores.filter(function (s) { return !s.sector; })[0];
+  if (sinSector) notas.push('Sin sector: ' + sinSector.tickers.join(', ') + '. Asignalo en la columna Sector de la tabla.');
+  return '<div class="inv-sector-block">' +
+    '<div class="inv-sector-head">' +
+      '<span class="inv-section-label">Concentración por sector</span>' +
+      '<span class="inv-sector-sub">sobre $ ' + fmt(Math.round(c.total)) + ' valuados · ' +
+        (umbral > 0
+          ? 'umbral ' + umbral + '% <span class="inv-sector-umbral-key"></span>'
+          : 'alertas desactivadas en Parámetros') +
+      '</span>' +
+    '</div>' +
+    alertas +
+    '<div class="inv-sector-bars">' + filas + '</div>' +
+    (notas.length ? '<div class="inv-sector-nota">' + escapeHtmlSafe(notas.join(' ')) + '</div>' : '') +
+  '</div>';
+}
+
 function buildInvestmentDetailPanel(destinos, title) {
   // Filtrar entradas del destino. Si no hay ninguna, igual mostramos el panel
   // con todo en 0 (estado vacío) — el usuario quiere ver las 5 secciones siempre.
@@ -17874,6 +18112,7 @@ function buildInvestmentDetailPanel(destinos, title) {
             '<td>' + (showDestColumn ? escapeHtmlSafe(destLabel) : '') + '</td>' +
             '<td class="inv-entry-fecha">' + fechaDisplay + '</td>' +
             '<td></td>' +
+            '<td></td>' +
             '<td class="num"><span class="inv-chip-liquidado">liquidada</span></td>' +
             '<td class="num" colspan="4"><span class="inv-na">vendidos ' + fmtNominales(eVendida) + ' nominales por ' +
               monedaPrefix + ' ' + fmt(productoVentas(e)) + '</span></td>' +
@@ -17902,6 +18141,7 @@ function buildInvestmentDetailPanel(destinos, title) {
               : '') +
           '</td>' +
           '<td></td>' +
+          '<td></td>' +
           '<td class="num">' + (eCant < 0 ? '-' : '') + fmtNominales(eCant) + '</td>' +
           '<td class="num">' + monedaPrefix + ' ' + fmtPrecio(ePrecio) + '</td>' +
           '<td class="num">' + (eTotal < 0 ? '-' : '') + monedaPrefix + ' ' + fmt(Math.abs(eTotal)) + '</td>' +
@@ -17925,6 +18165,7 @@ function buildInvestmentDetailPanel(destinos, title) {
         '<td></td>' +
         '<td>' + (showDestColumn ? 'Destino' : '') + '</td>' +
         '<td>Fecha</td>' +
+        '<td></td>' +
         '<td></td>' +
         '<td class="num">Nominales</td>' +
         '<td class="num">Precio de compra</td>' +
@@ -17963,6 +18204,7 @@ function buildInvestmentDetailPanel(destinos, title) {
           brokerCellHtml +
           '<td class="ticker">' + escapeHtmlSafe(tk) + '</td>' +
           '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(tk) + '" data-moneda="' + escapeHtmlSafe(g.moneda || 'ARS') + '" value="' + escapeHtmlSafe(descripcion).replace(/"/g, '&quot;') + '" placeholder="ej: SPDR S&P 500 ETF"></td>' +
+          celdaSectorTicker(tk, g.moneda) +
           '<td class="num"><span class="inv-chip-liquidado">liquidado</span></td>' +
           '<td class="num" colspan="4"><span class="inv-na">vendidos ' + fmt(g.vendida) + ' nominales por ' + monedaPrefix + ' ' + fmt(g.producto) + '</span></td>' +
           '<td class="num ' + rCls + '" colspan="2">' + monedaPrefix + ' ' + fmt(Math.abs(g.realizado)) +
@@ -17982,6 +18224,7 @@ function buildInvestmentDetailPanel(destinos, title) {
         brokerCellHtml +
         '<td class="ticker">' + escapeHtmlSafe(tk) + '</td>' +
         '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(tk) + '" data-moneda="' + escapeHtmlSafe(g.moneda || 'ARS') + '" value="' + escapeHtmlSafe(descripcion).replace(/"/g, '&quot;') + '" placeholder="ej: SPDR S&P 500 ETF"></td>' +
+        celdaSectorTicker(tk, g.moneda) +
         '<td class="num">' + (g.cantidadTotal < 0 ? '-' : '') + fmtNominales(g.cantidadTotal) + '</td>' +
         // PPC sin decimales, igual que el resto de los importes de la fila. Era
         // la única celda con dos decimales y desalineaba la columna: el
@@ -18033,14 +18276,14 @@ function buildInvestmentDetailPanel(destinos, title) {
 
   // ─── 5. Header de sección dentro de la tabla (divisor horizontal con label) ───
   function sectionHeaderRow(label, count) {
-    return '<tr class="inv-section-header"><td colspan="11">' +
+    return '<tr class="inv-section-header"><td colspan="12">' +
       '<span class="inv-section-label">' + label + '</span>' +
       '<span class="inv-section-count">' + count + ' ticker' + (count === 1 ? '' : 's') + '</span>' +
     '</td></tr>';
   }
   // Empty state row para una sección sin tickers cargados (CERO state)
   function sectionEmptyRow(label) {
-    return '<tr class="inv-section-empty"><td colspan="11">Sin activos cargados en ' + label + '</td></tr>';
+    return '<tr class="inv-section-empty"><td colspan="12">Sin activos cargados en ' + label + '</td></tr>';
   }
 
   // Cuerpo de la tabla: ARS arriba, USD abajo, separados por la fila de header.
@@ -18057,7 +18300,7 @@ function buildInvestmentDetailPanel(destinos, title) {
   //   fila 2: títulos de columnas
   // Si no hay tickers, fila única con mensaje vacío.
   function buildCurrencyTable(monedaLabel, count, rowsHtml) {
-    const bodyHtml = rowsHtml || '<tr class="inv-section-empty"><td colspan="11">Sin activos cargados en ' + monedaLabel + '</td></tr>';
+    const bodyHtml = rowsHtml || '<tr class="inv-section-empty"><td colspan="12">Sin activos cargados en ' + monedaLabel + '</td></tr>';
     // El botón "actualizar precios" va SOLO en la fila ARS — actualiza tanto
     // tickers ARS (precio directo desde data912/CEDEARs) como tickers USD
     // (precio implícito desde su CEDEAR equivalente vía cotización MEP).
@@ -18074,7 +18317,10 @@ function buildInvestmentDetailPanel(destinos, title) {
         '<col style="width:20px">' +   /* toggle chevron · en el detalle, borrar */
         '<col style="width:140px">' +  /* Broker/Exchange · en el detalle, destino */
         '<col style="width:90px">' +   /* Ticker · en el detalle, fecha */
-        '<col style="width:250px">' +  /* Descripción · vacía en el detalle */
+        '<col style="width:175px">' +  /* Descripción · vacía en el detalle */
+        /* Sector: "Consumo discrecional" mide 116px en 11px Inter, más el
+           padding y la flecha del selector; con 150 la celda quedaba en 132. */
+        '<col style="width:165px">' +  /* Sector · vacía en el detalle */
         '<col style="width:85px">' +   /* Cantidad */
         '<col style="width:105px">' +  /* PPC · en el detalle, precio de compra */
         '<col style="width:110px">' +  /* Invertido · en el detalle, total comprado */
@@ -18085,7 +18331,7 @@ function buildInvestmentDetailPanel(destinos, title) {
       '</colgroup>' +
       '<thead>' +
         '<tr class="inv-currency-header-row">' +
-          '<th colspan="11">' +
+          '<th colspan="12">' +
             '<span class="inv-section-label">' + monedaLabel + '</span>' +
             '<span class="inv-section-count">' + count + ' ticker' + (count === 1 ? '' : 's') + '</span>' +
             updateBtnHtml +
@@ -18096,6 +18342,7 @@ function buildInvestmentDetailPanel(destinos, title) {
           '<th title="Broker o exchange donde se opera el activo">Broker/Exchange</th>' +
           '<th>Ticker</th>' +
           '<th>Descripción</th>' +
+          '<th title="Del listado de BYMA cuando el ticker está ahí; si no, elegilo de la lista">Sector</th>' +
           '<th class="num">Nominales</th>' +
           '<th class="num" title="Precio Promedio de Compra ponderado">PPC</th>' +
           '<th class="num" title="Nominales × PPC">Total invertido</th>' +
@@ -18127,6 +18374,7 @@ function buildInvestmentDetailPanel(destinos, title) {
       // Su detalle es el historial que inserta mesa-trading.js. Las demas
       // secciones (reserva, inversiones, jubilacion) siguen igual.
       (panelKey === 'trading' ? '' :
+        buildSectorConcentrationBlock(destinos, title) +
         buildCurrencyTable('ARS', arsTickers.length, arsRows) +
         buildCurrencyTable('USD', usdTickers.length, usdRows)) +
     '</div>' +
@@ -19087,6 +19335,15 @@ function bindInvestmentDetailDelegation() {
       state.tickerInfo[k].lastUpdate = state.tickerInfo[k].lastUpdate || new Date().toISOString();
       scheduleSave();
       // No re-renderizamos: el cambio ya está visible
+      return;
+    }
+    // Sector: se re-renderiza porque cambia el gráfico de concentración y sus
+    // alertas, además de la marca de "editado a mano" de la propia celda.
+    const sectorSel = e.target.closest('.inv-sector-sel');
+    if (sectorSel) {
+      guardarSectorManual(sectorSel.getAttribute('data-ticker'), sectorSel.getAttribute('data-moneda'), sectorSel.value);
+      scheduleSave();
+      if (typeof renderMainAssets === 'function') renderMainAssets();
       return;
     }
     const priceInput = e.target.closest('.inv-price-input');
@@ -22285,7 +22542,7 @@ function openFullConfigModal(mode) {
   // Parámetros: contamos los campos NO vacíos del bloque params que efectivamente
   // exportamos (umbrales + plan de reserva + tema). Esto da al usuario una idea
   // de cuánto configuró sin tener que listar campo a campo.
-  const PARAMS_KEYS = ['diasBajo','periFugaPct','learnRulesMonths','themeAuto','reservaMode','reservaMeses','reservaValorMensual','reservaAmount','reservaMonths','reservaStart'];
+  const PARAMS_KEYS = ['diasBajo','periFugaPct','concentracionSectorPct','learnRulesMonths','themeAuto','reservaMode','reservaMeses','reservaValorMensual','reservaAmount','reservaMonths','reservaStart'];
   const pCount = PARAMS_KEYS.filter(function (k) {
     const v = state.params && state.params[k];
     return v !== undefined && v !== null && v !== '' && v !== 0;

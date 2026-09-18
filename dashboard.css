@@ -5806,7 +5806,8 @@ body[data-exporting="true"] .section-card {
 /* Selectores de destino y moneda dentro de la fila de inversiones. Comparten el
    look de los inputs de la fila para que la línea se lea como una unidad. */
 .inv-row-destino,
-.inv-row-moneda {
+.inv-row-moneda,
+.inv-row-sector {
   background: var(--card);
   border: 1px solid var(--grid);
   border-radius: 6px;
@@ -5930,6 +5931,7 @@ body[data-exporting="true"] .section-card {
     100px                 /* precio */
     132px                 /* destino (por fila) */
     64px                  /* moneda (por fila) */
+    160px                 /* sector: entra "Consumo discrecional" con la flecha */
     minmax(90px, 1fr)     /* total: absorbe el sobrante, pero no por debajo de lo legible */
     30px                  /* eliminar */
     !important;
@@ -5945,6 +5947,18 @@ body[data-exporting="true"] .section-card {
 }
 .investment-row > * {
   min-width: 0;
+}
+/* Con el Sector, la fila pide ~1.075px. Por debajo de 1200px de ventana el
+   modal no los tiene —medido a 1024: 903px de lista— y la fila se salía por la
+   derecha. Ahí el Sector baja a una segunda línea, debajo de ticker, cantidad y
+   precio, y el resto queda en la primera con los anchos de antes. */
+@media (max-width: 1199px) {
+  .investment-row {
+    grid-template-columns:
+      112px 118px calc(5ch + 16px) calc(11ch + 16px) 100px 132px 64px minmax(90px, 1fr) 30px
+      !important;
+  }
+  .investment-row .inv-row-sector { grid-row: 2; grid-column: 3 / 6; }
 }
 .investment-row:last-child { border-bottom: none; }
 .investment-row input {
@@ -6114,6 +6128,139 @@ body[data-exporting="true"] .section-card {
   text-align: right;
   font-family: 'JetBrains Mono', monospace;
 }
+/* Sector de la fila de un ticker. Mismo tratamiento que la descripción —sin
+   borde hasta que se pasa el mouse— porque es el mismo tipo de dato: editable,
+   pero la mayoría de las veces llega solo y no hay que tocarlo. Va en Inter y
+   no en mono: es un nombre, no un número. */
+.inv-sector-sel {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 4px 4px;
+  font-family: 'Inter', system-ui;
+  font-size: 11px;
+  color: var(--ink-2);
+  width: 100%;
+  outline: none;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.inv-sector-sel:hover { border-color: var(--border); }
+.inv-sector-sel:focus { border-color: var(--accent); background: var(--bg-1); }
+.inv-sector-sel.modified { color: var(--accent); font-weight: 600; }
+.inv-sector-sel.inv-sector-vacio { color: var(--muted); font-style: italic; }
+.inv-sector-sel option { color: var(--ink); background: var(--card); font-style: normal; }
+
+/* Bloque "Concentración por sector" del cuerpo de cada cartera. Una fila por
+   sector: nombre · barra con la línea del umbral · porcentaje · tickers. */
+.inv-sector-block {
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--border);
+}
+.inv-sector-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.inv-sector-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+/* La clave de la línea del umbral, para que se entienda qué es sin leerla en
+   la barra: el mismo trazo, en chico. */
+.inv-sector-umbral-key {
+  display: inline-block;
+  width: 2px;
+  height: 9px;
+  background: var(--ink-2);
+  vertical-align: -1px;
+}
+.inv-sector-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 10px;
+  margin-bottom: 8px;
+  border-left: 3px solid var(--red);
+  /* Fondo de token y no color-mix(): html2canvas, con el que se sacan las
+     capturas del manual, no entiende color-mix y el render falla. */
+  background: var(--bg-2);
+  border-radius: 0 6px 6px 0;
+  font-size: 12px;
+  color: var(--ink);
+}
+.inv-sector-alert svg { color: var(--red); flex-shrink: 0; margin-top: 2px; }
+.inv-sector-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.inv-sector-row {
+  display: grid;
+  grid-template-columns: 170px minmax(120px, 1fr) 52px minmax(0, 220px);
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+}
+.inv-sector-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inv-sector-row.is-over .inv-sector-name { font-weight: 600; }
+.inv-sector-row.is-over .inv-sector-name svg { color: var(--red); flex-shrink: 0; }
+.inv-sector-row.is-none .inv-sector-name { color: var(--muted); font-style: italic; }
+/* La pista es el 100% de la cartera: el largo de la barra ES el porcentaje, no
+   una escala relativa al sector más grande. Así la línea del umbral cae en el
+   mismo lugar en todas las filas y se ve de un vistazo quién la cruza. */
+.inv-sector-track {
+  position: relative;
+  height: 10px;
+  background: var(--bg-2);
+  border-radius: 0 4px 4px 0;
+}
+.inv-sector-bar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: var(--inv-accent, var(--accent));
+  border-radius: 0 4px 4px 0;
+}
+.inv-sector-row.is-over .inv-sector-bar { background: var(--red); }
+.inv-sector-row.is-none .inv-sector-bar { background: var(--grid); }
+.inv-sector-umbral {
+  position: absolute;
+  top: -3px; bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink-2);
+}
+.inv-sector-pct {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.inv-sector-tickers {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inv-sector-nota {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 /* Sacar las flechitas del input numeric */
 .inv-price-input::-webkit-outer-spin-button,
 .inv-price-input::-webkit-inner-spin-button {

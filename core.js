@@ -1253,6 +1253,7 @@ function serializeFullConfig(stateLike, sections) {
     out.data.params = {
       diasBajo: p.diasBajo,
       periFugaPct: p.periFugaPct,
+      concentracionSectorPct: p.concentracionSectorPct,
       learnRulesMonths: p.learnRulesMonths,
       themeAuto: p.themeAuto,
       // Plan de Reserva (todos los campos del plan, no incluye estado de
@@ -1446,6 +1447,117 @@ function claveTickerInfo(ticker, moneda) {
 function infoDeTicker(tickerInfo, ticker, moneda) {
   if (!tickerInfo) return {};
   return tickerInfo[claveTickerInfo(ticker, moneda)] || {};
+}
+
+// ============================================================
+// SECTOR DE LOS ACTIVOS
+// ============================================================
+// Catálogo cerrado: el sector se elige de esta lista, no se escribe. Con texto
+// libre "Tecnología", "tecnologia" y "Tech" serían tres sectores y el gráfico de
+// concentración repartiría en tres lo que es uno solo.
+//
+// Los once primeros son los sectores bursátiles de siempre (la clasificación
+// GICS). Los que siguen no son sectores sino clases de activo, y están porque
+// una cartera real las tiene: un ETF amplio, un bono, una cripto.
+//
+// `alerta: false` excluye de las alertas de concentración a las clases que por
+// naturaleza no concentran riesgo sectorial: tener el 80% en un índice amplio
+// es estar diversificado, y una Reserva que es toda liquidez está bien armada.
+const SECTORES = [
+  { key: 'tecnologia',           label: 'Tecnología' },
+  { key: 'comunicaciones',       label: 'Comunicaciones' },
+  { key: 'consumo_discrecional', label: 'Consumo discrecional' },
+  { key: 'consumo_basico',       label: 'Consumo básico' },
+  { key: 'financiero',           label: 'Financiero' },
+  { key: 'salud',                label: 'Salud' },
+  { key: 'industria',            label: 'Industria' },
+  { key: 'energia',              label: 'Energía' },
+  { key: 'materiales',           label: 'Materiales' },
+  { key: 'servicios_publicos',   label: 'Servicios públicos' },
+  { key: 'inmobiliario',         label: 'Inmobiliario' },
+  { key: 'indices',              label: 'Índices y ETF amplios', alerta: false },
+  { key: 'commodities',          label: 'Commodities' },
+  { key: 'cripto',               label: 'Cripto' },
+  { key: 'renta_fija',           label: 'Renta fija',            alerta: false },
+  { key: 'liquidez',             label: 'Liquidez',              alerta: false }
+];
+
+function sectorPorClave(key) {
+  for (let i = 0; i < SECTORES.length; i++) {
+    if (SECTORES[i].key === key) return SECTORES[i];
+  }
+  return null;
+}
+
+function etiquetaSector(key) {
+  const s = sectorPorClave(key);
+  return s ? s.label : 'Sin sector';
+}
+
+// El sector de una tenencia. Devuelve { sector, origen }:
+//   origen 'manual'  → lo cargó el usuario (en el alta o en la cartera)
+//   origen 'listado' → sale del listado de CEDEARs de BYMA
+//   origen 'cripto'  → el ticker es un par contra USDT
+//   sector null      → no hay de dónde sacarlo; se muestra "sin sector"
+//
+// Lo manual gana siempre, también sobre el listado: el usuario puede no estar de
+// acuerdo con la clasificación, o tener el ticker en otro mercado.
+// Se busca primero en la moneda de la tenencia y después en la otra: el sector
+// es de la empresa, no de la moneda, así que SPY en pesos y SPY en dólares son
+// el mismo sector aunque tengan registros de precio separados.
+function sectorDeActivo(ticker, moneda, tickerInfo, listado) {
+  const tk = String(ticker || '').toUpperCase();
+  if (!tk) return { sector: null, origen: null };
+  const otra = (moneda === 'USD') ? 'ARS' : 'USD';
+  const propio = infoDeTicker(tickerInfo, tk, moneda).sector;
+  if (propio && sectorPorClave(propio)) return { sector: propio, origen: 'manual' };
+  const ajeno = infoDeTicker(tickerInfo, tk, otra).sector;
+  if (ajeno && sectorPorClave(ajeno)) return { sector: ajeno, origen: 'manual' };
+  if (/-USDT$/.test(tk)) return { sector: 'cripto', origen: 'cripto' };
+  const c = listado && listado[tk];
+  if (c && c.s && sectorPorClave(c.s)) return { sector: c.s, origen: 'listado' };
+  return { sector: null, origen: null };
+}
+
+// Reparte el valor de una cartera por sector.
+//   posiciones: [{ ticker, sector, valor }] — valor ya en una sola moneda.
+// Devuelve { total, sectores: [{ sector, valor, pct, tickers }] }, ordenado de
+// mayor a menor. Las tenencias sin sector van en su propio renglón (sector
+// null): esconderlas haría que los porcentajes de los demás sumen 100 sobre una
+// cartera que no es la entera.
+// Las posiciones con valor cero o negativo no entran: no hay tenencia que repartir.
+function concentracionPorSector(posiciones) {
+  const acc = {};
+  let total = 0;
+  (posiciones || []).forEach(function (p) {
+    const v = Number(p && p.valor) || 0;
+    if (v <= 0) return;
+    const k = (p.sector && sectorPorClave(p.sector)) ? p.sector : '__sin__';
+    if (!acc[k]) acc[k] = { sector: k === '__sin__' ? null : k, valor: 0, tickers: [] };
+    acc[k].valor += v;
+    if (acc[k].tickers.indexOf(p.ticker) < 0) acc[k].tickers.push(p.ticker);
+    total += v;
+  });
+  const sectores = Object.keys(acc).map(function (k) {
+    const s = acc[k];
+    s.pct = total > 0 ? (s.valor / total * 100) : 0;
+    return s;
+  }).sort(function (a, b) { return b.valor - a.valor; });
+  return { total: total, sectores: sectores };
+}
+
+// Los sectores de una concentración que superan el umbral (en %). Excluye las
+// clases con alerta:false y el renglón sin sector: de lo que no se sabe qué es
+// no se puede decir que esté concentrado.
+function sectoresConcentrados(concentracion, umbralPct) {
+  const u = Number(umbralPct);
+  if (!concentracion || !(u > 0)) return [];
+  return (concentracion.sectores || []).filter(function (s) {
+    if (!s.sector) return false;
+    const def = sectorPorClave(s.sector);
+    if (!def || def.alerta === false) return false;
+    return s.pct > u;
+  });
 }
 
 const MIGRATIONS = {
@@ -2649,6 +2761,9 @@ if (typeof module !== 'undefined' && module.exports) {
     MAX_LEN_DESCRIPCION, MAX_LEN_NOMBRE, recortarTexto,
     // precios por ticker y moneda
     claveTickerInfo, infoDeTicker,
+    // sector de los activos
+    SECTORES, sectorPorClave, etiquetaSector, sectorDeActivo,
+    concentracionPorSector, sectoresConcentrados,
     // ventas de activos
     ventasDeEntrada, cantidadVendida, cantidadRestante, productoVentas,
     costoVendido, realizadoDeEntrada, invertidoRestante, estadoEntrada, validarVenta,

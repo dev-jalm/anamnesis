@@ -5,8 +5,8 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.12 |
-| **Fecha** | 6 de septiembre de 2026 |
+| **Versión** | 1.13 |
+| **Fecha** | 18 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
 | **Alcance de la versión** | Funcionalidad implementada y verificada en la rama `main` |
@@ -206,6 +206,7 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-061 | Presenta el flujo trimestral |
 | RF-062 | Presenta la evolución anual |
 | RF-063 | Detecta patrones de gasto recurrente y los propone al usuario. El usuario puede descartar una propuesta, y la descartada no se vuelve a ofrecer |
+| RF-064 | Las observaciones incluyen las alertas de concentración por sector de RF-073k. A diferencia del resto, no dependen del período seleccionado: describen la cartera vigente |
 
 ---
 
@@ -266,6 +267,30 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 **Fundamento de RF-079q.** El aportado suma el valor absoluto de las transacciones de la categoría de flujo del destino. Clasificar el resultado como `Inversión` lo contaría dos veces en el líquido y, por el valor absoluto, una pérdida lo aumentaría en lugar de reducirlo.
 
 **Fundamento de RF-079g.** El costo de lo vendido se toma del precio de la compra de la que sale, de modo que el criterio de reparto determina el resultado realizado. Se adopta el criterio de primeras entradas, primeras salidas por ser el uso contable habitual y el único que no depende de qué compra elija el usuario en cada venta. El sistema lo informa en pantalla.
+
+#### 4.6.2 Sector de los activos y concentración
+
+| ID | Requerimiento |
+|---|---|
+| RF-073a | La tabla de activos presenta el **sector** de cada ticker |
+| RF-073b | El sector se elige de un **catálogo cerrado** de dieciséis valores: los once sectores bursátiles —Tecnología, Comunicaciones, Consumo discrecional, Consumo básico, Financiero, Salud, Industria, Energía, Materiales, Servicios públicos, Inmobiliario— y cinco clases de activo —Índices y ETF amplios, Commodities, Cripto, Renta fija, Liquidez—. No se admite texto libre |
+| RF-073c | El sector de un activo se resuelve en este orden: el asignado por el usuario; el del listado de CEDEARs de BYMA; Cripto, si el ticker es un par contra USDT (RF-078h). Si ninguno aplica, el activo queda **sin sector** |
+| RF-073d | El sector es del instrumento, no de la moneda: el asignado a un ticker en pesos vale también para el mismo ticker en dólares |
+| RF-073e | El sector se asigna o se modifica desde la carga de inversiones (RF-135) y desde la tabla de activos |
+| RF-073f | Asignar el mismo sector que el automático no registra una asignación manual, y elimina la que existiera. Así, una corrección posterior del listado alcanza al activo |
+| RF-073g | Un sector asignado que difiere del automático se señala como valor editado e informa el original |
+| RF-073h | Cada destino de tenencias —Reserva, Inversiones y las dos Jubilaciones— presenta la **concentración por sector**: la participación de cada sector en el valor del destino, ordenada de mayor a menor, con el umbral marcado |
+| RF-073i | El valor de cada tenencia es nominales por precio actual. Sin precio actual se toma el costo, y el sistema informa qué tenencias se valuaron así. Las tenencias en dólares se convierten a pesos a la cotización MEP. Las posiciones liquidadas no intervienen |
+| RF-073j | Las tenencias sin sector se presentan en un renglón propio y cuentan en el total, indicando cuáles son |
+| RF-073k | Cuando un sector supera el umbral, el sistema emite una **alerta de concentración** en el panel del destino y en las observaciones de Diagnóstico (RF-064), con el mismo texto: sector, porcentaje, destino, tickers que lo componen y umbral. Se señala con ícono y texto, no sólo con color |
+| RF-073l | No emiten alerta los Índices y ETF amplios, la Renta fija, la Liquidez ni las tenencias sin sector |
+| RF-073m | El umbral es configurable en Parámetros (RF-193) |
+
+**Fundamento de RF-073b.** Con texto libre, "Tecnología", "tecnologia" y "Tech" serían tres sectores, y la concentración repartiría en tres lo que es uno solo, subestimando justamente lo que se quiere detectar. Las cinco clases de activo están porque una cartera real las contiene y no pertenecen a ningún sector bursátil.
+
+**Fundamento de RF-073l.** La alerta mide riesgo sectorial. Un índice amplio ya está diversificado —tener el 80% en un índice es lo contrario de estar concentrado—, y una Reserva compuesta por liquidez está bien armada. De lo que no tiene sector no puede afirmarse que esté concentrado.
+
+**Fundamento de RF-073h.** Se representa con barras sobre una escala del 0 al 100% del destino, y no con un gráfico de torta: el dato es comparar cada participación contra un límite, y eso se lee en una longitud. La escala es la del destino entero, no la del sector mayor, para que la línea del umbral quede en la misma posición en todas las filas.
 
 ---
 
@@ -361,6 +386,8 @@ Tres vías, resueltas desde un único asistente.
 | RF-132 | El total por fila se calcula y se actualiza mientras se escribe, sin requerir que el campo pierda el foco |
 | RF-133 | Los totales se presentan discriminados por moneda, con el símbolo separado del importe. No se totaliza mezclando monedas |
 | RF-134 | El destino Trading **no se ofrece** en esta pantalla: las operaciones apalancadas se cargan en la mesa de trading |
+| RF-135 | Cada fila admite el sector del activo (RF-073b). Se completa solo al escribir el ticker, cuando el sistema lo conoce (RF-073c); elegido a mano, deja de seguir al ticker |
+| RF-136 | En pantallas donde la fila no entra en una línea, el sector pasa a una segunda línea. Ningún campo queda fuera de la vista |
 
 ---
 
@@ -435,6 +462,7 @@ Cinco pantallas.
 | RF-190 | Concentra los valores que intervienen en los cálculos de toda la aplicación |
 | RF-191 | Los pesos y umbrales de las cinco dimensiones del score son configurables |
 | RF-192 | Los textos que acompañan a las dos jubilaciones son configurables. Modificarlos altera únicamente lo que se muestra: las claves internas y los datos guardados no cambian |
+| RF-193 | El umbral de concentración por sector (RF-073k) es configurable entre 0 y 100%. El valor inicial es 30%; en 0 las alertas quedan desactivadas y el gráfico se presenta sin línea de umbral |
 
 ---
 
@@ -507,6 +535,9 @@ Compartida por todas las compras del mismo símbolo.
 | `precioActual` | Numérico | No |
 | `moneda` | Enumerado `ARS` \| `USD` | No |
 | `lastUpdate` | Texto ISO 8601 | No |
+| `sector` | Clave del catálogo de RF-073b | No |
+
+`sector` se guarda sólo cuando el usuario lo asigna y difiere del automático (RF-073f). El sector que proviene del listado de BYMA no se copia a este registro: se lee del listado cada vez.
 
 ### 5.4 Regla
 
@@ -859,7 +890,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 390 pruebas en 47 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 404 pruebas en 48 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 
 **Fundamento de RNF-40.** Requerimiento explícito del cliente: una herramienta personal destinada a seguir operativa dentro de cinco años no puede depender de una cadena de compilación cuyas dependencias se degradan en meses.
@@ -919,6 +950,7 @@ pantalla el elemento del que habla.
 | RES-05 | La detección de cambio de ticker y de baja de cotización (RF-230, RF-231) queda condicionada a que el servicio de cotizaciones exponga esa información. Si no la expone, el requerimiento no es realizable con las fuentes actuales |
 | RES-06 | **El servicio de cotizaciones no informa el ratio ni el nombre de los CEDEARs.** Se verificó sobre la totalidad de los instrumentos que publica: ninguno los trae. Ambos datos provienen del listado oficial de BYMA, incorporado al producto como archivo propio |
 | RES-07 | Un ratio desactualizado no se manifiesta como error: devuelve un precio en dólares verosímil pero equivocado, en la proporción del cambio. El mercado los modifica mediante splits —SPY pasó de 20:1 a 60:1 entre el 29/05/2026 y el 01/06/2026—, de modo que el listado requiere reposición cuando BYMA publique uno nuevo. Es la contrapartida de derivar el precio en lugar de consultarlo |
+| RES-08 | **Ninguna fuente accesible informa el sector.** El listado de BYMA no lo trae, ni el servicio de cotizaciones, ni el de cripto; el único servicio relevado que lo expone no admite consultas desde el navegador. El sector del listado se incorporó una vez, el 18/09/2026: 311 instrumentos por coincidencia de símbolo con ese servicio, 44 por nombre con revisión uno a uno y 85 asignados a mano. Al reponer el listado (RES-07) debe conservarse el sector de los instrumentos existentes y asignarse el de los nuevos. Las acciones locales, los bonos y todo instrumento ausente del listado requieren asignación manual |
 
 **Supuestos**
 
@@ -1011,9 +1043,18 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.9 | 05/09/2026 | Incorpora tres funcionalidades vigentes que el documento no recogía: el acceso al editor desde el ícono de cada tarjeta (RF-053a), la carga del presupuesto anual por categoría desde Evolución (RF-103 a RF-107) y la incorporación de un movimiento al presupuesto desde Historia clínica (RF-108 a RF-109a) | Reemplazada |
 | 1.10 | 06/09/2026 | Corrige el registro de precios, que no distinguía la moneda: un mismo ticker tenido en pesos y en dólares compartía un único precio y uno de los dos se mostraba en la moneda ajena (RF-076a, RF-076b). El esquema del archivo pasa a versión 4, con migración automática. Se incorpora el listado oficial de BYMA como origen de los ratios y de los nombres de instrumento (RF-078f, RF-077), y se documentan sus límites (RES-06, RES-07) | Reemplazada |
 | 1.11 | 06/09/2026 | Incorpora el precio de las tenencias en cripto desde el mercado donde cotizan (RF-078g a RF-078i, INT-06), y la precisión necesaria para operarlas: siete decimales en los nominales y dos en los precios | Reemplazada |
-| 1.12 | 06/09/2026 | Corrige la edición de reglas, que no alcanzaba a todos los campos del alta: el renombre no se podía modificar y una regla de descarte no se podía editar sin convertirla en otra cosa (RF-167a, RF-167b) | **Vigente** |
+| 1.12 | 06/09/2026 | Corrige la edición de reglas, que no alcanzaba a todos los campos del alta: el renombre no se podía modificar y una regla de descarte no se podía editar sin convertirla en otra cosa (RF-167a, RF-167b) | Reemplazada |
+| 1.13 | 18/09/2026 | Incorpora el sector de los activos y la concentración por sector de cada cartera, con su gráfico y sus alertas (RF-073a a RF-073m, RF-064, RF-135, RF-136, RF-193). Documenta que ninguna fuente accesible informa el sector (RES-08) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Sector de cada activo: del listado de BYMA, cripto por par, o asignado a mano en la carga o en la tabla | RF-073a a RF-073g, RF-135, RF-136 |
+| Concentración por sector de cada cartera, con la línea del umbral | RF-073h a RF-073j |
+| Alertas de concentración en el panel y en Diagnóstico, con umbral configurable | RF-073k a RF-073m, RF-064, RF-193 |
+
+**Implementados en la versión 1.12**
 
 | Cambio | Requerimiento |
 |---|---|

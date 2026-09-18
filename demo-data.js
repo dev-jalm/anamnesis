@@ -144,7 +144,10 @@ const DEMO_CARTERA = [
   { ticker: 'VOO',  desc: 'Vanguard S&P 500 ETF',    broker: 'BALANZ',      actual: 23400, destino: 'jubilacion_jalm',
     compras: [ { meses: 9, dia: 15, cant: 18, ppc: 17200 },
                { meses: 4, dia: 15, cant: 12, ppc: 20950 } ] },
-  { ticker: 'GOLD', desc: 'Barrick Gold Corporation',broker: 'BULL_MARKET', actual: 8120,  destino: 'reserva',
+  // GOLD no está en el listado de BYMA: su sector va cargado a mano, que es el
+  // caso que la demo tiene que mostrar. VOO tampoco está y se deja sin sector,
+  // para que se vea cómo aparece lo que falta asignar.
+  { ticker: 'GOLD', desc: 'Barrick Gold Corporation',broker: 'BULL_MARKET', actual: 8120,  destino: 'reserva', sector: 'materiales',
     compras: [ { meses: 6, dia:  9, cant: 30, ppc: 6200 },
                { meses: 2, dia:  9, cant: 25, ppc: 7520 } ] }
 ];
@@ -537,6 +540,7 @@ function buildDemoSnapshot(mesesAtras) {
       moneda: 'ARS',
       lastUpdate: new Date().toISOString()
     };
+    if (p.sector) tickerInfo[claveTickerInfo(p.ticker, 'ARS')].sector = p.sector;
   });
 
   // Operaciones de la Mesa de Trading. Las fechas de DEMO_TRADES vienen en días

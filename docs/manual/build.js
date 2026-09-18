@@ -132,7 +132,8 @@ window.MANUAL = {
       p: [
         'Las compras de activos se cargan acá. No se contabilizan como transacciones: se guardan como detalle del portfolio y aparecen en Salud financiera dentro del destino que elijas.',
         'Cada fila lleva su propio destino y su propia moneda, así que una misma carga puede mezclar pesos y dólares y repartirse entre varios destinos. El total del lote se muestra separado por moneda, porque sumar pesos con dólares no daría un número con significado.',
-        'Para una cripto el ticker se escribe con el par completo —BTC-USDT, ETH-USDT—, no con el símbolo solo. Así la app sabe que ese precio lo tiene que buscar en el mercado cripto y no entre los CEDEARs, donde cinco símbolos significan otra cosa: CVX es Chevron y no Convex, T es AT&T y no Threshold. La cantidad admite hasta siete decimales, para las fracciones.'
+        'Para una cripto el ticker se escribe con el par completo —BTC-USDT, ETH-USDT—, no con el símbolo solo. Así la app sabe que ese precio lo tiene que buscar en el mercado cripto y no entre los CEDEARs, donde cinco símbolos significan otra cosa: CVX es Chevron y no Convex, T es AT&T y no Threshold. La cantidad admite hasta siete decimales, para las fracciones.',
+        'El sector se completa solo al escribir el ticker, si está en el listado de CEDEARs de BYMA: AAPL aparece como Tecnología, y un par cripto como Cripto. Si el ticker no está —una acción local, un bono—, o si no estás de acuerdo con la clasificación, lo elegís de la lista. Una vez elegido a mano, deja de cambiar con el ticker. En pantallas angostas el sector baja a una segunda línea, debajo del ticker.'
       ]
     },
     {
@@ -159,6 +160,7 @@ window.MANUAL = {
       imgCap: 'Avisos del período, flujo trimestral y evolución anual.',
       p: [
         'Reúne lo que la app detecta sola. Arriba, los avisos del período: gastos que se dispararon contra su promedio, categorías sin clasificar, patrones que se repiten mes a mes y podrían convertirse en reglas.',
+        'Entre los avisos también aparecen las alertas de concentración por sector de cada cartera. Esas no dependen del período elegido: miran la cartera de hoy.',
         'Debajo, el flujo del trimestre y la evolución anual con líneas de tendencia, para ver si lo del mes es un caso aislado o una dirección.'
       ]
     },
@@ -176,6 +178,24 @@ window.MANUAL = {
         'El botón de refresco al lado de ARS actualiza precios y descripciones desde data912.com.',
         'Los tickers en dólares no se piden aparte: se derivan del CEDEAR en pesos aplicando su ratio y la cotización MEP.',
         'Si un activo no tiene precio actual cargado, sus columnas de rendimiento muestran un guión en lugar de cero: no es lo mismo no haber ganado nada que no tener con qué comparar.'
+      ]
+    },
+    {
+      h: 'Sector y concentración',
+      sub: '¿Tengo todo en el mismo lugar?',
+      img: '20-concentracion-sector',
+      imgCap: 'Inversiones de la demo: Tecnología pasa el límite del 30% y aparece en rojo, con su aviso arriba.',
+      p: [
+        'Cada activo de la tabla tiene su sector. Si el ticker está en el listado de CEDEARs de BYMA, viene solo; si es un par cripto, es Cripto. Lo que no está en el listado —acciones locales, bonos, un fondo— aparece sin sector, y se lo asignás desde la columna Sector de la tabla o al cargarlo.',
+        'El sector se elige de una lista fija: los once sectores de la bolsa, más Índices y ETF amplios, Commodities, Cripto, Renta fija y Liquidez. No se escribe a mano a propósito: con texto libre, "Tecnología" y "tecnologia" serían dos sectores y el gráfico partiría en dos lo que es uno solo.',
+        'Al abrir Reserva, Inversiones o una Jubilación, arriba de la tabla está la concentración por sector: una barra por sector con la parte del valor de la cartera que ocupa, de mayor a menor. La barra entera es el 100% de la cartera, y la línea vertical es el límite que elegiste en Parámetros. Lo que la pasa se pinta de rojo, con un ícono de alerta y un aviso arriba que dice cuánto concentra y qué tickers lo componen.'
+      ],
+      lista: [
+        'Si cambiás el sector de un activo, el valor queda marcado como editado y, al pasar el mouse, muestra cuál era el del listado. Si volvés a elegir el del listado, deja de estar marcado.',
+        'El sector es del activo, no de la moneda: SPY en pesos y SPY en dólares son el mismo sector.',
+        'Cada tenencia vale sus nominales por el precio de hoy. Si no tiene precio, se toma lo que costó, y abajo del gráfico se aclara cuáles se valuaron así. Los dólares se pasan a pesos con la cotización MEP.',
+        'Los índices y ETF amplios, la renta fija y la liquidez no generan alerta: tener el 80% en el S&P 500 es estar diversificado, no concentrado, y una reserva que es toda liquidez está bien armada.',
+        'Lo que no tiene sector aparece en su propio renglón y cuenta en el total, para que el resto de los porcentajes no se lea sobre una cartera que no es la entera.'
       ]
     },
     {
@@ -289,6 +309,7 @@ window.MANUAL = {
         'Nombres de las jubilaciones: qué texto se muestra después de la palabra Jubilación en toda la app. Cambia sólo el texto; los movimientos y los activos ya cargados no se tocan.',
         'Días bajo $: el umbral para contar cuántos días el saldo estuvo por debajo.',
         'Cotización MEP: se usa para convertir entre pesos y dólares. El botón de refresco la trae de dolarapi.com.',
+        'Alerta de concentración por sector: el porcentaje de una cartera a partir del cual un mismo sector dispara la alerta. Arranca en 30%; en 0 las alertas se apagan.',
         'Más abajo, el peso y los umbrales de cada dimensión del score, y el plan de la reserva (cuántos meses de gastos querés cubrir y en qué plazo).'
       ]
     },

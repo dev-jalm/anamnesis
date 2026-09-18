@@ -128,6 +128,7 @@
   button:hover { opacity: 0.85; }
 </style>
 <script src="core.js"></script>
+<script src="cedears-byma.js"></script>
 </head>
 <body>
 <div class="container">
@@ -1231,6 +1232,102 @@ group('tickerInfo por ticker y moneda', function () {
   test('v3 a v4 sin tickerInfo: lo deja como objeto vacio', function () {
     const r = migrateSnapshot({ schemaVersion: 3 });
     assertEqual(typeof r.snap.tickerInfo, 'object');
+  });
+});
+
+group('Sector de los activos', function () {
+  const LISTADO = { AAPL: { r: 20, n: 'Apple Inc.', s: 'tecnologia' }, SPY: { r: 60, n: 'SPDR S&P 500', s: 'indices' } };
+  test('sin carga manual, el sector sale del listado', function () {
+    const r = sectorDeActivo('AAPL', 'ARS', {}, LISTADO);
+    assertEqual(r.sector, 'tecnologia');
+    assertEqual(r.origen, 'listado');
+  });
+  test('lo cargado a mano gana sobre el listado', function () {
+    const ti = { 'AAPL|ARS': { sector: 'comunicaciones' } };
+    const r = sectorDeActivo('AAPL', 'ARS', ti, LISTADO);
+    assertEqual(r.sector, 'comunicaciones');
+    assertEqual(r.origen, 'manual');
+  });
+  test('el sector cargado en una moneda vale para la otra', function () {
+    const ti = { 'VOO|ARS': { sector: 'indices' } };
+    assertEqual(sectorDeActivo('VOO', 'USD', ti, LISTADO).sector, 'indices');
+  });
+  test('el de la propia moneda gana sobre el de la otra', function () {
+    const ti = { 'X|ARS': { sector: 'salud' }, 'X|USD': { sector: 'energia' } };
+    assertEqual(sectorDeActivo('X', 'USD', ti, LISTADO).sector, 'energia');
+    assertEqual(sectorDeActivo('X', 'ARS', ti, LISTADO).sector, 'salud');
+  });
+  test('un par contra USDT es cripto aunque el simbolo exista en BYMA', function () {
+    const listado = { CVX: { r: 16, n: 'Chevron', s: 'energia' } };
+    assertEqual(sectorDeActivo('CVX-USDT', 'USD', {}, listado).sector, 'cripto');
+    assertEqual(sectorDeActivo('CVX', 'ARS', {}, listado).sector, 'energia');
+  });
+  test('sin carga manual ni listado queda sin sector', function () {
+    const r = sectorDeActivo('GGAL', 'ARS', {}, LISTADO);
+    assertEqual(r.sector, null);
+    assertEqual(etiquetaSector(r.sector), 'Sin sector');
+  });
+  test('una clave manual que no existe en el catalogo se ignora', function () {
+    const ti = { 'AAPL|ARS': { sector: 'Tech' } };
+    assertEqual(sectorDeActivo('AAPL', 'ARS', ti, LISTADO).origen, 'listado');
+  });
+  test('todos los CEDEARs del listado tienen un sector valido', function () {
+    const inst = window.CEDEARS_BYMA.instrumentos;
+    const malos = Object.keys(inst).filter(function (tk) { return !sectorPorClave(inst[tk].s); });
+    assertEqual(malos.join(' '), '');
+    assertEqual(Object.keys(inst).length, 440);
+  });
+  test('concentracion: reparte por valor y ordena de mayor a menor', function () {
+    const c = concentracionPorSector([
+      { ticker: 'AAPL', sector: 'tecnologia', valor: 600 },
+      { ticker: 'MSFT', sector: 'tecnologia', valor: 200 },
+      { ticker: 'KO', sector: 'consumo_basico', valor: 200 }
+    ]);
+    assertEqual(c.total, 1000);
+    assertEqual(c.sectores[0].sector, 'tecnologia');
+    assertEqual(c.sectores[0].pct, 80);
+    assertEqual(c.sectores[0].tickers.join(','), 'AAPL,MSFT');
+    assertEqual(c.sectores[1].pct, 20);
+  });
+  test('concentracion: lo sin sector cuenta en el total, en su propio renglon', function () {
+    const c = concentracionPorSector([
+      { ticker: 'AAPL', sector: 'tecnologia', valor: 500 },
+      { ticker: 'VOO', sector: null, valor: 500 }
+    ]);
+    assertEqual(c.sectores.length, 2);
+    assertEqual(c.sectores.filter(function (s) { return s.sector === null; })[0].pct, 50);
+  });
+  test('concentracion: ignora posiciones sin valor', function () {
+    const c = concentracionPorSector([
+      { ticker: 'AAPL', sector: 'tecnologia', valor: 0 },
+      { ticker: 'KO', sector: 'consumo_basico', valor: 100 }
+    ]);
+    assertEqual(c.sectores.length, 1);
+    assertEqual(c.total, 100);
+  });
+  test('alerta: marca solo lo que supera el umbral', function () {
+    const c = concentracionPorSector([
+      { ticker: 'AAPL', sector: 'tecnologia', valor: 700 },
+      { ticker: 'KO', sector: 'consumo_basico', valor: 300 }
+    ]);
+    const a = sectoresConcentrados(c, 40);
+    assertEqual(a.length, 1);
+    assertEqual(a[0].sector, 'tecnologia');
+    assertEqual(sectoresConcentrados(c, 70).length, 0, 'igual al umbral no alerta');
+  });
+  test('alerta: indices, renta fija, liquidez y sin sector no alertan', function () {
+    const c = concentracionPorSector([
+      { ticker: 'SPY', sector: 'indices', valor: 900 },
+      { ticker: 'X', sector: null, valor: 100 }
+    ]);
+    assertEqual(sectoresConcentrados(c, 30).length, 0);
+    const c2 = concentracionPorSector([{ ticker: 'FCI', sector: 'liquidez', valor: 1 }]);
+    assertEqual(sectoresConcentrados(c2, 30).length, 0);
+  });
+  test('alerta: sin umbral valido no alerta nada', function () {
+    const c = concentracionPorSector([{ ticker: 'AAPL', sector: 'tecnologia', valor: 1 }]);
+    assertEqual(sectoresConcentrados(c, 0).length, 0);
+    assertEqual(sectoresConcentrados(null, 30).length, 0);
   });
 });
 
