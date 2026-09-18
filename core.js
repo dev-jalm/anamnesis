@@ -1479,8 +1479,16 @@ const SECTORES = [
   { key: 'commodities',          label: 'Commodities' },
   { key: 'cripto',               label: 'Cripto' },
   { key: 'renta_fija',           label: 'Renta fija',            alerta: false },
-  { key: 'liquidez',             label: 'Liquidez',              alerta: false }
+  // Liquidez no se asigna a un activo: es la plata del destino que todavía no
+  // está invertida, y su valor sale de la cabecera del panel (el Líquido). Está
+  // en el catálogo para poder mostrarla en la composición, no para elegirla.
+  { key: 'liquidez',             label: 'Liquidez',              alerta: false, seleccionable: false }
 ];
+
+// Los sectores que se ofrecen para asignar a un activo.
+function sectoresSeleccionables() {
+  return SECTORES.filter(function (s) { return s.seleccionable !== false; });
+}
 
 function sectorPorClave(key) {
   for (let i = 0; i < SECTORES.length; i++) {
@@ -1509,10 +1517,14 @@ function sectorDeActivo(ticker, moneda, tickerInfo, listado) {
   const tk = String(ticker || '').toUpperCase();
   if (!tk) return { sector: null, origen: null };
   const otra = (moneda === 'USD') ? 'ARS' : 'USD';
+  // Sólo vale una clave que se pueda asignar: una Liquidez cargada a mano antes
+  // de que dejara de ser elegible se ignora, en vez de quedar en un selector
+  // que ya no la ofrece.
+  const valida = function (k) { const s = k && sectorPorClave(k); return !!(s && s.seleccionable !== false); };
   const propio = infoDeTicker(tickerInfo, tk, moneda).sector;
-  if (propio && sectorPorClave(propio)) return { sector: propio, origen: 'manual' };
+  if (valida(propio)) return { sector: propio, origen: 'manual' };
   const ajeno = infoDeTicker(tickerInfo, tk, otra).sector;
-  if (ajeno && sectorPorClave(ajeno)) return { sector: ajeno, origen: 'manual' };
+  if (valida(ajeno)) return { sector: ajeno, origen: 'manual' };
   if (/-USDT$/.test(tk)) return { sector: 'cripto', origen: 'cripto' };
   const c = listado && listado[tk];
   if (c && c.s && sectorPorClave(c.s)) return { sector: c.s, origen: 'listado' };
@@ -2762,7 +2774,7 @@ if (typeof module !== 'undefined' && module.exports) {
     // precios por ticker y moneda
     claveTickerInfo, infoDeTicker,
     // sector de los activos
-    SECTORES, sectorPorClave, etiquetaSector, sectorDeActivo,
+    SECTORES, sectorPorClave, etiquetaSector, sectorDeActivo, sectoresSeleccionables,
     concentracionPorSector, sectoresConcentrados,
     // ventas de activos
     ventasDeEntrada, cantidadVendida, cantidadRestante, productoVentas,

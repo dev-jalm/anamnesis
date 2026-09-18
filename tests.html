@@ -1271,6 +1271,13 @@ group('Sector de los activos', function () {
     const ti = { 'AAPL|ARS': { sector: 'Tech' } };
     assertEqual(sectorDeActivo('AAPL', 'ARS', ti, LISTADO).origen, 'listado');
   });
+  test('liquidez se muestra pero no se asigna a un activo', function () {
+    assert(sectorPorClave('liquidez'), 'sigue en el catalogo para mostrarla');
+    assertEqual(sectoresSeleccionables().filter(function (s) { return s.key === 'liquidez'; }).length, 0);
+    assertEqual(sectoresSeleccionables().length, SECTORES.length - 1);
+    const ti = { 'FCI|ARS': { sector: 'liquidez' } };
+    assertEqual(sectorDeActivo('FCI', 'ARS', ti, LISTADO).sector, null, 'una liquidez vieja cargada a mano se ignora');
+  });
   test('todos los CEDEARs del listado tienen un sector valido', function () {
     const inst = window.CEDEARS_BYMA.instrumentos;
     const malos = Object.keys(inst).filter(function (tk) { return !sectorPorClave(inst[tk].s); });

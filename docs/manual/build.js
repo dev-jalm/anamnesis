@@ -184,13 +184,16 @@ window.MANUAL = {
       h: 'Sector y concentración',
       sub: '¿Tengo todo en el mismo lugar?',
       img: '20-concentracion-sector',
-      imgCap: 'Inversiones de la demo: Tecnología pasa el límite del 30% y aparece en rojo, con su aviso arriba.',
+      imgCap: 'Jubilación de la demo: Consumo básico pasa el límite del 30%, VOO todavía no tiene sector y la liquidez sale del Líquido de la cabecera.',
       p: [
         'Cada activo de la tabla tiene su sector. Si el ticker está en el listado de CEDEARs de BYMA, viene solo; si es un par cripto, es Cripto. Lo que no está en el listado —acciones locales, bonos, un fondo— aparece sin sector, y se lo asignás desde la columna Sector de la tabla o al cargarlo.',
-        'El sector se elige de una lista fija: los once sectores de la bolsa, más Índices y ETF amplios, Commodities, Cripto, Renta fija y Liquidez. No se escribe a mano a propósito: con texto libre, "Tecnología" y "tecnologia" serían dos sectores y el gráfico partiría en dos lo que es uno solo.',
-        'Al abrir Reserva, Inversiones o una Jubilación, arriba de la tabla está la concentración por sector: una barra por sector con la parte del valor de la cartera que ocupa, de mayor a menor. La barra entera es el 100% de la cartera, y la línea vertical es el límite que elegiste en Parámetros. Lo que la pasa se pinta de rojo, con un ícono de alerta y un aviso arriba que dice cuánto concentra y qué tickers lo componen.'
+        'El sector se elige de una lista fija: los once sectores de la bolsa, más Índices y ETF amplios, Commodities, Cripto y Renta fija. No se escribe a mano a propósito: con texto libre, "Tecnología" y "tecnologia" serían dos sectores y el gráfico partiría en dos lo que es uno solo.',
+        'Al abrir Reserva, Inversiones o una Jubilación, arriba de la tabla está la concentración por sector. Cada fila dice el sector, qué porcentaje de la cartera ocupa y su barra, con los activos que lo componen escritos adentro. La barra entera es el 100% de la cartera, y la línea vertical es el límite que elegiste en Parámetros. Lo que lo pasa lleva un ícono de alerta, el porcentaje en rojo y un aviso arriba que dice cuánto concentra y qué activos lo componen.',
+        'La Liquidez también aparece en la composición, pero no se asigna a ningún activo: es la plata del destino que todavía no invertiste, y el número es el mismo que el Líquido de la cabecera del panel. Si el Líquido da negativo, no aparece.'
       ],
       lista: [
+        'Cada sector tiene su color, y es el mismo en todas las carteras: si Tecnología es azul en Inversiones, es azul en Jubilación. Índices, Renta fija y Liquidez van en tonos neutros, y lo que no tiene sector va rayado.',
+        'Si la barra es muy corta para escribir los activos adentro, van al lado. Si tampoco entran ahí, se ven al pasar el mouse por la fila.',
         'Si cambiás el sector de un activo, el valor queda marcado como editado y, al pasar el mouse, muestra cuál era el del listado. Si volvés a elegir el del listado, deja de estar marcado.',
         'El sector es del activo, no de la moneda: SPY en pesos y SPY en dólares son el mismo sector.',
         'Cada tenencia vale sus nominales por el precio de hoy. Si no tiene precio, se toma lo que costó, y abajo del gráfico se aclara cuáles se valuaron así. Los dólares se pasan a pesos con la cotización MEP.',

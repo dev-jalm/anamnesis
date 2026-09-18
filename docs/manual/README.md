@@ -83,7 +83,7 @@ Qué muestra cada una:
 | `03-diagnostico.png` | Avisos, flujo trimestral y evolución anual |
 | `04-salud-financiera.png` | Cartera por destino, con tres activos liquidados |
 | `18-venta-activo.png` | La venta parcial de una compra |
-| `20-concentracion-sector.png` | Concentración por sector de Inversiones, con la alerta |
+| `20-concentracion-sector.png` | Concentración por sector de Jubilación: alerta, sin sector y liquidez |
 | `16-mesa-trading.png` | La mesa: operación, verificación, tamaño e historial |
 | `05-evolucion.png` | Presupuestado contra real, mes a mes |
 | `09-admin-categorias.png` | Categorías, subcategorías y etiquetas |

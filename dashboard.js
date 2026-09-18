@@ -16306,6 +16306,9 @@ function applyTheme(theme) {
   if (window.lucide) lucide.createIcons();
   // Re-render charts para que tomen los nuevos colores
   if (typeof renderAll === 'function') renderAll();
+  // Las barras de sector cambian de tono con el tema, y el texto que va adentro
+  // se eligió blanco u oscuro contra el tono anterior: se vuelve a elegir.
+  if (typeof ajustarEtiquetasSector === 'function') ajustarEtiquetasSector();
 }
 
 function toggleTheme() {
@@ -17666,7 +17669,7 @@ function guardarSectorManual(tk, moneda, sector) {
 // activo que el listado clasifica no tiene sentido.
 function opcionesSector(seleccionado, conVacio) {
   return (conVacio ? '<option value=""' + (!seleccionado ? ' selected' : '') + '>— sin sector —</option>' : '') +
-    SECTORES.map(function (s) {
+    sectoresSeleccionables().map(function (s) {
       return '<option value="' + s.key + '"' + (s.key === seleccionado ? ' selected' : '') + '>' + escapeHtmlSafe(s.label) + '</option>';
     }).join('');
 }
@@ -17685,6 +17688,29 @@ function celdaSectorTicker(tk, moneda) {
     'data-ticker="' + escapeHtmlSafe(tk) + '" data-moneda="' + escapeHtmlSafe(moneda || 'ARS') + '" title="' + escapeHtmlSafe(title) + '">' +
     opcionesSector(r.sector, !r.sector) +
   '</select></td>';
+}
+
+// Líquido de un destino, en pesos: lo aportado por movimientos, menos el costo
+// de lo que sigue invertido, más la ganancia ya realizada por ventas. Los
+// dólares se pasan a pesos al MEP. Es el número de la celda Líquido de la fila
+// ARS+USD de la cabecera; la cabecera y el gráfico de concentración lo toman de
+// acá, para que no puedan diferir.
+function liquidoDeDestino(destinos) {
+  const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+  const entries = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
+    .filter(function (e) { return destinos.indexOf(e.destino) >= 0; });
+  let invertido = 0, realizado = 0;
+  ['ARS', 'USD'].forEach(function (mon) {
+    const factor = mon === 'USD' ? mep : 1;
+    const groups = groupInvestmentEntriesByTicker(entries.filter(function (e) {
+      return (e.moneda === 'USD' ? 'USD' : 'ARS') === mon;
+    }));
+    Object.keys(groups).forEach(function (tk) {
+      invertido += (groups[tk].invertidoBruto || 0) * factor;
+      realizado += (groups[tk].realizado || 0) * factor;
+    });
+  });
+  return sumTxByDestinos(destinos) - invertido + realizado;
 }
 
 // Concentración por sector de una cartera. Se valúa cada tenencia en pesos:
@@ -17716,7 +17742,14 @@ function concentracionDeCartera(destinos) {
       });
     });
   });
+  // La plata del destino que todavía no se invirtió también es parte de la
+  // cartera: sin ella, una Reserva con un solo activo daba 100% en ese sector
+  // aunque el grueso estuviera en efectivo. Sale del Líquido de la cabecera.
+  // Negativo —se invirtió más de lo aportado— no es tenencia, así que no entra.
+  const liquido = liquidoDeDestino(destinos);
+  if (liquido > 0) posiciones.push({ ticker: 'Líquido', sector: 'liquidez', valor: liquido, aCosto: false });
   const c = concentracionPorSector(posiciones);
+  c.liquido = liquido;
   c.aCosto = posiciones.filter(function (p) { return p.aCosto && p.valor > 0; }).map(function (p) { return p.ticker; });
   c.concentrados = sectoresConcentrados(c, umbralConcentracionSector());
   return c;
@@ -17730,12 +17763,59 @@ function textoAlertaSector(s, nombreCartera, umbral) {
     ' (' + escapeHtmlSafe(s.tickers.join(', ')) + '), por encima del ' + umbral + '% configurado.';
 }
 
-// Bloque "Concentración por sector" del cuerpo de una cartera: una barra por
-// sector, de mayor a menor, con el umbral marcado. Barras y no torta: el dato es
-// comparar tamaños contra un límite, y eso se lee en una longitud, no en un
-// ángulo. Un solo color —el de la cartera— porque lo que importa es la
-// magnitud, no distinguir sectores entre sí; lo que supera el umbral pasa a
-// rojo, con ícono y texto, para no depender sólo del color.
+// ─── Colores de los sectores ───
+// Cada sector tiene su color, y es el mismo en todas las carteras de la
+// pantalla: Tecnología no puede ser azul en Inversiones y naranja en
+// Jubilación. Los siete tonos validados (--sector-1..7) se reparten entre los
+// sectores que aparecen en ALGUNA cartera, en el orden del catálogo —no por
+// tamaño, que cambiaría el color al cambiar los montos—. Con siete o menos
+// sectores en uso, ninguno se repite. Si hubiera más, los que sobran van en un
+// tono neutro: generar un octavo color lo haría indistinguible de otro, y el
+// nombre del sector ya está escrito al lado de cada barra.
+//
+// Las clases que no son sectores van siempre en neutros, que es lo que son:
+// ni el índice, ni la renta fija, ni la plata sin invertir hablan de un rubro.
+// Lo que no tiene sector va rayado: no es un color más, es un dato que falta.
+const COLOR_SECTOR_NEUTRO = {
+  indices: 'var(--sector-neutro-1)',
+  renta_fija: 'var(--sector-neutro-2)',
+  liquidez: 'var(--sector-neutro-3)'
+};
+const SLOTS_COLOR_SECTOR = 7;
+let _coloresSector = null;
+
+function asignarColoresSectores() {
+  const presentes = {};
+  [['reserva'], ['inversiones'], ['jubilacion_jalm'], ['jubilacion_clm']].forEach(function (d) {
+    concentracionDeCartera(d).sectores.forEach(function (s) { if (s.sector) presentes[s.sector] = true; });
+  });
+  const mapa = {};
+  let slot = 0;
+  SECTORES.forEach(function (s) {
+    if (!presentes[s.key] || COLOR_SECTOR_NEUTRO[s.key]) return;
+    slot++;
+    mapa[s.key] = slot <= SLOTS_COLOR_SECTOR ? 'var(--sector-' + slot + ')' : 'var(--muted)';
+  });
+  _coloresSector = mapa;
+  return mapa;
+}
+
+function colorDeSector(key) {
+  if (!key) return null; // sin sector: rayado, por CSS
+  if (COLOR_SECTOR_NEUTRO[key]) return COLOR_SECTOR_NEUTRO[key];
+  const mapa = _coloresSector || asignarColoresSectores();
+  return mapa[key] || 'var(--muted)';
+}
+
+// Bloque "Concentración por sector" del cuerpo de una cartera. Cada fila:
+// sector · porcentaje · barra, con los activos que la componen escritos
+// adentro de la barra. Barras y no torta: el dato es comparar cada parte
+// contra un límite, y eso se lee en una longitud, no en un ángulo. La pista es
+// el 100% de la cartera, así que el largo de la barra ES el porcentaje y la
+// línea del umbral cae en el mismo lugar en todas las filas.
+//
+// Lo que supera el umbral no cambia de color —el color es del sector—: se
+// marca con ícono, con el porcentaje en rojo y con el aviso de arriba.
 function buildSectorConcentrationBlock(destinos, nombreCartera) {
   const c = concentracionDeCartera(destinos);
   if (!c.total || c.sectores.length === 0) return '';
@@ -17747,17 +17827,19 @@ function buildSectorConcentrationBlock(destinos, nombreCartera) {
     const sinSector = !s.sector;
     const pctTxt = s.pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
     const tip = etiquetaSector(s.sector) + ': ' + pctTxt + ' · $ ' + fmt(Math.round(s.valor)) + ' · ' + s.tickers.join(', ');
+    const color = colorDeSector(s.sector);
     return '<div class="inv-sector-row' + (over ? ' is-over' : '') + (sinSector ? ' is-none' : '') + '" title="' + escapeHtmlSafe(tip) + '">' +
       '<span class="inv-sector-name">' +
         (over ? '<i data-lucide="alert-triangle" style="width:11px;height:11px"></i>' : '') +
         escapeHtmlSafe(etiquetaSector(s.sector)) +
       '</span>' +
+      '<span class="inv-sector-pct">' + pctTxt + '</span>' +
       '<span class="inv-sector-track">' +
-        '<span class="inv-sector-bar" style="width:' + Math.max(0.5, s.pct).toFixed(2) + '%"></span>' +
+        '<span class="inv-sector-bar" style="width:' + Math.max(0.5, s.pct).toFixed(2) + '%' + (color ? ';background:' + color : '') + '">' +
+          '<span class="inv-sector-label">' + escapeHtmlSafe(s.tickers.join(', ')) + '</span>' +
+        '</span>' +
         (umbral > 0 ? '<span class="inv-sector-umbral" style="left:' + Math.min(100, umbral) + '%"></span>' : '') +
       '</span>' +
-      '<span class="inv-sector-pct">' + pctTxt + '</span>' +
-      '<span class="inv-sector-tickers">' + escapeHtmlSafe(s.tickers.join(', ')) + '</span>' +
     '</div>';
   }).join('');
   const alertas = c.concentrados.map(function (s) {
@@ -17771,7 +17853,7 @@ function buildSectorConcentrationBlock(destinos, nombreCartera) {
   return '<div class="inv-sector-block">' +
     '<div class="inv-sector-head">' +
       '<span class="inv-section-label">Concentración por sector</span>' +
-      '<span class="inv-sector-sub">sobre $ ' + fmt(Math.round(c.total)) + ' valuados · ' +
+      '<span class="inv-sector-sub">sobre $ ' + fmt(Math.round(c.total)) + (c.liquido > 0 ? ' entre activos y líquido' : ' valuados') + ' · ' +
         (umbral > 0
           ? 'umbral ' + umbral + '% <span class="inv-sector-umbral-key"></span>'
           : 'alertas desactivadas en Parámetros') +
@@ -17782,6 +17864,67 @@ function buildSectorConcentrationBlock(destinos, nombreCartera) {
     (notas.length ? '<div class="inv-sector-nota">' + escapeHtmlSafe(notas.join(' ')) + '</div>' : '') +
   '</div>';
 }
+
+// Ubica el texto de los activos de cada barra según lo que mida, que sólo se
+// sabe con la barra dibujada:
+//   entra adentro con aire a los dos lados → adentro, en blanco o en tinta
+//     oscura según qué contraste más contra el color de la barra
+//   no entra adentro pero sí a la derecha → afuera, pegado al final
+//   no entra en ningún lado → no se muestra; queda en el tooltip de la fila
+// Nunca se recorta: un nombre cortado a la mitad es peor que ninguno.
+// Un <details> cerrado mide cero, así que esto corre también al abrir un panel.
+function ajustarEtiquetasSector(root) {
+  const ambito = root || document;
+  ambito.querySelectorAll('.inv-sector-row').forEach(function (row) {
+    const track = row.querySelector('.inv-sector-track');
+    const bar = row.querySelector('.inv-sector-bar');
+    const label = row.querySelector('.inv-sector-label');
+    if (!track || !bar || !label) return;
+    const anchoBarra = bar.getBoundingClientRect().width;
+    const anchoPista = track.getBoundingClientRect().width;
+    if (!anchoPista) return; // panel cerrado: se reintenta al abrirlo
+    row.classList.remove('label-fuera', 'label-oculta');
+    label.style.color = '';
+    const anchoTexto = label.scrollWidth;
+    const AIRE = 8;
+    // Sobre las rayas de "sin sector" el texto no se lee: va siempre afuera.
+    const rayada = row.classList.contains('is-none');
+    if (!rayada && anchoTexto + AIRE * 2 <= anchoBarra) {
+      label.style.color = tintaSobre(getComputedStyle(bar).backgroundColor);
+    } else if (anchoBarra + AIRE + anchoTexto <= anchoPista) {
+      row.classList.add('label-fuera');
+    } else {
+      row.classList.add('label-oculta');
+    }
+  });
+}
+
+// Blanco o tinta oscura, lo que más contraste contra un color rgb(). Un fondo
+// transparente —la barra rayada de "sin sector"— devuelve el texto normal.
+function tintaSobre(rgb) {
+  const m = String(rgb || '').match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?/);
+  if (!m || (m[4] !== undefined && Number(m[4]) === 0)) return '';
+  const lin = function (v) { v = v / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const L = 0.2126 * lin(+m[1]) + 0.7152 * lin(+m[2]) + 0.0722 * lin(+m[3]);
+  const contraBlanco = 1.05 / (L + 0.05);
+  const contraOscuro = (L + 0.05) / (0.0098 + 0.05); // #1A1714
+  return contraBlanco >= contraOscuro ? '#FFFFFF' : '#1A1714';
+}
+
+// Al abrir un panel —el evento toggle no burbujea, por eso va en captura— y al
+// cambiar el ancho de la ventana, las barras cambian de medida.
+(function () {
+  document.addEventListener('toggle', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('investment-detail-panel') && e.target.open) {
+      ajustarEtiquetasSector(e.target);
+    }
+  }, true);
+  let t = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(t);
+    t = setTimeout(function () { ajustarEtiquetasSector(); }, 150);
+  });
+})();
 
 function buildInvestmentDetailPanel(destinos, title) {
   // Filtrar entradas del destino. Si no hay ninguna, igual mostramos el panel
@@ -17882,9 +18025,9 @@ function buildInvestmentDetailPanel(destinos, title) {
   // mano, y esos $100 de ganancia nunca entraron como aporte. Por eso se suma
   // lo realizado, que es exactamente esa diferencia.
   //   líquido = aportado − (costo de lo que queda) + (ganancia ya realizada)
-  const realizadoComb = arsT.realizado + (usdT.realizado * cotizacionMep);
-  const totalAportado = sumTxByDestinos(destinos);
-  const liquidoComb = totalAportado - invCombArs + realizadoComb;
+  // La cuenta vive en liquidoDeDestino(), que también usa el gráfico de
+  // concentración: así la Liquidez de la composición es exactamente este número.
+  const liquidoComb = liquidoDeDestino(destinos);
 
   // Variación = actualizado - invertido. Devuelve null si no se puede calcular.
   function variacion(inv, act) {
@@ -19380,6 +19523,10 @@ function renderMainAssets() {
     if (cls) openPanels[cls[1]] = true;
   });
 
+  // Colores de los sectores: se reparten de nuevo en cada render, porque un
+  // sector nuevo en cualquier cartera cambia cuáles están en uso.
+  _coloresSector = null;
+
   // Forecast del gasto del mes en curso (sólo si el mes activo es el mes actual)
   const forecastWrap = document.getElementById('assetsForecastWrap');
   if (forecastWrap) {
@@ -19462,6 +19609,8 @@ function renderMainAssets() {
     const el = document.querySelector('.investment-detail-panel.inv-panel-' + key);
     if (el) el.setAttribute('open', '');
   });
+  // Con los paneles ya reabiertos, las barras tienen medida: se ubica el texto.
+  ajustarEtiquetasSector();
 
   // Los detalles que estaban desplegados vuelven a abrirse. Igual que arriba
   // con los paneles: repintar no tiene que hacerle perder el lugar al usuario.
