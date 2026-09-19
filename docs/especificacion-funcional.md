@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.20 |
+| **Versión** | 1.21 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -217,6 +217,7 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-070 | Presenta el patrimonio repartido en cinco destinos, **en este orden**: Reserva, Inversiones, Jubilación 1, Jubilación 2 y Trading. Cada uno es un panel desplegable. El orden responde al horizonte de cada destino, del más líquido al más lejano, y deja Trading al final por ser el único que no agrupa tenencias sino operaciones |
 | RF-071 | Los cuatro destinos de tenencias muestran totales separados por moneda: ARS, USD y el combinado |
 | RF-072 | Cada panel distingue el importe líquido (destinado y no invertido) del invertido (colocado en activos) |
+| RF-072a | El líquido se informa en la fila ARS+USD y también en la fila ARS, con el mismo valor: los aportes son movimientos en pesos y las compras en dólares se pagan con esos pesos, de modo que el dinero sin invertir está en pesos. La fila USD no informa líquido, porque el producto no registra dólares sin invertir |
 | RF-073 | La tabla de activos expone, por ticker: nominales, precio promedio de compra, total invertido, precio actual, variación por nominal, total actualizado y resultado |
 | RF-074 | Cada activo se despliega en sus compras individuales, y cada compra muestra su resultado contra el precio vigente |
 | RF-075 | Ganancia se representa en verde y pérdida en rojo, sin excepción, en todas las secciones de la pantalla |
@@ -280,9 +281,9 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-073f | Asignar el mismo sector que el automático no registra una asignación manual, y elimina la que existiera. Así, una corrección posterior del listado alcanza al activo |
 | RF-073g | Un sector asignado que difiere del automático se señala como valor editado e informa el original |
 | RF-073h | Cada destino de tenencias —Reserva, Inversiones y las dos Jubilaciones— presenta la **concentración por sector**: la participación de cada sector en el valor del destino, ordenada de mayor a menor, con el umbral marcado. Cada fila presenta, en este orden, el sector, su porcentaje, su monto en pesos —el valor sobre el que se calcula el porcentaje (RF-073i)— y una barra con los activos que lo componen escritos dentro de ella |
-| RF-073n | La composición incluye **Liquidez**: el importe Líquido de la fila ARS+USD de la cabecera del destino, con su mismo valor. Si el Líquido es negativo no se incluye, porque no constituye tenencia |
+| RF-073n | La composición incluye **Liquidez**: el importe Líquido de la cabecera del destino (RF-072a), con su mismo valor, rotulado LÍQUIDO en mayúsculas como los tickers. Si el Líquido es negativo no se incluye, porque no constituye tenencia |
 | RF-073o | Cada sector se representa con un color propio, el mismo en todos los destinos de la pantalla y en las dos barras de un panel (RF-073q). Los colores provienen de la gama de las barras de distribución del producto, para que el panel use una sola; se asignan a los sectores presentes en el orden del catálogo, no por tamaño, de modo que un cambio de montos no altere el color de un sector. Las clases que no son sectores —Índices, Renta fija, Liquidez— se representan en tonos neutros, y las tenencias sin sector con un rayado |
-| RF-073q | Las filas ARS y USD de la cabecera de cada destino presentan una barra con la **concentración por sector de esa moneda**: lo que hay en pesos y lo que hay en dólares, cada uno sobre su propio total. Se valúa como en RF-073i y no incluye el Líquido, que la cabecera informa aparte; por eso sus porcentajes pueden diferir de los de RF-073h, que sí lo incluye. Cada tramo informa lo indicado en RF-073r |
+| RF-073q | Las filas ARS y USD de la cabecera de cada destino presentan una barra con la **concentración por sector de esa moneda**: lo que hay en pesos y lo que hay en dólares, cada uno sobre su propio total. Se valúa como en RF-073i. La barra ARS incluye la Liquidez (RF-072a); la USD no. Por eso, con tenencias en una sola moneda, la barra ARS coincide con RF-073h, y con tenencias en ambas sus porcentajes difieren. Cada tramo informa lo indicado en RF-073r |
 | RF-073r | La información emergente de un sector —en los tramos de RF-073q y en las filas de RF-073h— tiene dos líneas: la primera, `SECTOR: porcentaje (monto)`, con el sector en mayúsculas y toda la línea en negrita y en un tamaño mayor que la segunda, porque el sector es el dato principal; la segunda, cada activo con su porcentaje, de mayor a menor. El porcentaje de cada activo se calcula sobre el mismo total que el del sector, de modo que la suma de los activos da el porcentaje del sector |
 | RF-073p | El texto de los activos se ubica dentro de la barra cuando cabe con margen; si no cabe, a continuación de ella; si tampoco cabe allí, se omite y permanece disponible en la información emergente de la fila. Nunca se presenta recortado |
 | RF-073i | El valor de cada tenencia es nominales por precio actual. Sin precio actual se toma el costo, y el sistema informa qué tenencias se valuaron así. Las tenencias en dólares se convierten a pesos a la cotización MEP. Las posiciones liquidadas no intervienen |
@@ -1061,9 +1062,18 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.17 | 19/09/2026 | Las barras de las filas ARS y USD de la cabecera pasan a mostrar la concentración por sector de cada moneda, en lugar de la distribución por ticker (RF-073q) | Reemplazada |
 | 1.18 | 19/09/2026 | La información emergente de cada sector pasa a dos líneas: el sector con su porcentaje y monto, y el porcentaje de cada activo (RF-073r) | Reemplazada |
 | 1.19 | 19/09/2026 | La primera línea de la información emergente del sector va en mayúsculas y negrita, y el selector de sector de la tabla de activos en mayúsculas (RF-073r, RF-073a) | Reemplazada |
-| 1.20 | 19/09/2026 | En la información emergente del sector, la línea del sector pasa a ser de mayor tamaño que la de los activos (RF-073r) | **Vigente** |
+| 1.20 | 19/09/2026 | En la información emergente del sector, la línea del sector pasa a ser de mayor tamaño que la de los activos (RF-073r) | Reemplazada |
+| 1.21 | 19/09/2026 | El líquido se informa también en la fila ARS de la cabecera, y la barra ARS lo incluye como Liquidez (RF-072a, RF-073q). La Liquidez del gráfico se rotula en mayúsculas (RF-073n) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Líquido en la fila ARS de la cabecera | RF-072a |
+| Barra ARS de la cabecera con la Liquidez incluida | RF-073q |
+| Liquidez rotulada LÍQUIDO | RF-073n |
+
+**Implementados en la versión 1.20**
 
 | Cambio | Requerimiento |
 |---|---|

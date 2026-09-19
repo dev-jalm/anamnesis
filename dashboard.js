@@ -17424,14 +17424,16 @@ function tooltipSector(s, prefix) {
 // concentración del cuerpo, pero separado por moneda, y con sus mismos colores
 // —un sector es del mismo color en las dos barras—.
 // Se valúa igual que ese gráfico: nominales por precio actual, a costo lo que
-// no tiene precio. No entra el líquido: la cabecera lo muestra aparte, y en la
-// fila combinada, que es la única donde existe.
-// Divs con flexbox y no SVG: tooltip nativo por segmento y más liviano.
-function buildDistributionBar(groups, tickers, prefix) {
-  if (!tickers || tickers.length === 0) {
+// no tiene precio. `liquido`, si se pasa y es positivo, entra como Liquidez:
+// la fila ARS lo recibe porque el líquido es plata en pesos; la USD no.
+function buildDistributionBar(groups, tickers, prefix, liquido) {
+  const hayLiquido = Number(liquido) > 0;
+  if ((!tickers || tickers.length === 0) && !hayLiquido) {
     return '<div class="inv-distbar inv-distbar-empty" title="Sin activos cargados"></div>';
   }
   const posiciones = [];
+  if (hayLiquido) posiciones.push({ ticker: 'LÍQUIDO', sector: 'liquidez', valor: Number(liquido) });
+  tickers = tickers || [];
   tickers.forEach(function (tk) {
     const g = groups[tk];
     if (!(g.cantidadTotal > 0)) return; // lo liquidado no es tenencia
@@ -17819,7 +17821,8 @@ function concentracionDeCartera(destinos) {
   // aunque el grueso estuviera en efectivo. Sale del Líquido de la cabecera.
   // Negativo —se invirtió más de lo aportado— no es tenencia, así que no entra.
   const liquido = liquidoDeDestino(destinos);
-  if (liquido > 0) posiciones.push({ ticker: 'Líquido', sector: 'liquidez', valor: liquido, aCosto: false });
+  // En mayúsculas, como los tickers con los que comparte la barra.
+  if (liquido > 0) posiciones.push({ ticker: 'LÍQUIDO', sector: 'liquidez', valor: liquido, aCosto: false });
   const c = concentracionPorSector(posiciones);
   c.liquido = liquido;
   c.aCosto = posiciones.filter(function (p) { return p.aCosto && p.valor > 0; }).map(function (p) { return p.ticker; });
@@ -18109,8 +18112,10 @@ function buildInvestmentDetailPanel(destinos, title) {
   // ─── LÍQUIDO ───
   // Total ARS aportado al destino vía tx con la categoría de flujo correspondiente,
   // menos lo efectivamente invertido (en ARS combinado: ARS + USD×MEP).
-  // Solo se muestra en la fila ARS+USD; las filas ARS y USD individuales muestran "—"
-  // porque las tx siempre son en ARS y no hay forma de separarlas por moneda.
+  // Se muestra en la fila ARS+USD y también en la fila ARS: es plata en pesos
+  // —los aportes son movimientos en pesos, y las compras en dólares se pagaron
+  // con esos pesos al MEP—, así que su moneda es ARS. La fila USD muestra "—":
+  // la app no registra dólares sin invertir.
   // Las ventas devuelven plata al líquido. No alcanza con restar menos
   // invertido: vender 200 nominales que costaron $200 por $300 deja $300 en la
   // mano, y esos $100 de ganancia nunca entraron como aporte. Por eso se suma
@@ -18235,7 +18240,8 @@ function buildInvestmentDetailPanel(destinos, title) {
   // Va en la fila combinada ARS+USD. Las filas ARS y USD individuales muestran
   // un mini stacked-bar con la distribución por ticker en su moneda.
   const sparklineSvg = buildPanelSparkline(all);
-  const arsDistBar = buildDistributionBar(arsGroups, arsTickers, '$');
+  // La barra ARS incluye el líquido, que es plata en pesos (ver LÍQUIDO arriba).
+  const arsDistBar = buildDistributionBar(arsGroups, arsTickers, '$', liquidoComb);
   const usdDistBar = buildDistributionBar(usdGroups, usdTickers, 'US$');
 
   // Fila META (solo si este panel corresponde a Reserva). Muestra los datos del
@@ -18275,7 +18281,7 @@ function buildInvestmentDetailPanel(destinos, title) {
       '<div class="inv-header-name">' + escapeHtmlSafe(title) + '</div>' +
       '<div class="inv-header-totals">' +
         metaRowHtml +
-        headerTotalRow('ARS', '$', null, arsInv, arsAct, arsVar, arsDistBar) +
+        headerTotalRow('ARS', '$', liquidoComb, arsInv, arsAct, arsVar, arsDistBar, { destinos: destinos }) +
         headerTotalRow('USD', 'US$', null, usdInv, usdAct, usdVar, usdDistBar) +
         headerTotalRow('ARS+USD', '$', liquidoComb, invCombArs, actCombArs, combVar, sparklineSvg, { combined: true, destinos: destinos }) +
         diasLine +
