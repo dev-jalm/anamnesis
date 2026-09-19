@@ -6211,10 +6211,12 @@ body[data-exporting="true"] .section-card {
   flex-direction: column;
   gap: 5px;
 }
-/* sector · porcentaje · barra (con los activos adentro) */
+/* sector · porcentaje · monto · barra (con los activos adentro).
+   El monto lleva 112px: medido, "$ 13.867.640" ocupa 100, así que entra un
+   monto de nueve cifras ("$ 123.456.789"). */
 .inv-sector-row {
   display: grid;
-  grid-template-columns: 170px 56px minmax(160px, 1fr);
+  grid-template-columns: 170px 56px 112px minmax(160px, 1fr);
   align-items: center;
   gap: 10px;
   font-size: 11px;
@@ -6301,6 +6303,15 @@ body[data-exporting="true"] .section-card {
   color: var(--ink);
 }
 .inv-sector-row.is-over .inv-sector-pct { color: var(--red); font-weight: 600; }
+/* Mismo tratamiento que el porcentaje —mono, cifras alineadas a la derecha—
+   pero en tinta secundaria: el dato principal de la fila es el porcentaje. */
+.inv-sector-monto {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-2);
+  white-space: nowrap;
+}
 .inv-sector-nota {
   margin-top: 8px;
   font-size: 11px;

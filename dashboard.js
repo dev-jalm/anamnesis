@@ -17857,6 +17857,9 @@ function buildSectorConcentrationBlock(destinos, nombreCartera) {
         escapeHtmlSafe(etiquetaSector(s.sector)) +
       '</span>' +
       '<span class="inv-sector-pct">' + pctTxt + '</span>' +
+      // Monto en pesos: el mismo valor sobre el que se calcula el porcentaje
+      // (dólares al MEP, a costo lo que no tiene precio actual).
+      '<span class="inv-sector-monto">$ ' + fmt(Math.round(s.valor)) + '</span>' +
       '<span class="inv-sector-track">' +
         '<span class="inv-sector-bar" style="width:' + Math.max(0.5, s.pct).toFixed(2) + '%' + (color ? ';background:' + color : '') + '">' +
           '<span class="inv-sector-label">' + escapeHtmlSafe(s.tickers.join(', ')) + '</span>' +
