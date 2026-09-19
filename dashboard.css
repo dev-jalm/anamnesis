@@ -5952,13 +5952,13 @@ body[data-exporting="true"] .section-card {
      de fuente. El espacio que se libera lo absorbe la columna Total, que es 1fr. */
   grid-template-columns:
     112px                 /* fecha */
-    118px                 /* broker */
+    108px                 /* broker: "BULL MARKET" pide 104 */
     calc(5ch + 16px)      /* ticker */
     calc(11ch + 16px)     /* cantidad: entra 0,0034512 */
     100px                 /* precio */
     132px                 /* destino (por fila) */
     64px                  /* moneda (por fila) */
-    160px                 /* sector: entra "Consumo discrecional" con la flecha */
+    190px                 /* sector, en mayúsculas: "ÍNDICES Y ETF AMPLIOS" pide 188 */
     minmax(90px, 1fr)     /* total: absorbe el sobrante, pero no por debajo de lo legible */
     30px                  /* eliminar */
     !important;
@@ -5975,14 +5975,14 @@ body[data-exporting="true"] .section-card {
 .investment-row > * {
   min-width: 0;
 }
-/* Con el Sector, la fila pide ~1.075px. Por debajo de 1200px de ventana el
-   modal no los tiene —medido a 1024: 903px de lista— y la fila se salía por la
-   derecha. Ahí el Sector baja a una segunda línea, debajo de ticker, cantidad y
-   precio, y el resto queda en la primera con los anchos de antes. */
-@media (max-width: 1199px) {
+/* Con el Sector en mayúsculas la fila pide 1.093px de lista (columnas fijas,
+   huecos, padding y 90 de Total). Medido: la lista es el ancho de la ventana
+   menos 121px, así que entra en una línea desde 1.214. Por debajo el Sector
+   baja a una segunda línea, debajo de ticker, cantidad y precio. */
+@media (max-width: 1219px) {
   .investment-row {
     grid-template-columns:
-      112px 118px calc(5ch + 16px) calc(11ch + 16px) 100px 132px 64px minmax(90px, 1fr) 30px
+      112px 108px calc(5ch + 16px) calc(11ch + 16px) 100px 132px 64px minmax(90px, 1fr) 30px
       !important;
   }
   .investment-row .inv-row-sector { grid-row: 2; grid-column: 3 / 6; }
@@ -6184,7 +6184,9 @@ body[data-exporting="true"] .section-card {
    por CSS—: el dato no cambia, sólo cómo se ve. Las opciones también, para que
    la lista desplegada coincida con lo que queda elegido. */
 .inv-sector-sel,
-.inv-sector-sel option { text-transform: uppercase; }
+.inv-sector-sel option,
+.inv-row-sector,
+.inv-row-sector option { text-transform: uppercase; }
 
 /* Tooltip de los sectores. Mismo aspecto que el tooltip de los gráficos
    (getChartBase): fondo --tooltip-bg, título en JetBrains Mono negrita con el
@@ -6225,6 +6227,16 @@ body[data-exporting="true"] .section-card {
   padding: 12px 14px 14px;
   border-top: 1px solid var(--border);
 }
+/* Concentración en dos columnas: por sector y por tipo de riesgo. El borde
+   superior pasa al contenedor; entre columnas, un divisor vertical.
+   minmax(0, 1fr): sin el 0, una columna con texto largo empujaría a la otra. */
+.inv-conc-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  border-top: 1px solid var(--border);
+}
+.inv-conc-grid .inv-sector-block { border-top: none; }
+.inv-conc-grid .inv-tipo-block { border-left: 1px solid var(--border); }
 .inv-sector-head {
   display: flex;
   align-items: baseline;
@@ -7920,38 +7932,26 @@ body:not(.sidebar-pinned) .main-tab-panel {
 }
 
 /* ============================================================
-   BROKER / EXCHANGE: chip coloreado en la tabla + select en el form
+   BROKER / EXCHANGE: texto en la tabla + select coloreado en el form
    Colores por broker: BALANZ (azul), NEXO (violeta), BULL MARKET (terracota).
-   Uso: <span class="broker-chip broker-bg-BALANZ">BALANZ</span>
-        <select class="inv-broker-sel broker-bg-BALANZ">
+   Los usa sólo el select del alta (<select class="inv-broker-sel
+   broker-bg-BALANZ">, clase armada en JS); en la tabla el broker va como texto.
    ============================================================ */
 
-/* Colores base (compartidos entre chip y select) */
 .broker-bg-BALANZ      { background: #4A6B8A; color: #F5F1E8; }
 .broker-bg-NEXO        { background: #8E5A9E; color: #F5F1E8; }
 .broker-bg-BULL_MARKET { background: #C8553D; color: #F5F1E8; }
-.broker-bg-multi       { background: var(--muted-2); color: var(--bg-1); }
-.broker-bg-none        { background: transparent; color: var(--muted); border: 1px dashed var(--border); }
-
-/* Chip pequeño para la celda de la tabla de tickers */
-.broker-chip {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  white-space: nowrap;
-  text-align: center;
-}
 .investment-detail-table td.broker-cell {
-  /* Chip centrado dentro de la columna Broker/Exchange. Especificidad
-     .investment-detail-table td.broker-cell (0,0,2,1) supera a
-     .investment-detail-table td (0,0,1,1) para vencer el text-align:left
-     genérico de la tabla. */
+  /* Texto plano con la tipografía del ticker (td.ticker): JetBrains Mono
+     semibold, al tamaño de la tabla. Sin fondo de color. Centrado, como su
+     encabezado. Especificidad (0,0,2,1) para vencer el text-align:left
+     genérico de .investment-detail-table td. */
   text-align: center;
   padding: 6px 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
 }
 
 /* Select del broker en el form de carga de inversiones. Toma el color del
@@ -7985,6 +7985,24 @@ body:not(.sidebar-pinned) .main-tab-panel {
   background: var(--bg-1);
   color: var(--ink);
 }
+
+/* Títulos de columna ordenables: un clic ordena, otro invierte. La flecha
+   aparece sólo en la columna activa; el hover avisa que se puede tocar. */
+/* Sin nowrap: los títulos largos ("VARIACIÓN X NOMINAL") no entran en una
+   línea en su columna y se salían por el costado; que corten como siempre. */
+.investment-detail-table th.inv-th-orden {
+  cursor: pointer;
+  user-select: none;
+}
+.investment-detail-table th.inv-th-orden:hover,
+.investment-detail-table th.inv-th-orden.orden-activo { color: var(--ink); }
+/* Sin ancho mientras está vacía: un inline-block con margen ocupaba 4px en
+   todos los títulos y alcanzaba para partir "TOTAL INVERTIDO" en dos líneas. */
+.inv-orden-flecha {
+  font-size: 8px;
+  vertical-align: 1px;
+}
+.orden-activo .inv-orden-flecha { margin-left: 4px; }
 
 /* Header "BROKER/EXCHANGE" centrado dentro de su columna. */
 .investment-detail-table .inv-columns-header-row th:nth-child(2) {

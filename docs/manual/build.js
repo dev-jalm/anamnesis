@@ -175,32 +175,31 @@ window.MANUAL = {
         'La tabla lista los activos que cargaste en Cargar inversiones, agrupados por ticker: nominales, precio promedio de compra, total invertido, precio actual, variación por nominal, total actualizado y ganancia o pérdida. Cada activo se despliega en sus compras individuales, y cada compra muestra cómo le fue contra el precio de hoy: en verde si gana, en rojo si pierde. Junto a la fecha de cada compra, sus días en tenencia; si la vendiste entera, hasta la última venta.'
       ],
       lista: [
+        'Un clic en el título de una columna ordena los activos por ese dato; otro clic, al revés.',
         'El botón de refresco al lado de ARS actualiza precios y descripciones desde data912.com.',
         'La cotización MEP está arriba a la derecha, junto a las solapas; su botón la actualiza desde dolarapi.com.',
-        'Los tickers en dólares no se piden aparte: se derivan del CEDEAR en pesos aplicando su ratio y la cotización MEP.',
-        'Si un activo no tiene precio actual cargado, sus columnas de rendimiento muestran un guión en lugar de cero: no es lo mismo no haber ganado nada que no tener con qué comparar.'
+        'Los tickers en dólares se derivan del CEDEAR en pesos, con su ratio y la cotización MEP.',
+        'Sin precio actual, el rendimiento muestra un guión, no un cero: no hay con qué comparar.'
       ]
     },
     {
       h: 'Sector y concentración',
       sub: '¿Tengo todo en el mismo lugar?',
       img: '20-concentracion-sector',
-      imgCap: 'Jubilación de la demo: Consumo básico pasa el límite del 30%, VOO todavía no tiene sector y la liquidez sale del Líquido de la cabecera.',
+      imgCap: 'Jubilación de la demo: por sector, Consumo básico pasa el límite del 30%; por tipo de riesgo, 61,5% en renta variable.',
       p: [
         'Cada activo de la tabla tiene su sector. Si el ticker está en el listado de CEDEARs de BYMA, viene solo; si es un par cripto, es Cripto. Lo que no está en el listado —acciones locales, bonos, un fondo— aparece sin sector, y se lo asignás desde la columna Sector de la tabla o al cargarlo.',
         'El sector se elige de una lista fija: los once sectores de la bolsa, más Índices y ETF amplios, Commodities, Cripto y Renta fija. No se escribe a mano a propósito: con texto libre, "Tecnología" y "tecnologia" serían dos sectores y el gráfico partiría en dos lo que es uno solo.',
-        'Al abrir Reserva, Inversiones o una Jubilación, arriba de la tabla está la concentración por sector. Cada fila dice el sector, qué porcentaje de la cartera ocupa, cuánta plata es y su barra, con los activos que lo componen escritos adentro. La barra entera es el 100% de la cartera, y la línea vertical es el límite que elegiste en Parámetros. Lo que lo pasa lleva un ícono de alerta, el porcentaje en rojo y un aviso arriba que dice cuánto concentra y qué activos lo componen; lo que queda dentro del límite, un tilde verde. Los que no se controlan —índices, renta fija, liquidez y lo que no tiene sector— llevan el tilde en gris; pasando el mouse por él se ve por qué.',
-        'La Liquidez también aparece en la composición, pero no se asigna a ningún activo: es la plata del destino que todavía no invertiste, y el número es el mismo que el Líquido de la cabecera del panel. Si el Líquido da negativo, no aparece.'
+        'Al abrir Reserva, Inversiones o una Jubilación, arriba de la tabla está la concentración por sector. Cada fila dice el sector, qué porcentaje de la cartera ocupa, cuánta plata es y su barra, con los activos que lo componen escritos adentro. La barra entera es el 100% de la cartera, y la línea vertical es el límite que elegiste en Parámetros. Lo que lo pasa lleva un ícono de alerta, el porcentaje en rojo y un aviso arriba que dice cuánto concentra y qué activos lo componen; lo que queda dentro del límite, un tilde verde. Los que no se controlan —índices, renta fija, liquidez y lo que no tiene sector— llevan el tilde en gris; pasando el mouse por él se ve por qué: tener el 80% en el S&P 500 es estar diversificado, no concentrado.',
+        'La Liquidez también aparece en la composición, pero no se asigna a ningún activo: es la plata del destino que todavía no invertiste, y el número es el mismo que el Líquido de la cabecera del panel. Si el Líquido da negativo, no aparece.',
+        'Al lado, la concentración por tipo de riesgo reparte el mismo total en Renta variable, Renta fija, Cripto y Liquidez. Sale del sector: las acciones, los índices y los commodities son renta variable. Lo que no tiene sector queda sin clasificar, porque podría ser una acción o un bono.'
       ],
       lista: [
         'Cada sector tiene su color, y es el mismo en todas las carteras: si Tecnología es azul en Inversiones, es azul en Jubilación. Índices, Renta fija y Liquidez van en tonos neutros, y lo que no tiene sector va rayado.',
-        'La cabecera de cada panel repite la concentración, separada por moneda: la barra de la fila ARS reparte por sector lo que tenés en pesos, y la de la fila USD lo que tenés en dólares, con los mismos colores. La barra ARS incluye la liquidez, porque el líquido está en pesos; la USD no. Si todo lo que tenés está en una sola moneda, la barra ARS da lo mismo que el gráfico de abajo; si tenés en las dos, cada barra reparte sólo lo suyo y los porcentajes difieren. Pasando el mouse por un tramo —o por una fila del gráfico de abajo— se ven dos líneas: arriba, en negrita, el sector en mayúsculas con su porcentaje y su monto; abajo, cada activo con su porcentaje, que sumados dan el del sector.',
-        'Si la barra es muy corta para escribir los activos adentro, van al lado. Si tampoco entran ahí, se ven al pasar el mouse por la fila.',
-        'Si cambiás el sector de un activo, el valor queda marcado como editado y, al pasar el mouse, muestra cuál era el del listado. Si volvés a elegir el del listado, deja de estar marcado.',
-        'El sector es del activo, no de la moneda: SPY en pesos y SPY en dólares son el mismo sector.',
-        'Cada tenencia vale sus nominales por el precio de hoy. Si no tiene precio, se toma lo que costó, y abajo del gráfico se aclara cuáles se valuaron así. Los dólares se pasan a pesos con la cotización MEP.',
-        'Los índices y ETF amplios, la renta fija y la liquidez no generan alerta: tener el 80% en el S&P 500 es estar diversificado, no concentrado, y una reserva que es toda liquidez está bien armada.',
-        'Lo que no tiene sector aparece en su propio renglón y cuenta en el total, para que el resto de los porcentajes no se lea sobre una cartera que no es la entera.'
+        'La cabecera de cada panel repite la concentración por moneda: la barra ARS reparte lo que tenés en pesos, liquidez incluida, y la USD lo que tenés en dólares. Con todo en una sola moneda, la barra ARS da lo mismo que el gráfico de abajo.',
+        'Pasando el mouse por un tramo o una fila se ve, en negrita, el sector con su porcentaje y su monto, y debajo cada activo con su porcentaje. Si la barra es corta, los activos van al lado o sólo en ese recuadro.',
+        'Un sector cambiado a mano queda marcado como editado y muestra el del listado al pasar el mouse. El sector es del activo, no de la moneda.',
+        'Cada tenencia vale sus nominales por el precio de hoy; sin precio, lo que costó, y abajo del gráfico se aclara cuáles. Los dólares, al MEP. Lo sin sector cuenta en el total, en su propio renglón.'
       ]
     },
     {

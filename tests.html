@@ -1351,6 +1351,38 @@ group('Sector de los activos', function () {
     const c2 = concentracionPorSector([{ ticker: 'FCI', sector: 'liquidez', valor: 1 }]);
     assertEqual(sectoresConcentrados(c2, 30).length, 0);
   });
+  test('tipo de riesgo: cada sector va a su tipo', function () {
+    assertEqual(tipoDeRiesgo('tecnologia'), 'renta_variable');
+    assertEqual(tipoDeRiesgo('indices'), 'renta_variable');
+    assertEqual(tipoDeRiesgo('commodities'), 'renta_variable');
+    assertEqual(tipoDeRiesgo('renta_fija'), 'renta_fija');
+    assertEqual(tipoDeRiesgo('cripto'), 'cripto');
+    assertEqual(tipoDeRiesgo('liquidez'), 'liquidez');
+  });
+  test('tipo de riesgo: sin sector queda sin clasificar, no se supone', function () {
+    assertEqual(tipoDeRiesgo(null), null);
+    assertEqual(tipoDeRiesgo('inventado'), null);
+    assertEqual(etiquetaTipoRiesgo(null), 'Sin clasificar');
+  });
+  test('concentracion por tipo: agrupa sectores distintos en el mismo tipo', function () {
+    const c = concentracionPorTipo([
+      { ticker: 'AAPL', sector: 'tecnologia', valor: 400 },
+      { ticker: 'KO', sector: 'consumo_basico', valor: 200 },
+      { ticker: 'AL30', sector: 'renta_fija', valor: 300 },
+      { ticker: 'LÍQUIDO', sector: 'liquidez', valor: 100 }
+    ]);
+    assertEqual(c.total, 1000);
+    assertEqual(c.sectores.map(function (s) { return s.sector + ' ' + s.pct; }).join(', '),
+      'renta_variable 60, renta_fija 30, liquidez 10');
+    assertEqual(c.sectores[0].tickers.join(','), 'AAPL,KO');
+  });
+  test('concentracion por sector: no cambia con la generalizacion', function () {
+    const c = concentracionPorSector([
+      { ticker: 'AAPL', sector: 'tecnologia', valor: 600 },
+      { ticker: 'X', sector: null, valor: 400 }
+    ]);
+    assertEqual(c.sectores.map(function (s) { return s.sector + ' ' + s.pct; }).join(', '), 'tecnologia 60, null 40');
+  });
   test('alerta: sin umbral valido no alerta nada', function () {
     const c = concentracionPorSector([{ ticker: 'AAPL', sector: 'tecnologia', valor: 1 }]);
     assertEqual(sectoresConcentrados(c, 0).length, 0);

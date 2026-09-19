@@ -17367,9 +17367,10 @@ const PALETA_DISTRIBUCION = ['#D4A24C','#8E5A9E','#4A6B8A','#6B8E4E','#C8553D','
 // No es el title nativo: ese sólo admite texto plano, y el título va en
 // negrita. Devuelve los atributos que lee el tooltip de sectores (ver
 // bindTooltipSector); aria-label deja el mismo texto para lectores de pantalla.
-function tooltipSector(s, prefix) {
+function tooltipSector(s, prefix, etiquetaDe) {
   const pct = function (n) { return n.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%'; };
-  const titulo = etiquetaSector(s.sector).toLocaleUpperCase('es-AR') + ': ' + pct(s.pct) + ' (' + prefix + ' ' + fmt(Math.round(s.valor)) + ')';
+  // etiquetaDe: para el gráfico de tipo de riesgo, que usa las mismas filas.
+  const titulo = (etiquetaDe || etiquetaSector)(s.sector).toLocaleUpperCase('es-AR') + ': ' + pct(s.pct) + ' (' + prefix + ' ' + fmt(Math.round(s.valor)) + ')';
   const detalle = (s.detalle || []).map(function (d) { return d.ticker + ' ' + pct(d.pct); }).join(', ');
   return ' data-tip-titulo="' + escapeHtmlSafe(titulo) + '"' +
     ' data-tip-detalle="' + escapeHtmlSafe(detalle) + '"' +
@@ -17696,6 +17697,100 @@ function getKpiAccentForDestinos(destinos) {
   return '#8B7355';
 }
 
+// ─── Orden de la tabla de activos ───
+// Clic en un título de columna ordena los tickers por ese dato; otro clic en
+// el mismo, al revés. Se reordenan las filas en el DOM —cada ticker con sus
+// filas de detalle, que van pegadas— en vez de redibujar: así no se pliegan los
+// tickers que estaban desplegados. El orden elegido se guarda por tabla (destino
+// y moneda) y se vuelve a aplicar después de cada render de la solapa.
+const ordenActivos = {}; // 'inversiones|ARS' → { clave, dir: 1 | -1 }
+
+function atributosOrden(valores) {
+  return Object.keys(valores).map(function (k) {
+    const v = valores[k];
+    return (v === null || v === undefined || (typeof v === 'number' && !isFinite(v)))
+      ? '' : ' data-o-' + k + '="' + escapeHtmlSafe(String(v)) + '"';
+  }).join('');
+}
+
+// Título de columna ordenable. `num` alinea a la derecha, como sus valores.
+function thOrden(clave, texto, title, num) {
+  return '<th class="inv-th-orden' + (num ? ' num' : '') + '" data-orden="' + clave + '"' +
+    (title ? ' title="' + escapeHtmlSafe(title) + '"' : '') + ' aria-sort="none">' +
+    texto + '<span class="inv-orden-flecha" aria-hidden="true"></span></th>';
+}
+
+// Valor de orden de una fila de ticker. Descripción y sector se leen del
+// campo: son editables y pueden haber cambiado desde el render.
+function valorOrden(fila, clave) {
+  if (clave === 'descripcion') {
+    const i = fila.querySelector('.inv-desc-input');
+    return i ? i.value.trim().toLocaleUpperCase('es-AR') : '';
+  }
+  if (clave === 'sector') {
+    const s = fila.querySelector('.inv-sector-sel');
+    return (s && s.value) ? etiquetaSector(s.value).toLocaleUpperCase('es-AR') : '';
+  }
+  const v = fila.getAttribute('data-o-' + clave);
+  if (v === null) return null;
+  if (clave === 'broker' || clave === 'ticker') return v;
+  const n = Number(v);
+  return isFinite(n) ? n : null;
+}
+
+function ordenarTablaActivos(tabla) {
+  const est = ordenActivos[tabla.getAttribute('data-orden-tabla')];
+  if (!est) return;
+  const tbody = tabla.tBodies[0];
+  if (!tbody) return;
+  // Grupos: cada fila de ticker seguida de sus filas de detalle.
+  const grupos = [];
+  Array.from(tbody.rows).forEach(function (tr) {
+    if (tr.classList.contains('inv-ticker-row')) grupos.push([tr]);
+    else if (grupos.length && tr.hasAttribute('data-ticker-detail')) grupos[grupos.length - 1].push(tr);
+  });
+  if (grupos.length < 2) return marcarOrdenTitulos(tabla, est);
+  grupos.sort(function (a, b) {
+    const va = valorOrden(a[0], est.clave), vb = valorOrden(b[0], est.clave);
+    // Lo que no tiene dato —vacío, sin precio— va siempre al final, sea cual
+    // sea la dirección: no es "el menor", es que no hay con qué comparar.
+    const na = (va === null || va === ''), nb = (vb === null || vb === '');
+    if (na || nb) return na === nb ? 0 : (na ? 1 : -1);
+    const cmp = (typeof va === 'number' && typeof vb === 'number')
+      ? va - vb : String(va).localeCompare(String(vb), 'es');
+    return cmp * est.dir;
+  });
+  grupos.forEach(function (g) { g.forEach(function (tr) { tbody.appendChild(tr); }); });
+  marcarOrdenTitulos(tabla, est);
+}
+
+function marcarOrdenTitulos(tabla, est) {
+  tabla.querySelectorAll('th[data-orden]').forEach(function (th) {
+    const activo = est && th.getAttribute('data-orden') === est.clave;
+    th.classList.toggle('orden-activo', !!activo);
+    th.setAttribute('aria-sort', activo ? (est.dir === 1 ? 'ascending' : 'descending') : 'none');
+    const f = th.querySelector('.inv-orden-flecha');
+    if (f) f.textContent = activo ? (est.dir === 1 ? '▲' : '▼') : '';
+  });
+}
+
+// Vuelve a aplicar los órdenes elegidos después de un render.
+function reaplicarOrdenActivos() {
+  document.querySelectorAll('table[data-orden-tabla]').forEach(ordenarTablaActivos);
+}
+
+document.addEventListener('click', function (e) {
+  const th = e.target.closest && e.target.closest('th[data-orden]');
+  if (!th) return;
+  const tabla = th.closest('table[data-orden-tabla]');
+  if (!tabla) return;
+  const clave = th.getAttribute('data-orden');
+  const id = tabla.getAttribute('data-orden-tabla');
+  const prev = ordenActivos[id];
+  ordenActivos[id] = { clave: clave, dir: (prev && prev.clave === clave) ? -prev.dir : 1 };
+  ordenarTablaActivos(tabla);
+});
+
 // Celda "Días en tenencia" de una compra del detalle. La cuenta vive en core.js
 // (diasEnTenencia): a hoy, o a la última venta si se vendió entera.
 function celdaDiasTenencia(e) {
@@ -17836,6 +17931,8 @@ function concentracionDeCartera(destinos) {
   // En mayúsculas, como los tickers con los que comparte la barra.
   if (liquido > 0) posiciones.push({ ticker: 'LÍQUIDO', sector: 'liquidez', valor: liquido, aCosto: false });
   const c = concentracionPorSector(posiciones);
+  // Las mismas posiciones, agrupadas por tipo de riesgo: la segunda columna.
+  c.porTipo = concentracionPorTipo(posiciones);
   c.liquido = liquido;
   c.aCosto = posiciones.filter(function (p) { return p.aCosto && p.valor > 0; }).map(function (p) { return p.ticker; });
   c.concentrados = sectoresConcentrados(c, umbralConcentracionSector());
@@ -17979,18 +18076,63 @@ function buildSectorConcentrationBlock(destinos, nombreCartera) {
   }).join('');
   const notas = [];
   if (c.aCosto.length) notas.push('Valuados a costo por no tener precio actual: ' + c.aCosto.join(', ') + '.');
-  return '<div class="inv-sector-block">' +
-    '<div class="inv-sector-head">' +
-      '<span class="inv-section-label">Concentración por sector</span>' +
-      '<span class="inv-sector-sub">sobre $ ' + fmt(Math.round(c.total)) + (c.liquido > 0 ? ' entre activos y líquido' : ' valuados') + ' · ' +
-        (umbral > 0
-          ? 'umbral ' + umbral + '% <span class="inv-sector-umbral-key"></span>'
-          : 'alertas desactivadas en Parámetros') +
-      '</span>' +
+  const sobre = 'sobre $ ' + fmt(Math.round(c.total)) + (c.liquido > 0 ? ' entre activos y líquido' : ' valuados');
+  // Dos columnas: por sector (con su límite y sus alertas) y por tipo de
+  // riesgo. Las dos reparten el mismo total, así que se leen lado a lado.
+  return '<div class="inv-conc-grid">' +
+    '<div class="inv-sector-block">' +
+      '<div class="inv-sector-head">' +
+        '<span class="inv-section-label">Concentración por sector</span>' +
+        '<span class="inv-sector-sub">' + sobre + ' · ' +
+          (umbral > 0
+            ? 'umbral ' + umbral + '% <span class="inv-sector-umbral-key"></span>'
+            : 'alertas desactivadas en Parámetros') +
+        '</span>' +
+      '</div>' +
+      alertas +
+      '<div class="inv-sector-bars">' + filas + '</div>' +
+      (notas.length ? '<div class="inv-sector-nota">' + escapeHtmlSafe(notas.join(' ')) + '</div>' : '') +
     '</div>' +
-    alertas +
+    buildTipoRiesgoColumna(c.porTipo, sobre) +
+  '</div>';
+}
+
+// Colores del gráfico de tipo de riesgo. Los que existen también como sector
+// —renta fija, liquidez, cripto— usan el mismo color que en el gráfico de al
+// lado, para que se reconozcan. Renta variable, que agrupa muchos sectores, va
+// en el azul de la gama.
+function colorDeTipoRiesgo(key) {
+  if (key === 'renta_variable') return PALETA_DISTRIBUCION[2];
+  if (key === 'cripto') return (_coloresSector && _coloresSector.cripto) || PALETA_DISTRIBUCION[0];
+  if (key === 'renta_fija' || key === 'liquidez') return colorDeSector(key);
+  return null; // sin clasificar: rayado
+}
+
+// Segunda columna: concentración por tipo de riesgo. Mismo estilo y mismas
+// clases que la de sector —tipo · % · monto · barra con los activos—, sin
+// línea de umbral ni íconos: el límite de Parámetros es por sector.
+function buildTipoRiesgoColumna(ct, sobre) {
+  if (!ct || !ct.total) return '';
+  const filas = ct.sectores.map(function (s) {
+    const pctTxt = s.pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+    const color = colorDeTipoRiesgo(s.sector);
+    return '<div class="inv-sector-row' + (s.sector ? '' : ' is-none') + '"' + tooltipSector(s, '$', etiquetaTipoRiesgo) + '>' +
+      '<span class="inv-sector-name">' + escapeHtmlSafe(etiquetaTipoRiesgo(s.sector)) + '</span>' +
+      '<span class="inv-sector-pct">' + pctTxt + '</span>' +
+      '<span class="inv-sector-monto">$ ' + fmt(Math.round(s.valor)) + '</span>' +
+      '<span class="inv-sector-track">' +
+        '<span class="inv-sector-bar" style="width:' + Math.max(0.5, s.pct).toFixed(2) + '%' + (color ? ';background:' + color : '') + '">' +
+          '<span class="inv-sector-label">' + escapeHtmlSafe(s.tickers.join(', ')) + '</span>' +
+        '</span>' +
+      '</span>' +
+    '</div>';
+  }).join('');
+  return '<div class="inv-sector-block inv-tipo-block">' +
+    '<div class="inv-sector-head">' +
+      '<span class="inv-section-label">Concentración por tipo de riesgo</span>' +
+      '<span class="inv-sector-sub">' + sobre + '</span>' +
+    '</div>' +
     '<div class="inv-sector-bars">' + filas + '</div>' +
-    (notas.length ? '<div class="inv-sector-nota">' + escapeHtmlSafe(notas.join(' ')) + '</div>' : '') +
   '</div>';
 }
 
@@ -18417,15 +18559,18 @@ function buildInvestmentDetailPanel(destinos, title) {
       const brokerSet = {};
       g.entries.forEach(function (e) { if (e.broker) brokerSet[e.broker] = true; });
       const brokerKeys = Object.keys(brokerSet);
+      // Texto plano, con la tipografía del ticker (td.broker-cell en el CSS).
+      // Antes era un chip con el color de cada broker: tres fondos de color en
+      // una columna que no es la importante competían con los datos.
       let brokerCellHtml;
       if (brokerKeys.length === 0) {
-        brokerCellHtml = '<td class="broker-cell"><span class="broker-chip broker-bg-none">—</span></td>';
+        brokerCellHtml = '<td class="broker-cell"><span class="inv-na">—</span></td>';
       } else if (brokerKeys.length === 1) {
         const bk = brokerKeys[0];
-        brokerCellHtml = '<td class="broker-cell"><span class="broker-chip broker-bg-' + bk + '" title="' + brokerLabel(bk) + '">' + brokerLabel(bk) + '</span></td>';
+        brokerCellHtml = '<td class="broker-cell" title="' + escapeHtmlSafe(brokerLabel(bk)) + '">' + escapeHtmlSafe(brokerLabel(bk)) + '</td>';
       } else {
         const labels = brokerKeys.map(function (k) { return brokerLabel(k); }).join(', ');
-        brokerCellHtml = '<td class="broker-cell"><span class="broker-chip broker-bg-multi" title="Múltiples brokers: ' + labels + '">MULTI</span></td>';
+        brokerCellHtml = '<td class="broker-cell" title="Múltiples brokers: ' + escapeHtmlSafe(labels) + '">MULTI</td>';
       }
       // Ticker liquidado: no queda nada. Mostrarlo con la grilla normal daba una
       // fila de ceros —PPC 0, invertido 0, variación 0%— que no significan nada:
@@ -18433,9 +18578,24 @@ function buildInvestmentDetailPanel(destinos, title) {
       // siendo cierto, el resultado que dejó, y se conserva la fila para poder
       // desplegar las compras y ver cuándo se vendió cada una.
       const liquidado = (g.cantidadTotal <= 0 && g.vendida > 0);
+      // Valores para ordenar la tabla al hacer clic en un título de columna
+      // (ordenarTablaActivos). Los de texto editables —descripción, sector— se
+      // leen del campo al ordenar, porque pueden haber cambiado. Un liquidado
+      // no tiene precio ni rendimiento: van vacíos y quedan al final.
+      const ordenAttrs = atributosOrden({
+        broker: brokerKeys.length === 1 ? brokerLabel(brokerKeys[0]) : (brokerKeys.length ? 'MULTI' : ''),
+        ticker: tk,
+        nominales: liquidado ? 0 : g.cantidadTotal,
+        ppc: liquidado ? null : g.ppc,
+        invertido: liquidado ? 0 : invertido,
+        precio: liquidado ? null : precioActual,
+        variacion: (liquidado || precioActual === null) ? null : precioActual - g.ppc,
+        actualizado: liquidado ? null : actualizado,
+        gp: liquidado ? g.realizado : gp
+      });
       if (liquidado) {
         const rCls = g.realizado > 0 ? 'inv-gp-positive' : (g.realizado < 0 ? 'inv-gp-negative' : '');
-        return '<tr class="inv-ticker-row inv-ticker-liquidado" data-ticker="' + escapeHtmlSafe(tk) + '">' +
+        return '<tr class="inv-ticker-row inv-ticker-liquidado" data-ticker="' + escapeHtmlSafe(tk) + '"' + ordenAttrs + '>' +
           '<td class="inv-ticker-toggle"><button class="inv-toggle-btn" data-action="toggle-ticker" title="Ver las compras y sus ventas"><i data-lucide="chevron-right" style="width:13px;height:13px"></i></button></td>' +
           brokerCellHtml +
           '<td class="ticker">' + escapeHtmlSafe(tk) + '</td>' +
@@ -18447,7 +18607,7 @@ function buildInvestmentDetailPanel(destinos, title) {
             '<div class="inv-gp-pct">realizado</div></td>' +
         '</tr>' + entriesHeadHtml + entriesRowsHtml;
       }
-      return '<tr class="inv-ticker-row" data-ticker="' + escapeHtmlSafe(tk) + '">' +
+      return '<tr class="inv-ticker-row" data-ticker="' + escapeHtmlSafe(tk) + '"' + ordenAttrs + '>' +
         '<td class="inv-ticker-toggle">' +
           '<button class="inv-toggle-btn" data-action="toggle-ticker" title="Ver compras individuales"><i data-lucide="chevron-right" style="width:13px;height:13px"></i></button>' +
           // Vender TODO el ticker. La venta parcial va en las filas de detalle,
@@ -18548,7 +18708,8 @@ function buildInvestmentDetailPanel(destinos, title) {
           '<i data-lucide="refresh-cw" style="width:11px;height:11px"></i>' +
         '</button>'
       : '';
-    return '<table class="investment-detail-table investment-detail-grouped inv-table-' + monedaLabel.toLowerCase() + '">' +
+    return '<table class="investment-detail-table investment-detail-grouped inv-table-' + monedaLabel.toLowerCase() + '"' +
+      ' data-orden-tabla="' + escapeHtmlSafe((destinos[0] || '') + '|' + monedaLabel) + '">' +
       '<colgroup>' +
         '<col style="width:20px">' +   /* toggle chevron · en el detalle, borrar */
         '<col style="width:125px">' +  /* Broker/Exchange · en el detalle, destino. El chip más ancho, BULL MARKET, mide 119 */
@@ -18582,17 +18743,17 @@ function buildInvestmentDetailPanel(destinos, title) {
         '</tr>' +
         '<tr class="inv-columns-header-row">' +
           '<th></th>' +
-          '<th title="Broker o exchange donde se opera el activo">Broker/Exchange</th>' +
-          '<th>Ticker</th>' +
-          '<th>Descripción</th>' +
-          '<th title="Del listado de BYMA cuando el ticker está ahí; si no, elegilo de la lista">Sector</th>' +
-          '<th class="num">Nominales</th>' +
-          '<th class="num" title="Precio Promedio de Compra ponderado">PPC</th>' +
-          '<th class="num" title="Nominales × PPC">Total invertido</th>' +
-          '<th class="num">Precio actual</th>' +
-          '<th class="num" title="Precio actual menos PPC, por unidad">Variación x nominal</th>' +
-          '<th class="num" title="Nominales × Precio actual">Total actualizado</th>' +
-          '<th class="num" title="Ganancia o pérdida vs PPC">G/P</th>' +
+          thOrden('broker', 'Broker/Exchange', 'Broker o exchange donde se opera el activo') +
+          thOrden('ticker', 'Ticker') +
+          thOrden('descripcion', 'Descripción') +
+          thOrden('sector', 'Sector', 'Del listado de BYMA cuando el ticker está ahí; si no, elegilo de la lista') +
+          thOrden('nominales', 'Nominales', '', true) +
+          thOrden('ppc', 'PPC', 'Precio Promedio de Compra ponderado', true) +
+          thOrden('invertido', 'Total invertido', 'Nominales × PPC', true) +
+          thOrden('precio', 'Precio actual', '', true) +
+          thOrden('variacion', 'Variación x nominal', 'Precio actual menos PPC, por unidad', true) +
+          thOrden('actualizado', 'Total actualizado', 'Nominales × Precio actual', true) +
+          thOrden('gp', 'G/P', 'Ganancia o pérdida vs PPC', true) +
         '</tr>' +
       '</thead>' +
       '<tbody>' + bodyHtml + '</tbody>' +
@@ -19719,6 +19880,8 @@ function renderMainAssets() {
   });
   // Con los paneles ya reabiertos, las barras tienen medida: se ubica el texto.
   ajustarEtiquetasSector();
+  // Y el orden de las tablas que el usuario haya elegido con un clic.
+  reaplicarOrdenActivos();
 
   // Los detalles que estaban desplegados vuelven a abrirse. Igual que arriba
   // con los paneles: repintar no tiene que hacerle perder el lugar al usuario.

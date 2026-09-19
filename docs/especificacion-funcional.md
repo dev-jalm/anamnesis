@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.23 |
+| **Versión** | 1.24 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -221,6 +221,8 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-073 | La tabla de activos expone, por ticker: nominales, precio promedio de compra, total invertido, precio actual, variación por nominal, total actualizado y resultado |
 | RF-074 | Cada activo se despliega en sus compras individuales, y cada compra muestra su resultado contra el precio vigente |
 | RF-074a | Cada compra del detalle informa sus **días en tenencia**, a continuación de la fecha: los días desde la fecha de compra hasta hoy. Si la compra se vendió por completo, hasta la fecha de su última venta, porque desde ahí no se tiene nada. Una venta parcial no interrumpe la cuenta |
+| RF-074c | La tabla de activos se ordena por cualquier columna haciendo clic en su título; un segundo clic invierte el sentido. Cada activo se mueve junto con sus compras, y los que estaban desplegados siguen desplegados. Los activos sin el dato —sin precio, liquidados— van al final en ambos sentidos. El orden elegido se conserva al volver a presentar la pantalla |
+| RF-074d | La columna Broker/Exchange presenta el nombre como texto, con la misma tipografía que el ticker, sin fondo de color |
 | RF-074b | La cotización MEP con la que se convierten los dólares se informa una sola vez, en la fila de las solapas principales, a la derecha, y sólo mientras Salud financiera es la solapa activa. Se acompaña del acceso para actualizarla desde el servicio de cotizaciones, y ambos van en un marco con el mismo tratamiento que los selectores de vista de las otras solapas |
 | RF-075 | Ganancia se representa en verde y pérdida en rojo, sin excepción, en todas las secciones de la pantalla |
 | RF-076 | Si un activo no tiene precio actual cargado, sus columnas de resultado muestran un guión, no un cero |
@@ -293,6 +295,7 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-073k | Cuando un sector supera el umbral, el sistema emite una **alerta de concentración** en el panel del destino y en las observaciones de Diagnóstico (RF-064), con el mismo texto: sector, porcentaje, destino, tickers que lo componen y umbral. Se señala con ícono y texto, no sólo con color. En el gráfico, los sectores evaluados que no superan el umbral llevan un tilde verde. Los que no se evalúan (RF-073l) llevan el mismo tilde en gris, con información emergente que explica por qué esa clase no se controla: un tilde verde afirmaría una revisión que no se hizo, y la ausencia de ícono se leía como un olvido |
 | RF-073l | No emiten alerta los Índices y ETF amplios, la Renta fija, la Liquidez ni las tenencias sin sector |
 | RF-073m | El umbral es configurable en Parámetros (RF-193) |
+| RF-073s | Junto a la concentración por sector, en una segunda columna, se presenta la **concentración por tipo de riesgo**: Renta variable, Renta fija, Cripto y Liquidez, con el mismo formato de fila y sobre el mismo total. El tipo se deriva del sector: Renta fija, Cripto y Liquidez son su propio tipo; los sectores bursátiles, los índices y los commodities son Renta variable. Las tenencias sin sector se presentan como sin clasificar, porque no puede saberse si son renta variable o fija. Esta concentración no tiene umbral ni alertas |
 
 **Fundamento de RF-073b.** Con texto libre, "Tecnología", "tecnologia" y "Tech" serían tres sectores, y la concentración repartiría en tres lo que es uno solo, subestimando justamente lo que se quiere detectar. Las clases de activo están porque una cartera real las contiene y no pertenecen a ningún sector bursátil. La Liquidez no se asigna porque no es un activo sino lo que el destino aún no invirtió, y su valor ya lo conoce el sistema (RF-073n).
 
@@ -398,7 +401,7 @@ Tres vías, resueltas desde un único asistente.
 | RF-132 | El total por fila se calcula y se actualiza mientras se escribe, sin requerir que el campo pierda el foco |
 | RF-133 | Los totales se presentan discriminados por moneda, con el símbolo separado del importe. No se totaliza mezclando monedas |
 | RF-134 | El destino Trading **no se ofrece** en esta pantalla: las operaciones apalancadas se cargan en la mesa de trading |
-| RF-135 | Cada fila admite el sector del activo (RF-073b). Se completa solo al escribir el ticker, cuando el sistema lo conoce (RF-073c); elegido a mano, deja de seguir al ticker |
+| RF-135 | Cada fila admite el sector del activo (RF-073b), presentado en mayúsculas como en la tabla de activos. Se completa solo al escribir el ticker, cuando el sistema lo conoce (RF-073c); elegido a mano, deja de seguir al ticker |
 | RF-136 | En pantallas donde la fila no entra en una línea, el sector pasa a una segunda línea. Ningún campo queda fuera de la vista |
 
 ---
@@ -903,7 +906,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 412 pruebas en 49 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 416 pruebas en 49 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 
 **Fundamento de RNF-40.** Requerimiento explícito del cliente: una herramienta personal destinada a seguir operativa dentro de cinco años no puede depender de una cadena de compilación cuyas dependencias se degradan en meses.
@@ -1068,9 +1071,19 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.20 | 19/09/2026 | En la información emergente del sector, la línea del sector pasa a ser de mayor tamaño que la de los activos (RF-073r) | Reemplazada |
 | 1.21 | 19/09/2026 | El líquido se informa también en la fila ARS de la cabecera, y la barra ARS lo incluye como Liquidez (RF-072a, RF-073q). La Liquidez del gráfico se rotula en mayúsculas (RF-073n) | Reemplazada |
 | 1.22 | 19/09/2026 | Incorpora los días en tenencia de cada compra (RF-074a) y mueve la cotización MEP a la fila de solapas (RF-074b), retirando de la cabecera los días invertidos. El gráfico de concentración pasa a mayúsculas, con tilde verde en los sectores dentro del límite y sin la leyenda de tenencias sin sector (RF-073h, RF-073j, RF-073k). El selector de sector adopta la tipografía de la fila, que pasa a ser criterio general (RF-073a, RNF-18) | Reemplazada |
-| 1.23 | 19/09/2026 | Las clases que no se controlan contra el límite llevan un tilde gris con su motivo (RF-073k). La cotización MEP va enmarcada como los selectores de vista (RF-074b) | **Vigente** |
+| 1.23 | 19/09/2026 | Las clases que no se controlan contra el límite llevan un tilde gris con su motivo (RF-073k). La cotización MEP va enmarcada como los selectores de vista (RF-074b) | Reemplazada |
+| 1.24 | 19/09/2026 | Incorpora el orden de la tabla de activos por columna (RF-074c), la concentración por tipo de riesgo junto a la de sector (RF-073s) y el broker como texto (RF-074d). El sector del alta pasa a mayúsculas (RF-135) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Orden de la tabla de activos por clic en el título de columna | RF-074c |
+| Concentración por tipo de riesgo en una segunda columna | RF-073s |
+| Broker/Exchange como texto, con la tipografía del ticker | RF-074d |
+| Sector del alta en mayúsculas | RF-135 |
+
+**Implementados en la versión 1.23**
 
 | Cambio | Requerimiento |
 |---|---|

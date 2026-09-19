@@ -1554,12 +1554,52 @@ function sectorDeActivo(ticker, moneda, tickerInfo, listado) {
 // cartera que no es la entera.
 // Las posiciones con valor cero o negativo no entran: no hay tenencia que repartir.
 function concentracionPorSector(posiciones) {
+  return agruparConcentracion(posiciones, function (p) {
+    return (p.sector && sectorPorClave(p.sector)) ? p.sector : null;
+  });
+}
+
+// ─── Tipo de riesgo ───
+// Una agrupación más gruesa que el sector: qué clase de riesgo se corre, no en
+// qué rubro. Se deriva del sector, así no hay otro dato que cargar.
+const TIPOS_RIESGO = [
+  { key: 'renta_variable', label: 'Renta variable' },
+  { key: 'renta_fija',     label: 'Renta fija' },
+  { key: 'cripto',         label: 'Cripto' },
+  { key: 'liquidez',       label: 'Liquidez' }
+];
+
+function etiquetaTipoRiesgo(key) {
+  const t = TIPOS_RIESGO.filter(function (x) { return x.key === key; })[0];
+  return t ? t.label : 'Sin clasificar';
+}
+
+// Renta fija, cripto y liquidez son clases propias. Todo lo demás —los once
+// sectores de bolsa, los índices y los commodities— es renta variable: su
+// precio se mueve con el mercado. Sin sector no se sabe: puede ser una acción
+// o un bono, así que queda sin clasificar en vez de suponer.
+function tipoDeRiesgo(sector) {
+  if (!sector || !sectorPorClave(sector)) return null;
+  if (sector === 'renta_fija' || sector === 'cripto' || sector === 'liquidez') return sector;
+  return 'renta_variable';
+}
+
+// Misma forma que concentracionPorSector —{ total, sectores: [...] }, con la
+// clave del tipo en `sector`— para que la pantalla dibuje los dos gráficos con
+// el mismo código.
+function concentracionPorTipo(posiciones) {
+  return agruparConcentracion(posiciones, function (p) { return tipoDeRiesgo(p.sector); });
+}
+
+// Reparte posiciones por la clave que devuelve claveDe(p); null va al renglón
+// "sin" (sector null en el resultado).
+function agruparConcentracion(posiciones, claveDe) {
   const acc = {};
   let total = 0;
   (posiciones || []).forEach(function (p) {
     const v = Number(p && p.valor) || 0;
     if (v <= 0) return;
-    const k = (p.sector && sectorPorClave(p.sector)) ? p.sector : '__sin__';
+    const k = claveDe(p) || '__sin__';
     if (!acc[k]) acc[k] = { sector: k === '__sin__' ? null : k, valor: 0, tickers: [], detalle: [] };
     acc[k].valor += v;
     if (acc[k].tickers.indexOf(p.ticker) < 0) acc[k].tickers.push(p.ticker);
@@ -2799,6 +2839,7 @@ if (typeof module !== 'undefined' && module.exports) {
     // sector de los activos
     SECTORES, sectorPorClave, etiquetaSector, sectorDeActivo, sectoresSeleccionables,
     concentracionPorSector, sectoresConcentrados,
+    TIPOS_RIESGO, etiquetaTipoRiesgo, tipoDeRiesgo, concentracionPorTipo,
     // ventas de activos
     ventasDeEntrada, cantidadVendida, cantidadRestante, productoVentas,
     costoVendido, realizadoDeEntrada, invertidoRestante, estadoEntrada, validarVenta,
