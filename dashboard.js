@@ -18481,16 +18481,20 @@ function buildInvestmentDetailPanel(destinos, title) {
     return '<table class="investment-detail-table investment-detail-grouped inv-table-' + monedaLabel.toLowerCase() + '">' +
       '<colgroup>' +
         '<col style="width:20px">' +   /* toggle chevron · en el detalle, borrar */
-        '<col style="width:140px">' +  /* Broker/Exchange · en el detalle, destino */
-        '<col style="width:90px">' +   /* Ticker · en el detalle, fecha */
-        '<col style="width:175px">' +  /* Descripción · vacía en el detalle */
+        '<col style="width:125px">' +  /* Broker/Exchange · en el detalle, destino. El chip más ancho, BULL MARKET, mide 119 */
+        '<col style="width:80px">' +   /* Ticker · en el detalle, fecha. Entra "ETH-USDT" */
+        /* Descripción: 190 para que entre "BARRICK GOLD CORPORATION", la más
+           larga de la demo (170px de texto más el padding del campo). */
+        '<col style="width:190px">' +  /* Descripción · vacía en el detalle */
         /* Sector: "Consumo discrecional" mide 116px en 11px Inter, más el
            padding y la flecha del selector; con 150 la celda quedaba en 132. */
         '<col style="width:165px">' +  /* Sector · vacía en el detalle */
         '<col style="width:85px">' +   /* Cantidad */
         '<col style="width:105px">' +  /* PPC · en el detalle, precio de compra */
-        '<col style="width:110px">' +  /* Invertido · en el detalle, total comprado */
-        '<col style="width:110px">' +  /* Precio actual */
+        '<col style="width:105px">' +  /* Invertido · en el detalle, total comprado */
+        /* Precio actual: 125 para que entre "$ 1.234.567,89" en el campo
+           editable, que lleva padding y borde además del número. */
+        '<col style="width:125px">' +  /* Precio actual */
         '<col style="width:110px">' +  /* Variación por nominal */
         '<col style="width:110px">' +  /* Actualizado · en el detalle, total actualizado */
         '<col style="width:100px">' +  /* G/P */

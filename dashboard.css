@@ -6343,11 +6343,16 @@ body[data-exporting="true"] .section-card {
    izquierdo de la celda, terminaba separado del número por todo ese hueco —con
    el recuadro del campo cortando la columna al medio.
    field-sizing es de Chrome/Edge, que es donde la app se usa con datos reales;
-   el max-width es el respaldo para el resto. */
+   el max-width es el respaldo para el resto.
+   El max-width era 9ch, de cuando el precio no tenía decimales. Con
+   box-sizing: border-box esos 9ch incluían padding y borde, así que el número
+   tenía lugar para 7 caracteres: "16.240,00" se veía "16.240," —medido, 59px
+   de caja contra 71 de contenido—. Ahora entran 12 caracteres de número
+   ("1.234.567,89") más los 12px de padding y los 2 de borde. */
 .inv-price-wrap .inv-price-input {
   width: auto;
   min-width: 0;
-  max-width: 9ch;
+  max-width: calc(12ch + 14px);
   field-sizing: content;
   flex: 0 1 auto;
 }
