@@ -5755,9 +5755,17 @@ body[data-exporting="true"] .section-card {
    hay botones de toggle sino una etiqueta, un valor y el botón ↻. */
 .view-mode-toggle.main-tabs-mep {
   align-items: center;
-  gap: 6px;
-  padding: 3px 4px 3px 14px;
+  gap: 2px;
+  padding: 3px;
 }
+/* La cotización lleva .view-mode-btn.active —el estilo de la opción elegida
+   de un toggle, como VS en Evolución—. Es un dato y no un botón: sin cursor de
+   clic. Etiqueta y valor toman el color del botón activo en vez del suyo. */
+/* 27px: medido, los botones de los toggles miden 27 porque llevan un ícono de
+   13px; sin ícono, la cotización daba 26. */
+.main-tabs-mep-dato { cursor: default; min-height: 27px; box-sizing: border-box; }
+.main-tabs-mep-dato .inv-header-cotizacion-label,
+.main-tabs-mep-dato .inv-header-cotizacion-value { color: inherit; }
 
 /* ===== Toggle de modo de visualización en Evolución (Presupuestado/Real/VS) =====
    La clase se aplica al wrapper #mainTabBudget como data-budget-view. CSS

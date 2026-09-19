@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.24 |
+| **Versión** | 1.25 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -223,7 +223,7 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-074a | Cada compra del detalle informa sus **días en tenencia**, a continuación de la fecha: los días desde la fecha de compra hasta hoy. Si la compra se vendió por completo, hasta la fecha de su última venta, porque desde ahí no se tiene nada. Una venta parcial no interrumpe la cuenta |
 | RF-074c | La tabla de activos se ordena por cualquier columna haciendo clic en su título; un segundo clic invierte el sentido. Cada activo se mueve junto con sus compras, y los que estaban desplegados siguen desplegados. Los activos sin el dato —sin precio, liquidados— van al final en ambos sentidos. El orden elegido se conserva al volver a presentar la pantalla |
 | RF-074d | La columna Broker/Exchange presenta el nombre como texto, con la misma tipografía que el ticker, sin fondo de color |
-| RF-074b | La cotización MEP con la que se convierten los dólares se informa una sola vez, en la fila de las solapas principales, a la derecha, y sólo mientras Salud financiera es la solapa activa. Se acompaña del acceso para actualizarla desde el servicio de cotizaciones, y ambos van en un marco con el mismo tratamiento que los selectores de vista de las otras solapas |
+| RF-074b | La cotización MEP con la que se convierten los dólares se informa una sola vez, en la fila de las solapas principales, a la derecha, y sólo mientras Salud financiera es la solapa activa. Se acompaña del acceso para actualizarla desde el servicio de cotizaciones, y ambos van en un marco con el mismo tratamiento que los selectores de vista de las otras solapas. La cotización se presenta como la opción seleccionada de esos selectores |
 | RF-075 | Ganancia se representa en verde y pérdida en rojo, sin excepción, en todas las secciones de la pantalla |
 | RF-076 | Si un activo no tiene precio actual cargado, sus columnas de resultado muestran un guión, no un cero |
 | RF-076a | El precio se registra **por ticker y por moneda**. Un mismo símbolo tenido en pesos y en dólares son dos precios distintos —el CEDEAR y la acción— y ninguno sustituye al otro |
@@ -1072,9 +1072,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.21 | 19/09/2026 | El líquido se informa también en la fila ARS de la cabecera, y la barra ARS lo incluye como Liquidez (RF-072a, RF-073q). La Liquidez del gráfico se rotula en mayúsculas (RF-073n) | Reemplazada |
 | 1.22 | 19/09/2026 | Incorpora los días en tenencia de cada compra (RF-074a) y mueve la cotización MEP a la fila de solapas (RF-074b), retirando de la cabecera los días invertidos. El gráfico de concentración pasa a mayúsculas, con tilde verde en los sectores dentro del límite y sin la leyenda de tenencias sin sector (RF-073h, RF-073j, RF-073k). El selector de sector adopta la tipografía de la fila, que pasa a ser criterio general (RF-073a, RNF-18) | Reemplazada |
 | 1.23 | 19/09/2026 | Las clases que no se controlan contra el límite llevan un tilde gris con su motivo (RF-073k). La cotización MEP va enmarcada como los selectores de vista (RF-074b) | Reemplazada |
-| 1.24 | 19/09/2026 | Incorpora el orden de la tabla de activos por columna (RF-074c), la concentración por tipo de riesgo junto a la de sector (RF-073s) y el broker como texto (RF-074d). El sector del alta pasa a mayúsculas (RF-135) | **Vigente** |
+| 1.24 | 19/09/2026 | Incorpora el orden de la tabla de activos por columna (RF-074c), la concentración por tipo de riesgo junto a la de sector (RF-073s) y el broker como texto (RF-074d). El sector del alta pasa a mayúsculas (RF-135) | Reemplazada |
+| 1.25 | 19/09/2026 | La cotización MEP se presenta como la opción seleccionada de los selectores de vista (RF-074b) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Cotización MEP con el estilo de la opción seleccionada de un toggle | RF-074b |
+
+**Implementados en la versión 1.24**
 
 | Cambio | Requerimiento |
 |---|---|
