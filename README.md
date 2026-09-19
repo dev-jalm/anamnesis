@@ -96,8 +96,8 @@ La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite
 
 ```
 dashboard.html    3.163 líneas    estructura, modales, formularios
-dashboard.css     8.037 líneas    estilos y theming claro/oscuro
-dashboard.js     22.904 líneas    lógica, render, estado, importación
+dashboard.css     8.058 líneas    estilos y theming claro/oscuro
+dashboard.js     22.923 líneas    lógica, render, estado, importación
 core.js           2.846 líneas    funciones puras + motor de plantillas
 mesa-trading.js   2.985 líneas    mesa de trading: riesgo, liquidación, historial
 mesa-trading.css  1.029 líneas    estilos de la mesa

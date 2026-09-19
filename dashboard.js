@@ -17910,6 +17910,15 @@ function colorDeSector(key) {
   return mapa[key] || 'var(--muted)';
 }
 
+// Por qué una clase no se controla contra el límite de concentración. Es el
+// tooltip del tilde gris: sin él, una fila sin tilde verde se leía como olvido.
+const MOTIVO_SIN_CONTROL = {
+  indices: 'Un índice amplio ya está diversificado: tener mucho en él no concentra el riesgo en un rubro.',
+  renta_fija: 'La renta fija no es un rubro de la bolsa: no se mide contra el límite de sector.',
+  liquidez: 'Es plata sin invertir: no concentra el riesgo en ningún sector.',
+  __sin__: 'Sin sector no se puede saber si está concentrado. Asignalo en la columna Sector de la tabla.'
+};
+
 // Bloque "Concentración por sector" del cuerpo de una cartera. Cada fila:
 // sector · porcentaje · barra, con los activos que la componen escritos
 // adentro de la barra. Barras y no torta: el dato es comparar cada parte
@@ -17931,15 +17940,25 @@ function buildSectorConcentrationBlock(destinos, nombreCartera) {
     const pctTxt = s.pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
     const tip = tooltipSector(s, '$');
     const color = colorDeSector(s.sector);
-    // Tilde verde para los que se evalúan y quedan dentro del límite. Los que
-    // no se evalúan —índices, renta fija, liquidez, sin sector— no llevan
-    // ninguno de los dos íconos: un tilde diría que se revisaron, y no es así.
+    // Tres íconos, según qué pasó con el límite:
+    //   triángulo rojo → se controló y lo supera
+    //   tilde verde    → se controló y queda dentro
+    //   tilde gris     → no se controla (índices, renta fija, liquidez, sin
+    //                    sector); el ícono lleva su propio tooltip con el motivo,
+    //                    para que no se lea como un olvido.
     const def = s.sector && sectorPorClave(s.sector);
-    const dentro = !over && umbral > 0 && !!def && def.alerta !== false;
-    return '<div class="inv-sector-row' + (over ? ' is-over' : '') + (dentro ? ' is-ok' : '') + (sinSector ? ' is-none' : '') + '"' + tip + '>' +
+    const exento = umbral > 0 && (!def || def.alerta === false);
+    const dentro = !over && umbral > 0 && !exento;
+    const iconoExento = exento
+      ? '<span class="inv-sector-exento" data-tip-titulo="NO SE CONTROLA" data-tip-detalle="' +
+          escapeHtmlSafe(MOTIVO_SIN_CONTROL[s.sector || '__sin__'] || '') + '">' +
+          '<i data-lucide="check" style="width:11px;height:11px"></i></span>'
+      : '';
+    return '<div class="inv-sector-row' + (over ? ' is-over' : '') + (dentro ? ' is-ok' : '') + (exento ? ' is-exento' : '') + (sinSector ? ' is-none' : '') + '"' + tip + '>' +
       '<span class="inv-sector-name">' +
         (over ? '<i data-lucide="alert-triangle" style="width:11px;height:11px"></i>' : '') +
         (dentro ? '<i data-lucide="check" style="width:11px;height:11px"></i>' : '') +
+        iconoExento +
         escapeHtmlSafe(etiquetaSector(s.sector)) +
       '</span>' +
       '<span class="inv-sector-pct">' + pctTxt + '</span>' +

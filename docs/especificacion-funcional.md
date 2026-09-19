@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.22 |
+| **Versión** | 1.23 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -221,7 +221,7 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-073 | La tabla de activos expone, por ticker: nominales, precio promedio de compra, total invertido, precio actual, variación por nominal, total actualizado y resultado |
 | RF-074 | Cada activo se despliega en sus compras individuales, y cada compra muestra su resultado contra el precio vigente |
 | RF-074a | Cada compra del detalle informa sus **días en tenencia**, a continuación de la fecha: los días desde la fecha de compra hasta hoy. Si la compra se vendió por completo, hasta la fecha de su última venta, porque desde ahí no se tiene nada. Una venta parcial no interrumpe la cuenta |
-| RF-074b | La cotización MEP con la que se convierten los dólares se informa una sola vez, en la fila de las solapas principales, a la derecha, y sólo mientras Salud financiera es la solapa activa. Se acompaña del acceso para actualizarla desde el servicio de cotizaciones |
+| RF-074b | La cotización MEP con la que se convierten los dólares se informa una sola vez, en la fila de las solapas principales, a la derecha, y sólo mientras Salud financiera es la solapa activa. Se acompaña del acceso para actualizarla desde el servicio de cotizaciones, y ambos van en un marco con el mismo tratamiento que los selectores de vista de las otras solapas |
 | RF-075 | Ganancia se representa en verde y pérdida en rojo, sin excepción, en todas las secciones de la pantalla |
 | RF-076 | Si un activo no tiene precio actual cargado, sus columnas de resultado muestran un guión, no un cero |
 | RF-076a | El precio se registra **por ticker y por moneda**. Un mismo símbolo tenido en pesos y en dólares son dos precios distintos —el CEDEAR y la acción— y ninguno sustituye al otro |
@@ -290,7 +290,7 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-073p | El texto de los activos se ubica dentro de la barra cuando cabe con margen; si no cabe, a continuación de ella; si tampoco cabe allí, se omite y permanece disponible en la información emergente de la fila. Nunca se presenta recortado |
 | RF-073i | El valor de cada tenencia es nominales por precio actual. Sin precio actual se toma el costo, y el sistema informa qué tenencias se valuaron así. Las tenencias en dólares se convierten a pesos a la cotización MEP. Las posiciones liquidadas no intervienen |
 | RF-073j | Las tenencias sin sector se presentan en un renglón propio y cuentan en el total. Sus activos se leen en la barra y en la información emergente, como los de cualquier sector |
-| RF-073k | Cuando un sector supera el umbral, el sistema emite una **alerta de concentración** en el panel del destino y en las observaciones de Diagnóstico (RF-064), con el mismo texto: sector, porcentaje, destino, tickers que lo componen y umbral. Se señala con ícono y texto, no sólo con color. En el gráfico, los sectores evaluados que no superan el umbral llevan un tilde verde; los que no se evalúan (RF-073l) no llevan ícono, porque un tilde afirmaría una revisión que no se hizo |
+| RF-073k | Cuando un sector supera el umbral, el sistema emite una **alerta de concentración** en el panel del destino y en las observaciones de Diagnóstico (RF-064), con el mismo texto: sector, porcentaje, destino, tickers que lo componen y umbral. Se señala con ícono y texto, no sólo con color. En el gráfico, los sectores evaluados que no superan el umbral llevan un tilde verde. Los que no se evalúan (RF-073l) llevan el mismo tilde en gris, con información emergente que explica por qué esa clase no se controla: un tilde verde afirmaría una revisión que no se hizo, y la ausencia de ícono se leía como un olvido |
 | RF-073l | No emiten alerta los Índices y ETF amplios, la Renta fija, la Liquidez ni las tenencias sin sector |
 | RF-073m | El umbral es configurable en Parámetros (RF-193) |
 
@@ -1067,9 +1067,17 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.19 | 19/09/2026 | La primera línea de la información emergente del sector va en mayúsculas y negrita, y el selector de sector de la tabla de activos en mayúsculas (RF-073r, RF-073a) | Reemplazada |
 | 1.20 | 19/09/2026 | En la información emergente del sector, la línea del sector pasa a ser de mayor tamaño que la de los activos (RF-073r) | Reemplazada |
 | 1.21 | 19/09/2026 | El líquido se informa también en la fila ARS de la cabecera, y la barra ARS lo incluye como Liquidez (RF-072a, RF-073q). La Liquidez del gráfico se rotula en mayúsculas (RF-073n) | Reemplazada |
-| 1.22 | 19/09/2026 | Incorpora los días en tenencia de cada compra (RF-074a) y mueve la cotización MEP a la fila de solapas (RF-074b), retirando de la cabecera los días invertidos. El gráfico de concentración pasa a mayúsculas, con tilde verde en los sectores dentro del límite y sin la leyenda de tenencias sin sector (RF-073h, RF-073j, RF-073k). El selector de sector adopta la tipografía de la fila, que pasa a ser criterio general (RF-073a, RNF-18) | **Vigente** |
+| 1.22 | 19/09/2026 | Incorpora los días en tenencia de cada compra (RF-074a) y mueve la cotización MEP a la fila de solapas (RF-074b), retirando de la cabecera los días invertidos. El gráfico de concentración pasa a mayúsculas, con tilde verde en los sectores dentro del límite y sin la leyenda de tenencias sin sector (RF-073h, RF-073j, RF-073k). El selector de sector adopta la tipografía de la fila, que pasa a ser criterio general (RF-073a, RNF-18) | Reemplazada |
+| 1.23 | 19/09/2026 | Las clases que no se controlan contra el límite llevan un tilde gris con su motivo (RF-073k). La cotización MEP va enmarcada como los selectores de vista (RF-074b) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Tilde gris con el motivo en las clases que no se controlan | RF-073k |
+| Cotización MEP en un marco como el de los selectores de vista | RF-074b |
+
+**Implementados en la versión 1.22**
 
 | Cambio | Requerimiento |
 |---|---|

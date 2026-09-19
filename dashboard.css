@@ -5749,9 +5749,15 @@ body[data-exporting="true"] .section-card {
 }
 .main-tabs-toggle-slot .view-mode-toggle { display: none; }
 .main-tabs-toggle-slot .view-mode-toggle.tab-visible { display: inline-flex; }
-/* Cotización MEP usada, sólo con Salud financiera activa. */
-.main-tabs-mep { display: none; align-items: center; gap: 6px; }
-.main-tabs-mep.tab-visible { display: inline-flex; }
+/* Cotización MEP usada, sólo con Salud financiera activa. Lleva la clase
+   .view-mode-toggle —el marco redondeado de los toggles de las otras solapas, y
+   su regla de visibilidad—; acá sólo el espaciado interno, porque adentro no
+   hay botones de toggle sino una etiqueta, un valor y el botón ↻. */
+.view-mode-toggle.main-tabs-mep {
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 14px;
+}
 
 /* ===== Toggle de modo de visualización en Evolución (Presupuestado/Real/VS) =====
    La clase se aplica al wrapper #mainTabBudget como data-budget-view. CSS
@@ -6284,6 +6290,21 @@ body[data-exporting="true"] .section-card {
 .inv-sector-row.is-over .inv-sector-name svg { color: var(--red); flex-shrink: 0; }
 /* Dentro del límite: tilde verde, el par del triángulo rojo de arriba. */
 .inv-sector-row.is-ok .inv-sector-name svg { color: var(--green); flex-shrink: 0; }
+/* No se controla: el mismo tilde, en gris. Su tooltip dice por qué. */
+.inv-sector-exento { display: inline-flex; flex-shrink: 0; cursor: help; }
+/* Al 50%: a opacidad plena, el gris y el verde del tilde medían ΔE 11,5 en
+   oscuro y 9,2 en claro —por debajo de 15, no se distinguían—. Así quedan en
+   29,2 y 18,7, y el tilde se sigue viendo contra el fondo (22,6 y 19). */
+.inv-sector-exento svg { color: var(--muted); opacity: 0.5; }
+/* El ↻ de la cotización MEP, dentro del marco de toggle: redondo y de la misma
+   altura que los botones de los toggles vecinos, así el marco mide lo mismo. */
+.main-tabs-mep .inv-mep-refresh-btn {
+  /* 27: medido, con 26 el marco daba 34px contra 35 de los toggles vecinos */
+  width: 27px;
+  height: 27px;
+  border-radius: 100px;
+  border-color: transparent;
+}
 .inv-sector-row.is-none .inv-sector-name { color: var(--muted); font-style: italic; }
 /* La pista es el 100% de la cartera: el largo de la barra ES el porcentaje, no
    una escala relativa al sector más grande. Así la línea del umbral cae en el
