@@ -20,6 +20,10 @@
   --orange: #E8A07C;
   --tooltip-bg: #2A2520;
   --tooltip-text: #F5F1E8;
+  /* Título de tooltip en color de acento. En claro es el acento de siempre
+     (6,6:1 sobre --tooltip-bg); en oscuro el tooltip es claro y el acento
+     quedaba en 1,5:1, así que va un dorado oscuro (5,2:1). */
+  --tooltip-accent: #D4A24C;
   --on-dark-bg: #2A2520;
   --on-dark-text: #F5F1E8;
   /* Los colores de los sectores salen de PALETA_DISTRIBUCION (dashboard.js),
@@ -56,6 +60,7 @@
   --orange: #F2B589;
   --tooltip-bg: #EFE7D6;
   --tooltip-text: #1A1714;
+  --tooltip-accent: #7A5A0E;
   --on-dark-bg: #0F0D0B;
   --on-dark-text: #EFE7D6;
   --sector-neutro-1: #B5A892;
@@ -6163,6 +6168,40 @@ body[data-exporting="true"] .section-card {
 .inv-sector-sel.modified { color: var(--accent); font-weight: 600; }
 .inv-sector-sel.inv-sector-vacio { color: var(--muted); font-style: italic; }
 .inv-sector-sel option { color: var(--ink); background: var(--card); font-style: normal; }
+/* En mayúsculas, como la descripción de al lado —que también se muestra así
+   por CSS—: el dato no cambia, sólo cómo se ve. Las opciones también, para que
+   la lista desplegada coincida con lo que queda elegido. */
+.inv-sector-sel,
+.inv-sector-sel option { text-transform: uppercase; }
+
+/* Tooltip de los sectores. Mismo aspecto que el tooltip de los gráficos
+   (getChartBase): fondo --tooltip-bg, título en JetBrains Mono negrita con el
+   color de acento, detalle en Inter. No es el title nativo porque ese no
+   admite negrita. position: fixed, así lo ubica el JS contra el mouse. */
+.sector-tip {
+  position: fixed;
+  z-index: 300;
+  pointer-events: none;
+  max-width: 360px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+.sector-tip-titulo {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tooltip-accent);
+  white-space: nowrap;
+}
+.sector-tip-detalle {
+  margin-top: 4px;
+  font-family: 'Inter', system-ui;
+  font-size: 12px;
+  line-height: 1.4;
+}
 
 /* Bloque "Concentración por sector" del cuerpo de cada cartera. Una fila por
    sector: nombre · barra con la línea del umbral · porcentaje · tickers. */

@@ -1211,7 +1211,9 @@ function getCssVar(name) {
 function getChartBase() {
   const tooltipBg = getCssVar('--tooltip-bg') || '#2A2520';
   const tooltipText = getCssVar('--tooltip-text') || '#F5F1E8';
-  const accent = getCssVar('--accent') || '#D4A24C';
+  // El título va en --tooltip-accent y no en --accent: en oscuro el tooltip es
+  // claro y el acento quedaba en 1,5:1 de contraste sobre él.
+  const accent = getCssVar('--tooltip-accent') || '#D4A24C';
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -17354,18 +17356,67 @@ function buildReservaMetaRow() {
 const PALETA_DISTRIBUCION = ['#D4A24C','#8E5A9E','#4A6B8A','#6B8E4E','#C8553D','#A88A6B','#8B7355','#D4849E','#5B8F9F','#B98D5C'];
 
 // Tooltip de un sector, en dos líneas:
-//   Tecnología: 54,2% ($ 2.573.240)
-//   AAPL 22,2%, NVDA 17,7%, MSFT 14,3%
+//   TECNOLOGÍA: 54,2% ($ 2.573.240)      ← título: mayúsculas, en negrita
+//   AAPL 22,2%, NVDA 17,7%, MSFT 14,3%   ← detalle
 // El % de cada activo es sobre el mismo total que el del sector, así suman
 // ese porcentaje. Lo usan la barra de cada moneda de la cabecera y las filas
 // del gráfico de concentración, para que digan lo mismo del mismo modo.
-// El salto de línea va como carácter: el title lo muestra tal cual.
+//
+// No es el title nativo: ese sólo admite texto plano, y el título va en
+// negrita. Devuelve los atributos que lee el tooltip de sectores (ver
+// bindTooltipSector); aria-label deja el mismo texto para lectores de pantalla.
 function tooltipSector(s, prefix) {
   const pct = function (n) { return n.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%'; };
-  const linea1 = etiquetaSector(s.sector) + ': ' + pct(s.pct) + ' (' + prefix + ' ' + fmt(Math.round(s.valor)) + ')';
-  const linea2 = (s.detalle || []).map(function (d) { return d.ticker + ' ' + pct(d.pct); }).join(', ');
-  return linea1 + (linea2 ? '\n' + linea2 : '');
+  const titulo = etiquetaSector(s.sector).toLocaleUpperCase('es-AR') + ': ' + pct(s.pct) + ' (' + prefix + ' ' + fmt(Math.round(s.valor)) + ')';
+  const detalle = (s.detalle || []).map(function (d) { return d.ticker + ' ' + pct(d.pct); }).join(', ');
+  return ' data-tip-titulo="' + escapeHtmlSafe(titulo) + '"' +
+    ' data-tip-detalle="' + escapeHtmlSafe(detalle) + '"' +
+    ' aria-label="' + escapeHtmlSafe(titulo + (detalle ? '. ' + detalle : '')) + '"';
 }
+
+// Un solo tooltip flotante para todos los sectores, creado la primera vez que
+// se necesita. Delegado en document: las barras se re-renderizan seguido y así
+// no hay que volver a bindear nada. Sigue al mouse y no se sale de la ventana.
+(function bindTooltipSector() {
+  let tip = null;
+  function crear() {
+    tip = document.createElement('div');
+    tip.className = 'sector-tip hidden';
+    tip.setAttribute('role', 'tooltip');
+    tip.innerHTML = '<div class="sector-tip-titulo"></div><div class="sector-tip-detalle"></div>';
+    document.body.appendChild(tip);
+  }
+  function ubicar(e) {
+    const M = 12;
+    const r = tip.getBoundingClientRect();
+    let x = e.clientX + M, y = e.clientY + M;
+    if (x + r.width > window.innerWidth - 4) x = e.clientX - r.width - M;
+    if (y + r.height > window.innerHeight - 4) y = e.clientY - r.height - M;
+    tip.style.left = Math.max(4, x) + 'px';
+    tip.style.top = Math.max(4, y) + 'px';
+  }
+  document.addEventListener('mouseover', function (e) {
+    const el = e.target.closest && e.target.closest('[data-tip-titulo]');
+    if (!el) return;
+    if (!tip) crear();
+    tip.querySelector('.sector-tip-titulo').textContent = el.getAttribute('data-tip-titulo');
+    const det = el.getAttribute('data-tip-detalle') || '';
+    const detEl = tip.querySelector('.sector-tip-detalle');
+    detEl.textContent = det;
+    detEl.classList.toggle('hidden', !det);
+    tip.classList.remove('hidden');
+    ubicar(e);
+  });
+  document.addEventListener('mousemove', function (e) {
+    if (tip && !tip.classList.contains('hidden') && e.target.closest && e.target.closest('[data-tip-titulo]')) ubicar(e);
+  });
+  document.addEventListener('mouseout', function (e) {
+    if (!tip) return;
+    const de = e.target.closest && e.target.closest('[data-tip-titulo]');
+    const a = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-tip-titulo]');
+    if (de && de !== a) tip.classList.add('hidden');
+  });
+})();
 
 // Barra apilada de la cabecera con la concentración por sector de UNA moneda:
 // la fila ARS reparte lo que hay en pesos y la fila USD lo que hay en dólares.
@@ -17401,9 +17452,11 @@ function buildDistributionBar(groups, tickers, prefix) {
     const color = colorDeSector(s.sector);
     const tooltip = tooltipSector(s, prefix);
     return '<span class="inv-distbar-seg' + (s.sector ? '' : ' inv-distbar-sin-sector') + '" style="width:' + s.pct.toFixed(2) + '%' +
-      (color ? ';background:' + color : '') + '" title="' + escapeHtmlSafe(tooltip) + '"></span>';
+      (color ? ';background:' + color : '') + '"' + tooltip + '></span>';
   }).join('');
-  return '<div class="inv-distbar" title="Concentración por sector">' + segments + '</div>';
+  // aria-label y no title: un title en el contenedor aparecería como tooltip
+  // nativo al pasar por cada tramo, encima del tooltip de sector.
+  return '<div class="inv-distbar" aria-label="Concentración por sector">' + segments + '</div>';
 }
 
 // Si no hay datos o todos los aportes son de meses futuros, devuelve un sparkline
@@ -17863,7 +17916,7 @@ function buildSectorConcentrationBlock(destinos, nombreCartera) {
     const pctTxt = s.pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
     const tip = tooltipSector(s, '$');
     const color = colorDeSector(s.sector);
-    return '<div class="inv-sector-row' + (over ? ' is-over' : '') + (sinSector ? ' is-none' : '') + '" title="' + escapeHtmlSafe(tip) + '">' +
+    return '<div class="inv-sector-row' + (over ? ' is-over' : '') + (sinSector ? ' is-none' : '') + '"' + tip + '>' +
       '<span class="inv-sector-name">' +
         (over ? '<i data-lucide="alert-triangle" style="width:11px;height:11px"></i>' : '') +
         escapeHtmlSafe(etiquetaSector(s.sector)) +
@@ -18498,12 +18551,15 @@ function buildInvestmentDetailPanel(destinos, title) {
         '<col style="width:20px">' +   /* toggle chevron · en el detalle, borrar */
         '<col style="width:125px">' +  /* Broker/Exchange · en el detalle, destino. El chip más ancho, BULL MARKET, mide 119 */
         '<col style="width:80px">' +   /* Ticker · en el detalle, fecha. Entra "ETH-USDT" */
-        /* Descripción: 190 para que entre "BARRICK GOLD CORPORATION", la más
-           larga de la demo (170px de texto más el padding del campo). */
-        '<col style="width:190px">' +  /* Descripción · vacía en el detalle */
-        /* Sector: "Consumo discrecional" mide 116px en 11px Inter, más el
-           padding y la flecha del selector; con 150 la celda quedaba en 132. */
-        '<col style="width:165px">' +  /* Sector · vacía en el detalle */
+        /* Descripción: 195 para que entre "BARRICK GOLD CORPORATION", la más
+           larga de la demo: el campo necesita 170 de ancho útil y la celda le
+           resta 20 de padding. Con 190 entraba sólo porque la tabla sumaba
+           menos que el contenedor y el sobrante se repartía entre columnas. */
+        '<col style="width:195px">' +  /* Descripción · vacía en el detalle */
+        /* Sector: en mayúsculas, un selector con "CONSUMO DISCRECIONAL" mide
+           174px con su padding y su flecha (medido con width:auto; en negrita,
+           cuando está editado a mano). La celda le resta 20 de padding. */
+        '<col style="width:195px">' +  /* Sector · vacía en el detalle */
         '<col style="width:85px">' +   /* Cantidad */
         '<col style="width:105px">' +  /* PPC · en el detalle, precio de compra */
         '<col style="width:105px">' +  /* Invertido · en el detalle, total comprado */
