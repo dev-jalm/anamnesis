@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.26 |
+| **Versión** | 1.27 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -292,7 +292,7 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-073p | El texto de los activos se ubica dentro de la barra cuando cabe con margen; si no cabe, a continuación de ella; si tampoco cabe allí, se omite y permanece disponible en la información emergente de la fila. Nunca se presenta recortado |
 | RF-073i | El valor de cada tenencia es nominales por precio actual. Sin precio actual se toma el costo, y el sistema informa qué tenencias se valuaron así. Las tenencias en dólares se convierten a pesos a la cotización MEP. Las posiciones liquidadas no intervienen |
 | RF-073j | Las tenencias sin sector se presentan en un renglón propio y cuentan en el total. Sus activos se leen en la barra y en la información emergente, como los de cualquier sector |
-| RF-073k | Cuando un sector supera el umbral, el sistema emite una **alerta de concentración** en el panel del destino y en las observaciones de Diagnóstico (RF-064), con el mismo texto: sector, porcentaje, destino, tickers que lo componen y umbral. Se señala con ícono y texto, no sólo con color. En el gráfico, los sectores evaluados que no superan el umbral llevan un tilde verde. Los que no se evalúan (RF-073l) llevan el mismo tilde en gris, con información emergente que explica por qué esa clase no se controla: un tilde verde afirmaría una revisión que no se hizo, y la ausencia de ícono se leía como un olvido |
+| RF-073k | Cuando un sector supera el umbral, el sistema emite una **alerta de concentración** en el panel del destino y en las observaciones de Diagnóstico (RF-064), con el mismo texto: sector, porcentaje, destino y umbral. No enumera los activos: ya figuran en la barra del sector y en su información emergente. Se señala con ícono y texto, no sólo con color. En el gráfico, los sectores evaluados que no superan el umbral llevan un tilde verde. Los que no se evalúan (RF-073l) llevan el mismo tilde en gris, con información emergente que explica por qué esa clase no se controla: un tilde verde afirmaría una revisión que no se hizo, y la ausencia de ícono se leía como un olvido |
 | RF-073l | No emiten alerta los Índices y ETF amplios, la Renta fija, la Liquidez ni las tenencias sin sector |
 | RF-073m | El umbral es configurable en Parámetros (RF-193) |
 | RF-073s | Junto a la concentración por sector, en una segunda columna, se presenta la **concentración por tipo de riesgo**: Renta variable, Renta fija, Cripto y Liquidez, con el mismo formato de fila y sobre el mismo total. El tipo se deriva del sector: Renta fija, Cripto y Liquidez son su propio tipo; los sectores bursátiles, los índices y los commodities son Renta variable. Las tenencias sin sector se presentan como sin clasificar, porque no puede saberse si son renta variable o fija |
@@ -1078,9 +1078,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.23 | 19/09/2026 | Las clases que no se controlan contra el límite llevan un tilde gris con su motivo (RF-073k). La cotización MEP va enmarcada como los selectores de vista (RF-074b) | Reemplazada |
 | 1.24 | 19/09/2026 | Incorpora el orden de la tabla de activos por columna (RF-074c), la concentración por tipo de riesgo junto a la de sector (RF-073s) y el broker como texto (RF-074d). El sector del alta pasa a mayúsculas (RF-135) | Reemplazada |
 | 1.25 | 19/09/2026 | La cotización MEP se presenta como la opción seleccionada de los selectores de vista (RF-074b) | Reemplazada |
-| 1.26 | 19/09/2026 | Alertas de concentración por tipo de riesgo con umbral propio (RF-073t, RF-194). Las dos columnas de concentración comparten filas, así que sus barras arrancan a la misma altura (RF-073u). La línea del umbral pasa detrás de las barras (RF-073v) | **Vigente** |
+| 1.26 | 19/09/2026 | Alertas de concentración por tipo de riesgo con umbral propio (RF-073t, RF-194). Las dos columnas de concentración comparten filas, así que sus barras arrancan a la misma altura (RF-073u). La línea del umbral pasa detrás de las barras (RF-073v) | Reemplazada |
+| 1.27 | 19/09/2026 | Los avisos de concentración, por sector y por tipo de riesgo, dejan de enumerar los activos (RF-073k, RF-073t) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Avisos de concentración sin la lista de activos | RF-073k, RF-073t |
+
+**Implementados en la versión 1.26**
 
 | Cambio | Requerimiento |
 |---|---|

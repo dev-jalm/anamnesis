@@ -17958,10 +17958,12 @@ function concentracionDeCartera(destinos) {
 
 // Texto de la alerta de un sector concentrado. Lo usan el panel de la cartera y
 // los avisos de Diagnóstico, para que digan lo mismo con las mismas palabras.
+// Sin la lista de tickers: ya están escritos en la barra del sector, justo
+// debajo, y en una cartera grande la lista alargaba el aviso sin agregar nada.
 function textoAlertaSector(s, nombreCartera, umbral) {
   return '<strong>' + escapeHtmlSafe(etiquetaSector(s.sector)) + '</strong> concentra el <strong>' +
     s.pct.toFixed(0) + '%</strong> de ' + escapeHtmlSafe(nombreCartera) +
-    ' (' + escapeHtmlSafe(s.tickers.join(', ')) + '), por encima del ' + umbral + '% configurado.';
+    ', por encima del ' + umbral + '% configurado.';
 }
 
 // ─── Colores de los sectores ───
@@ -18161,7 +18163,7 @@ const MOTIVO_SIN_CONTROL_TIPO = {
 function textoAlertaTipo(s, nombreCartera, umbral) {
   return '<strong>' + escapeHtmlSafe(etiquetaTipoRiesgo(s.sector)) + '</strong> concentra el <strong>' +
     s.pct.toFixed(0) + '%</strong> de ' + escapeHtmlSafe(nombreCartera) +
-    ' (' + escapeHtmlSafe(s.tickers.join(', ')) + '), por encima del ' + umbral + '% configurado para un mismo tipo de riesgo.';
+    ', por encima del ' + umbral + '% configurado para un mismo tipo de riesgo.';
 }
 
 // Colores del gráfico de tipo de riesgo. Los que existen también como sector
