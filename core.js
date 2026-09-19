@@ -1269,6 +1269,7 @@ function serializeFullConfig(stateLike, sections) {
       diasBajo: p.diasBajo,
       periFugaPct: p.periFugaPct,
       concentracionSectorPct: p.concentracionSectorPct,
+      concentracionTipoPct: p.concentracionTipoPct,
       learnRulesMonths: p.learnRulesMonths,
       themeAuto: p.themeAuto,
       // Plan de Reserva (todos los campos del plan, no incluye estado de
@@ -1562,12 +1563,26 @@ function concentracionPorSector(posiciones) {
 // ─── Tipo de riesgo ───
 // Una agrupación más gruesa que el sector: qué clase de riesgo se corre, no en
 // qué rubro. Se deriva del sector, así no hay otro dato que cargar.
+// alerta:false igual que en SECTORES: una Reserva que es toda liquidez está
+// bien armada, no concentrada.
 const TIPOS_RIESGO = [
   { key: 'renta_variable', label: 'Renta variable' },
   { key: 'renta_fija',     label: 'Renta fija' },
   { key: 'cripto',         label: 'Cripto' },
-  { key: 'liquidez',       label: 'Liquidez' }
+  { key: 'liquidez',       label: 'Liquidez', alerta: false }
 ];
+
+// Los tipos que superan el umbral (en %). Excluye la liquidez y lo sin
+// clasificar, con el mismo criterio que sectoresConcentrados.
+function tiposConcentrados(concentracion, umbralPct) {
+  const u = Number(umbralPct);
+  if (!concentracion || !(u > 0)) return [];
+  return (concentracion.sectores || []).filter(function (s) {
+    const t = TIPOS_RIESGO.filter(function (x) { return x.key === s.sector; })[0];
+    if (!t || t.alerta === false) return false;
+    return s.pct > u;
+  });
+}
 
 function etiquetaTipoRiesgo(key) {
   const t = TIPOS_RIESGO.filter(function (x) { return x.key === key; })[0];
@@ -2839,7 +2854,7 @@ if (typeof module !== 'undefined' && module.exports) {
     // sector de los activos
     SECTORES, sectorPorClave, etiquetaSector, sectorDeActivo, sectoresSeleccionables,
     concentracionPorSector, sectoresConcentrados,
-    TIPOS_RIESGO, etiquetaTipoRiesgo, tipoDeRiesgo, concentracionPorTipo,
+    TIPOS_RIESGO, etiquetaTipoRiesgo, tipoDeRiesgo, concentracionPorTipo, tiposConcentrados,
     // ventas de activos
     ventasDeEntrada, cantidadVendida, cantidadRestante, productoVentas,
     costoVendido, realizadoDeEntrada, invertidoRestante, estadoEntrada, validarVenta,

@@ -6231,20 +6231,20 @@ body[data-exporting="true"] .section-card {
 
 /* Bloque "Concentración por sector" del cuerpo de cada cartera. Una fila por
    sector: nombre · barra con la línea del umbral · porcentaje · tickers. */
-.inv-sector-block {
-  padding: 12px 14px 14px;
-  border-top: 1px solid var(--border);
-}
-/* Concentración en dos columnas: por sector y por tipo de riesgo. El borde
-   superior pasa al contenedor; entre columnas, un divisor vertical.
-   minmax(0, 1fr): sin el 0, una columna con texto largo empujaría a la otra. */
+/* Concentración en dos columnas —por sector y por tipo de riesgo— armada como
+   UNA grilla de 2 × 3: título, avisos, barras. Las filas se comparten, así que
+   las barras de las dos columnas arrancan a la misma altura aunque una tenga
+   avisos y la otra no. minmax(0, 1fr): sin el 0, una columna con texto largo
+   empujaría a la otra. */
 .inv-conc-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   border-top: 1px solid var(--border);
 }
-.inv-conc-grid .inv-sector-block { border-top: none; }
-.inv-conc-grid .inv-tipo-block { border-left: 1px solid var(--border); }
+.inv-conc-celda { padding: 0 14px; }
+.inv-conc-celda.inv-conc-col2 { border-left: 1px solid var(--border); }
+.inv-conc-celda.inv-conc-fila-titulo { padding-top: 12px; }
+.inv-conc-celda.inv-conc-fila-barras { padding-bottom: 14px; }
 .inv-sector-head {
   display: flex;
   align-items: baseline;
@@ -6340,6 +6340,9 @@ body[data-exporting="true"] .section-card {
 /* El color lo pone cada fila inline, según su sector (colorDeSector). */
 .inv-sector-bar {
   position: absolute;
+  /* Encima de la línea del umbral (z-index 0): la barra la tapa, y con ella
+     los activos escritos adentro quedan limpios. */
+  z-index: 1;
   left: 0; top: 0; bottom: 0;
   background: var(--muted);
   border-radius: 0 4px 4px 0;
@@ -6380,10 +6383,13 @@ body[data-exporting="true"] .section-card {
   color: var(--muted-2);
 }
 .inv-sector-row.label-oculta .inv-sector-label { visibility: hidden; }
-/* Debajo del texto: la línea cruza la barra, pero no tapa los activos. */
+/* Detrás de la barra. Cruzándola, la línea se veía entre las letras de los
+   activos —el texto no tiene fondo—. Detrás queda tapada donde hay barra, pero
+   sobresale 3px arriba y abajo, así que el límite se sigue leyendo en todas
+   las filas, también en las que lo pasan. */
 .inv-sector-umbral {
   position: absolute;
-  z-index: 1;
+  z-index: 0;
   top: -3px; bottom: -3px;
   width: 2px;
   margin-left: -1px;

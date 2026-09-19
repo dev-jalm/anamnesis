@@ -186,13 +186,13 @@ window.MANUAL = {
       h: 'Sector y concentración',
       sub: '¿Tengo todo en el mismo lugar?',
       img: '20-concentracion-sector',
-      imgCap: 'Jubilación de la demo: por sector, Consumo básico pasa el límite del 30%; por tipo de riesgo, 61,5% en renta variable.',
+      imgCap: 'Inversiones de la demo: Tecnología pasa el límite de sector (30%) y Renta variable, el de tipo de riesgo (70%).',
       p: [
         'Cada activo de la tabla tiene su sector. Si el ticker está en el listado de CEDEARs de BYMA, viene solo; si es un par cripto, es Cripto. Lo que no está en el listado —acciones locales, bonos, un fondo— aparece sin sector, y se lo asignás desde la columna Sector de la tabla o al cargarlo.',
         'El sector se elige de una lista fija: los once sectores de la bolsa, más Índices y ETF amplios, Commodities, Cripto y Renta fija. No se escribe a mano a propósito: con texto libre, "Tecnología" y "tecnologia" serían dos sectores y el gráfico partiría en dos lo que es uno solo.',
         'Al abrir Reserva, Inversiones o una Jubilación, arriba de la tabla está la concentración por sector. Cada fila dice el sector, qué porcentaje de la cartera ocupa, cuánta plata es y su barra, con los activos que lo componen escritos adentro. La barra entera es el 100% de la cartera, y la línea vertical es el límite que elegiste en Parámetros. Lo que lo pasa lleva un ícono de alerta, el porcentaje en rojo y un aviso arriba que dice cuánto concentra y qué activos lo componen; lo que queda dentro del límite, un tilde verde. Los que no se controlan —índices, renta fija, liquidez y lo que no tiene sector— llevan el tilde en gris; pasando el mouse por él se ve por qué: tener el 80% en el S&P 500 es estar diversificado, no concentrado.',
         'La Liquidez también aparece en la composición, pero no se asigna a ningún activo: es la plata del destino que todavía no invertiste, y el número es el mismo que el Líquido de la cabecera del panel. Si el Líquido da negativo, no aparece.',
-        'Al lado, la concentración por tipo de riesgo reparte el mismo total en Renta variable, Renta fija, Cripto y Liquidez. Sale del sector: las acciones, los índices y los commodities son renta variable. Lo que no tiene sector queda sin clasificar, porque podría ser una acción o un bono.'
+        'Al lado, la concentración por tipo de riesgo reparte el mismo total en Renta variable, Renta fija, Cripto y Liquidez. Sale del sector: las acciones, los índices y los commodities son renta variable; lo sin sector queda sin clasificar. Tiene su propio límite, 70% de entrada, y avisa igual que la de sector.'
       ],
       lista: [
         'Cada sector tiene su color, y es el mismo en todas las carteras: si Tecnología es azul en Inversiones, es azul en Jubilación. Índices, Renta fija y Liquidez van en tonos neutros, y lo que no tiene sector va rayado.',
@@ -313,7 +313,7 @@ window.MANUAL = {
         'Nombres de las jubilaciones: qué texto se muestra después de la palabra Jubilación en toda la app. Cambia sólo el texto; los movimientos y los activos ya cargados no se tocan.',
         'Días bajo $: el umbral para contar cuántos días el saldo estuvo por debajo.',
         'Cotización MEP: se usa para convertir entre pesos y dólares. El botón de refresco la trae de dolarapi.com.',
-        'Alerta de concentración por sector: el porcentaje de una cartera a partir del cual un mismo sector dispara la alerta. Arranca en 30%; en 0 las alertas se apagan.',
+        'Alertas de concentración: el porcentaje de una cartera a partir del cual un mismo sector (30% de entrada) o un mismo tipo de riesgo (70%) dispara la alerta. En 0 se apagan.',
         'Más abajo, el peso y los umbrales de cada dimensión del score, y el plan de la reserva (cuántos meses de gastos querés cubrir y en qué plazo).'
       ]
     },

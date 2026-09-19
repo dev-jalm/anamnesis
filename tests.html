@@ -1376,6 +1376,23 @@ group('Sector de los activos', function () {
       'renta_variable 60, renta_fija 30, liquidez 10');
     assertEqual(c.sectores[0].tickers.join(','), 'AAPL,KO');
   });
+  test('alerta por tipo: marca solo lo que supera el umbral', function () {
+    const c = concentracionPorTipo([
+      { ticker: 'AAPL', sector: 'tecnologia', valor: 800 },
+      { ticker: 'AL30', sector: 'renta_fija', valor: 200 }
+    ]);
+    const a = tiposConcentrados(c, 70);
+    assertEqual(a.map(function (s) { return s.sector; }).join(','), 'renta_variable');
+    assertEqual(tiposConcentrados(c, 80).length, 0, 'igual al umbral no alerta');
+  });
+  test('alerta por tipo: liquidez y sin clasificar no alertan', function () {
+    const c = concentracionPorTipo([
+      { ticker: 'LÍQUIDO', sector: 'liquidez', valor: 900 },
+      { ticker: 'X', sector: null, valor: 100 }
+    ]);
+    assertEqual(tiposConcentrados(c, 50).length, 0);
+    assertEqual(tiposConcentrados(c, 0).length, 0, 'umbral 0 desactiva');
+  });
   test('concentracion por sector: no cambia con la generalizacion', function () {
     const c = concentracionPorSector([
       { ticker: 'AAPL', sector: 'tecnologia', valor: 600 },

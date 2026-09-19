@@ -388,6 +388,7 @@ const state = {
     diasBajo: 50000, // umbral para "Días bajo $X" en saldo MP
     periFugaPct: 40,   // umbral % de fuga: gastos de una periodicidad sobre gastos básicos
     concentracionSectorPct: 30, // umbral % de un sector sobre el valor de una cartera; 0 desactiva
+    concentracionTipoPct: 70,   // umbral % de un tipo de riesgo sobre el valor de una cartera; 0 desactiva
     learnRulesMonths: 3, // cantidad de meses hacia atrás de los que se aprenden reglas
     // Cotización MEP del USD/ARS — usada para convertir tickers USD a ARS
     // y mostrar el total combinado en Salud financiera. Editable en Parámetros.
@@ -1659,21 +1660,25 @@ function renderInsights(curIng, total, agg, activeMonths) {
   // 6. CONCENTRACIÓN POR SECTOR en una cartera. No depende del período elegido:
   // mira la cartera de hoy, que es la que corre el riesgo. Mismo texto que la
   // alerta del panel en Salud financiera.
+  // También por tipo de riesgo, con su propio umbral (se desactiva por separado).
   try {
     const umbral = umbralConcentracionSector();
-    if (umbral > 0) {
-      const carteras = [
-        { destinos: ['inversiones'], nombre: 'Inversiones' },
-        { destinos: ['jubilacion_jalm'], nombre: window.DEMO_MODE ? 'Jubilación' : labelJubilacion(1) },
-        { destinos: ['reserva'], nombre: 'Reserva' }
-      ];
-      if (!window.DEMO_MODE) carteras.push({ destinos: ['jubilacion_clm'], nombre: labelJubilacion(2) });
-      carteras.forEach(function (ct) {
-        concentracionDeCartera(ct.destinos).concentrados.forEach(function (s) {
-          insights.push({ type: 'alert', icon: 'pie-chart', html: textoAlertaSector(s, ct.nombre, umbral) });
-        });
+    const umbralT = umbralConcentracionTipo();
+    const carteras = [
+      { destinos: ['inversiones'], nombre: 'Inversiones' },
+      { destinos: ['jubilacion_jalm'], nombre: window.DEMO_MODE ? 'Jubilación' : labelJubilacion(1) },
+      { destinos: ['reserva'], nombre: 'Reserva' }
+    ];
+    if (!window.DEMO_MODE) carteras.push({ destinos: ['jubilacion_clm'], nombre: labelJubilacion(2) });
+    carteras.forEach(function (ct) {
+      const c = concentracionDeCartera(ct.destinos);
+      if (umbral > 0) c.concentrados.forEach(function (s) {
+        insights.push({ type: 'alert', icon: 'pie-chart', html: textoAlertaSector(s, ct.nombre, umbral) });
       });
-    }
+      if (umbralT > 0) c.tiposConcentrados.forEach(function (s) {
+        insights.push({ type: 'alert', icon: 'pie-chart', html: textoAlertaTipo(s, ct.nombre, umbralT) });
+      });
+    });
   } catch (e) { console.error('alertas de concentración:', e); }
 
   // Render
@@ -11485,30 +11490,31 @@ function renderParamsTab() {
     }
   }
 
-  // Umbral de concentración por sector (porcentaje 0..100; 0 desactiva)
-  const concInput = document.getElementById('paramConcSectorInput');
-  if (concInput) {
-    const actual = umbralConcentracionSector();
-    const pend = catModalState.pendingParamChanges.concentracionSectorPct;
-    concInput.value = String(pend !== undefined ? pend : actual);
-    concInput.classList.toggle('modified', pend !== undefined && pend !== actual);
-    if (!concInput._bound) {
-      concInput.addEventListener('input', function (e) {
-        const cleaned = e.target.value.replace(/[^\d]/g, '');
-        if (cleaned !== e.target.value) e.target.value = cleaned;
-        let val = parseInt(cleaned || '0', 10);
-        if (val > 100) val = 100;
-        if (val === umbralConcentracionSector()) {
-          delete catModalState.pendingParamChanges.concentracionSectorPct;
-        } else {
-          catModalState.pendingParamChanges.concentracionSectorPct = val;
-        }
-        concInput.classList.toggle('modified', catModalState.pendingParamChanges.concentracionSectorPct !== undefined);
-        updateCatModalStatus();
-      });
-      concInput._bound = true;
-    }
-  }
+  // Umbrales de concentración, por sector y por tipo de riesgo (0..100; 0
+  // desactiva). Mismo comportamiento para los dos: sólo cambian el campo, la
+  // clave del parámetro y cómo se lee el valor vigente.
+  [
+    { id: 'paramConcSectorInput', clave: 'concentracionSectorPct', actual: umbralConcentracionSector },
+    { id: 'paramConcTipoInput',   clave: 'concentracionTipoPct',   actual: umbralConcentracionTipo }
+  ].forEach(function (p) {
+    const inp = document.getElementById(p.id);
+    if (!inp) return;
+    const pend = catModalState.pendingParamChanges[p.clave];
+    inp.value = String(pend !== undefined ? pend : p.actual());
+    inp.classList.toggle('modified', pend !== undefined && pend !== p.actual());
+    if (inp._bound) return;
+    inp.addEventListener('input', function (e) {
+      const cleaned = e.target.value.replace(/[^\d]/g, '');
+      if (cleaned !== e.target.value) e.target.value = cleaned;
+      let val = parseInt(cleaned || '0', 10);
+      if (val > 100) val = 100;
+      if (val === p.actual()) delete catModalState.pendingParamChanges[p.clave];
+      else catModalState.pendingParamChanges[p.clave] = val;
+      inp.classList.toggle('modified', catModalState.pendingParamChanges[p.clave] !== undefined);
+      updateCatModalStatus();
+    });
+    inp._bound = true;
+  });
 
   // Reserva
   renderReservaParam();
@@ -13611,6 +13617,9 @@ function applyCategoryChanges() {
   }
   if (catModalState.pendingParamChanges.concentracionSectorPct !== undefined) {
     state.params.concentracionSectorPct = catModalState.pendingParamChanges.concentracionSectorPct;
+  }
+  if (catModalState.pendingParamChanges.concentracionTipoPct !== undefined) {
+    state.params.concentracionTipoPct = catModalState.pendingParamChanges.concentracionTipoPct;
   }
   if (catModalState.pendingParamChanges.learnRulesMonths !== undefined) {
     state.params.learnRulesMonths = catModalState.pendingParamChanges.learnRulesMonths;
@@ -17825,6 +17834,13 @@ function umbralConcentracionSector() {
   return (v !== undefined && v !== null && v !== '') ? Number(v) : 30;
 }
 
+// Umbral por tipo de riesgo. Propio y más alto que el de sector: una cartera
+// de acciones es toda renta variable, y con 30% alertaría siempre.
+function umbralConcentracionTipo() {
+  const v = state.params && state.params.concentracionTipoPct;
+  return (v !== undefined && v !== null && v !== '') ? Number(v) : 70;
+}
+
 // Guarda el sector elegido a mano. Si coincide con el automático no se guarda
 // nada —y se borra el que hubiera—: así, si el listado se corrige más adelante,
 // el activo toma la corrección en vez de quedar congelado en una copia.
@@ -17933,6 +17949,7 @@ function concentracionDeCartera(destinos) {
   const c = concentracionPorSector(posiciones);
   // Las mismas posiciones, agrupadas por tipo de riesgo: la segunda columna.
   c.porTipo = concentracionPorTipo(posiciones);
+  c.tiposConcentrados = tiposConcentrados(c.porTipo, umbralConcentracionTipo());
   c.liquido = liquido;
   c.aCosto = posiciones.filter(function (p) { return p.aCosto && p.valor > 0; }).map(function (p) { return p.ticker; });
   c.concentrados = sectoresConcentrados(c, umbralConcentracionSector());
@@ -18025,76 +18042,126 @@ const MOTIVO_SIN_CONTROL = {
 //
 // Lo que supera el umbral no cambia de color —el color es del sector—: se
 // marca con ícono, con el porcentaje en rojo y con el aviso de arriba.
+// Una fila de un gráfico de concentración —por sector o por tipo de riesgo—:
+// nombre · % · monto · barra con los activos. Tres íconos según el límite:
+//   triángulo rojo → se controló y lo supera
+//   tilde verde    → se controló y queda dentro
+//   tilde gris     → no se controla; el ícono lleva su propio tooltip con el
+//                    motivo, para que no se lea como un olvido.
+// o: { etiqueta(key), color, umbral, over, exento, motivo }
+function filaConcentracion(s, o) {
+  const sinClave = !s.sector;
+  const pctTxt = s.pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+  const exento = o.umbral > 0 && o.exento;
+  const dentro = !o.over && o.umbral > 0 && !exento;
+  const iconoExento = exento
+    ? '<span class="inv-sector-exento" data-tip-titulo="NO SE CONTROLA" data-tip-detalle="' + escapeHtmlSafe(o.motivo || '') + '">' +
+        '<i data-lucide="check" style="width:11px;height:11px"></i></span>'
+    : '';
+  return '<div class="inv-sector-row' + (o.over ? ' is-over' : '') + (dentro ? ' is-ok' : '') + (exento ? ' is-exento' : '') + (sinClave ? ' is-none' : '') + '"' +
+      tooltipSector(s, '$', o.etiqueta) + '>' +
+    '<span class="inv-sector-name">' +
+      (o.over ? '<i data-lucide="alert-triangle" style="width:11px;height:11px"></i>' : '') +
+      (dentro ? '<i data-lucide="check" style="width:11px;height:11px"></i>' : '') +
+      iconoExento +
+      escapeHtmlSafe(o.etiqueta(s.sector)) +
+    '</span>' +
+    '<span class="inv-sector-pct">' + pctTxt + '</span>' +
+    // Monto en pesos: el mismo valor sobre el que se calcula el porcentaje
+    // (dólares al MEP, a costo lo que no tiene precio actual).
+    '<span class="inv-sector-monto">$ ' + fmt(Math.round(s.valor)) + '</span>' +
+    '<span class="inv-sector-track">' +
+      '<span class="inv-sector-bar" style="width:' + Math.max(0.5, s.pct).toFixed(2) + '%' + (o.color ? ';background:' + o.color : '') + '">' +
+        '<span class="inv-sector-label">' + escapeHtmlSafe(s.tickers.join(', ')) + '</span>' +
+      '</span>' +
+      (o.umbral > 0 ? '<span class="inv-sector-umbral" style="left:' + Math.min(100, o.umbral) + '%"></span>' : '') +
+    '</span>' +
+  '</div>';
+}
+
+function subtituloConcentracion(sobre, umbral) {
+  return '<span class="inv-sector-sub">' + sobre + ' · ' +
+    (umbral > 0
+      ? 'umbral ' + umbral + '% <span class="inv-sector-umbral-key"></span>'
+      : 'alertas desactivadas en Parámetros') +
+  '</span>';
+}
+
+function avisoConcentracion(html) {
+  return '<div class="inv-sector-alert"><i data-lucide="alert-triangle" style="width:13px;height:13px"></i><span>' + html + '</span></div>';
+}
+
 function buildSectorConcentrationBlock(destinos, nombreCartera) {
   const c = concentracionDeCartera(destinos);
   if (!c.total || c.sectores.length === 0) return '';
+  const sobre = 'sobre $ ' + fmt(Math.round(c.total)) + (c.liquido > 0 ? ' entre activos y líquido' : ' valuados');
+
+  // Columna 1: por sector
   const umbral = umbralConcentracionSector();
   const concentrados = {};
   c.concentrados.forEach(function (s) { concentrados[s.sector] = true; });
-  const filas = c.sectores.map(function (s) {
-    const over = !!(s.sector && concentrados[s.sector]);
-    const sinSector = !s.sector;
-    const pctTxt = s.pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
-    const tip = tooltipSector(s, '$');
-    const color = colorDeSector(s.sector);
-    // Tres íconos, según qué pasó con el límite:
-    //   triángulo rojo → se controló y lo supera
-    //   tilde verde    → se controló y queda dentro
-    //   tilde gris     → no se controla (índices, renta fija, liquidez, sin
-    //                    sector); el ícono lleva su propio tooltip con el motivo,
-    //                    para que no se lea como un olvido.
+  const filasSector = c.sectores.map(function (s) {
     const def = s.sector && sectorPorClave(s.sector);
-    const exento = umbral > 0 && (!def || def.alerta === false);
-    const dentro = !over && umbral > 0 && !exento;
-    const iconoExento = exento
-      ? '<span class="inv-sector-exento" data-tip-titulo="NO SE CONTROLA" data-tip-detalle="' +
-          escapeHtmlSafe(MOTIVO_SIN_CONTROL[s.sector || '__sin__'] || '') + '">' +
-          '<i data-lucide="check" style="width:11px;height:11px"></i></span>'
-      : '';
-    return '<div class="inv-sector-row' + (over ? ' is-over' : '') + (dentro ? ' is-ok' : '') + (exento ? ' is-exento' : '') + (sinSector ? ' is-none' : '') + '"' + tip + '>' +
-      '<span class="inv-sector-name">' +
-        (over ? '<i data-lucide="alert-triangle" style="width:11px;height:11px"></i>' : '') +
-        (dentro ? '<i data-lucide="check" style="width:11px;height:11px"></i>' : '') +
-        iconoExento +
-        escapeHtmlSafe(etiquetaSector(s.sector)) +
-      '</span>' +
-      '<span class="inv-sector-pct">' + pctTxt + '</span>' +
-      // Monto en pesos: el mismo valor sobre el que se calcula el porcentaje
-      // (dólares al MEP, a costo lo que no tiene precio actual).
-      '<span class="inv-sector-monto">$ ' + fmt(Math.round(s.valor)) + '</span>' +
-      '<span class="inv-sector-track">' +
-        '<span class="inv-sector-bar" style="width:' + Math.max(0.5, s.pct).toFixed(2) + '%' + (color ? ';background:' + color : '') + '">' +
-          '<span class="inv-sector-label">' + escapeHtmlSafe(s.tickers.join(', ')) + '</span>' +
-        '</span>' +
-        (umbral > 0 ? '<span class="inv-sector-umbral" style="left:' + Math.min(100, umbral) + '%"></span>' : '') +
-      '</span>' +
-    '</div>';
+    return filaConcentracion(s, {
+      etiqueta: etiquetaSector, color: colorDeSector(s.sector), umbral: umbral,
+      over: !!(s.sector && concentrados[s.sector]),
+      exento: !def || def.alerta === false,
+      motivo: MOTIVO_SIN_CONTROL[s.sector || '__sin__']
+    });
   }).join('');
-  const alertas = c.concentrados.map(function (s) {
-    return '<div class="inv-sector-alert"><i data-lucide="alert-triangle" style="width:13px;height:13px"></i>' +
-      '<span>' + textoAlertaSector(s, nombreCartera, umbral) + '</span></div>';
-  }).join('');
+  const alertasSector = c.concentrados.map(function (s) { return avisoConcentracion(textoAlertaSector(s, nombreCartera, umbral)); }).join('');
   const notas = [];
   if (c.aCosto.length) notas.push('Valuados a costo por no tener precio actual: ' + c.aCosto.join(', ') + '.');
-  const sobre = 'sobre $ ' + fmt(Math.round(c.total)) + (c.liquido > 0 ? ' entre activos y líquido' : ' valuados');
-  // Dos columnas: por sector (con su límite y sus alertas) y por tipo de
-  // riesgo. Las dos reparten el mismo total, así que se leen lado a lado.
+
+  // Columna 2: por tipo de riesgo, con su propio umbral
+  const ct = c.porTipo;
+  const umbralT = umbralConcentracionTipo();
+  const concT = {};
+  c.tiposConcentrados.forEach(function (s) { concT[s.sector] = true; });
+  const filasTipo = ct.sectores.map(function (s) {
+    const def = TIPOS_RIESGO.filter(function (t) { return t.key === s.sector; })[0];
+    return filaConcentracion(s, {
+      etiqueta: etiquetaTipoRiesgo, color: colorDeTipoRiesgo(s.sector), umbral: umbralT,
+      over: !!(s.sector && concT[s.sector]),
+      exento: !def || def.alerta === false,
+      motivo: MOTIVO_SIN_CONTROL_TIPO[s.sector || '__sin__']
+    });
+  }).join('');
+  const alertasTipo = c.tiposConcentrados.map(function (s) { return avisoConcentracion(textoAlertaTipo(s, nombreCartera, umbralT)); }).join('');
+
+  // Una sola grilla de 2 columnas × 3 filas —título, avisos, barras— y no dos
+  // bloques sueltos: así las barras de las dos columnas arrancan a la misma
+  // altura aunque sólo una tenga aviso, o tengan una cantidad distinta.
   return '<div class="inv-conc-grid">' +
-    '<div class="inv-sector-block">' +
-      '<div class="inv-sector-head">' +
-        '<span class="inv-section-label">Concentración por sector</span>' +
-        '<span class="inv-sector-sub">' + sobre + ' · ' +
-          (umbral > 0
-            ? 'umbral ' + umbral + '% <span class="inv-sector-umbral-key"></span>'
-            : 'alertas desactivadas en Parámetros') +
-        '</span>' +
-      '</div>' +
-      alertas +
-      '<div class="inv-sector-bars">' + filas + '</div>' +
+    '<div class="inv-conc-celda inv-conc-fila-titulo">' +
+      '<div class="inv-sector-head"><span class="inv-section-label">Concentración por sector</span>' + subtituloConcentracion(sobre, umbral) + '</div>' +
+    '</div>' +
+    '<div class="inv-conc-celda inv-conc-fila-titulo inv-conc-col2">' +
+      '<div class="inv-sector-head"><span class="inv-section-label">Concentración por tipo de riesgo</span>' + subtituloConcentracion(sobre, umbralT) + '</div>' +
+    '</div>' +
+    '<div class="inv-conc-celda">' + alertasSector + '</div>' +
+    '<div class="inv-conc-celda inv-conc-col2">' + alertasTipo + '</div>' +
+    '<div class="inv-conc-celda inv-conc-fila-barras">' +
+      '<div class="inv-sector-bars">' + filasSector + '</div>' +
       (notas.length ? '<div class="inv-sector-nota">' + escapeHtmlSafe(notas.join(' ')) + '</div>' : '') +
     '</div>' +
-    buildTipoRiesgoColumna(c.porTipo, sobre) +
+    '<div class="inv-conc-celda inv-conc-fila-barras inv-conc-col2">' +
+      '<div class="inv-sector-bars">' + filasTipo + '</div>' +
+    '</div>' +
   '</div>';
+}
+
+// Por qué un tipo de riesgo no se controla: tooltip de su tilde gris.
+const MOTIVO_SIN_CONTROL_TIPO = {
+  liquidez: 'Es plata sin invertir: tenerla concentrada no es un riesgo, es la función de una reserva.',
+  __sin__: 'Sin sector no se sabe si es renta variable o fija. Asignalo en la columna Sector de la tabla.'
+};
+
+// Texto del aviso de un tipo concentrado. Lo usan el panel y Diagnóstico.
+function textoAlertaTipo(s, nombreCartera, umbral) {
+  return '<strong>' + escapeHtmlSafe(etiquetaTipoRiesgo(s.sector)) + '</strong> concentra el <strong>' +
+    s.pct.toFixed(0) + '%</strong> de ' + escapeHtmlSafe(nombreCartera) +
+    ' (' + escapeHtmlSafe(s.tickers.join(', ')) + '), por encima del ' + umbral + '% configurado para un mismo tipo de riesgo.';
 }
 
 // Colores del gráfico de tipo de riesgo. Los que existen también como sector
@@ -18106,34 +18173,6 @@ function colorDeTipoRiesgo(key) {
   if (key === 'cripto') return (_coloresSector && _coloresSector.cripto) || PALETA_DISTRIBUCION[0];
   if (key === 'renta_fija' || key === 'liquidez') return colorDeSector(key);
   return null; // sin clasificar: rayado
-}
-
-// Segunda columna: concentración por tipo de riesgo. Mismo estilo y mismas
-// clases que la de sector —tipo · % · monto · barra con los activos—, sin
-// línea de umbral ni íconos: el límite de Parámetros es por sector.
-function buildTipoRiesgoColumna(ct, sobre) {
-  if (!ct || !ct.total) return '';
-  const filas = ct.sectores.map(function (s) {
-    const pctTxt = s.pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
-    const color = colorDeTipoRiesgo(s.sector);
-    return '<div class="inv-sector-row' + (s.sector ? '' : ' is-none') + '"' + tooltipSector(s, '$', etiquetaTipoRiesgo) + '>' +
-      '<span class="inv-sector-name">' + escapeHtmlSafe(etiquetaTipoRiesgo(s.sector)) + '</span>' +
-      '<span class="inv-sector-pct">' + pctTxt + '</span>' +
-      '<span class="inv-sector-monto">$ ' + fmt(Math.round(s.valor)) + '</span>' +
-      '<span class="inv-sector-track">' +
-        '<span class="inv-sector-bar" style="width:' + Math.max(0.5, s.pct).toFixed(2) + '%' + (color ? ';background:' + color : '') + '">' +
-          '<span class="inv-sector-label">' + escapeHtmlSafe(s.tickers.join(', ')) + '</span>' +
-        '</span>' +
-      '</span>' +
-    '</div>';
-  }).join('');
-  return '<div class="inv-sector-block inv-tipo-block">' +
-    '<div class="inv-sector-head">' +
-      '<span class="inv-section-label">Concentración por tipo de riesgo</span>' +
-      '<span class="inv-sector-sub">' + sobre + '</span>' +
-    '</div>' +
-    '<div class="inv-sector-bars">' + filas + '</div>' +
-  '</div>';
 }
 
 // Ubica el texto de los activos de cada barra según lo que mida, que sólo se
@@ -22962,7 +23001,7 @@ function openFullConfigModal(mode) {
   // Parámetros: contamos los campos NO vacíos del bloque params que efectivamente
   // exportamos (umbrales + plan de reserva + tema). Esto da al usuario una idea
   // de cuánto configuró sin tener que listar campo a campo.
-  const PARAMS_KEYS = ['diasBajo','periFugaPct','concentracionSectorPct','learnRulesMonths','themeAuto','reservaMode','reservaMeses','reservaValorMensual','reservaAmount','reservaMonths','reservaStart'];
+  const PARAMS_KEYS = ['diasBajo','periFugaPct','concentracionSectorPct','concentracionTipoPct','learnRulesMonths','themeAuto','reservaMode','reservaMeses','reservaValorMensual','reservaAmount','reservaMonths','reservaStart'];
   const pCount = PARAMS_KEYS.filter(function (k) {
     const v = state.params && state.params[k];
     return v !== undefined && v !== null && v !== '' && v !== 0;
