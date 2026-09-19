@@ -17348,50 +17348,49 @@ function buildReservaMetaRow() {
   '</div>';
 }
 
-// Stacked bar horizontal con la distribución del invertido entre los tickers
-// de un grupo. Devuelve string con divs flexbox (no SVG porque queremos
-// tooltips nativos por segmento y es más liviano que un SVG).
-// Cada segmento tiene ancho proporcional al invertido del ticker, color
-// asignado deterministícamente a partir del ticker, y un title con
-// "TICKER: prefix monto (pct%)" para tooltip al hover.
-// Paleta de las barras de distribución del patrimonio: la de la cabecera de
-// cada panel (por ticker) y la de concentración por sector. Es la misma para
-// que las dos barras de un panel se lean como parte de lo mismo.
-// El orden importa acá: la barra por ticker indexa por hash, así que cambiarlo
-// le cambia el color a cada ticker.
+// Paleta de los sectores, que usan las dos barras de un panel: la de cada
+// moneda en la cabecera y la de concentración del cuerpo. El orden en que se
+// asigna está en ORDEN_COLOR_SECTOR.
 const PALETA_DISTRIBUCION = ['#D4A24C','#8E5A9E','#4A6B8A','#6B8E4E','#C8553D','#A88A6B','#8B7355','#D4849E','#5B8F9F','#B98D5C'];
 
+// Barra apilada de la cabecera con la concentración por sector de UNA moneda:
+// la fila ARS reparte lo que hay en pesos y la fila USD lo que hay en dólares.
+// Antes repartía por ticker; ahora dice lo mismo que el gráfico de
+// concentración del cuerpo, pero separado por moneda, y con sus mismos colores
+// —un sector es del mismo color en las dos barras—.
+// Se valúa igual que ese gráfico: nominales por precio actual, a costo lo que
+// no tiene precio. No entra el líquido: la cabecera lo muestra aparte, y en la
+// fila combinada, que es la única donde existe.
+// Divs con flexbox y no SVG: tooltip nativo por segmento y más liviano.
 function buildDistributionBar(groups, tickers, prefix) {
   if (!tickers || tickers.length === 0) {
     return '<div class="inv-distbar inv-distbar-empty" title="Sin activos cargados"></div>';
   }
-  // Total invertido (abs por si hubiera ventas que dejaron negativos puntuales)
-  let total = 0;
-  tickers.forEach(function (tk) { total += Math.abs(groups[tk].invertidoBruto); });
-  if (total === 0) {
-    return '<div class="inv-distbar inv-distbar-empty" title="Invertido total = 0"></div>';
-  }
-  // Paleta compartida con las barras de sector (PALETA_DISTRIBUCION)
-  const palette = PALETA_DISTRIBUCION;
-  // Hash simple de string para indexar la paleta — así un ticker siempre tiene
-  // el mismo color en cualquier panel donde aparezca.
-  function colorFor(tk) {
-    let h = 0;
-    for (let i = 0; i < tk.length; i++) h = (h * 31 + tk.charCodeAt(i)) | 0;
-    return palette[Math.abs(h) % palette.length];
-  }
-  // Ordenar de mayor a menor invertido (más grandes primero, más fáciles de leer)
-  const sorted = tickers.slice().sort(function (a, b) {
-    return Math.abs(groups[b].invertidoBruto) - Math.abs(groups[a].invertidoBruto);
+  const posiciones = [];
+  tickers.forEach(function (tk) {
+    const g = groups[tk];
+    if (!(g.cantidadTotal > 0)) return; // lo liquidado no es tenencia
+    const info = infoDeTicker(state.tickerInfo, tk, g.moneda);
+    const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
+      ? Number(info.precioActual) : null;
+    posiciones.push({
+      ticker: tk,
+      sector: sectorDeTenencia(tk, g.moneda).sector,
+      valor: pa !== null ? pa * g.cantidadTotal : g.invertidoBruto
+    });
   });
-  const segments = sorted.map(function (tk) {
-    const inv = Math.abs(groups[tk].invertidoBruto);
-    const pct = (inv / total) * 100;
-    const c = colorFor(tk);
-    const tooltip = tk + ': ' + prefix + fmt(inv) + ' (' + pct.toFixed(1) + '%)';
-    return '<span class="inv-distbar-seg" style="width:' + pct.toFixed(2) + '%;background:' + c + '" title="' + escapeHtmlSafe(tooltip) + '"></span>';
+  const c = concentracionPorSector(posiciones);
+  if (!c.total) {
+    return '<div class="inv-distbar inv-distbar-empty" title="Sin tenencias con valor"></div>';
+  }
+  const segments = c.sectores.map(function (s) {
+    const color = colorDeSector(s.sector);
+    const pctTxt = s.pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const tooltip = etiquetaSector(s.sector) + ': ' + prefix + ' ' + fmt(Math.round(s.valor)) + ' (' + pctTxt + '%) · ' + s.tickers.join(', ');
+    return '<span class="inv-distbar-seg' + (s.sector ? '' : ' inv-distbar-sin-sector') + '" style="width:' + s.pct.toFixed(2) + '%' +
+      (color ? ';background:' + color : '') + '" title="' + escapeHtmlSafe(tooltip) + '"></span>';
   }).join('');
-  return '<div class="inv-distbar" title="Distribución por ticker">' + segments + '</div>';
+  return '<div class="inv-distbar" title="Concentración por sector">' + segments + '</div>';
 }
 
 // Si no hay datos o todos los aportes son de meses futuros, devuelve un sparkline

@@ -6854,7 +6854,7 @@ body[data-exporting="true"] .section-card {
   height: 32px;
 }
 
-/* ===== Stacked bar de distribución por ticker ===== */
+/* ===== Stacked bar de la cabecera: concentración por sector de cada moneda ===== */
 .inv-distbar {
   display: flex;
   width: 100%;
@@ -6877,6 +6877,14 @@ body[data-exporting="true"] .section-card {
 .inv-distbar-empty {
   background: var(--bg-0);
   opacity: 0.5;
+}
+/* Lo que no tiene sector, rayado igual que en el gráfico de concentración. */
+.inv-distbar-sin-sector {
+  background-color: transparent;
+  background-image: linear-gradient(45deg,
+    var(--sector-rayado) 25%, transparent 25%, transparent 50%,
+    var(--sector-rayado) 50%, var(--sector-rayado) 75%, transparent 75%, transparent);
+  background-size: 8px 8px;
 }
 
 /* ===== Fila META (solo en panel Reserva) ===== */

@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.16 |
+| **Versión** | 1.17 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -281,7 +281,8 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-073g | Un sector asignado que difiere del automático se señala como valor editado e informa el original |
 | RF-073h | Cada destino de tenencias —Reserva, Inversiones y las dos Jubilaciones— presenta la **concentración por sector**: la participación de cada sector en el valor del destino, ordenada de mayor a menor, con el umbral marcado. Cada fila presenta, en este orden, el sector, su porcentaje, su monto en pesos —el valor sobre el que se calcula el porcentaje (RF-073i)— y una barra con los activos que lo componen escritos dentro de ella |
 | RF-073n | La composición incluye **Liquidez**: el importe Líquido de la fila ARS+USD de la cabecera del destino, con su mismo valor. Si el Líquido es negativo no se incluye, porque no constituye tenencia |
-| RF-073o | Cada sector se representa con un color propio, el mismo en todos los destinos de la pantalla. Los colores son los de la **barra de distribución por ticker de la cabecera**, para que el panel use una sola gama; se asignan a los sectores presentes en el orden del catálogo, no por tamaño, de modo que un cambio de montos no altere el color de un sector. Las clases que no son sectores —Índices, Renta fija, Liquidez— se representan en tonos neutros, y las tenencias sin sector con un rayado |
+| RF-073o | Cada sector se representa con un color propio, el mismo en todos los destinos de la pantalla y en las dos barras de un panel (RF-073q). Los colores provienen de la gama de las barras de distribución del producto, para que el panel use una sola; se asignan a los sectores presentes en el orden del catálogo, no por tamaño, de modo que un cambio de montos no altere el color de un sector. Las clases que no son sectores —Índices, Renta fija, Liquidez— se representan en tonos neutros, y las tenencias sin sector con un rayado |
+| RF-073q | Las filas ARS y USD de la cabecera de cada destino presentan una barra con la **concentración por sector de esa moneda**: lo que hay en pesos y lo que hay en dólares, cada uno sobre su propio total. Se valúa como en RF-073i y no incluye el Líquido, que la cabecera informa aparte; por eso sus porcentajes pueden diferir de los de RF-073h, que sí lo incluye. Cada tramo informa sector, monto, porcentaje y activos |
 | RF-073p | El texto de los activos se ubica dentro de la barra cuando cabe con margen; si no cabe, a continuación de ella; si tampoco cabe allí, se omite y permanece disponible en la información emergente de la fila. Nunca se presenta recortado |
 | RF-073i | El valor de cada tenencia es nominales por precio actual. Sin precio actual se toma el costo, y el sistema informa qué tenencias se valuaron así. Las tenencias en dólares se convierten a pesos a la cotización MEP. Las posiciones liquidadas no intervienen |
 | RF-073j | Las tenencias sin sector se presentan en un renglón propio y cuentan en el total, indicando cuáles son |
@@ -1055,9 +1056,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.13 | 18/09/2026 | Incorpora el sector de los activos y la concentración por sector de cada cartera, con su gráfico y sus alertas (RF-073a a RF-073m, RF-064, RF-135, RF-136, RF-193). Documenta que ninguna fuente accesible informa el sector (RES-08), y restringe el listado incorporado a los CEDEARs que cotizan (RES-09) | Reemplazada |
 | 1.14 | 18/09/2026 | Rediseña la concentración por sector: un color por sector, el orden sector · porcentaje · barra y los activos dentro de la barra (RF-073h, RF-073o, RF-073p). La Liquidez deja de ser asignable a un activo y pasa a tomarse del Líquido de la cabecera del destino (RF-073b, RF-073n) | Reemplazada |
 | 1.15 | 18/09/2026 | Los colores de los sectores pasan a ser los de la barra de distribución de la cabecera (RF-073o) | Reemplazada |
-| 1.16 | 19/09/2026 | La fila de concentración incorpora el monto de cada sector entre el porcentaje y la barra (RF-073h) | **Vigente** |
+| 1.16 | 19/09/2026 | La fila de concentración incorpora el monto de cada sector entre el porcentaje y la barra (RF-073h) | Reemplazada |
+| 1.17 | 19/09/2026 | Las barras de las filas ARS y USD de la cabecera pasan a mostrar la concentración por sector de cada moneda, en lugar de la distribución por ticker (RF-073q) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Barras de la cabecera por sector y por moneda, con los colores del gráfico de concentración | RF-073q, RF-073o |
+
+**Implementados en la versión 1.16**
 
 | Cambio | Requerimiento |
 |---|---|
