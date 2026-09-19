@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.21 |
+| **Versión** | 1.22 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -220,6 +220,8 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-072a | El líquido se informa en la fila ARS+USD y también en la fila ARS, con el mismo valor: los aportes son movimientos en pesos y las compras en dólares se pagan con esos pesos, de modo que el dinero sin invertir está en pesos. La fila USD no informa líquido, porque el producto no registra dólares sin invertir |
 | RF-073 | La tabla de activos expone, por ticker: nominales, precio promedio de compra, total invertido, precio actual, variación por nominal, total actualizado y resultado |
 | RF-074 | Cada activo se despliega en sus compras individuales, y cada compra muestra su resultado contra el precio vigente |
+| RF-074a | Cada compra del detalle informa sus **días en tenencia**, a continuación de la fecha: los días desde la fecha de compra hasta hoy. Si la compra se vendió por completo, hasta la fecha de su última venta, porque desde ahí no se tiene nada. Una venta parcial no interrumpe la cuenta |
+| RF-074b | La cotización MEP con la que se convierten los dólares se informa una sola vez, en la fila de las solapas principales, a la derecha, y sólo mientras Salud financiera es la solapa activa. Se acompaña del acceso para actualizarla desde el servicio de cotizaciones |
 | RF-075 | Ganancia se representa en verde y pérdida en rojo, sin excepción, en todas las secciones de la pantalla |
 | RF-076 | Si un activo no tiene precio actual cargado, sus columnas de resultado muestran un guión, no un cero |
 | RF-076a | El precio se registra **por ticker y por moneda**. Un mismo símbolo tenido en pesos y en dólares son dos precios distintos —el CEDEAR y la acción— y ninguno sustituye al otro |
@@ -273,22 +275,22 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 
 | ID | Requerimiento |
 |---|---|
-| RF-073a | La tabla de activos presenta el **sector** de cada ticker, en mayúsculas como la descripción |
+| RF-073a | La tabla de activos presenta el **sector** de cada ticker, en mayúsculas como la descripción y con la misma tipografía que los demás campos de la fila (RNF-18) |
 | RF-073b | El sector se elige de un **catálogo cerrado** de quince valores: los once sectores bursátiles —Tecnología, Comunicaciones, Consumo discrecional, Consumo básico, Financiero, Salud, Industria, Energía, Materiales, Servicios públicos, Inmobiliario— y cuatro clases de activo —Índices y ETF amplios, Commodities, Cripto, Renta fija—. No se admite texto libre. **Liquidez no es asignable a un activo** (RF-073n) |
 | RF-073c | El sector de un activo se resuelve en este orden: el asignado por el usuario; el del listado de CEDEARs de BYMA; Cripto, si el ticker es un par contra USDT (RF-078h). Si ninguno aplica, el activo queda **sin sector** |
 | RF-073d | El sector es del instrumento, no de la moneda: el asignado a un ticker en pesos vale también para el mismo ticker en dólares |
 | RF-073e | El sector se asigna o se modifica desde la carga de inversiones (RF-135) y desde la tabla de activos |
 | RF-073f | Asignar el mismo sector que el automático no registra una asignación manual, y elimina la que existiera. Así, una corrección posterior del listado alcanza al activo |
 | RF-073g | Un sector asignado que difiere del automático se señala como valor editado e informa el original |
-| RF-073h | Cada destino de tenencias —Reserva, Inversiones y las dos Jubilaciones— presenta la **concentración por sector**: la participación de cada sector en el valor del destino, ordenada de mayor a menor, con el umbral marcado. Cada fila presenta, en este orden, el sector, su porcentaje, su monto en pesos —el valor sobre el que se calcula el porcentaje (RF-073i)— y una barra con los activos que lo componen escritos dentro de ella |
+| RF-073h | Cada destino de tenencias —Reserva, Inversiones y las dos Jubilaciones— presenta la **concentración por sector**: la participación de cada sector en el valor del destino, ordenada de mayor a menor, con el umbral marcado. Cada fila presenta, en este orden, el sector en mayúsculas, su porcentaje, su monto en pesos —el valor sobre el que se calcula el porcentaje (RF-073i)— y una barra con los activos que lo componen escritos dentro de ella |
 | RF-073n | La composición incluye **Liquidez**: el importe Líquido de la cabecera del destino (RF-072a), con su mismo valor, rotulado LÍQUIDO en mayúsculas como los tickers. Si el Líquido es negativo no se incluye, porque no constituye tenencia |
 | RF-073o | Cada sector se representa con un color propio, el mismo en todos los destinos de la pantalla y en las dos barras de un panel (RF-073q). Los colores provienen de la gama de las barras de distribución del producto, para que el panel use una sola; se asignan a los sectores presentes en el orden del catálogo, no por tamaño, de modo que un cambio de montos no altere el color de un sector. Las clases que no son sectores —Índices, Renta fija, Liquidez— se representan en tonos neutros, y las tenencias sin sector con un rayado |
 | RF-073q | Las filas ARS y USD de la cabecera de cada destino presentan una barra con la **concentración por sector de esa moneda**: lo que hay en pesos y lo que hay en dólares, cada uno sobre su propio total. Se valúa como en RF-073i. La barra ARS incluye la Liquidez (RF-072a); la USD no. Por eso, con tenencias en una sola moneda, la barra ARS coincide con RF-073h, y con tenencias en ambas sus porcentajes difieren. Cada tramo informa lo indicado en RF-073r |
 | RF-073r | La información emergente de un sector —en los tramos de RF-073q y en las filas de RF-073h— tiene dos líneas: la primera, `SECTOR: porcentaje (monto)`, con el sector en mayúsculas y toda la línea en negrita y en un tamaño mayor que la segunda, porque el sector es el dato principal; la segunda, cada activo con su porcentaje, de mayor a menor. El porcentaje de cada activo se calcula sobre el mismo total que el del sector, de modo que la suma de los activos da el porcentaje del sector |
 | RF-073p | El texto de los activos se ubica dentro de la barra cuando cabe con margen; si no cabe, a continuación de ella; si tampoco cabe allí, se omite y permanece disponible en la información emergente de la fila. Nunca se presenta recortado |
 | RF-073i | El valor de cada tenencia es nominales por precio actual. Sin precio actual se toma el costo, y el sistema informa qué tenencias se valuaron así. Las tenencias en dólares se convierten a pesos a la cotización MEP. Las posiciones liquidadas no intervienen |
-| RF-073j | Las tenencias sin sector se presentan en un renglón propio y cuentan en el total, indicando cuáles son |
-| RF-073k | Cuando un sector supera el umbral, el sistema emite una **alerta de concentración** en el panel del destino y en las observaciones de Diagnóstico (RF-064), con el mismo texto: sector, porcentaje, destino, tickers que lo componen y umbral. Se señala con ícono y texto, no sólo con color |
+| RF-073j | Las tenencias sin sector se presentan en un renglón propio y cuentan en el total. Sus activos se leen en la barra y en la información emergente, como los de cualquier sector |
+| RF-073k | Cuando un sector supera el umbral, el sistema emite una **alerta de concentración** en el panel del destino y en las observaciones de Diagnóstico (RF-064), con el mismo texto: sector, porcentaje, destino, tickers que lo componen y umbral. Se señala con ícono y texto, no sólo con color. En el gráfico, los sectores evaluados que no superan el umbral llevan un tilde verde; los que no se evalúan (RF-073l) no llevan ícono, porque un tilde afirmaría una revisión que no se hizo |
 | RF-073l | No emiten alerta los Índices y ETF amplios, la Renta fija, la Liquidez ni las tenencias sin sector |
 | RF-073m | El umbral es configurable en Parámetros (RF-193) |
 
@@ -861,6 +863,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-05 | Un valor editado manualmente se distingue mediante el color de acento y conserva el valor original accesible como información emergente |
 | RNF-06 | El ancho máximo de contenido es de 1800 px, con margen lateral de 40 px |
 | RNF-07 | Las columnas de encabezado y de detalle comparten definición de anchos. No se alinean por relleno |
+| RNF-18 | Un campo nuevo adopta la tipografía —familia, tamaño y peso— de los campos vecinos de la misma fila o formulario. No se elige por separado |
 
 ### 9.2 Diálogos
 
@@ -900,7 +903,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 407 pruebas en 48 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 412 pruebas en 49 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 
 **Fundamento de RNF-40.** Requerimiento explícito del cliente: una herramienta personal destinada a seguir operativa dentro de cinco años no puede depender de una cadena de compilación cuyas dependencias se degradan en meses.
@@ -1063,9 +1066,19 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.18 | 19/09/2026 | La información emergente de cada sector pasa a dos líneas: el sector con su porcentaje y monto, y el porcentaje de cada activo (RF-073r) | Reemplazada |
 | 1.19 | 19/09/2026 | La primera línea de la información emergente del sector va en mayúsculas y negrita, y el selector de sector de la tabla de activos en mayúsculas (RF-073r, RF-073a) | Reemplazada |
 | 1.20 | 19/09/2026 | En la información emergente del sector, la línea del sector pasa a ser de mayor tamaño que la de los activos (RF-073r) | Reemplazada |
-| 1.21 | 19/09/2026 | El líquido se informa también en la fila ARS de la cabecera, y la barra ARS lo incluye como Liquidez (RF-072a, RF-073q). La Liquidez del gráfico se rotula en mayúsculas (RF-073n) | **Vigente** |
+| 1.21 | 19/09/2026 | El líquido se informa también en la fila ARS de la cabecera, y la barra ARS lo incluye como Liquidez (RF-072a, RF-073q). La Liquidez del gráfico se rotula en mayúsculas (RF-073n) | Reemplazada |
+| 1.22 | 19/09/2026 | Incorpora los días en tenencia de cada compra (RF-074a) y mueve la cotización MEP a la fila de solapas (RF-074b), retirando de la cabecera los días invertidos. El gráfico de concentración pasa a mayúsculas, con tilde verde en los sectores dentro del límite y sin la leyenda de tenencias sin sector (RF-073h, RF-073j, RF-073k). El selector de sector adopta la tipografía de la fila, que pasa a ser criterio general (RF-073a, RNF-18) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Días en tenencia en el detalle de cada compra | RF-074a |
+| Cotización MEP en la fila de solapas; sin días invertidos en la cabecera | RF-074b |
+| Gráfico de concentración en mayúsculas, con tilde verde y sin la leyenda de sin sector | RF-073h, RF-073j, RF-073k |
+| Selector de sector con la tipografía de la fila | RF-073a, RNF-18 |
+
+**Implementados en la versión 1.21**
 
 | Cambio | Requerimiento |
 |---|---|

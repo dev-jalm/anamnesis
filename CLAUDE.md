@@ -109,6 +109,11 @@ repetir.
 
 - **Controles gemelos comparten clase.** Nada de estilo inline caso por caso. Si
   dos botones hacen lo mismo en pantallas distintas, se ven igual.
+- **Un campo nuevo usa la misma tipografía que los campos vecinos.** Familia,
+  tamaño y peso se toman de los otros campos de la misma fila o formulario, no
+  se eligen aparte. Pasó con el selector de Sector de la tabla de activos: iba en
+  Inter mientras la descripción y el precio de al lado iban en JetBrains Mono, y
+  la fila se leía como dos cosas distintas. Es norma de desarrollo, no un caso.
 - **Alto de controles unificado:** `--add-ctrl-h: 32px` (formularios de alta) y
   `--admin-ctrl-h: 32px` (modal de Administración). Selectores, botones y el
   picker de color van todos a esa altura.

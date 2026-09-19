@@ -80,7 +80,7 @@ La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite
 
 - **El navegador como runtime completo.** La persistencia usa la File System Access API contra un archivo que elige el usuario, con guardado por debounce para no escribir en cada tecla. El handle queda en IndexedDB, así que la app reconecta sola con el mismo archivo en la sesión siguiente y solo hay que elegirlo una vez. No hay backend porque no hace falta.
 
-- **Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado: parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas y parseo de resúmenes bancarios. `tests.html` la cubre con **407 tests** en 48 grupos, incluidos casos de integración sobre un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
+- **Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado: parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas y parseo de resúmenes bancarios. `tests.html` la cubre con **412 tests** en 49 grupos, incluidos casos de integración sobre un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
 
 - **Cada banco es un dato, no código.** Los parsers de Mercado Pago y Galicia eran el mismo algoritmo con constantes distintas, así que ese algoritmo vive una sola vez y cada entidad es una plantilla. Ocho campos alcanzan para describir un resumen: qué columna trae la fecha, si el importe viene firmado o partido en débito y crédito, en qué formato están los números, qué filas hay que ignorar. El motor trabaja sobre filas, así que da igual que el archivo sea CSV o Excel.
 
@@ -95,10 +95,10 @@ La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite
 ### Cómo se organiza
 
 ```
-dashboard.html    3.154 líneas    estructura, modales, formularios
-dashboard.css     8.048 líneas    estilos y theming claro/oscuro
-dashboard.js     22.919 líneas    lógica, render, estado, importación
-core.js           2.830 líneas    funciones puras + motor de plantillas
+dashboard.html    3.163 líneas    estructura, modales, formularios
+dashboard.css     8.037 líneas    estilos y theming claro/oscuro
+dashboard.js     22.904 líneas    lógica, render, estado, importación
+core.js           2.846 líneas    funciones puras + motor de plantillas
 mesa-trading.js   2.985 líneas    mesa de trading: riesgo, liquidación, historial
 mesa-trading.css  1.029 líneas    estilos de la mesa
 sistema-4k.js       478 líneas    el reglamento de trading, consultable en la app
@@ -106,7 +106,7 @@ cedears-byma.js     462 líneas    ratio, nombre y sector de los CEDEARs de BYMA
 demo-data.js        731 líneas    generador del dataset de demostración
 tour.js             302 líneas    el recorrido guiado del modo demo
 tour.css            131 líneas    estilos del recorrido
-tests.html        3.483 líneas    407 tests sobre core.js
+tests.html        3.509 líneas    412 tests sobre core.js
 ```
 
 ### Cómo se prueba

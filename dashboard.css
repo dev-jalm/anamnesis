@@ -5749,6 +5749,9 @@ body[data-exporting="true"] .section-card {
 }
 .main-tabs-toggle-slot .view-mode-toggle { display: none; }
 .main-tabs-toggle-slot .view-mode-toggle.tab-visible { display: inline-flex; }
+/* Cotización MEP usada, sólo con Salud financiera activa. */
+.main-tabs-mep { display: none; align-items: center; gap: 6px; }
+.main-tabs-mep.tab-visible { display: inline-flex; }
 
 /* ===== Toggle de modo de visualización en Evolución (Presupuestado/Real/VS) =====
    La clase se aplica al wrapper #mainTabBudget como data-budget-view. CSS
@@ -6148,15 +6151,18 @@ body[data-exporting="true"] .section-card {
 }
 /* Sector de la fila de un ticker. Mismo tratamiento que la descripción —sin
    borde hasta que se pasa el mouse— porque es el mismo tipo de dato: editable,
-   pero la mayoría de las veces llega solo y no hay que tocarlo. Va en Inter y
-   no en mono: es un nombre, no un número. */
+   pero la mayoría de las veces llega solo y no hay que tocarlo. */
 .inv-sector-sel {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
   padding: 4px 4px;
-  font-family: 'Inter', system-ui;
+  /* Misma tipografía que los otros campos de la fila (descripción, precio
+     actual): JetBrains Mono 11px semibold. Controles de una misma fila no
+     mezclan fuentes —ver "Criterios visuales" en CLAUDE.md—. */
+  font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
+  font-weight: 600;
   color: var(--ink-2);
   width: 100%;
   outline: none;
@@ -6272,9 +6278,12 @@ body[data-exporting="true"] .section-card {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-transform: uppercase;
 }
 .inv-sector-row.is-over .inv-sector-name { font-weight: 600; }
 .inv-sector-row.is-over .inv-sector-name svg { color: var(--red); flex-shrink: 0; }
+/* Dentro del límite: tilde verde, el par del triángulo rojo de arriba. */
+.inv-sector-row.is-ok .inv-sector-name svg { color: var(--green); flex-shrink: 0; }
 .inv-sector-row.is-none .inv-sector-name { color: var(--muted); font-style: italic; }
 /* La pista es el 100% de la cartera: el largo de la barra ES el porcentaje, no
    una escala relativa al sector más grande. Así la línea del umbral cae en el
@@ -6497,7 +6506,8 @@ body[data-exporting="true"] .section-card {
 .inv-entries-head > td {
   color: var(--accent);
 }
-.inv-entry-fecha {
+.inv-entry-fecha,
+.inv-entry-dias {
   font-family: 'JetBrains Mono', monospace;
   color: var(--ink);
 }
@@ -6795,29 +6805,8 @@ body[data-exporting="true"] .section-card {
 }
 .inv-header-total-combined .inv-header-cell-value { font-size: 13px; }
 
-/* Cuando el panel está colapsado, ocultamos las líneas meta (días invertidos +
-   cotización MEP) — son detalles que solo aportan cuando ves el contenido
-   completo. Reaparecen apenas se expande el <details>. */
-.investment-detail-panel:not([open]) .inv-header-cotizacion {
-  display: none;
-}
-
-.inv-header-cotizacion {
-  display: flex;
-  align-items: baseline;
-  justify-content: flex-end;
-  gap: 6px;
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px dashed var(--border);
-}
-/* Cuando hay varias líneas meta seguidas (días + cotización), solo la primera
-   muestra el separador superior. Las siguientes se pegan compactas. */
-.inv-header-cotizacion + .inv-header-cotizacion {
-  margin-top: 2px;
-  padding-top: 0;
-  border-top: none;
-}
+/* Etiqueta y valor de la cotización MEP usada. Viven en la fila de las
+   solapas principales (.main-tabs-mep); antes iban debajo de cada panel. */
 .inv-header-cotizacion-label {
   font-size: 9px;
   letter-spacing: 1.2px;

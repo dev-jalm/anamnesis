@@ -267,6 +267,15 @@
           VS
         </button>
       </div>
+      <!-- Cotización MEP de Salud financiera: una sola vez para toda la solapa, en
+           vez de repetida debajo de cada panel. Sólo se ve con esa solapa activa. -->
+      <div class="main-tabs-mep" data-tab-toggle="assets">
+        <span class="inv-header-cotizacion-label">Cotización MEP usada:</span>
+        <span class="inv-header-cotizacion-value" id="mainTabsMepValor">—</span>
+        <button type="button" class="inv-mep-refresh-btn" data-action="refresh-mep" title="Actualizar cotización MEP desde dolarapi.com">
+          <i data-lucide="refresh-cw" style="width:10px;height:10px"></i>
+        </button>
+      </div>
     </div>
   </div>
   </div><!-- /.app-top-bar -->

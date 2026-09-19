@@ -126,6 +126,21 @@ function estadoEntrada(e) {
   return cantidadRestante(e) > 0.0000001 ? 'parcial' : 'vendida';
 }
 
+// Días que se tiene una compra, de su fecha a hoy. Si se vendió entera, hasta
+// la fecha de la última venta: desde ahí ya no se tiene nada. Una venta
+// parcial no corta la cuenta, porque lo que queda se sigue teniendo.
+// null si la compra no tiene fecha válida. `hoy` es ISO; por defecto, hoy.
+function diasEnTenencia(e, hoy) {
+  if (!e || !e.fecha) return null;
+  let hasta = hoy || todayISO();
+  if (estadoEntrada(e) === 'vendida') {
+    const fechas = ventasDeEntrada(e).map(function (v) { return v && v.fecha; }).filter(Boolean).sort();
+    if (fechas.length) hasta = fechas[fechas.length - 1];
+  }
+  const d = daysBetweenISO(e.fecha, hasta);
+  return d === null ? null : Math.max(0, d);
+}
+
 /* Descripción de la tx que deja una venta:
      "Venta NVDA NVIDIA Corporation - 18 nominales - Inversión"
 
@@ -2787,6 +2802,7 @@ if (typeof module !== 'undefined' && module.exports) {
     // ventas de activos
     ventasDeEntrada, cantidadVendida, cantidadRestante, productoVentas,
     costoVendido, realizadoDeEntrada, invertidoRestante, estadoEntrada, validarVenta,
+    diasEnTenencia,
     descripcionVenta,
     HEALTH_SCORE_DEFAULTS,
     // strings

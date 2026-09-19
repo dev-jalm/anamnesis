@@ -17005,7 +17005,9 @@ function setMainTab(tab) {
   // Mostrar el toggle Resumen/Completa correcto según el tab activo. Los
   // toggles viven en .main-tabs-toggle-slot y se ocultan/muestran con la
   // clase .tab-visible. Solo Movimientos y Ficha Médica tienen toggle hoy.
-  Array.from(document.querySelectorAll('.main-tabs-toggle-slot .view-mode-toggle')).forEach(function (tg) {
+  // Además de los toggles, la cotización MEP de Salud financiera: cualquier
+  // elemento del slot con data-tab-toggle sigue la misma regla.
+  Array.from(document.querySelectorAll('.main-tabs-toggle-slot [data-tab-toggle]')).forEach(function (tg) {
     tg.classList.toggle('tab-visible', tg.getAttribute('data-tab-toggle') === tab);
   });
   // Refrescar los selectores de período: la disponibilidad de años y el enable/disable
@@ -17694,6 +17696,16 @@ function getKpiAccentForDestinos(destinos) {
   return '#8B7355';
 }
 
+// Celda "Días en tenencia" de una compra del detalle. La cuenta vive en core.js
+// (diasEnTenencia): a hoy, o a la última venta si se vendió entera.
+function celdaDiasTenencia(e) {
+  const d = diasEnTenencia(e);
+  if (d === null) return '<td class="inv-entry-dias"><span class="inv-na">—</span></td>';
+  const vendida = estadoEntrada(e) === 'vendida';
+  return '<td class="inv-entry-dias"' + (vendida ? ' title="Hasta la última venta"' : '') + '>' +
+    fmt(d) + ' día' + (d === 1 ? '' : 's') + '</td>';
+}
+
 // ─── SECTOR DE LOS ACTIVOS ───
 // El catálogo y el cálculo viven en core.js (SECTORES, sectorDeActivo,
 // concentracionPorSector, sectoresConcentrados). Acá, lo que toca pantalla.
@@ -17919,9 +17931,15 @@ function buildSectorConcentrationBlock(destinos, nombreCartera) {
     const pctTxt = s.pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
     const tip = tooltipSector(s, '$');
     const color = colorDeSector(s.sector);
-    return '<div class="inv-sector-row' + (over ? ' is-over' : '') + (sinSector ? ' is-none' : '') + '"' + tip + '>' +
+    // Tilde verde para los que se evalúan y quedan dentro del límite. Los que
+    // no se evalúan —índices, renta fija, liquidez, sin sector— no llevan
+    // ninguno de los dos íconos: un tilde diría que se revisaron, y no es así.
+    const def = s.sector && sectorPorClave(s.sector);
+    const dentro = !over && umbral > 0 && !!def && def.alerta !== false;
+    return '<div class="inv-sector-row' + (over ? ' is-over' : '') + (dentro ? ' is-ok' : '') + (sinSector ? ' is-none' : '') + '"' + tip + '>' +
       '<span class="inv-sector-name">' +
         (over ? '<i data-lucide="alert-triangle" style="width:11px;height:11px"></i>' : '') +
+        (dentro ? '<i data-lucide="check" style="width:11px;height:11px"></i>' : '') +
         escapeHtmlSafe(etiquetaSector(s.sector)) +
       '</span>' +
       '<span class="inv-sector-pct">' + pctTxt + '</span>' +
@@ -17942,8 +17960,6 @@ function buildSectorConcentrationBlock(destinos, nombreCartera) {
   }).join('');
   const notas = [];
   if (c.aCosto.length) notas.push('Valuados a costo por no tener precio actual: ' + c.aCosto.join(', ') + '.');
-  const sinSector = c.sectores.filter(function (s) { return !s.sector; })[0];
-  if (sinSector) notas.push('Sin sector: ' + sinSector.tickers.join(', ') + '. Asignalo en la columna Sector de la tabla.');
   return '<div class="inv-sector-block">' +
     '<div class="inv-sector-head">' +
       '<span class="inv-section-label">Concentración por sector</span>' +
@@ -18192,49 +18208,10 @@ function buildInvestmentDetailPanel(destinos, title) {
     '</div>';
   }
 
-  // Días invertidos: cuánto tiempo lleva la plata invertida en este panel.
-  // Tomamos la fecha más antigua entre TODAS las entradas (across tickers y
-  // monedas) — es la fecha en que arrancó la exposición a este destino. La
-  // diferencia con hoy en días es lo que mostramos.
-  let oldestFecha = null;
-  all.forEach(function (e) {
-    if (!e.fecha) return;
-    // Comparamos como string yyyy-mm-dd que ordena lexicográficamente como fechas
-    if (oldestFecha === null || e.fecha < oldestFecha) oldestFecha = e.fecha;
-  });
-  let diasInvertidos = null;
-  let oldestFechaDisplay = '';
-  if (oldestFecha) {
-    const parts = oldestFecha.split('-');
-    const d0 = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); d0.setHours(0, 0, 0, 0);
-    diasInvertidos = Math.max(0, Math.round((today - d0) / 86400000));
-    oldestFechaDisplay = oldestFecha.split('-').reverse().join('/');
-  }
-  const diasLine = (diasInvertidos !== null)
-    ? '<div class="inv-header-cotizacion inv-header-dias">' +
-        '<span class="inv-header-cotizacion-label">Días invertidos:</span>' +
-        '<span class="inv-header-cotizacion-value" title="Desde la primera compra: ' + oldestFechaDisplay + '">' + fmt(diasInvertidos) + ' días</span>' +
-      '</div>'
-    : '<div class="inv-header-cotizacion inv-header-dias">' +
-        '<span class="inv-header-cotizacion-label">Días invertidos:</span>' +
-        '<span class="inv-header-cotizacion-value"><span class="inv-na">—</span></span>' +
-      '</div>';
-
-  // Línea de cotización debajo del bloque de totales (la cotización usada para
-  // convertir USD → ARS en la fila combinada). El botón ↻ al lado dispara un
-  // fetch a dolarapi.com — actualiza state.params.cotizacionMep directamente
-  // (sin pasar por el modal de Administración), persiste con scheduleSave, y
-  // re-renderiza Salud financiera para reflejar el nuevo valor.
-  const cotizacionLine =
-    '<div class="inv-header-cotizacion">' +
-      '<span class="inv-header-cotizacion-label">Cotización MEP usada:</span>' +
-      '<span class="inv-header-cotizacion-value">$ ' + fmt(cotizacionMep) + ' / USD</span>' +
-      '<button class="inv-mep-refresh-btn" data-action="refresh-mep" title="Actualizar cotización MEP desde dolarapi.com">' +
-        '<i data-lucide="refresh-cw" style="width:10px;height:10px"></i>' +
-      '</button>' +
-    '</div>';
+  // "Días invertidos" y "Cotización MEP usada" ya no van debajo de los
+  // totales de cada panel. Los días se ven por compra, en la columna Días en
+  // tenencia del detalle; la cotización, una sola vez para toda la solapa, en la
+  // fila de las solapas principales (renderCotizacionMepSolapa).
 
   // Sparkline: serie por mes del invertido acumulado de los tickers del panel.
   // Va en la fila combinada ARS+USD. Las filas ARS y USD individuales muestran
@@ -18284,8 +18261,6 @@ function buildInvestmentDetailPanel(destinos, title) {
         headerTotalRow('ARS', '$', liquidoComb, arsInv, arsAct, arsVar, arsDistBar, { destinos: destinos }) +
         headerTotalRow('USD', 'US$', null, usdInv, usdAct, usdVar, usdDistBar) +
         headerTotalRow('ARS+USD', '$', liquidoComb, invCombArs, actCombArs, combVar, sparklineSvg, { combined: true, destinos: destinos }) +
-        diasLine +
-        cotizacionLine +
       '</div>' +
     '</div>';
 
@@ -18351,7 +18326,7 @@ function buildInvestmentDetailPanel(destinos, title) {
             '</td>' +
             '<td>' + (showDestColumn ? escapeHtmlSafe(destLabel) : '') + '</td>' +
             '<td class="inv-entry-fecha">' + fechaDisplay + '</td>' +
-            '<td></td>' +
+            celdaDiasTenencia(e) +
             '<td></td>' +
             '<td class="num"><span class="inv-chip-liquidado">liquidada</span></td>' +
             '<td class="num" colspan="4"><span class="inv-na">vendidos ' + fmtNominales(eVendida) + ' nominales por ' +
@@ -18380,7 +18355,9 @@ function buildInvestmentDetailPanel(destinos, title) {
                 'vendidas ' + fmtNominales(eVendida) + (eEstado === 'vendida' ? ' · sin saldo' : '') + '</div>'
               : '') +
           '</td>' +
-          '<td></td>' +
+          // Días en tenencia: va en la columna de Descripción, que en el detalle
+          // está vacía y queda justo después de la fecha.
+          celdaDiasTenencia(e) +
           '<td></td>' +
           '<td class="num">' + (eCant < 0 ? '-' : '') + fmtNominales(eCant) + '</td>' +
           '<td class="num">' + monedaPrefix + ' ' + fmtPrecio(ePrecio) + '</td>' +
@@ -18405,7 +18382,7 @@ function buildInvestmentDetailPanel(destinos, title) {
         '<td></td>' +
         '<td>' + (showDestColumn ? 'Destino' : '') + '</td>' +
         '<td>Fecha</td>' +
-        '<td></td>' +
+        '<td title="Días desde la compra hasta hoy; si se vendió entera, hasta la última venta">Días en tenencia</td>' +
         '<td></td>' +
         '<td class="num">Nominales</td>' +
         '<td class="num">Precio de compra</td>' +
@@ -18562,9 +18539,9 @@ function buildInvestmentDetailPanel(destinos, title) {
            resta 20 de padding. Con 190 entraba sólo porque la tabla sumaba
            menos que el contenedor y el sobrante se repartía entre columnas. */
         '<col style="width:195px">' +  /* Descripción · vacía en el detalle */
-        /* Sector: en mayúsculas, un selector con "CONSUMO DISCRECIONAL" mide
-           174px con su padding y su flecha (medido con width:auto; en negrita,
-           cuando está editado a mano). La celda le resta 20 de padding. */
+        /* Sector: en mayúsculas y JetBrains Mono semibold, la opción más
+           larga, "ÍNDICES Y ETF AMPLIOS", mide 169px con su padding y su
+           flecha (medido con width:auto). La celda le resta 20 de padding. */
         '<col style="width:195px">' +  /* Sector · vacía en el detalle */
         '<col style="width:85px">' +   /* Cantidad */
         '<col style="width:105px">' +  /* PPC · en el detalle, precio de compra */
@@ -19630,6 +19607,14 @@ function renderMainAssets() {
   // Colores de los sectores: se reparten de nuevo en cada render, porque un
   // sector nuevo en cualquier cartera cambia cuáles están en uso.
   _coloresSector = null;
+
+  // Cotización MEP en la fila de las solapas. Se escribe en cada render de la
+  // solapa: el botón ↻ y el guardado de Parámetros terminan re-renderizándola.
+  const mepValor = document.getElementById('mainTabsMepValor');
+  if (mepValor) {
+    const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+    mepValor.textContent = '$ ' + fmt(mep) + ' / USD';
+  }
 
   // Forecast del gasto del mes en curso (sólo si el mes activo es el mes actual)
   const forecastWrap = document.getElementById('assetsForecastWrap');
