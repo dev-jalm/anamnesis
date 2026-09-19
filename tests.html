@@ -1298,6 +1298,24 @@ group('Sector de los activos', function () {
     assertEqual(c.sectores[0].tickers.join(','), 'AAPL,MSFT');
     assertEqual(c.sectores[1].pct, 20);
   });
+  test('concentracion: el detalle da el % de cada activo sobre el total, y suma el del sector', function () {
+    const c = concentracionPorSector([
+      { ticker: 'MSFT', sector: 'tecnologia', valor: 200 },
+      { ticker: 'AAPL', sector: 'tecnologia', valor: 600 },
+      { ticker: 'KO', sector: 'consumo_basico', valor: 200 }
+    ]);
+    const tec = c.sectores[0];
+    assertEqual(tec.detalle.map(function (d) { return d.ticker + ' ' + d.pct; }).join(', '), 'AAPL 60, MSFT 20', 'ordenado de mayor a menor');
+    assertEqual(tec.detalle.reduce(function (s, d) { return s + d.pct; }, 0), tec.pct);
+  });
+  test('concentracion: el mismo ticker en dos monedas es un solo renglon del detalle', function () {
+    const c = concentracionPorSector([
+      { ticker: 'SPY', sector: 'indices', valor: 300 },
+      { ticker: 'SPY', sector: 'indices', valor: 100 }
+    ]);
+    assertEqual(c.sectores[0].detalle.length, 1);
+    assertEqual(c.sectores[0].detalle[0].valor, 400);
+  });
   test('concentracion: lo sin sector cuenta en el total, en su propio renglon', function () {
     const c = concentracionPorSector([
       { ticker: 'AAPL', sector: 'tecnologia', valor: 500 },

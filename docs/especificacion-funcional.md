@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.17 |
+| **Versión** | 1.18 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -282,7 +282,8 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-073h | Cada destino de tenencias —Reserva, Inversiones y las dos Jubilaciones— presenta la **concentración por sector**: la participación de cada sector en el valor del destino, ordenada de mayor a menor, con el umbral marcado. Cada fila presenta, en este orden, el sector, su porcentaje, su monto en pesos —el valor sobre el que se calcula el porcentaje (RF-073i)— y una barra con los activos que lo componen escritos dentro de ella |
 | RF-073n | La composición incluye **Liquidez**: el importe Líquido de la fila ARS+USD de la cabecera del destino, con su mismo valor. Si el Líquido es negativo no se incluye, porque no constituye tenencia |
 | RF-073o | Cada sector se representa con un color propio, el mismo en todos los destinos de la pantalla y en las dos barras de un panel (RF-073q). Los colores provienen de la gama de las barras de distribución del producto, para que el panel use una sola; se asignan a los sectores presentes en el orden del catálogo, no por tamaño, de modo que un cambio de montos no altere el color de un sector. Las clases que no son sectores —Índices, Renta fija, Liquidez— se representan en tonos neutros, y las tenencias sin sector con un rayado |
-| RF-073q | Las filas ARS y USD de la cabecera de cada destino presentan una barra con la **concentración por sector de esa moneda**: lo que hay en pesos y lo que hay en dólares, cada uno sobre su propio total. Se valúa como en RF-073i y no incluye el Líquido, que la cabecera informa aparte; por eso sus porcentajes pueden diferir de los de RF-073h, que sí lo incluye. Cada tramo informa sector, monto, porcentaje y activos |
+| RF-073q | Las filas ARS y USD de la cabecera de cada destino presentan una barra con la **concentración por sector de esa moneda**: lo que hay en pesos y lo que hay en dólares, cada uno sobre su propio total. Se valúa como en RF-073i y no incluye el Líquido, que la cabecera informa aparte; por eso sus porcentajes pueden diferir de los de RF-073h, que sí lo incluye. Cada tramo informa lo indicado en RF-073r |
+| RF-073r | La información emergente de un sector —en los tramos de RF-073q y en las filas de RF-073h— tiene dos líneas: la primera, `sector: porcentaje (monto)`; la segunda, cada activo con su porcentaje, de mayor a menor. El porcentaje de cada activo se calcula sobre el mismo total que el del sector, de modo que la suma de los activos da el porcentaje del sector |
 | RF-073p | El texto de los activos se ubica dentro de la barra cuando cabe con margen; si no cabe, a continuación de ella; si tampoco cabe allí, se omite y permanece disponible en la información emergente de la fila. Nunca se presenta recortado |
 | RF-073i | El valor de cada tenencia es nominales por precio actual. Sin precio actual se toma el costo, y el sistema informa qué tenencias se valuaron así. Las tenencias en dólares se convierten a pesos a la cotización MEP. Las posiciones liquidadas no intervienen |
 | RF-073j | Las tenencias sin sector se presentan en un renglón propio y cuentan en el total, indicando cuáles son |
@@ -898,7 +899,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 405 pruebas en 48 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 407 pruebas en 48 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 
 **Fundamento de RNF-40.** Requerimiento explícito del cliente: una herramienta personal destinada a seguir operativa dentro de cinco años no puede depender de una cadena de compilación cuyas dependencias se degradan en meses.
@@ -1057,9 +1058,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.14 | 18/09/2026 | Rediseña la concentración por sector: un color por sector, el orden sector · porcentaje · barra y los activos dentro de la barra (RF-073h, RF-073o, RF-073p). La Liquidez deja de ser asignable a un activo y pasa a tomarse del Líquido de la cabecera del destino (RF-073b, RF-073n) | Reemplazada |
 | 1.15 | 18/09/2026 | Los colores de los sectores pasan a ser los de la barra de distribución de la cabecera (RF-073o) | Reemplazada |
 | 1.16 | 19/09/2026 | La fila de concentración incorpora el monto de cada sector entre el porcentaje y la barra (RF-073h) | Reemplazada |
-| 1.17 | 19/09/2026 | Las barras de las filas ARS y USD de la cabecera pasan a mostrar la concentración por sector de cada moneda, en lugar de la distribución por ticker (RF-073q) | **Vigente** |
+| 1.17 | 19/09/2026 | Las barras de las filas ARS y USD de la cabecera pasan a mostrar la concentración por sector de cada moneda, en lugar de la distribución por ticker (RF-073q) | Reemplazada |
+| 1.18 | 19/09/2026 | La información emergente de cada sector pasa a dos líneas: el sector con su porcentaje y monto, y el porcentaje de cada activo (RF-073r) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Información emergente del sector en dos líneas, con el porcentaje de cada activo | RF-073r |
+
+**Implementados en la versión 1.17**
 
 | Cambio | Requerimiento |
 |---|---|

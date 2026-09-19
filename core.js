@@ -1545,14 +1545,22 @@ function concentracionPorSector(posiciones) {
     const v = Number(p && p.valor) || 0;
     if (v <= 0) return;
     const k = (p.sector && sectorPorClave(p.sector)) ? p.sector : '__sin__';
-    if (!acc[k]) acc[k] = { sector: k === '__sin__' ? null : k, valor: 0, tickers: [] };
+    if (!acc[k]) acc[k] = { sector: k === '__sin__' ? null : k, valor: 0, tickers: [], detalle: [] };
     acc[k].valor += v;
     if (acc[k].tickers.indexOf(p.ticker) < 0) acc[k].tickers.push(p.ticker);
+    // Valor de cada activo dentro del sector, para poder decir cuánto aporta
+    // cada uno. Un mismo ticker puede llegar dos veces (pesos y dólares): se suma.
+    const d = acc[k].detalle.filter(function (x) { return x.ticker === p.ticker; })[0];
+    if (d) d.valor += v; else acc[k].detalle.push({ ticker: p.ticker, valor: v });
     total += v;
   });
   const sectores = Object.keys(acc).map(function (k) {
     const s = acc[k];
     s.pct = total > 0 ? (s.valor / total * 100) : 0;
+    // El % de cada activo es sobre el MISMO total que el del sector, así la
+    // suma de los activos da el porcentaje del sector.
+    s.detalle.forEach(function (x) { x.pct = total > 0 ? (x.valor / total * 100) : 0; });
+    s.detalle.sort(function (a, b) { return b.valor - a.valor; });
     return s;
   }).sort(function (a, b) { return b.valor - a.valor; });
   return { total: total, sectores: sectores };

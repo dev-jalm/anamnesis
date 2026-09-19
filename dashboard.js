@@ -17353,6 +17353,20 @@ function buildReservaMetaRow() {
 // asigna está en ORDEN_COLOR_SECTOR.
 const PALETA_DISTRIBUCION = ['#D4A24C','#8E5A9E','#4A6B8A','#6B8E4E','#C8553D','#A88A6B','#8B7355','#D4849E','#5B8F9F','#B98D5C'];
 
+// Tooltip de un sector, en dos líneas:
+//   Tecnología: 54,2% ($ 2.573.240)
+//   AAPL 22,2%, NVDA 17,7%, MSFT 14,3%
+// El % de cada activo es sobre el mismo total que el del sector, así suman
+// ese porcentaje. Lo usan la barra de cada moneda de la cabecera y las filas
+// del gráfico de concentración, para que digan lo mismo del mismo modo.
+// El salto de línea va como carácter: el title lo muestra tal cual.
+function tooltipSector(s, prefix) {
+  const pct = function (n) { return n.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%'; };
+  const linea1 = etiquetaSector(s.sector) + ': ' + pct(s.pct) + ' (' + prefix + ' ' + fmt(Math.round(s.valor)) + ')';
+  const linea2 = (s.detalle || []).map(function (d) { return d.ticker + ' ' + pct(d.pct); }).join(', ');
+  return linea1 + (linea2 ? '\n' + linea2 : '');
+}
+
 // Barra apilada de la cabecera con la concentración por sector de UNA moneda:
 // la fila ARS reparte lo que hay en pesos y la fila USD lo que hay en dólares.
 // Antes repartía por ticker; ahora dice lo mismo que el gráfico de
@@ -17385,8 +17399,7 @@ function buildDistributionBar(groups, tickers, prefix) {
   }
   const segments = c.sectores.map(function (s) {
     const color = colorDeSector(s.sector);
-    const pctTxt = s.pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-    const tooltip = etiquetaSector(s.sector) + ': ' + prefix + ' ' + fmt(Math.round(s.valor)) + ' (' + pctTxt + '%) · ' + s.tickers.join(', ');
+    const tooltip = tooltipSector(s, prefix);
     return '<span class="inv-distbar-seg' + (s.sector ? '' : ' inv-distbar-sin-sector') + '" style="width:' + s.pct.toFixed(2) + '%' +
       (color ? ';background:' + color : '') + '" title="' + escapeHtmlSafe(tooltip) + '"></span>';
   }).join('');
@@ -17848,7 +17861,7 @@ function buildSectorConcentrationBlock(destinos, nombreCartera) {
     const over = !!(s.sector && concentrados[s.sector]);
     const sinSector = !s.sector;
     const pctTxt = s.pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
-    const tip = etiquetaSector(s.sector) + ': ' + pctTxt + ' · $ ' + fmt(Math.round(s.valor)) + ' · ' + s.tickers.join(', ');
+    const tip = tooltipSector(s, '$');
     const color = colorDeSector(s.sector);
     return '<div class="inv-sector-row' + (over ? ' is-over' : '') + (sinSector ? ' is-none' : '') + '" title="' + escapeHtmlSafe(tip) + '">' +
       '<span class="inv-sector-name">' +
