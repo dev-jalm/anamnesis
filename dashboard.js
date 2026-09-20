@@ -18415,9 +18415,9 @@ function buildLiquidadosBlock(entries) {
 // .mesa con márgenes negativos y acá el contenedor no tiene ese padding—.
 // Sin contenido no se dibuja la sección: un título que se despliega en nada
 // se lee como algo roto.
-function bloquePlegableInv(titulo, bajada, contenido) {
+function bloquePlegableInv(titulo, bajada, contenido, clase) {
   if (!contenido) return '';
-  return '<details class="mesa-fold inv-fold">' +
+  return '<details class="mesa-fold inv-fold' + (clase ? ' ' + clase : '') + '">' +
     '<summary class="mesa-fold-sum">' +
       '<div>' +
         '<h4 class="mesa-block-title">' + escapeHtmlSafe(titulo) + '</h4>' +
@@ -19040,7 +19040,7 @@ function buildInvestmentDetailPanel(destinos, title) {
       (panelKey === 'trading' ? '' :
         bloquePlegableInv('Activos', 'Las tenencias por ticker, con su detalle de compras.',
           buildCurrencyTable('ARS', arsTickers.length, arsRows) +
-          buildCurrencyTable('USD', usdTickers.length, usdRows)) +
+          buildCurrencyTable('USD', usdTickers.length, usdRows), 'inv-fold-activos') +
         bloquePlegableInv('Concentración', 'Cuánto pesa cada sector y cada tipo de riesgo en la cartera.',
           buildSectorConcentrationBlock(destinos, title)) +
         bloquePlegableInv('Liquidado', 'Lo que ya se vendió, separado en ganancias y pérdidas.',

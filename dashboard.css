@@ -6722,6 +6722,12 @@ body[data-exporting="true"] .section-card {
    duplicado a dos píxeles del de la sección que los contiene. */
 .inv-fold .inv-conc-grid { border-top: none; }
 .inv-fold .inv-liq { border-top: none; padding-top: 0; }
+/* Las tablas iban a sangre mientras la concentración y lo liquidado arrancaban
+   14px adentro: medido, las columnas de Activos empezaban en x=43 y las de
+   Concentración en x=57. Los mismos 14px de los otros dos bloques, puestos
+   acá y no en el cuerpo de todas las secciones para no sumárselos a los que ya
+   los traen. La tabla es width:100%, así que respeta la caja de contenido. */
+.inv-fold-activos > .mesa-fold-body { padding-left: 14px; padding-right: 14px; }
 .investment-detail-tables .investment-detail-table {
   /* Borde divisor entre las dos tablas (ARS y USD) */
   border-top: 1px solid var(--border);
