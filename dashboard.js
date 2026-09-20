@@ -18262,6 +18262,110 @@ function tintaSobre(rgb) {
   });
 })();
 
+// Cada venta registrada del panel, con lo que dejó. La unidad es LA VENTA y no
+// la compra: una compra puede venderse en tandas, cada una con su fecha y su
+// resultado, y lo que se quiere ver es cada liquidación con la suya. Los
+// nominales se informan contra el total de la compra de la que salieron, que
+// es lo que se estaba liquidando.
+function ventasDelPanel(entries) {
+  const filas = [];
+  (entries || []).forEach(function (e) {
+    const totalCompra = Number(e.cantidad) || 0;
+    const precioCompra = Number(e.precio) || 0;
+    ventasDeEntrada(e).forEach(function (v) {
+      const cant = Number(v && v.cantidad) || 0;
+      if (!cant) return;
+      const prec = Number(v && v.precio) || 0;
+      const tot = Number(v && v.total);
+      // Mismo criterio que productoVentas(): el total guardado manda, y si no
+      // está se reconstruye con cantidad × precio.
+      const cobrado = (isFinite(tot) && tot !== 0) ? tot : cant * prec;
+      filas.push({
+        fecha: (v && v.fecha) ? v.fecha : '',
+        ticker: e.ticker,
+        moneda: (e.moneda === 'USD') ? 'USD' : 'ARS',
+        vendidos: cant,
+        totalCompra: totalCompra,
+        cobrado: cobrado,
+        // Resultado de ESTA venta: lo que entró menos lo que costaba al precio
+        // de su compra. Es el mismo cálculo de realizadoDeEntrada(), venta a
+        // venta en lugar de acumulado.
+        resultado: cobrado - cant * precioCompra
+      });
+    });
+  });
+  // De la liquidación más vieja a la más nueva, el mismo orden que el detalle
+  // de compras (RF-074e).
+  filas.sort(function (a, b) { return (a.fecha || '').localeCompare(b.fecha || ''); });
+  return filas;
+}
+
+// Lo liquidado del panel, en dos grupos: lo que salió en ganancia y lo que
+// salió en pérdida. Cada fila es una venta —fecha, activo, nominales vendidos
+// sobre el total de la compra, lo cobrado y el resultado—, y el título de cada
+// grupo lleva su total. Sin ventas registradas el bloque no se dibuja.
+function buildLiquidadosBlock(entries) {
+  const filas = ventasDelPanel(entries);
+  if (!filas.length) return '';
+  // Una venta al costo exacto no es una pérdida: va con las ganancias, donde
+  // suma cero y no ensucia el total de lo perdido.
+  const gan = filas.filter(function (f) { return f.resultado >= 0; });
+  const per = filas.filter(function (f) { return f.resultado < 0; });
+
+  // Los totales se expresan en una sola moneda. Si todas las ventas fueron en
+  // dólares se quedan en dólares; en cualquier otro caso van a pesos al MEP,
+  // igual que la fila ARS+USD sobre la que se apoyan.
+  const todasUsd = filas.every(function (f) { return f.moneda === 'USD'; });
+  const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+  const prefijoTotal = todasUsd ? 'US$' : '$';
+  const enMonedaDelTotal = function (f) {
+    if (todasUsd || f.moneda !== 'USD') return f.resultado;
+    return f.resultado * mep;
+  };
+  const sumar = function (arr) {
+    return arr.reduce(function (s, f) { return s + enMonedaDelTotal(f); }, 0);
+  };
+
+  const fila = function (f) {
+    const prefijo = (f.moneda === 'USD') ? 'US$' : '$';
+    const cls = f.resultado > 0 ? 'inv-gp-positive' : (f.resultado < 0 ? 'inv-gp-negative' : '');
+    const signo = f.resultado > 0 ? '+' : (f.resultado < 0 ? '-' : '');
+    return '<div class="inv-liq-fila">' +
+      '<span class="inv-liq-fecha">' + (f.fecha ? escapeHtmlSafe(f.fecha.split('-').reverse().join('/')) : '—') + '</span>' +
+      '<span class="inv-liq-tk">' + escapeHtmlSafe(f.ticker) + '</span>' +
+      // Nominales vendidos sobre los de la compra: dice de un vistazo si se
+      // liquidó todo o una parte.
+      '<span class="inv-liq-nom">' + fmtNominales(f.vendidos) +
+        (f.totalCompra ? ' <span class="inv-liq-nom-total">/ ' + fmtNominales(f.totalCompra) + '</span>' : '') +
+      '</span>' +
+      '<span class="inv-liq-cobrado">' + prefijo + ' ' + fmt(Math.round(f.cobrado)) + '</span>' +
+      // Sin signo en el importe: el color ya dice si ganó o perdió, el mismo
+      // criterio del detalle de compras.
+      '<span class="inv-liq-res ' + cls + '">' + prefijo + ' ' + fmt(Math.round(Math.abs(f.resultado))) + '</span>' +
+    '</div>';
+  };
+
+  const grupo = function (arr, titulo, cls, vacio) {
+    const total = sumar(arr);
+    return '<div class="inv-liq-grupo">' +
+      '<div class="inv-liq-cab">' +
+        '<span class="inv-liq-titulo">' + titulo + '</span>' +
+        '<span class="inv-liq-total ' + (arr.length ? cls : '') + '">' +
+          prefijoTotal + ' ' + fmt(Math.round(Math.abs(total))) + '</span>' +
+      '</div>' +
+      (arr.length ? arr.map(fila).join('') : '<div class="inv-liq-vacio">' + vacio + '</div>') +
+    '</div>';
+  };
+
+  return '<div class="inv-liq">' +
+    '<div class="inv-liq-titulos">' +
+      '<span>Fecha</span><span>Activo</span><span>Nominales</span><span>Cobrado</span><span>Resultado</span>' +
+    '</div>' +
+    grupo(gan, 'Liquidado en ganancia', 'inv-gp-positive', 'sin ventas en ganancia') +
+    grupo(per, 'Liquidado en pérdida', 'inv-gp-negative', 'sin ventas en pérdida') +
+  '</div>';
+}
+
 function buildInvestmentDetailPanel(destinos, title) {
   // Filtrar entradas del destino. Si no hay ninguna, igual mostramos el panel
   // con todo en 0 (estado vacío) — el usuario quiere ver las 5 secciones siempre.
@@ -18439,6 +18543,10 @@ function buildInvestmentDetailPanel(destinos, title) {
   // tenencia del detalle; la cotización, una sola vez para toda la solapa, en la
   // fila de las solapas principales (renderCotizacionMepSolapa).
 
+  // Lo liquidado, debajo del total ARS+USD: qué salió en ganancia y qué en
+  // pérdida. Se arma con las mismas entradas del panel.
+  const liquidadoHtml = buildLiquidadosBlock(all);
+
   // Sparkline: serie por mes del invertido acumulado de los tickers del panel.
   // Va en la fila combinada ARS+USD. Las filas ARS y USD individuales muestran
   // un mini stacked-bar con la distribución por ticker en su moneda.
@@ -18487,6 +18595,7 @@ function buildInvestmentDetailPanel(destinos, title) {
         headerTotalRow('ARS', '$', liquidoComb, arsInv, arsAct, arsVar, arsDistBar, { destinos: destinos }) +
         headerTotalRow('USD', 'US$', null, usdInv, usdAct, usdVar, usdDistBar) +
         headerTotalRow('ARS+USD', '$', liquidoComb, invCombArs, actCombArs, combVar, sparklineSvg, { combined: true, destinos: destinos }) +
+        liquidadoHtml +
       '</div>' +
     '</div>';
 

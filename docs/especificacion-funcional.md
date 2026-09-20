@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.29 |
+| **Versión** | 1.30 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -218,6 +218,9 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-071 | Los cuatro destinos de tenencias muestran totales separados por moneda: ARS, USD y el combinado |
 | RF-072 | Cada panel distingue el importe líquido (destinado y no invertido) del invertido (colocado en activos) |
 | RF-072a | El líquido se informa en la fila ARS+USD y también en la fila ARS, con el mismo valor: los aportes son movimientos en pesos y las compras en dólares se pagan con esos pesos, de modo que el dinero sin invertir está en pesos. La fila USD no informa líquido, porque el producto no registra dólares sin invertir |
+| RF-072b | Debajo de la fila ARS+USD, cada panel presenta **lo liquidado**, en dos grupos: lo que salió en ganancia y, debajo, lo que salió en pérdida. Cada grupo informa su total y detalla una línea por venta con la fecha, el activo, los nominales vendidos sobre los de la compra de la que salieron, el importe cobrado y el resultado. Las líneas van de la venta más antigua a la más reciente. Un grupo sin ventas lo declara, para distinguirlo de la ausencia del dato. Sin ninguna venta registrada el bloque no se presenta |
+| RF-072c | Las ventas parciales integran RF-072b: lo que se liquidó es lo vendido, con independencia de que la compra conserve saldo. Una venta al costo exacto se agrupa con las ganancias, donde aporta cero |
+| RF-072d | Cada línea de RF-072b se expresa en la moneda de su compra. Los totales de cada grupo se expresan en dólares cuando todas las ventas del panel lo fueron, y en pesos en cualquier otro caso, convirtiendo las ventas en dólares a la cotización MEP (RF-073i) |
 | RF-073 | La tabla de activos expone, por ticker: nominales, precio promedio de compra, total invertido, precio actual, variación por nominal, total actualizado y resultado |
 | RF-074 | Cada activo se despliega en sus compras individuales, y cada compra muestra su resultado contra el precio vigente |
 | RF-074a | Cada compra del detalle informa sus **días en tenencia**, a continuación de la fecha: los días desde la fecha de compra hasta hoy. Si la compra se vendió por completo, hasta la fecha de su última venta, porque desde ahí no se tiene nada. Una venta parcial no interrumpe la cuenta |
@@ -1084,9 +1087,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.26 | 19/09/2026 | Alertas de concentración por tipo de riesgo con umbral propio (RF-073t, RF-194). Las dos columnas de concentración comparten filas, así que sus barras arrancan a la misma altura (RF-073u). La línea del umbral pasa detrás de las barras (RF-073v) | Reemplazada |
 | 1.27 | 19/09/2026 | Los avisos de concentración, por sector y por tipo de riesgo, dejan de enumerar los activos (RF-073k, RF-073t) | Reemplazada |
 | 1.28 | 19/09/2026 | La barra que supera el umbral deja de taparlo (RF-073v). El detalle de un activo se ordena de la compra más antigua a la más reciente (RF-074e). Asignar un sector conserva el punto de lectura y el foco (RF-073w). La clase "Índices y ETF amplios" pasa a llamarse "Indices y ETF" (RF-073b) | Reemplazada |
-| 1.29 | 20/09/2026 | Las filas de la concentración dejan de presentar información emergente (RF-073x, RF-073r, RF-073p) | **Vigente** |
+| 1.29 | 20/09/2026 | Las filas de la concentración dejan de presentar información emergente (RF-073x, RF-073r, RF-073p) | Reemplazada |
+| 1.30 | 20/09/2026 | Cada panel presenta lo liquidado debajo del total ARS+USD, separando ganancias de pérdidas y detallando cada venta (RF-072b, RF-072c, RF-072d) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Lo liquidado debajo del total ARS+USD, en ganancias y pérdidas | RF-072b, RF-072c, RF-072d |
+
+**Implementados en la versión 1.29**
 
 | Cambio | Requerimiento |
 |---|---|

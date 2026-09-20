@@ -6869,6 +6869,61 @@ body[data-exporting="true"] .section-card {
 }
 .inv-header-total-combined .inv-header-cell-value { font-size: 13px; }
 
+/* ── Lo liquidado, debajo del total ARS+USD ──────────────────────────────
+   Una fila por venta, agrupadas en ganancia y pérdida. Grilla propia y no la
+   de los totales: las columnas son otras —fecha, activo, nominales, cobrado,
+   resultado— y forzarlas a la de arriba dejaba los importes sin alinear. */
+.inv-liq {
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  padding-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.inv-liq-titulos,
+.inv-liq-fila {
+  display: grid;
+  grid-template-columns: 86px 74px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+}
+.inv-liq-titulos {
+  font-size: 8px;
+  letter-spacing: 1.2px;
+  color: var(--muted-2);
+  text-transform: uppercase;
+}
+/* Los tres importes a la derecha, como en las filas de totales. */
+.inv-liq-titulos span:nth-child(n+3),
+.inv-liq-nom, .inv-liq-cobrado, .inv-liq-res { text-align: right; }
+.inv-liq-grupo { display: flex; flex-direction: column; gap: 2px; }
+.inv-liq-cab {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.inv-liq-titulo {
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.inv-liq-total { font-size: 12px; font-weight: 600; color: var(--ink); }
+.inv-liq-total.inv-gp-positive { color: var(--green); }
+.inv-liq-total.inv-gp-negative { color: var(--red); }
+.inv-liq-fila { font-size: 11px; color: var(--ink); padding: 1px 0; }
+.inv-liq-fecha { color: var(--muted-2); }
+.inv-liq-tk { font-weight: 600; }
+/* El total de la compra, en tinta apagada: el dato es lo vendido, y el total
+   está ahí para dar la proporción. */
+.inv-liq-nom-total { color: var(--muted-2); }
+.inv-liq-res.inv-gp-positive { color: var(--green); }
+.inv-liq-res.inv-gp-negative { color: var(--red); }
+.inv-liq-vacio { font-size: 10px; color: var(--muted-2); font-style: italic; }
+
 /* Etiqueta y valor de la cotización MEP usada. Viven en la fila de las
    solapas principales (.main-tabs-mep); antes iban debajo de cada panel. */
 .inv-header-cotizacion-label {
