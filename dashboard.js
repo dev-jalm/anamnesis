@@ -18280,12 +18280,20 @@ function ventasDelPanel(entries) {
       // Mismo criterio que productoVentas(): el total guardado manda, y si no
       // está se reconstruye con cantidad × precio.
       const cobrado = (isFinite(tot) && tot !== 0) ? tot : cant * prec;
+      const fechaVenta = (v && v.fecha) ? v.fecha : '';
       filas.push({
-        fecha: (v && v.fecha) ? v.fecha : '',
+        fecha: fechaVenta,
         ticker: e.ticker,
         moneda: (e.moneda === 'USD') ? 'USD' : 'ARS',
         vendidos: cant,
         totalCompra: totalCompra,
+        // Días que se tuvo lo que se liquidó: de la fecha de la compra a la de
+        // esta venta. No sirve diasEnTenencia(), que cuenta hasta hoy o hasta
+        // la última venta; acá cada venta corta su propia cuenta. Nunca
+        // negativo —igual que diasEnTenencia—: una venta anterior a su compra
+        // es un dato inconsistente, y fmt() le comería el signo mostrando los
+        // días al revés como si fueran válidos.
+        dias: (e.fecha && fechaVenta) ? Math.max(0, daysBetweenISO(e.fecha, fechaVenta)) : null,
         cobrado: cobrado,
         // Resultado de ESTA venta: lo que entró menos lo que costaba al precio
         // de su compra. Es el mismo cálculo de realizadoDeEntrada(), venta a
@@ -18294,9 +18302,10 @@ function ventasDelPanel(entries) {
       });
     });
   });
-  // De la liquidación más vieja a la más nueva, el mismo orden que el detalle
-  // de compras (RF-074e).
-  filas.sort(function (a, b) { return (a.fecha || '').localeCompare(b.fecha || ''); });
+  // De la liquidación más reciente a la más vieja: lo último que se vendió es
+  // lo que se está mirando. Es el orden inverso al del detalle de compras
+  // (RF-074e), que se lee como la historia de cómo se armó la posición.
+  filas.sort(function (a, b) { return (b.fecha || '').localeCompare(a.fecha || ''); });
   return filas;
 }
 
@@ -18306,7 +18315,6 @@ function ventasDelPanel(entries) {
 // grupo lleva su total. Sin ventas registradas el bloque no se dibuja.
 function buildLiquidadosBlock(entries) {
   const filas = ventasDelPanel(entries);
-  if (!filas.length) return '';
   // Una venta al costo exacto no es una pérdida: va con las ganancias, donde
   // suma cero y no ensucia el total de lo perdido.
   const gan = filas.filter(function (f) { return f.resultado >= 0; });
@@ -18315,7 +18323,9 @@ function buildLiquidadosBlock(entries) {
   // Los totales se expresan en una sola moneda. Si todas las ventas fueron en
   // dólares se quedan en dólares; en cualquier otro caso van a pesos al MEP,
   // igual que la fila ARS+USD sobre la que se apoyan.
-  const todasUsd = filas.every(function (f) { return f.moneda === 'USD'; });
+  // `every` sobre un array vacío da true: sin ventas, el panel igual se dibuja
+  // y sus totales en cero tienen que quedar en pesos, no en dólares.
+  const todasUsd = filas.length > 0 && filas.every(function (f) { return f.moneda === 'USD'; });
   const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
   const prefijoTotal = todasUsd ? 'US$' : '$';
   const enMonedaDelTotal = function (f) {
@@ -18329,15 +18339,25 @@ function buildLiquidadosBlock(entries) {
   const fila = function (f) {
     const prefijo = (f.moneda === 'USD') ? 'US$' : '$';
     const cls = f.resultado > 0 ? 'inv-gp-positive' : (f.resultado < 0 ? 'inv-gp-negative' : '');
-    const signo = f.resultado > 0 ? '+' : (f.resultado < 0 ? '-' : '');
+    const info = infoDeTicker(state.tickerInfo, f.ticker, f.moneda);
+    const desc = info && info.descripcion ? info.descripcion : '';
     return '<div class="inv-liq-fila">' +
       '<span class="inv-liq-fecha">' + (f.fecha ? escapeHtmlSafe(f.fecha.split('-').reverse().join('/')) : '—') + '</span>' +
-      '<span class="inv-liq-tk">' + escapeHtmlSafe(f.ticker) + '</span>' +
+      // Ticker y descripción en la misma celda: es un solo dato —qué activo
+      // es—, y separarlos en dos columnas dejaba la descripción suelta lejos
+      // de su símbolo.
+      '<span class="inv-liq-activo">' +
+        '<span class="inv-liq-tk">' + escapeHtmlSafe(f.ticker) + '</span>' +
+        (desc ? '<span class="inv-liq-desc">' + escapeHtmlSafe(desc) + '</span>' : '') +
+      '</span>' +
       // Nominales vendidos sobre los de la compra: dice de un vistazo si se
       // liquidó todo o una parte.
       '<span class="inv-liq-nom">' + fmtNominales(f.vendidos) +
         (f.totalCompra ? ' <span class="inv-liq-nom-total">/ ' + fmtNominales(f.totalCompra) + '</span>' : '') +
       '</span>' +
+      '<span class="inv-liq-dias">' + (f.dias === null
+        ? '<span class="inv-na">—</span>'
+        : fmt(f.dias) + ' día' + (f.dias === 1 ? '' : 's')) + '</span>' +
       '<span class="inv-liq-cobrado">' + prefijo + ' ' + fmt(Math.round(f.cobrado)) + '</span>' +
       // Sin signo en el importe: el color ya dice si ganó o perdió, el mismo
       // criterio del detalle de compras.
@@ -18349,18 +18369,22 @@ function buildLiquidadosBlock(entries) {
     const total = sumar(arr);
     return '<div class="inv-liq-grupo">' +
       '<div class="inv-liq-cab">' +
-        '<span class="inv-liq-titulo">' + titulo + '</span>' +
+        // El título va pintado —verde lo ganado, rojo lo perdido—, que es el
+        // criterio de toda Salud financiera.
+        '<span class="inv-liq-titulo ' + cls + '">' + titulo + '</span>' +
         '<span class="inv-liq-total ' + (arr.length ? cls : '') + '">' +
           prefijoTotal + ' ' + fmt(Math.round(Math.abs(total))) + '</span>' +
       '</div>' +
-      (arr.length ? arr.map(fila).join('') : '<div class="inv-liq-vacio">' + vacio + '</div>') +
+      (arr.length
+        ? '<div class="inv-liq-titulos">' +
+            '<span>Fecha</span><span>Activo</span><span>Nominales</span><span>Días</span><span>Cobrado</span><span>Resultado</span>' +
+          '</div>' + arr.map(fila).join('')
+        : '<div class="inv-liq-vacio">' + vacio + '</div>') +
     '</div>';
   };
 
   return '<div class="inv-liq">' +
-    '<div class="inv-liq-titulos">' +
-      '<span>Fecha</span><span>Activo</span><span>Nominales</span><span>Cobrado</span><span>Resultado</span>' +
-    '</div>' +
+    '<div class="inv-sector-head"><span class="inv-section-label">Liquidado</span></div>' +
     grupo(gan, 'Liquidado en ganancia', 'inv-gp-positive', 'sin ventas en ganancia') +
     grupo(per, 'Liquidado en pérdida', 'inv-gp-negative', 'sin ventas en pérdida') +
   '</div>';
@@ -18595,7 +18619,6 @@ function buildInvestmentDetailPanel(destinos, title) {
         headerTotalRow('ARS', '$', liquidoComb, arsInv, arsAct, arsVar, arsDistBar, { destinos: destinos }) +
         headerTotalRow('USD', 'US$', null, usdInv, usdAct, usdVar, usdDistBar) +
         headerTotalRow('ARS+USD', '$', liquidoComb, invCombArs, actCombArs, combVar, sparklineSvg, { combined: true, destinos: destinos }) +
-        liquidadoHtml +
       '</div>' +
     '</div>';
 
@@ -18955,6 +18978,10 @@ function buildInvestmentDetailPanel(destinos, title) {
       // Su detalle es el historial que inserta mesa-trading.js. Las demas
       // secciones (reserva, inversiones, jubilacion) siguen igual.
       (panelKey === 'trading' ? '' :
+        // Va en el cuerpo y no en el <summary>: dentro del resumen se veía con
+        // el panel cerrado, y lo que corresponde es que aparezca al abrirlo,
+        // justo debajo de la cabecera con el total ARS+USD.
+        liquidadoHtml +
         buildSectorConcentrationBlock(destinos, title) +
         buildCurrencyTable('ARS', arsTickers.length, arsRows) +
         buildCurrencyTable('USD', usdTickers.length, usdRows)) +
