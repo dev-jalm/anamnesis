@@ -18966,8 +18966,14 @@ function buildInvestmentDetailPanel(destinos, title) {
     return '<table class="investment-detail-table investment-detail-grouped inv-table-' + monedaLabel.toLowerCase() + '"' +
       ' data-orden-tabla="' + escapeHtmlSafe((destinos[0] || '') + '|' + monedaLabel) + '">' +
       '<colgroup>' +
-        '<col style="width:20px">' +   /* toggle chevron · en el detalle, borrar */
-        '<col style="width:125px">' +  /* Broker/Exchange · en el detalle, destino. El chip más ancho, BULL MARKET, mide 119 */
+        /* Chevron + vender, uno al lado del otro: cada botón mide 17 y en 20px
+           se apilaban en dos renglones. En el detalle, borrar + vender. */
+        '<col style="width:40px">' +   /* toggle chevron y vender · en el detalle, borrar */
+        /* Broker/Exchange: desde que es texto y no un chip, el más largo
+           —BULL MARKET— mide 72,6 y con el padding de la celda necesita 89.
+           Los 20 que sobraban pagan el ensanche de la primera columna, así el
+           ancho total de la tabla no cambia. */
+        '<col style="width:105px">' +  /* Broker/Exchange · en el detalle, destino */
         '<col style="width:80px">' +   /* Ticker · en el detalle, fecha. Entra "ETH-USDT" */
         /* Descripción: 195 para que entre "BARRICK GOLD CORPORATION", la más
            larga de la demo: el campo necesita 170 de ancho útil y la celda le

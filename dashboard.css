@@ -6101,13 +6101,18 @@ body[data-exporting="true"] .section-card {
 
 /* ===== Vista agrupada por ticker ===== */
 .investment-detail-grouped .inv-ticker-toggle {
-  /* Ancho controlado por el <colgroup> de la tabla (20px). Padding 0 para
-     que la siguiente columna (Broker/Exchange) empiece pegada al chevron
-     sin espacio muerto entre ambos. */
-  width: 20px !important;
+  /* Ancho controlado por el <colgroup> de la tabla (40px): entran el chevron
+     y el botón de vender uno al lado del otro. Padding 0 a los costados para
+     que la siguiente columna empiece pegada sin espacio muerto. */
+  width: 40px !important;
   padding: 4px 0 !important;
   text-align: center;
 }
+/* Los dos botones en la misma línea. Como celda de tabla no puede ser flex sin
+   romper el colgroup, el flex va en un wrapper implícito: inline-flex sobre los
+   botones y nowrap en la celda. */
+.investment-detail-grouped .inv-ticker-toggle { white-space: nowrap; }
+.investment-detail-grouped .inv-ticker-toggle .inv-vender-btn { margin-left: 2px; }
 .investment-detail-grouped .inv-toggle-btn {
   background: transparent;
   border: none;
@@ -6922,12 +6927,18 @@ body[data-exporting="true"] .section-card {
   gap: 12px;
   align-items: baseline;
 }
+/* Mismo tratamiento que los títulos de columna de la tabla de activos: son
+   dos tablas de la misma pantalla y tienen que leerse igual. Los valores
+   salen de .investment-detail-table th, medidos: mono 9px/700, acento,
+   letter-spacing 1,2 y el mismo divisor debajo. */
 .inv-liq-titulos {
-  font-size: 8px;
+  font-size: 9px;
+  font-weight: 700;
   letter-spacing: 1.2px;
-  color: var(--muted-2);
+  color: var(--accent);
   text-transform: uppercase;
-  margin-bottom: 2px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
 }
 /* Los cuatro datos numéricos a la derecha, como en las filas de totales. */
 .inv-liq-titulos span:nth-child(n+3),
@@ -6957,7 +6968,13 @@ body[data-exporting="true"] .section-card {
 .inv-liq-total { font-size: 12px; font-weight: 600; color: var(--ink); }
 .inv-liq-total.inv-gp-positive { color: var(--green); }
 .inv-liq-total.inv-gp-negative { color: var(--red); }
-.inv-liq-fila { font-size: 11px; color: var(--ink); padding: 1px 0; }
+/* Filas con el mismo alto y el mismo divisor que las de la tabla de activos. */
+.inv-liq-fila {
+  font-size: 11px;
+  color: var(--ink);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
 .inv-liq-fecha { color: var(--muted-2); }
 /* Ticker y descripción en una celda. La descripción se recorta si no entra:
    el dato que no puede faltar es el símbolo. */

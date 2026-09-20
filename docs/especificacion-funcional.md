@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.35 |
+| **Versión** | 1.36 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -220,7 +220,7 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-072a | El líquido se informa en la fila ARS+USD y también en la fila ARS, con el mismo valor: los aportes son movimientos en pesos y las compras en dólares se pagan con esos pesos, de modo que el dinero sin invertir está en pesos. La fila USD no informa líquido, porque el producto no registra dólares sin invertir |
 | RF-072f | El cuerpo de cada panel de tenencias se organiza en tres secciones plegables, en este orden: **Activos**, **Concentración** y **Liquidado**. Se presentan con el mismo tratamiento que las secciones de Trading —mismo indicador de plegado y misma tipografía de título, con una bajada que se oculta al plegarlas— y arrancan cerradas: abiertas de entrada, una cartera con varios activos ocupa más de una pantalla. Las tres comparten márgenes: su contenido empieza y termina en la misma posición, de modo que las columnas de Activos se alinean con las de Concentración y Liquidado. Una sección sin contenido no se presenta |
 | RF-072g | Dentro de la sección Concentración, cada gráfico se rotula por su criterio —"Por sector" y "Por tipo de riesgo"— sin repetir la palabra Concentración, que ya encabeza la sección. Esos rótulos se presentan en el mismo cuerpo que los títulos de los grupos de Liquidado: rotulan bloques del mismo rango. Por la misma razón, la sección Liquidado no lleva rótulo propio dentro de sí |
-| RF-072b | La sección Liquidado presenta lo que ya se vendió, en dos grupos: lo que salió en ganancia y, debajo, lo que salió en pérdida. Los títulos de los grupos se presentan en verde y en rojo respectivamente, con su total a continuación y en el mismo cuerpo: son las dos mitades de un mismo dato. Cada grupo detalla una línea por venta con la fecha, el activo con su descripción en mayúsculas, los nominales vendidos sobre los de la compra de la que salieron, los días transcurridos entre esa compra y esta venta, el importe cobrado y el resultado. Las líneas van de la venta más reciente a la más antigua |
+| RF-072b | La sección Liquidado presenta lo que ya se vendió, en dos grupos: lo que salió en ganancia y, debajo, lo que salió en pérdida. Los títulos de los grupos se presentan en verde y en rojo respectivamente, con su total a continuación y en el mismo cuerpo: son las dos mitades de un mismo dato. Cada grupo detalla una línea por venta con la fecha, el activo con su descripción en mayúsculas, los nominales vendidos sobre los de la compra de la que salieron, los días transcurridos entre esa compra y esta venta, el importe cobrado y el resultado. Las líneas van de la venta más reciente a la más antigua. El detalle se presenta con el mismo tratamiento que la tabla de activos: igual cuerpo de texto, iguales títulos de columna y el mismo divisor entre filas |
 | RF-072e | La sección Liquidado se presenta en los cuatro destinos de tenencias y no en Trading, que no agrupa tenencias. Un grupo sin ventas lo declara, para distinguirlo de la ausencia del dato |
 | RF-072c | Las ventas parciales integran RF-072b: lo que se liquidó es lo vendido, con independencia de que la compra conserve saldo. Una venta al costo exacto se agrupa con las ganancias, donde aporta cero |
 | RF-072d | Cada línea de RF-072b se expresa en la moneda de su compra. Los totales de cada grupo se expresan en dólares cuando todas las ventas del panel lo fueron, y en pesos en cualquier otro caso, convirtiendo las ventas en dólares a la cotización MEP (RF-073i) |
@@ -251,6 +251,7 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 |---|---|
 | RF-079a | Un activo se puede vender **por completo**, desde la fila del ticker, o **parcialmente**, desde la fila de una compra del detalle |
 | RF-079b | La acción de vender usa el mismo símbolo que el registro de cierre de una operación de trading: son la misma acción vista desde dos modelos distintos |
+| RF-079k | En la fila del ticker, el acceso a vender se presenta **junto al** que despliega el detalle de compras, en la misma línea: son las dos acciones de la fila y se ofrecen juntas |
 | RF-079c | La venta requiere cantidad y precio. El sistema calcula el total y registra la fecha y la hora |
 | RF-079d | Antes de confirmar, el sistema presenta el total de la venta, el costo de lo que se vende y el resultado que se realizaría |
 | RF-079e | La cantidad se presenta precargada con todo lo disponible, y el precio con el precio actual del ticker |
@@ -1096,9 +1097,17 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.32 | 20/09/2026 | El cuerpo de cada panel de tenencias se organiza en tres secciones plegables —Activos, Concentración y Liquidado, en ese orden— con el tratamiento de las de Trading (RF-072f) | Reemplazada |
 | 1.33 | 20/09/2026 | Los gráficos de concentración se rotulan sin repetir la palabra Concentración (RF-072g) y la Liquidez pasa a naranja (RF-073o). En Liquidado, la descripción va en mayúsculas y el total de cada grupo acompaña a su título (RF-072b) | Reemplazada |
 | 1.34 | 20/09/2026 | El trazo del umbral se refuerza, idéntico en los dos gráficos y en su clave (RF-073v). Los rótulos de los gráficos toman el cuerpo de los títulos de Liquidado, que deja de llevar rótulo propio (RF-072g) | Reemplazada |
-| 1.35 | 20/09/2026 | Las tres secciones del cuerpo comparten márgenes: las columnas de Activos se alinean con las de Concentración y Liquidado (RF-072f) | **Vigente** |
+| 1.35 | 20/09/2026 | Las tres secciones del cuerpo comparten márgenes: las columnas de Activos se alinean con las de Concentración y Liquidado (RF-072f) | Reemplazada |
+| 1.36 | 20/09/2026 | El acceso a vender pasa junto al que despliega el detalle (RF-079k) y el detalle de Liquidado adopta el tratamiento de la tabla de activos (RF-072b) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Vender junto al despliegue del detalle, en la misma línea | RF-079k |
+| Detalle de Liquidado con el tratamiento de la tabla de activos | RF-072b |
+
+**Implementados en la versión 1.35**
 
 | Cambio | Requerimiento |
 |---|---|
