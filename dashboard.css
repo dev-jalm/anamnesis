@@ -33,7 +33,6 @@
      casi del color de la pista y la barra no se veía. */
   --sector-neutro-1: #6B5B4A;
   --sector-neutro-2: #8B7355;
-  --sector-neutro-3: #9E8E72;   /* 2,55:1 contra la pista; más oscuro se confunde con neutro-2 */
   --sector-rayado: #9A8B72;
 }
 
@@ -65,7 +64,6 @@
   --on-dark-text: #EFE7D6;
   --sector-neutro-1: #B5A892;
   --sector-neutro-2: #948775;
-  --sector-neutro-3: #6E6353;
   --sector-rayado: #7A6E5C;
 }
 * { box-sizing: border-box; }
@@ -6922,16 +6920,20 @@ body[data-exporting="true"] .section-card {
 .inv-liq-titulos span:nth-child(n+3),
 .inv-liq-nom, .inv-liq-dias, .inv-liq-cobrado, .inv-liq-res { text-align: right; }
 .inv-liq-grupo { display: flex; flex-direction: column; gap: 2px; }
+/* El total va pegado a su título y no empujado al margen derecho: allá caía
+   debajo de "Resultado" y se leía como el pie de esa columna, cuando es el
+   total del grupo entero. */
 .inv-liq-cab {
   display: flex;
-  justify-content: space-between;
   align-items: baseline;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 4px;
 }
-/* Verde lo ganado y rojo lo perdido, el criterio de toda Salud financiera. */
+/* Verde lo ganado y rojo lo perdido, el criterio de toda Salud financiera.
+   Del mismo tamaño que el total que lo acompaña: son las dos mitades de un
+   mismo dato y en cuerpos distintos se leían como título y nota al pie. */
 .inv-liq-titulo {
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 1.2px;
   text-transform: uppercase;
   font-weight: 600;
@@ -6951,6 +6953,7 @@ body[data-exporting="true"] .section-card {
 .inv-liq-desc {
   color: var(--muted-2);
   font-size: 10px;
+  text-transform: uppercase;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -17998,13 +17998,20 @@ const ORDEN_COLOR_SECTOR = [
   PALETA_DISTRIBUCION[4]  // rojo terracota
 ];
 //
-// Las clases que no son sectores van siempre en neutros, que es lo que son:
-// ni el índice, ni la renta fija, ni la plata sin invertir hablan de un rubro.
+// Las clases que no son sectores llevan color fijo, no uno de la rueda: ni el
+// índice ni la renta fija hablan de un rubro, así que van en neutros. La
+// liquidez va en naranja, que la separa de todo lo invertido.
+//
+// Medido con el validador de paletas: ese naranja queda a ΔE 9,2 del terracota
+// y a 10,5 del dorado, por debajo del piso de 15. Es inevitable —el naranja
+// vive justo entre esos dos, que ya están en la gama— y es la misma limitación
+// que la gama ya tenía. Por eso cada fila lleva el nombre escrito: la identidad
+// nunca depende sólo del color.
 // Lo que no tiene sector va rayado: no es un color más, es un dato que falta.
 const COLOR_SECTOR_NEUTRO = {
   indices: 'var(--sector-neutro-1)',
   renta_fija: 'var(--sector-neutro-2)',
-  liquidez: 'var(--sector-neutro-3)'
+  liquidez: '#E0742A'
 };
 let _coloresSector = null;
 
@@ -18152,10 +18159,12 @@ function buildSectorConcentrationBlock(destinos, nombreCartera) {
   // altura aunque sólo una tenga aviso, o tengan una cantidad distinta.
   return '<div class="inv-conc-grid">' +
     '<div class="inv-conc-celda inv-conc-fila-titulo">' +
-      '<div class="inv-sector-head"><span class="inv-section-label">Concentración por sector</span>' + subtituloConcentracion(sobre, umbral) + '</div>' +
+      // Sin repetir "Concentración": ya lo dice el título de la sección que los
+      // contiene, y en dos gráficos lado a lado la palabra sólo hacía ruido.
+      '<div class="inv-sector-head"><span class="inv-section-label">Por sector</span>' + subtituloConcentracion(sobre, umbral) + '</div>' +
     '</div>' +
     '<div class="inv-conc-celda inv-conc-fila-titulo inv-conc-col2">' +
-      '<div class="inv-sector-head"><span class="inv-section-label">Concentración por tipo de riesgo</span>' + subtituloConcentracion(sobre, umbralT) + '</div>' +
+      '<div class="inv-sector-head"><span class="inv-section-label">Por tipo de riesgo</span>' + subtituloConcentracion(sobre, umbralT) + '</div>' +
     '</div>' +
     '<div class="inv-conc-celda">' + alertasSector + '</div>' +
     '<div class="inv-conc-celda inv-conc-col2">' + alertasTipo + '</div>' +

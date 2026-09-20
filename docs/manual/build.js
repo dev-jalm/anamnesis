@@ -195,7 +195,7 @@ window.MANUAL = {
         'Al lado, la concentración por tipo de riesgo reparte el mismo total en Renta variable, Renta fija, Cripto y Liquidez. Sale del sector: las acciones, los índices y los commodities son renta variable; lo sin sector queda sin clasificar. Tiene su propio límite, 70% de entrada, y avisa igual que la de sector.'
       ],
       lista: [
-        'Cada sector tiene su color, y es el mismo en todas las carteras: si Tecnología es azul en Inversiones, es azul en Jubilación. Índices, Renta fija y Liquidez van en tonos neutros, y lo que no tiene sector va rayado.',
+        'Cada sector tiene su color, y es el mismo en todas las carteras: si Tecnología es azul en Inversiones, es azul en Jubilación. Índices y Renta fija van en tonos neutros, la Liquidez en naranja, y lo que no tiene sector va rayado.',
         'La cabecera de cada panel repite la concentración por moneda: la barra ARS reparte lo que tenés en pesos, liquidez incluida, y la USD lo que tenés en dólares. Con todo en una sola moneda, la barra ARS da lo mismo que el gráfico de abajo.',
         'Pasando el mouse por un tramo de las barras de la cabecera se ve, en negrita, el sector con su porcentaje y su monto, y debajo cada activo con su porcentaje. Las filas del gráfico no lo llevan: ya lo tienen escrito, y si la barra es corta los activos van al lado.',
         'Un sector cambiado a mano queda marcado como editado y muestra el del listado al pasar el mouse. El sector es del activo, no de la moneda.',
