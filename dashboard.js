@@ -17376,14 +17376,19 @@ const PALETA_DISTRIBUCION = ['#D4A24C','#8E5A9E','#4A6B8A','#6B8E4E','#C8553D','
 // No es el title nativo: ese sólo admite texto plano, y el título va en
 // negrita. Devuelve los atributos que lee el tooltip de sectores (ver
 // bindTooltipSector); aria-label deja el mismo texto para lectores de pantalla.
-function tooltipSector(s, prefix, etiquetaDe) {
+// `soloLectores` deja únicamente el aria-label: el mismo texto para quien usa
+// un lector de pantalla, sin tooltip en la pantalla. Lo usan las filas del
+// gráfico de concentración, que ya escriben el sector, el porcentaje, el monto
+// y los activos a la vista.
+function tooltipSector(s, prefix, etiquetaDe, soloLectores) {
   const pct = function (n) { return n.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%'; };
   // etiquetaDe: para el gráfico de tipo de riesgo, que usa las mismas filas.
   const titulo = (etiquetaDe || etiquetaSector)(s.sector).toLocaleUpperCase('es-AR') + ': ' + pct(s.pct) + ' (' + prefix + ' ' + fmt(Math.round(s.valor)) + ')';
   const detalle = (s.detalle || []).map(function (d) { return d.ticker + ' ' + pct(d.pct); }).join(', ');
+  const aria = ' aria-label="' + escapeHtmlSafe(titulo + (detalle ? '. ' + detalle : '')) + '"';
+  if (soloLectores) return aria;
   return ' data-tip-titulo="' + escapeHtmlSafe(titulo) + '"' +
-    ' data-tip-detalle="' + escapeHtmlSafe(detalle) + '"' +
-    ' aria-label="' + escapeHtmlSafe(titulo + (detalle ? '. ' + detalle : '')) + '"';
+    ' data-tip-detalle="' + escapeHtmlSafe(detalle) + '"' + aria;
 }
 
 // Un solo tooltip flotante para todos los sectores, creado la primera vez que
@@ -18066,7 +18071,7 @@ function filaConcentracion(s, o) {
   const anchoPct = Math.max(0.5, s.pct);
   const umbralEnBarra = (o.umbral > 0 && anchoPct > o.umbral) ? (o.umbral / anchoPct * 100) : null;
   return '<div class="inv-sector-row' + (o.over ? ' is-over' : '') + (dentro ? ' is-ok' : '') + (exento ? ' is-exento' : '') + (sinClave ? ' is-none' : '') + '"' +
-      tooltipSector(s, '$', o.etiqueta) + '>' +
+      tooltipSector(s, '$', o.etiqueta, true) + '>' +
     '<span class="inv-sector-name">' +
       (o.over ? '<i data-lucide="alert-triangle" style="width:11px;height:11px"></i>' : '') +
       (dentro ? '<i data-lucide="check" style="width:11px;height:11px"></i>' : '') +

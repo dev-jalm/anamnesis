@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.28 |
+| **Versión** | 1.29 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -290,8 +290,9 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-073n | La composición incluye **Liquidez**: el importe Líquido de la cabecera del destino (RF-072a), con su mismo valor, rotulado LÍQUIDO en mayúsculas como los tickers. Si el Líquido es negativo no se incluye, porque no constituye tenencia |
 | RF-073o | Cada sector se representa con un color propio, el mismo en todos los destinos de la pantalla y en las dos barras de un panel (RF-073q). Los colores provienen de la gama de las barras de distribución del producto, para que el panel use una sola; se asignan a los sectores presentes en el orden del catálogo, no por tamaño, de modo que un cambio de montos no altere el color de un sector. Las clases que no son sectores —Índices, Renta fija, Liquidez— se representan en tonos neutros, y las tenencias sin sector con un rayado |
 | RF-073q | Las filas ARS y USD de la cabecera de cada destino presentan una barra con la **concentración por sector de esa moneda**: lo que hay en pesos y lo que hay en dólares, cada uno sobre su propio total. Se valúa como en RF-073i. La barra ARS incluye la Liquidez (RF-072a); la USD no. Por eso, con tenencias en una sola moneda, la barra ARS coincide con RF-073h, y con tenencias en ambas sus porcentajes difieren. Cada tramo informa lo indicado en RF-073r |
-| RF-073r | La información emergente de un sector —en los tramos de RF-073q y en las filas de RF-073h— tiene dos líneas: la primera, `SECTOR: porcentaje (monto)`, con el sector en mayúsculas y toda la línea en negrita y en un tamaño mayor que la segunda, porque el sector es el dato principal; la segunda, cada activo con su porcentaje, de mayor a menor. El porcentaje de cada activo se calcula sobre el mismo total que el del sector, de modo que la suma de los activos da el porcentaje del sector |
-| RF-073p | El texto de los activos se ubica dentro de la barra cuando cabe con margen; si no cabe, a continuación de ella; si tampoco cabe allí, se omite y permanece disponible en la información emergente de la fila. Nunca se presenta recortado |
+| RF-073r | La información emergente de un sector se presenta **en los tramos de RF-073q y no en las filas de RF-073h**, que ya exhiben esos mismos datos a la vista. Tiene dos líneas: la primera, `SECTOR: porcentaje (monto)`, con el sector en mayúsculas y toda la línea en negrita y en un tamaño mayor que la segunda, porque el sector es el dato principal; la segunda, cada activo con su porcentaje, de mayor a menor. El porcentaje de cada activo se calcula sobre el mismo total que el del sector, de modo que la suma de los activos da el porcentaje del sector |
+| RF-073p | El texto de los activos se ubica dentro de la barra cuando cabe con margen; si no cabe, a continuación de ella; si tampoco cabe allí, se omite. Nunca se presenta recortado |
+| RF-073x | Las filas de la concentración —por sector y por tipo de riesgo— no presentan información emergente. Conservan el mismo texto para lectores de pantalla, y el ícono de lo que no se controla conserva su leyenda (RF-073k) |
 | RF-073i | El valor de cada tenencia es nominales por precio actual. Sin precio actual se toma el costo, y el sistema informa qué tenencias se valuaron así. Las tenencias en dólares se convierten a pesos a la cotización MEP. Las posiciones liquidadas no intervienen |
 | RF-073j | Las tenencias sin sector se presentan en un renglón propio y cuentan en el total. Sus activos se leen en la barra y en la información emergente, como los de cualquier sector |
 | RF-073k | Cuando un sector supera el umbral, el sistema emite una **alerta de concentración** en el panel del destino y en las observaciones de Diagnóstico (RF-064), con el mismo texto: sector, porcentaje, destino y umbral. No enumera los activos: ya figuran en la barra del sector y en su información emergente. Se señala con ícono y texto, no sólo con color. En el gráfico, los sectores evaluados que no superan el umbral llevan un tilde verde. Los que no se evalúan (RF-073l) llevan el mismo tilde en gris, con información emergente que explica por qué esa clase no se controla: un tilde verde afirmaría una revisión que no se hizo, y la ausencia de ícono se leía como un olvido |
@@ -1082,9 +1083,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.25 | 19/09/2026 | La cotización MEP se presenta como la opción seleccionada de los selectores de vista (RF-074b) | Reemplazada |
 | 1.26 | 19/09/2026 | Alertas de concentración por tipo de riesgo con umbral propio (RF-073t, RF-194). Las dos columnas de concentración comparten filas, así que sus barras arrancan a la misma altura (RF-073u). La línea del umbral pasa detrás de las barras (RF-073v) | Reemplazada |
 | 1.27 | 19/09/2026 | Los avisos de concentración, por sector y por tipo de riesgo, dejan de enumerar los activos (RF-073k, RF-073t) | Reemplazada |
-| 1.28 | 19/09/2026 | La barra que supera el umbral deja de taparlo (RF-073v). El detalle de un activo se ordena de la compra más antigua a la más reciente (RF-074e). Asignar un sector conserva el punto de lectura y el foco (RF-073w). La clase "Índices y ETF amplios" pasa a llamarse "Indices y ETF" (RF-073b) | **Vigente** |
+| 1.28 | 19/09/2026 | La barra que supera el umbral deja de taparlo (RF-073v). El detalle de un activo se ordena de la compra más antigua a la más reciente (RF-074e). Asignar un sector conserva el punto de lectura y el foco (RF-073w). La clase "Índices y ETF amplios" pasa a llamarse "Indices y ETF" (RF-073b) | Reemplazada |
+| 1.29 | 20/09/2026 | Las filas de la concentración dejan de presentar información emergente (RF-073x, RF-073r, RF-073p) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Las filas de la concentración sin información emergente | RF-073x |
+
+**Implementados en la versión 1.28**
 
 | Cambio | Requerimiento |
 |---|---|

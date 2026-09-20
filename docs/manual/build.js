@@ -197,7 +197,7 @@ window.MANUAL = {
       lista: [
         'Cada sector tiene su color, y es el mismo en todas las carteras: si Tecnología es azul en Inversiones, es azul en Jubilación. Índices, Renta fija y Liquidez van en tonos neutros, y lo que no tiene sector va rayado.',
         'La cabecera de cada panel repite la concentración por moneda: la barra ARS reparte lo que tenés en pesos, liquidez incluida, y la USD lo que tenés en dólares. Con todo en una sola moneda, la barra ARS da lo mismo que el gráfico de abajo.',
-        'Pasando el mouse por un tramo o una fila se ve, en negrita, el sector con su porcentaje y su monto, y debajo cada activo con su porcentaje. Si la barra es corta, los activos van al lado o sólo en ese recuadro.',
+        'Pasando el mouse por un tramo de las barras de la cabecera se ve, en negrita, el sector con su porcentaje y su monto, y debajo cada activo con su porcentaje. Las filas del gráfico no lo llevan: ya lo tienen escrito, y si la barra es corta los activos van al lado.',
         'Un sector cambiado a mano queda marcado como editado y muestra el del listado al pasar el mouse. El sector es del activo, no de la moneda.',
         'Cada tenencia vale sus nominales por el precio de hoy; sin precio, lo que costó, y abajo del gráfico se aclara cuáles. Los dólares, al MEP. Lo sin sector cuenta en el total, en su propio renglón.'
       ]
