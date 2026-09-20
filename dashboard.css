@@ -6695,6 +6695,21 @@ body[data-exporting="true"] .section-card {
   flex-direction: column;
   gap: 0;
 }
+
+/* ===== Secciones plegables del cuerpo de un panel (Activos · Concentración ·
+   Liquidado) =====
+   El plegado, el triángulo y la tipografía de los títulos salen de .mesa-fold,
+   las mismas clases que usan las secciones de Trading: es el mismo control en
+   dos pantallas y tiene que verse igual. Acá va sólo la geometría propia.
+   Trading cancela el padding lateral de .mesa con márgenes negativos; este
+   contenedor no tiene ese padding, así que el aire lateral lo pone el summary
+   y el divisor lo pone la sección. */
+.inv-fold { border-top: 1px solid var(--border); }
+.inv-fold > summary { padding-left: 14px; padding-right: 14px; }
+/* Estos dos bloques traían su propio borde superior, que ahora quedaba
+   duplicado a dos píxeles del de la sección que los contiene. */
+.inv-fold .inv-conc-grid { border-top: none; }
+.inv-fold .inv-liq { border-top: none; padding-top: 0; }
 .investment-detail-tables .investment-detail-table {
   /* Borde divisor entre las dos tablas (ARS y USD) */
   border-top: 1px solid var(--border);

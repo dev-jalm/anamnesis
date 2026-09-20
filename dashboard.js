@@ -18250,9 +18250,17 @@ function tintaSobre(rgb) {
 // Al abrir un panel —el evento toggle no burbujea, por eso va en captura— y al
 // cambiar el ancho de la ventana, las barras cambian de medida.
 (function () {
+  // Vale para el panel y para la sección Concentración, que desde que es
+  // plegable también es un <details>. Medido: con la sección cerrada las barras
+  // igual miden bien —Chrome les da su ancho real, 282px, no 0—, así que el
+  // cálculo que hace el toggle del panel ya sale correcto. Recalcular al abrir
+  // la sección es barato y cubre el caso de que el ancho con el que se midió no
+  // sea el que termina teniendo.
   document.addEventListener('toggle', function (e) {
-    if (e.target && e.target.classList && e.target.classList.contains('investment-detail-panel') && e.target.open) {
-      ajustarEtiquetasSector(e.target);
+    const t = e.target;
+    if (!t || !t.classList || !t.open) return;
+    if (t.classList.contains('investment-detail-panel') || t.classList.contains('inv-fold')) {
+      ajustarEtiquetasSector(t);
     }
   }, true);
   let t = null;
@@ -18389,6 +18397,43 @@ function buildLiquidadosBlock(entries) {
     grupo(per, 'Liquidado en pérdida', 'inv-gp-negative', 'sin ventas en pérdida') +
   '</div>';
 }
+
+// Una sección plegable del cuerpo de un panel de inversión. Comparte las clases
+// con las secciones de Trading (mesa-fold) en lugar de repetir el estilo: son
+// el mismo control en dos pantallas, y el criterio de la app es que se vean
+// igual. `inv-fold` sólo corrige la geometría —Trading cancela el padding de
+// .mesa con márgenes negativos y acá el contenedor no tiene ese padding—.
+// Sin contenido no se dibuja la sección: un título que se despliega en nada
+// se lee como algo roto.
+function bloquePlegableInv(titulo, bajada, contenido) {
+  if (!contenido) return '';
+  return '<details class="mesa-fold inv-fold">' +
+    '<summary class="mesa-fold-sum">' +
+      '<div>' +
+        '<h4 class="mesa-block-title">' + escapeHtmlSafe(titulo) + '</h4>' +
+        '<p class="mesa-block-sub">' + escapeHtmlSafe(bajada) + '</p>' +
+      '</div>' +
+    '</summary>' +
+    '<div class="mesa-fold-body">' + contenido + '</div>' +
+  '</details>';
+}
+
+// Plegar una sección le saca alto a la página y el navegador conserva el scroll
+// medido desde arriba: todo lo de abajo sube de golpe y el título que se acaba
+// de tocar se escapa de la vista. Se ancla el summary a la altura que tenía.
+// Es el mismo remedio que aplica mesa-trading.js, pero sus handlers están
+// atados al div .mesa del panel de Trading y no alcanzan a estas secciones.
+document.addEventListener('click', function (e) {
+  const sum = e.target.closest && e.target.closest('.inv-fold > .mesa-fold-sum');
+  if (!sum) return;
+  const antes = sum.getBoundingClientRect().top;
+  // El toggle es la acción por omisión del click y corre después de este
+  // handler, así que la corrección va en el frame siguiente.
+  requestAnimationFrame(function () {
+    const delta = sum.getBoundingClientRect().top - antes;
+    if (delta) window.scrollBy(0, delta);
+  });
+});
 
 function buildInvestmentDetailPanel(destinos, title) {
   // Filtrar entradas del destino. Si no hay ninguna, igual mostramos el panel
@@ -18977,14 +19022,19 @@ function buildInvestmentDetailPanel(destinos, title) {
       // es un viaje entrada->salida que cierra con un resultado definitivo.
       // Su detalle es el historial que inserta mesa-trading.js. Las demas
       // secciones (reserva, inversiones, jubilacion) siguen igual.
+      // Las tres secciones van plegables, con el mismo tratamiento que las de
+      // Trading: mismo triángulo, misma tipografía de título y arrancando
+      // cerradas. Abiertas de entrada, una cartera con varios tickers medía
+      // más de una pantalla y había que scrollear para llegar a cualquier cosa.
+      // El orden es de lo que más se mira a lo que menos: los activos primero.
       (panelKey === 'trading' ? '' :
-        // Va en el cuerpo y no en el <summary>: dentro del resumen se veía con
-        // el panel cerrado, y lo que corresponde es que aparezca al abrirlo,
-        // justo debajo de la cabecera con el total ARS+USD.
-        liquidadoHtml +
-        buildSectorConcentrationBlock(destinos, title) +
-        buildCurrencyTable('ARS', arsTickers.length, arsRows) +
-        buildCurrencyTable('USD', usdTickers.length, usdRows)) +
+        bloquePlegableInv('Activos', 'Las tenencias por ticker, con su detalle de compras.',
+          buildCurrencyTable('ARS', arsTickers.length, arsRows) +
+          buildCurrencyTable('USD', usdTickers.length, usdRows)) +
+        bloquePlegableInv('Concentración', 'Cuánto pesa cada sector y cada tipo de riesgo en la cartera.',
+          buildSectorConcentrationBlock(destinos, title)) +
+        bloquePlegableInv('Liquidado', 'Lo que ya se vendió, separado en ganancias y pérdidas.',
+          liquidadoHtml)) +
     '</div>' +
   '</details>';
 }
