@@ -6705,7 +6705,14 @@ body[data-exporting="true"] .section-card {
    contenedor no tiene ese padding, así que el aire lateral lo pone el summary
    y el divisor lo pone la sección. */
 .inv-fold { border-top: 1px solid var(--border); }
-.inv-fold > summary { padding-left: 14px; padding-right: 14px; }
+/* Los títulos arrancan en la misma X que los de Trading. Allá el sangrado lo
+   pone el padding de .mesa (14px) y acá el contenedor no tiene ninguno: medido,
+   los de Trading caían en x=57 y estos en x=43.
+   Va sobre el div del summary y no sobre el summary: su padding lo fijan
+   .mesa-fold > summary y .mesa-fold:not([open]) > summary, esta última con más
+   especificidad, así que una regla propia ahí no aplica nunca. Y va sobre el
+   div y no sobre .inv-fold para que el cuerpo —las tablas— siga a sangre. */
+.inv-fold > summary > div { padding-left: 14px; }
 /* Estos dos bloques traían su propio borde superior, que ahora quedaba
    duplicado a dos píxeles del de la sección que los contiene. */
 .inv-fold .inv-conc-grid { border-top: none; }
