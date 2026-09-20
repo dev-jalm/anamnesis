@@ -1491,7 +1491,7 @@ const SECTORES = [
   { key: 'materiales',           label: 'Materiales' },
   { key: 'servicios_publicos',   label: 'Servicios públicos' },
   { key: 'inmobiliario',         label: 'Inmobiliario' },
-  { key: 'indices',              label: 'Índices y ETF amplios', alerta: false },
+  { key: 'indices',              label: 'Indices y ETF',         alerta: false },
   { key: 'commodities',          label: 'Commodities' },
   { key: 'cripto',               label: 'Cripto' },
   { key: 'renta_fija',           label: 'Renta fija',            alerta: false },

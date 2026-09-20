@@ -18060,6 +18060,11 @@ function filaConcentracion(s, o) {
     ? '<span class="inv-sector-exento" data-tip-titulo="NO SE CONTROLA" data-tip-detalle="' + escapeHtmlSafe(o.motivo || '') + '">' +
         '<i data-lucide="check" style="width:11px;height:11px"></i></span>'
     : '';
+  // Ancho de la barra y, si lo pasa, dónde cae el umbral DENTRO de ella. Los
+  // dos porcentajes están sobre bases distintas —el de la barra sobre la pista,
+  // el de la marca sobre la barra—, por eso la regla de tres.
+  const anchoPct = Math.max(0.5, s.pct);
+  const umbralEnBarra = (o.umbral > 0 && anchoPct > o.umbral) ? (o.umbral / anchoPct * 100) : null;
   return '<div class="inv-sector-row' + (o.over ? ' is-over' : '') + (dentro ? ' is-ok' : '') + (exento ? ' is-exento' : '') + (sinClave ? ' is-none' : '') + '"' +
       tooltipSector(s, '$', o.etiqueta) + '>' +
     '<span class="inv-sector-name">' +
@@ -18073,7 +18078,13 @@ function filaConcentracion(s, o) {
     // (dólares al MEP, a costo lo que no tiene precio actual).
     '<span class="inv-sector-monto">$ ' + fmt(Math.round(s.valor)) + '</span>' +
     '<span class="inv-sector-track">' +
-      '<span class="inv-sector-bar" style="width:' + Math.max(0.5, s.pct).toFixed(2) + '%' + (o.color ? ';background:' + o.color : '') + '">' +
+      '<span class="inv-sector-bar" style="width:' + anchoPct.toFixed(2) + '%' + (o.color ? ';background:' + o.color : '') + '">' +
+        // La marca del umbral sobre el relleno de la barra, debajo de los
+        // activos: la barra que pasa el límite lo tapaba entero y era
+        // justamente la fila donde hay que verlo.
+        (umbralEnBarra !== null
+          ? '<span class="inv-sector-umbral-dentro" style="left:' + umbralEnBarra.toFixed(2) + '%"></span>'
+          : '') +
         '<span class="inv-sector-label">' + escapeHtmlSafe(s.tickers.join(', ')) + '</span>' +
       '</span>' +
       (o.umbral > 0 ? '<span class="inv-sector-umbral" style="left:' + Math.min(100, o.umbral) + '%"></span>' : '') +
@@ -18197,6 +18208,14 @@ function ajustarEtiquetasSector(root) {
     if (!anchoPista) return; // panel cerrado: se reintenta al abrirlo
     row.classList.remove('label-fuera', 'label-oculta');
     label.style.color = '';
+    // La marca del umbral que va adentro de la barra toma la misma tinta que
+    // el texto: está elegida por contraste contra el color de la barra, y así
+    // se lee igual de bien vaya el texto adentro o afuera.
+    const marca = bar.querySelector('.inv-sector-umbral-dentro');
+    if (marca) {
+      const tinta = tintaSobre(getComputedStyle(bar).backgroundColor);
+      marca.style.background = tinta || '';
+    }
     const anchoTexto = label.scrollWidth;
     const AIRE = 8;
     // Sobre las rayas de "sin sector" el texto no se lee: va siempre afuera.
@@ -18484,8 +18503,11 @@ function buildInvestmentDetailPanel(destinos, title) {
       const lastUpdateDisplay = info.lastUpdate
         ? ('actualizado ' + new Date(info.lastUpdate).toLocaleDateString('es-AR'))
         : 'sin precio actual';
+      // De la compra más vieja a la más nueva: el detalle se lee como la
+      // historia de la posición —cómo se fue armando—, y en ese orden la
+      // columna de días en tenencia queda decreciente, que es lo natural.
       const entriesSorted = g.entries.slice().sort(function (a, b) {
-        return (b.fecha || '').localeCompare(a.fecha || '');
+        return (a.fecha || '').localeCompare(b.fecha || '');
       });
       // Las compras individuales se emiten como filas de LA MISMA tabla, no como
       // una tabla anidada. Así comparten el <colgroup> y cada dato cae bajo el
@@ -19786,9 +19808,28 @@ function bindInvestmentDetailDelegation() {
     // alertas, además de la marca de "editado a mano" de la propia celda.
     const sectorSel = e.target.closest('.inv-sector-sel');
     if (sectorSel) {
-      guardarSectorManual(sectorSel.getAttribute('data-ticker'), sectorSel.getAttribute('data-moneda'), sectorSel.value);
+      const tkSel = sectorSel.getAttribute('data-ticker');
+      const monSel = sectorSel.getAttribute('data-moneda');
+      const panelSel = sectorSel.closest('.investment-detail-panel');
+      const panelCls = panelSel ? (String(panelSel.className).match(/inv-panel-\S+/) || [''])[0] : '';
+      guardarSectorManual(tkSel, monSel, sectorSel.value);
       scheduleSave();
+      // El re-render rehace el panel entero y con él el <select> que se acaba
+      // de tocar: el foco se pierde —medido, pasa a <body>— y si el alto del
+      // documento cambia mientras se rehace, el scroll se recorta y la lista
+      // que se estaba editando sube sola. Se anota dónde estaba el usuario y
+      // se le devuelve el punto de lectura y el campo.
+      const cont = document.scrollingElement || document.documentElement;
+      const scrollAntes = cont ? cont.scrollTop : 0;
       if (typeof renderMainAssets === 'function') renderMainAssets();
+      // Se busca dentro del mismo panel: el mismo ticker puede estar en dos
+      // destinos y sin el panel se enfocaría el de la otra cartera.
+      const ambito = panelCls ? document.querySelector('.' + panelCls) : document;
+      const vuelto = ambito && ambito.querySelector(
+        '.inv-sector-sel[data-ticker="' + String(tkSel).replace(/"/g, '') + '"]' +
+        '[data-moneda="' + (monSel === 'USD' ? 'USD' : 'ARS') + '"]');
+      if (vuelto) vuelto.focus({ preventScroll: true });
+      if (cont && cont.scrollTop !== scrollAntes) cont.scrollTop = scrollAntes;
       return;
     }
     const priceInput = e.target.closest('.inv-price-input');

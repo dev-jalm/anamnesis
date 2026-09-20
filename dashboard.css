@@ -6395,6 +6395,23 @@ body[data-exporting="true"] .section-card {
   margin-left: -1px;
   background: var(--ink-2);
 }
+/* La misma marca, pero dibujada ADENTRO de la barra que pasa el umbral: sobre
+   el relleno y debajo de los activos (que van en z-index 2). Los 3px que
+   sobresalen arriba y abajo no alcanzaban: en la fila más larga —justo la que
+   dispara la alerta— la barra tapaba la línea entera. El color lo pone
+   ajustarEtiquetasSector() con la misma tinta que el texto, ya elegida por
+   contraste contra el color de la barra. */
+.inv-sector-umbral-dentro {
+  position: absolute;
+  z-index: 1;
+  top: 0; bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink-2);
+}
+/* En "sin sector" la barra es transparente —son rayas—, así que la línea de
+   atrás ya se ve y esta sobraría. */
+.inv-sector-row.is-none .inv-sector-umbral-dentro { display: none; }
 .inv-sector-pct {
   text-align: right;
   font-family: 'JetBrains Mono', monospace;
