@@ -6250,6 +6250,10 @@ body[data-exporting="true"] .section-card {
   flex-wrap: wrap;
   margin-bottom: 8px;
 }
+/* El nombre de cada gráfico, en el mismo cuerpo que los títulos de Liquidado:
+   son los rótulos de los bloques de una misma sección y tienen que pesar igual.
+   No se toca .inv-section-label, que además rotula las tablas de cada moneda. */
+.inv-sector-head .inv-section-label { font-size: 12px; }
 .inv-sector-sub {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
@@ -6259,7 +6263,7 @@ body[data-exporting="true"] .section-card {
    la barra: el mismo trazo, en chico. */
 .inv-sector-umbral-key {
   display: inline-block;
-  width: 2px;
+  width: 3px;
   height: 9px;
   background: var(--ink-2);
   vertical-align: -1px;
@@ -6385,12 +6389,15 @@ body[data-exporting="true"] .section-card {
    activos —el texto no tiene fondo—. Detrás queda tapada donde hay barra, pero
    sobresale 3px arriba y abajo, así que el límite se sigue leyendo en todas
    las filas, también en las que lo pasan. */
+/* 3px y no 2: a 2px el límite se leía flojo, sobre todo en el gráfico de tipo
+   de riesgo, donde hay pocas filas y la marca no se repite hacia abajo. El
+   grosor es el mismo en los dos gráficos y en la clave del subtítulo. */
 .inv-sector-umbral {
   position: absolute;
   z-index: 0;
   top: -3px; bottom: -3px;
-  width: 2px;
-  margin-left: -1px;
+  width: 3px;
+  margin-left: -1.5px;
   background: var(--ink-2);
 }
 /* La misma marca, pero dibujada ADENTRO de la barra que pasa el umbral: sobre
@@ -6403,8 +6410,8 @@ body[data-exporting="true"] .section-card {
   position: absolute;
   z-index: 1;
   top: 0; bottom: 0;
-  width: 2px;
-  margin-left: -1px;
+  width: 3px;
+  margin-left: -1.5px;
   background: var(--ink-2);
 }
 /* En "sin sector" la barra es transparente —son rayas—, así que la línea de

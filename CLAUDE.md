@@ -109,6 +109,12 @@ repetir.
 
 - **Controles gemelos comparten clase.** Nada de estilo inline caso por caso. Si
   dos botones hacen lo mismo en pantallas distintas, se ven igual.
+- **Lo que se muestra junto se unifica sin que lo pidan.** Dos gráficos lado a
+  lado, dos columnas de un panel, dos bloques de una misma sección: mismo grosor
+  de trazo, mismo cuerpo de título, misma geometría. Si un cambio toca uno, toca
+  el otro en el mismo movimiento — no se espera a que el usuario señale el que
+  quedó distinto. Pasó con el umbral de los dos gráficos de concentración y con
+  el tamaño de sus títulos contra los de Liquidado.
 - **Un campo nuevo usa la misma tipografía que los campos vecinos.** Familia,
   tamaño y peso se toman de los otros campos de la misma fila o formulario, no
   se eligen aparte. Pasó con el selector de Sector de la tabla de activos: iba en

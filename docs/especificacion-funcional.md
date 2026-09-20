@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.33 |
+| **Versión** | 1.34 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -219,7 +219,7 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-072 | Cada panel distingue el importe líquido (destinado y no invertido) del invertido (colocado en activos) |
 | RF-072a | El líquido se informa en la fila ARS+USD y también en la fila ARS, con el mismo valor: los aportes son movimientos en pesos y las compras en dólares se pagan con esos pesos, de modo que el dinero sin invertir está en pesos. La fila USD no informa líquido, porque el producto no registra dólares sin invertir |
 | RF-072f | El cuerpo de cada panel de tenencias se organiza en tres secciones plegables, en este orden: **Activos**, **Concentración** y **Liquidado**. Se presentan con el mismo tratamiento que las secciones de Trading —mismo indicador de plegado y misma tipografía de título, con una bajada que se oculta al plegarlas— y arrancan cerradas: abiertas de entrada, una cartera con varios activos ocupa más de una pantalla. Una sección sin contenido no se presenta |
-| RF-072g | Dentro de la sección Concentración, cada gráfico se rotula por su criterio —"Por sector" y "Por tipo de riesgo"— sin repetir la palabra Concentración, que ya encabeza la sección |
+| RF-072g | Dentro de la sección Concentración, cada gráfico se rotula por su criterio —"Por sector" y "Por tipo de riesgo"— sin repetir la palabra Concentración, que ya encabeza la sección. Esos rótulos se presentan en el mismo cuerpo que los títulos de los grupos de Liquidado: rotulan bloques del mismo rango. Por la misma razón, la sección Liquidado no lleva rótulo propio dentro de sí |
 | RF-072b | La sección Liquidado presenta lo que ya se vendió, en dos grupos: lo que salió en ganancia y, debajo, lo que salió en pérdida. Los títulos de los grupos se presentan en verde y en rojo respectivamente, con su total a continuación y en el mismo cuerpo: son las dos mitades de un mismo dato. Cada grupo detalla una línea por venta con la fecha, el activo con su descripción en mayúsculas, los nominales vendidos sobre los de la compra de la que salieron, los días transcurridos entre esa compra y esta venta, el importe cobrado y el resultado. Las líneas van de la venta más reciente a la más antigua |
 | RF-072e | La sección Liquidado se presenta en los cuatro destinos de tenencias y no en Trading, que no agrupa tenencias. Un grupo sin ventas lo declara, para distinguirlo de la ausencia del dato |
 | RF-072c | Las ventas parciales integran RF-072b: lo que se liquidó es lo vendido, con independencia de que la compra conserve saldo. Una venta al costo exacto se agrupa con las ganancias, donde aporta cero |
@@ -307,7 +307,7 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-073s | Junto a la concentración por sector, en una segunda columna, se presenta la **concentración por tipo de riesgo**: Renta variable, Renta fija, Cripto y Liquidez, con el mismo formato de fila y sobre el mismo total. El tipo se deriva del sector: Renta fija, Cripto y Liquidez son su propio tipo; los sectores bursátiles, los índices y los commodities son Renta variable. Las tenencias sin sector se presentan como sin clasificar, porque no puede saberse si son renta variable o fija |
 | RF-073t | La concentración por tipo de riesgo tiene su propio umbral (RF-194) y emite su alerta con el mismo tratamiento que RF-073k: aviso en el panel y en Diagnóstico, ícono por fila y tilde gris con el motivo en lo que no se controla. La Liquidez y lo sin clasificar no alertan |
 | RF-073u | Las dos columnas comparten filas: título, avisos y barras. Las barras de ambas comienzan a la misma altura aunque sólo una tenga avisos, o tengan una cantidad distinta |
-| RF-073v | La línea del umbral se dibuja detrás de las barras y sobresale por encima y por debajo de ellas. En la barra que supera el límite, además, se marca sobre el relleno y por debajo del texto de los activos, en la misma tinta con que ese texto se escribe (RF-073p). Así el límite se lee en todas las filas —también en la que dispara la alerta, que antes lo tapaba— sin cruzar ninguna letra |
+| RF-073v | La línea del umbral se dibuja detrás de las barras y sobresale por encima y por debajo de ellas. En la barra que supera el límite, además, se marca sobre el relleno y por debajo del texto de los activos, en la misma tinta con que ese texto se escribe (RF-073p). Así el límite se lee en todas las filas —también en la que dispara la alerta, que antes lo tapaba— sin cruzar ninguna letra. El trazo es idéntico en los dos gráficos de la sección y en la clave del subtítulo que lo explica |
 
 **Fundamento de RF-073b.** Con texto libre, "Tecnología", "tecnologia" y "Tech" serían tres sectores, y la concentración repartiría en tres lo que es uno solo, subestimando justamente lo que se quiere detectar. Las clases de activo están porque una cartera real las contiene y no pertenecen a ningún sector bursátil. La Liquidez no se asigna porque no es un activo sino lo que el destino aún no invirtió, y su valor ya lo conoce el sistema (RF-073n).
 
@@ -1094,9 +1094,17 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.30 | 20/09/2026 | Cada panel presenta lo liquidado debajo del total ARS+USD, separando ganancias de pérdidas y detallando cada venta (RF-072b, RF-072c, RF-072d) | Reemplazada |
 | 1.31 | 20/09/2026 | Lo liquidado pasa al cuerpo del panel —oculto hasta desplegarlo— y se presenta en los cuatro destinos de tenencias. Suma la descripción del activo y los días hasta la liquidación, ordena de la venta más reciente a la más antigua y pinta los títulos de cada grupo (RF-072b, RF-072e) | Reemplazada |
 | 1.32 | 20/09/2026 | El cuerpo de cada panel de tenencias se organiza en tres secciones plegables —Activos, Concentración y Liquidado, en ese orden— con el tratamiento de las de Trading (RF-072f) | Reemplazada |
-| 1.33 | 20/09/2026 | Los gráficos de concentración se rotulan sin repetir la palabra Concentración (RF-072g) y la Liquidez pasa a naranja (RF-073o). En Liquidado, la descripción va en mayúsculas y el total de cada grupo acompaña a su título (RF-072b) | **Vigente** |
+| 1.33 | 20/09/2026 | Los gráficos de concentración se rotulan sin repetir la palabra Concentración (RF-072g) y la Liquidez pasa a naranja (RF-073o). En Liquidado, la descripción va en mayúsculas y el total de cada grupo acompaña a su título (RF-072b) | Reemplazada |
+| 1.34 | 20/09/2026 | El trazo del umbral se refuerza, idéntico en los dos gráficos y en su clave (RF-073v). Los rótulos de los gráficos toman el cuerpo de los títulos de Liquidado, que deja de llevar rótulo propio (RF-072g) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Trazo del umbral reforzado e idéntico en los dos gráficos | RF-073v |
+| Rótulos de los gráficos en el cuerpo de los títulos de Liquidado | RF-072g |
+
+**Implementados en la versión 1.33**
 
 | Cambio | Requerimiento |
 |---|---|

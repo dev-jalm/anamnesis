@@ -18400,8 +18400,9 @@ function buildLiquidadosBlock(entries) {
     '</div>';
   };
 
+  // Sin rótulo de bloque: el título de la sección que lo contiene ya dice
+  // Liquidado, y repetirlo dos renglones más abajo no agregaba nada.
   return '<div class="inv-liq">' +
-    '<div class="inv-sector-head"><span class="inv-section-label">Liquidado</span></div>' +
     grupo(gan, 'Liquidado en ganancia', 'inv-gp-positive', 'sin ventas en ganancia') +
     grupo(per, 'Liquidado en pérdida', 'inv-gp-negative', 'sin ventas en pérdida') +
   '</div>';
