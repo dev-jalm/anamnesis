@@ -6725,16 +6725,13 @@ body[data-exporting="true"] .section-card {
 .investment-detail-tables .investment-detail-table:first-child {
   border-top: none;
 }
-/* Primera fila del thead: label de moneda. El background lo define la regla
+/* Primera fila del thead: rótulo de la tabla. El background lo define la regla
    .investment-detail-tables .inv-currency-header-row th más abajo (uniforme
-   para ARS y USD). El display:flex permite que el botón "actualizar precios"
-   (solo en ARS) quede empujado a la derecha vía margin-left:auto, sin que
-   afecte la posición del label — así ARS y USD arrancan en la misma X. */
+   para ARS y USD). La celda queda como celda de tabla: el flex va adentro, en
+   .inv-currency-head-inner. */
 .inv-currency-header-row th {
-  display: flex;
-  align-items: center;
-  /* Padding lateral reducido para alinear el label "ARS/USD" con el inicio
-     de las columnas de abajo, sin desperdiciar espacio a la izquierda. */
+  /* Padding lateral reducido para alinear el rótulo con el inicio de las
+     columnas de abajo, sin desperdiciar espacio a la izquierda. */
   padding: 8px 5px !important;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
@@ -6745,10 +6742,18 @@ body[data-exporting="true"] .section-card {
   text-align: left;
   border-bottom: 1px solid var(--border);
 }
+/* Rótulo, conteo y refresco en una línea, uno al lado del otro. */
+.inv-currency-head-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .inv-currency-header-row .inv-section-label {
   color: var(--accent);
   font-weight: 600;
-  margin-right: 10px;
+  /* En una sola línea: la celda ocupa el ancho de la tabla y no hay razón
+     para partirlo. */
+  white-space: nowrap;
 }
 .inv-currency-header-row .inv-section-count {
   color: var(--muted-2);
@@ -6950,9 +6955,10 @@ body[data-exporting="true"] .section-card {
 }
 .inv-liq-titulo.inv-gp-positive { color: var(--green); }
 .inv-liq-titulo.inv-gp-negative { color: var(--red); }
+/* El monto va en tinta normal y no en verde o rojo: el título de al lado ya
+   dice de cuál de los dos grupos es, y repetirlo en el color del importe le
+   sacaba peso al número, que es el dato. */
 .inv-liq-total { font-size: 12px; font-weight: 600; color: var(--ink); }
-.inv-liq-total.inv-gp-positive { color: var(--green); }
-.inv-liq-total.inv-gp-negative { color: var(--red); }
 /* Filas con el mismo alto y el mismo divisor que las de la tabla de activos.
    Los 40px están medidos sobre ellas: sus celdas llevan campos editables y por
    eso son más altas que una línea de texto. align-items pasa a center porque
@@ -7158,16 +7164,14 @@ body[data-exporting="true"] .section-card {
 }
 
 
-/* ===== Botón "Actualizar" dentro de la fila ARS · N tickers ===== */
-/* El th hace de contenedor flex para poner el botón al extremo derecho */
-.inv-currency-header-row th {
-  /* Heredan padding/font de la regla genérica; agregamos layout flex */
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+/* ===== Botón "Actualizar" dentro del rótulo de cada tabla ===== */
+/* El flex vive en .inv-currency-head-inner: acá había una segunda regla que
+   volvía a ponerle display:flex al th y, por estar más abajo, le ganaba a la
+   de arriba. Con el th en flex el colspan no aplica y la celda medía 40px
+   —el ancho de la primera columna—, así que el rótulo salía en tres renglones. */
+/* Al lado del conteo, no empujado al margen derecho: los tres datos de la
+   cabecera se leen juntos. */
 .inv-currency-header-row .inv-update-prices-btn {
-  margin-left: auto;
   width: 22px;
   height: 22px;
   border-radius: 5px;

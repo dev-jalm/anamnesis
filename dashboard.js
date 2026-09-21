@@ -18389,7 +18389,9 @@ function buildLiquidadosBlock(entries) {
         // El título va pintado —verde lo ganado, rojo lo perdido—, que es el
         // criterio de toda Salud financiera.
         '<span class="inv-liq-titulo ' + cls + '">' + titulo + '</span>' +
-        '<span class="inv-liq-total ' + (arr.length ? cls : '') + '">' +
+        // Sin la clase de ganancia/pérdida: el monto va en tinta normal y el
+        // color lo lleva el título que tiene al lado.
+        '<span class="inv-liq-total">' +
           prefijoTotal + ' ' + fmt(Math.round(Math.abs(total))) + '</span>' +
       '</div>' +
       (arr.length
@@ -18982,11 +18984,17 @@ function buildInvestmentDetailPanel(destinos, title) {
       '<thead>' +
         '<tr class="inv-currency-header-row">' +
           '<th colspan="12">' +
-            // Qué es la tabla, no sólo en qué moneda está. La clase ya la pone
-            // en mayúsculas.
-            '<span class="inv-section-label">Activos comprados en ' + monedaLabel + '</span>' +
-            '<span class="inv-section-count">' + count + ' ticker' + (count === 1 ? '' : 's') + '</span>' +
-            updateBtnHtml +
+            // El flex va en este div y no en el <th>: un th en display:flex
+            // deja de ser celda de tabla, el colspan no le aplica y tomaba el
+            // ancho de la primera columna —40px, medido—, con el rótulo
+            // partido en tres renglones.
+            '<div class="inv-currency-head-inner">' +
+              // Qué es la tabla, no sólo en qué moneda está. La clase ya la
+              // pone en mayúsculas.
+              '<span class="inv-section-label">Activos comprados en ' + monedaLabel + '</span>' +
+              '<span class="inv-section-count">' + count + ' ticker' + (count === 1 ? '' : 's') + '</span>' +
+              updateBtnHtml +
+            '</div>' +
           '</th>' +
         '</tr>' +
         '<tr class="inv-columns-header-row">' +
