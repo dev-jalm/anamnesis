@@ -16489,47 +16489,6 @@ function buildReservaForecastHtml(r, rec, schedule, lastMonth) {
   '</div>';
 }
 
-// Proyección del gasto del mes en curso basada en gasto/día acumulado.
-// Sólo se muestra cuando el mes activo es el mes calendario actual.
-// Retorna HTML del bloque forecast-block (vacío si no aplica).
-function buildGastoMesForecastHtml() {
-  // Determinar mes/año calendario actual
-  const now = new Date();
-  const monthsOrder = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  const todayYear = now.getFullYear();
-  const todayMonth = monthsOrder[now.getMonth()];
-  const todayDay = now.getDate();
-  // Solo aplicar si el período activo apunta al mes actual
-  if (state.selYear !== todayYear) return '';
-  if (!state.selMonth || state.selMonth !== todayMonth) return '';
-  // Sumar gastos del mes hasta hoy (usando fecha real de las tx)
-  const yb = state.transactionsByYear[todayYear];
-  if (!yb || !yb[todayMonth] || !yb[todayMonth].length) return '';
-  let gastoAcum = 0;
-  yb[todayMonth].forEach(function (t) {
-    if (!t || !t.categoria) return;
-    if (isNonExpenseCat(t.categoria)) return;
-    const iso = ddMmToIso(t.fecha);
-    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
-    if (iso.substring(0, 7) !== (todayYear + '-' + String(now.getMonth() + 1).padStart(2, '0'))) return;
-    gastoAcum += (t.monto || 0);
-  });
-  if (gastoAcum <= 0) return '';
-  // Días en el mes actual
-  const diasMes = new Date(todayYear, now.getMonth() + 1, 0).getDate();
-  const promedioDia = gastoAcum / todayDay;
-  const proyeccionTotal = promedioDia * diasMes;
-  const restanteEstim = proyeccionTotal - gastoAcum;
-  return '<div class="forecast-block">' +
-    '<i data-lucide="trending-up" class="forecast-icon" style="width:18px;height:18px"></i>' +
-    '<div class="forecast-content">' +
-      '<div class="forecast-title">PROYECCIÓN — ' + MONTH_LABELS[todayMonth] + ' ' + todayYear + '</div>' +
-      '<div class="forecast-text">Llevás <strong>$' + fmt(gastoAcum) + '</strong> de gasto en los primeros ' + todayDay + ' de ' + diasMes + ' días. Si seguís a este ritmo (~$' + fmt(Math.round(promedioDia)) + ' por día), terminás el mes en <strong>$' + fmt(Math.round(proyeccionTotal)) + '</strong> (te quedan ~$' + fmt(Math.round(restanteEstim)) + ').</div>' +
-    '</div>' +
-  '</div>';
-}
-
-
 // ================= VIEW MODE (Resumen / Completa) =================
 // El modo "resumen" muestra solo un subset de secciones, definido por el usuario
 // en Admin → Ficha médica → "Vista resumen". Antes estaba hardcoded en HTML con
@@ -20080,18 +20039,6 @@ function renderMainAssets() {
     mepValor.textContent = '$ ' + fmt(mep) + ' / USD';
   }
 
-  // Forecast del gasto del mes en curso (sólo si el mes activo es el mes actual)
-  const forecastWrap = document.getElementById('assetsForecastWrap');
-  if (forecastWrap) {
-    try {
-      const gastoHtml = buildGastoMesForecastHtml();
-      forecastWrap.innerHTML = gastoHtml || '';
-      forecastWrap.style.marginBottom = gastoHtml ? '18px' : '0';
-    } catch (e) {
-      console.error('buildGastoMesForecastHtml:', e);
-      forecastWrap.innerHTML = '';
-    }
-  }
   // Reserva: misma estructura que las demás secciones. El panel colapsable
   // (buildInvestmentDetailPanel) muestra título, totales agregados y, además,
   // una fila META con el progreso del plan (inicio · fin · meta · aporte · barra).
