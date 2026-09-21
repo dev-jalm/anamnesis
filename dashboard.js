@@ -18982,7 +18982,9 @@ function buildInvestmentDetailPanel(destinos, title) {
       '<thead>' +
         '<tr class="inv-currency-header-row">' +
           '<th colspan="12">' +
-            '<span class="inv-section-label">' + monedaLabel + '</span>' +
+            // Qué es la tabla, no sólo en qué moneda está. La clase ya la pone
+            // en mayúsculas.
+            '<span class="inv-section-label">Activos comprados en ' + monedaLabel + '</span>' +
             '<span class="inv-section-count">' + count + ' ticker' + (count === 1 ? '' : 's') + '</span>' +
             updateBtnHtml +
           '</th>' +

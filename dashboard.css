@@ -6255,10 +6255,13 @@ body[data-exporting="true"] .section-card {
   flex-wrap: wrap;
   margin-bottom: 8px;
 }
-/* El nombre de cada gráfico, en el mismo cuerpo que los títulos de Liquidado:
-   son los rótulos de los bloques de una misma sección y tienen que pesar igual.
-   No se toca .inv-section-label, que además rotula las tablas de cada moneda. */
-.inv-sector-head .inv-section-label { font-size: 12px; }
+/* El rótulo de cada bloque del cuerpo del panel —los dos gráficos y cada tabla
+   de moneda—, en el mismo cuerpo que los títulos de Liquidado: son bloques del
+   mismo rango y tienen que pesar igual. Van en una regla sola para que no se
+   separen con el tiempo. No se toca .inv-section-label a secas, que se usa
+   fuera de estos paneles. */
+.inv-sector-head .inv-section-label,
+.inv-currency-header-row .inv-section-label { font-size: 12px; }
 .inv-sector-sub {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
@@ -6950,11 +6953,16 @@ body[data-exporting="true"] .section-card {
 .inv-liq-total { font-size: 12px; font-weight: 600; color: var(--ink); }
 .inv-liq-total.inv-gp-positive { color: var(--green); }
 .inv-liq-total.inv-gp-negative { color: var(--red); }
-/* Filas con el mismo alto y el mismo divisor que las de la tabla de activos. */
+/* Filas con el mismo alto y el mismo divisor que las de la tabla de activos.
+   Los 40px están medidos sobre ellas: sus celdas llevan campos editables y por
+   eso son más altas que una línea de texto. align-items pasa a center porque
+   con una altura fija el baseline dejaba el texto pegado arriba; el ticker y su
+   descripción siguen alineados por baseline dentro de .inv-liq-activo. */
 .inv-liq-fila {
   font-size: 11px;
   color: var(--ink);
-  padding: 4px 0;
+  min-height: 40px;
+  align-items: center;
   border-bottom: 1px solid var(--border);
 }
 .inv-liq-fecha { color: var(--muted-2); }
