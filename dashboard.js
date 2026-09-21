@@ -18361,11 +18361,25 @@ function buildLiquidadosBlock(entries) {
     '</div>';
   };
 
+  // Cierre: lo ganado menos lo perdido. `sumar` trabaja con el resultado con
+  // su signo —las pérdidas ya vienen en negativo—, así que el neto es la suma
+  // de todas las ventas.
+  const neto = sumar(filas);
+  // Este sí va en verde o en rojo: es una ganancia o una pérdida, y ahí el
+  // criterio de Salud financiera no tiene excepciones. Los totales de cada
+  // grupo van en tinta normal porque su título ya dice de cuál se trata.
+  const clsNeto = neto > 0 ? 'inv-gp-positive' : (neto < 0 ? 'inv-gp-negative' : '');
+
   // Sin rótulo de bloque: el título de la sección que lo contiene ya dice
   // Liquidado, y repetirlo dos renglones más abajo no agregaba nada.
   return '<div class="inv-liq">' +
     grupo(gan, 'Liquidado en ganancia', 'inv-gp-positive', 'sin ventas en ganancia') +
     grupo(per, 'Liquidado en pérdida', 'inv-gp-negative', 'sin ventas en pérdida') +
+    '<div class="inv-liq-cab inv-liq-neto">' +
+      '<span class="inv-liq-titulo">Total liquidado</span>' +
+      '<span class="inv-liq-total ' + clsNeto + '">' +
+        prefijoTotal + ' ' + fmt(Math.round(Math.abs(neto))) + '</span>' +
+    '</div>' +
   '</div>';
 }
 

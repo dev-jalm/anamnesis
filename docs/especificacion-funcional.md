@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.39 |
+| **Versión** | 1.40 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -221,6 +221,7 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-072f | El cuerpo de cada panel de tenencias se organiza en tres secciones plegables, en este orden: **Activos**, **Concentración** y **Liquidado**. Se presentan con el mismo tratamiento que las secciones de Trading —mismo indicador de plegado y misma tipografía de título, con una bajada que se oculta al plegarlas— y arrancan cerradas: abiertas de entrada, una cartera con varios activos ocupa más de una pantalla. Las tres comparten márgenes: su contenido empieza y termina en la misma posición, de modo que las columnas de Activos se alinean con las de Concentración y Liquidado. Una sección sin contenido no se presenta |
 | RF-072g | Dentro de la sección Concentración, cada gráfico se rotula por su criterio —"Por sector" y "Por tipo de riesgo"— sin repetir la palabra Concentración, que ya encabeza la sección. Esos rótulos se presentan en el mismo cuerpo que los títulos de los grupos de Liquidado: rotulan bloques del mismo rango. Por la misma razón, la sección Liquidado no lleva rótulo propio dentro de sí |
 | RF-072b | La sección Liquidado presenta lo que ya se vendió, en dos grupos: lo que salió en ganancia y, debajo, lo que salió en pérdida. Los títulos de los grupos se presentan en verde y en rojo respectivamente, con su total a continuación y en el mismo cuerpo: son las dos mitades de un mismo dato. El total se presenta en la tinta normal del texto —el título de al lado ya dice de cuál de los dos grupos es—. Cada grupo detalla una línea por venta con la fecha, el activo con su descripción en mayúsculas, los nominales vendidos sobre los de la compra de la que salieron, los días transcurridos entre esa compra y esta venta, el importe cobrado y el resultado. Las líneas van de la venta más reciente a la más antigua. El detalle se presenta con el mismo tratamiento que la tabla de activos: igual cuerpo de texto, iguales títulos de columna, el mismo divisor entre filas y el mismo alto de fila |
+| RF-072h | La sección cierra con el **total liquidado**: lo ganado menos lo perdido. A diferencia del total de cada grupo, se presenta en verde o en rojo, porque es una ganancia o una pérdida (RF-075) |
 | RF-072e | La sección Liquidado se presenta en los cuatro destinos de tenencias y no en Trading, que no agrupa tenencias. Un grupo sin ventas lo declara, para distinguirlo de la ausencia del dato |
 | RF-072c | Las ventas parciales integran RF-072b: lo que se liquidó es lo vendido, con independencia de que la compra conserve saldo. Una venta al costo exacto se agrupa con las ganancias, donde aporta cero |
 | RF-072d | Cada línea de RF-072b se expresa en la moneda de su compra. Los totales de cada grupo se expresan en dólares cuando todas las ventas del panel lo fueron, y en pesos en cualquier otro caso, convirtiendo las ventas en dólares a la cotización MEP (RF-073i) |
@@ -1103,9 +1104,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.36 | 20/09/2026 | El acceso a vender pasa junto al que despliega el detalle (RF-079k) y el detalle de Liquidado adopta el tratamiento de la tabla de activos (RF-072b) | Reemplazada |
 | 1.37 | 20/09/2026 | La tabla de una moneda se presenta sólo si hay tenencias en ella (RF-073z) | Reemplazada |
 | 1.38 | 20/09/2026 | Cada tabla se encabeza con "Activos comprados en" y su moneda (RF-073y), y las filas de Liquidado toman el alto de las de Activos (RF-072b) | Reemplazada |
-| 1.39 | 20/09/2026 | El rótulo de cada tabla se presenta en una sola línea (RF-073y) y el total de cada grupo de Liquidado pasa a tinta normal (RF-072b) | **Vigente** |
+| 1.39 | 20/09/2026 | El rótulo de cada tabla se presenta en una sola línea (RF-073y) y el total de cada grupo de Liquidado pasa a tinta normal (RF-072b) | Reemplazada |
+| 1.40 | 20/09/2026 | La sección Liquidado cierra con el total liquidado: lo ganado menos lo perdido (RF-072h) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Total liquidado al cierre de la sección | RF-072h |
+
+**Implementados en la versión 1.39**
 
 | Cambio | Requerimiento |
 |---|---|

@@ -6957,8 +6957,19 @@ body[data-exporting="true"] .section-card {
 .inv-liq-titulo.inv-gp-negative { color: var(--red); }
 /* El monto va en tinta normal y no en verde o rojo: el título de al lado ya
    dice de cuál de los dos grupos es, y repetirlo en el color del importe le
-   sacaba peso al número, que es el dato. */
+   sacaba peso al número, que es el dato. La excepción es el neto de abajo,
+   que sí es una ganancia o una pérdida. */
 .inv-liq-total { font-size: 12px; font-weight: 600; color: var(--ink); }
+.inv-liq-total.inv-gp-positive { color: var(--green); }
+.inv-liq-total.inv-gp-negative { color: var(--red); }
+/* El cierre del bloque: se separa de los dos grupos con el mismo divisor que
+   usan las filas, como la última línea de una tabla. */
+.inv-liq-neto {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  margin-bottom: 0;
+}
+.inv-liq-neto .inv-liq-titulo { color: var(--ink); }
 /* Filas con el mismo alto y el mismo divisor que las de la tabla de activos.
    Los 40px están medidos sobre ellas: sus celdas llevan campos editables y por
    eso son más altas que una línea de texto. align-items pasa a center porque
