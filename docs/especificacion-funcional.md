@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.36 |
+| **Versión** | 1.37 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -225,6 +225,7 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-072c | Las ventas parciales integran RF-072b: lo que se liquidó es lo vendido, con independencia de que la compra conserve saldo. Una venta al costo exacto se agrupa con las ganancias, donde aporta cero |
 | RF-072d | Cada línea de RF-072b se expresa en la moneda de su compra. Los totales de cada grupo se expresan en dólares cuando todas las ventas del panel lo fueron, y en pesos en cualquier otro caso, convirtiendo las ventas en dólares a la cotización MEP (RF-073i) |
 | RF-073 | La tabla de activos expone, por ticker: nominales, precio promedio de compra, total invertido, precio actual, variación por nominal, total actualizado y resultado |
+| RF-073z | La tabla de una moneda se presenta **sólo si hay tenencias en ella**. Sin tenencias en ninguna de las dos, la sección Activos no se presenta (RF-072f). El acceso a actualizar precios, que es uno solo para todo el destino, acompaña a la primera tabla presentada |
 | RF-074 | Cada activo se despliega en sus compras individuales, y cada compra muestra su resultado contra el precio vigente |
 | RF-074a | Cada compra del detalle informa sus **días en tenencia**, a continuación de la fecha: los días desde la fecha de compra hasta hoy. Si la compra se vendió por completo, hasta la fecha de su última venta, porque desde ahí no se tiene nada. Una venta parcial no interrumpe la cuenta |
 | RF-074e | Las compras del detalle de un activo se presentan de la más antigua a la más reciente: el detalle se lee como la historia de la posición, y en ese orden los días en tenencia (RF-074a) quedan decrecientes |
@@ -1098,9 +1099,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.33 | 20/09/2026 | Los gráficos de concentración se rotulan sin repetir la palabra Concentración (RF-072g) y la Liquidez pasa a naranja (RF-073o). En Liquidado, la descripción va en mayúsculas y el total de cada grupo acompaña a su título (RF-072b) | Reemplazada |
 | 1.34 | 20/09/2026 | El trazo del umbral se refuerza, idéntico en los dos gráficos y en su clave (RF-073v). Los rótulos de los gráficos toman el cuerpo de los títulos de Liquidado, que deja de llevar rótulo propio (RF-072g) | Reemplazada |
 | 1.35 | 20/09/2026 | Las tres secciones del cuerpo comparten márgenes: las columnas de Activos se alinean con las de Concentración y Liquidado (RF-072f) | Reemplazada |
-| 1.36 | 20/09/2026 | El acceso a vender pasa junto al que despliega el detalle (RF-079k) y el detalle de Liquidado adopta el tratamiento de la tabla de activos (RF-072b) | **Vigente** |
+| 1.36 | 20/09/2026 | El acceso a vender pasa junto al que despliega el detalle (RF-079k) y el detalle de Liquidado adopta el tratamiento de la tabla de activos (RF-072b) | Reemplazada |
+| 1.37 | 20/09/2026 | La tabla de una moneda se presenta sólo si hay tenencias en ella (RF-073z) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Tabla de una moneda sólo si hay tenencias en ella | RF-073z |
+
+**Implementados en la versión 1.36**
 
 | Cambio | Requerimiento |
 |---|---|

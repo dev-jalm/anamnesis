@@ -18925,40 +18925,25 @@ function buildInvestmentDetailPanel(destinos, title) {
   const arsRows = buildRows(arsGroups, arsTickers, '$');
   const usdRows = buildRows(usdGroups, usdTickers, 'US$');
 
-  // ─── 5. Header de sección dentro de la tabla (divisor horizontal con label) ───
-  function sectionHeaderRow(label, count) {
-    return '<tr class="inv-section-header"><td colspan="12">' +
-      '<span class="inv-section-label">' + label + '</span>' +
-      '<span class="inv-section-count">' + count + ' ticker' + (count === 1 ? '' : 's') + '</span>' +
-    '</td></tr>';
-  }
-  // Empty state row para una sección sin tickers cargados (CERO state)
-  function sectionEmptyRow(label) {
-    return '<tr class="inv-section-empty"><td colspan="12">Sin activos cargados en ' + label + '</td></tr>';
-  }
-
-  // Cuerpo de la tabla: ARS arriba, USD abajo, separados por la fila de header.
-  // Si una moneda no tiene tickers, igual mostramos el header + un mensaje "vacío"
-  // (estado en 0 explícito, no se oculta).
-  const tableBody =
-    sectionHeaderRow('ARS', arsTickers.length) +
-    (arsRows || sectionEmptyRow('ARS')) +
-    sectionHeaderRow('USD', usdTickers.length) +
-    (usdRows || sectionEmptyRow('USD'));
-
   // Helper para construir una tabla por moneda. Cabecera de dos filas:
   //   fila 1: label de moneda (ARS / USD) + contador de tickers
   //   fila 2: títulos de columnas
-  // Si no hay tickers, fila única con mensaje vacío.
+  // Sin tenencias en esa moneda no se dibuja nada: una tabla entera con sus
+  // doce títulos para decir "no hay" ocupaba más que la que sí tiene datos.
+  // Si no hay en ninguna de las dos, la sección Activos no se presenta.
   function buildCurrencyTable(monedaLabel, count, rowsHtml) {
-    const bodyHtml = rowsHtml || '<tr class="inv-section-empty"><td colspan="12">Sin activos cargados en ' + monedaLabel + '</td></tr>';
+    if (!count) return '';
+    const bodyHtml = rowsHtml;
     // El botón "actualizar precios" va SOLO en la fila ARS — actualiza tanto
     // tickers ARS (precio directo desde data912/CEDEARs) como tickers USD
     // (precio implícito desde su CEDEAR equivalente vía cotización MEP).
     // Es un botón único para todo el panel, posicionado en la fila ARS porque
     // visualmente queda al lado del header divisor (más natural que en el
     // header del panel donde competía con el botón de expand).
-    const updateBtnHtml = (monedaLabel === 'ARS')
+    // Va en la primera tabla que se dibuje: si no hay tenencias en pesos, la
+    // de ARS no existe y el botón se iría con ella.
+    const primeraTabla = (monedaLabel === 'ARS') || arsTickers.length === 0;
+    const updateBtnHtml = primeraTabla
       ? '<button class="inv-update-prices-btn" data-action="update-prices" data-destinos="' + escapeHtmlSafe(destinos.join(',')) + '" title="Actualizar precios y descripciones desde data912.com (ARS directos + USD implícitos desde CEDEAR)">' +
           '<i data-lucide="refresh-cw" style="width:11px;height:11px"></i>' +
         '</button>'

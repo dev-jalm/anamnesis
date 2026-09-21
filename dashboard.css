@@ -6666,16 +6666,6 @@ body[data-exporting="true"] .section-card {
   font-weight: 500;
 }
 
-/* ===== Divisores horizontales ARS / USD dentro de la tabla ===== */
-.inv-section-header td {
-  background: var(--bg-0);
-  padding: 8px 14px !important;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-.inv-section-header:first-child td {
-  border-top: none;
-}
 .inv-section-label {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
@@ -6689,14 +6679,6 @@ body[data-exporting="true"] .section-card {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   color: var(--muted-2);
-}
-.inv-section-empty td {
-  text-align: center;
-  color: var(--muted-2);
-  font-size: 11px;
-  font-style: italic;
-  padding: 14px !important;
-  background: transparent;
 }
 
 /* ===== Dos tablas separadas (una por moneda) ===== */
