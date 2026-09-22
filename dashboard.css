@@ -6962,6 +6962,13 @@ body[data-exporting="true"] .section-card {
 .inv-liq-total { font-size: 12px; font-weight: 600; color: var(--ink); }
 .inv-liq-total.inv-gp-positive { color: var(--green); }
 .inv-liq-total.inv-gp-negative { color: var(--red); }
+/* La última fila del grupo que está pegado al total no lleva divisor: el del
+   total ya separa, y los dos juntos se veían como dos líneas a 10px. Con el
+   grupo de pérdidas vacío no pasaba —no hay fila— y ahí se veía una sola, que
+   es como tiene que verse siempre.
+   La clase la pone el JS: :last-of-type no sirve acá, mira el tag y no la
+   clase, y el último div de .inv-liq es el total, no el grupo. */
+.inv-liq-grupo-final .inv-liq-fila:last-child { border-bottom: none; }
 /* El cierre del bloque: se separa de los dos grupos con el mismo divisor que
    usan las filas, como la última línea de una tabla. */
 .inv-liq-neto {
