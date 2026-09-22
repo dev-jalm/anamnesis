@@ -6962,13 +6962,23 @@ body[data-exporting="true"] .section-card {
 .inv-liq-total { font-size: 12px; font-weight: 600; color: var(--ink); }
 .inv-liq-total.inv-gp-positive { color: var(--green); }
 .inv-liq-total.inv-gp-negative { color: var(--red); }
-/* La última fila del grupo que está pegado al total no lleva divisor: el del
-   total ya separa, y los dos juntos se veían como dos líneas a 10px. Con el
-   grupo de pérdidas vacío no pasaba —no hay fila— y ahí se veía una sola, que
-   es como tiene que verse siempre.
-   La clase la pone el JS: :last-of-type no sirve acá, mira el tag y no la
-   clase, y el último div de .inv-liq es el total, no el grupo. */
-.inv-liq-grupo-final .inv-liq-fila:last-child { border-bottom: none; }
+/* Dos columnas, el mismo tratamiento que la sección de Concentración: lo
+   ganado a la izquierda y lo perdido a la derecha, separadas por el mismo
+   divisor. Con minmax(0,1fr) las dos miden igual y arrancan a la misma altura
+   aunque una tenga más filas. */
+.inv-liq-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.inv-liq-celda { min-width: 0; padding-right: 14px; }
+.inv-liq-celda.inv-liq-col2 {
+  border-left: 1px solid var(--border);
+  padding-left: 14px;
+  padding-right: 0;
+}
+/* La última fila de cada grupo no lleva divisor: abajo está el del total, y
+   los dos juntos se veían como dos líneas a 10px. */
+.inv-liq-grupo .inv-liq-fila:last-child { border-bottom: none; }
 /* El cierre del bloque: se separa de los dos grupos con el mismo divisor que
    usan las filas, como la última línea de una tabla. */
 .inv-liq-neto {

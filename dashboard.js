@@ -18341,11 +18341,9 @@ function buildLiquidadosBlock(entries) {
     '</div>';
   };
 
-  // `ultimo` marca el grupo que queda pegado al total, cuya última fila no
-  // lleva divisor: lo pone el total.
-  const grupo = function (arr, titulo, cls, vacio, ultimo) {
+  const grupo = function (arr, titulo, cls, vacio) {
     const total = sumar(arr);
-    return '<div class="inv-liq-grupo' + (ultimo ? ' inv-liq-grupo-final' : '') + '">' +
+    return '<div class="inv-liq-grupo">' +
       '<div class="inv-liq-cab">' +
         // El título va pintado —verde lo ganado, rojo lo perdido—, que es el
         // criterio de toda Salud financiera.
@@ -18374,9 +18372,19 @@ function buildLiquidadosBlock(entries) {
 
   // Sin rótulo de bloque: el título de la sección que lo contiene ya dice
   // Liquidado, y repetirlo dos renglones más abajo no agregaba nada.
+  // Dos columnas, como la sección de Concentración: lo ganado a la izquierda y
+  // lo perdido a la derecha, con el mismo divisor entre ellas. Los dos grupos
+  // arrancan a la misma altura aunque tengan distinta cantidad de filas.
   return '<div class="inv-liq">' +
-    grupo(gan, 'Liquidado en ganancia', 'inv-gp-positive', 'sin ventas en ganancia') +
-    grupo(per, 'Liquidado en pérdida', 'inv-gp-negative', 'sin ventas en pérdida', true) +
+    '<div class="inv-liq-grid">' +
+      '<div class="inv-liq-celda">' +
+        grupo(gan, 'Liquidado en ganancia', 'inv-gp-positive', 'sin ventas en ganancia') +
+      '</div>' +
+      '<div class="inv-liq-celda inv-liq-col2">' +
+        grupo(per, 'Liquidado en pérdida', 'inv-gp-negative', 'sin ventas en pérdida') +
+      '</div>' +
+    '</div>' +
+    // El total cruza las dos columnas: suma lo de ambas.
     '<div class="inv-liq-cab inv-liq-neto">' +
       '<span class="inv-liq-titulo">Total liquidado</span>' +
       '<span class="inv-liq-total ' + clsNeto + '">' +
