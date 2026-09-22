@@ -5,13 +5,13 @@
 
 | Concepto | Valor |
 |---|---|
-| Última actualización | 20/09/2026 |
+| Última actualización | 21/09/2026 |
 | Primera interacción | 27/07/2026 18:26 |
-| Última interacción | 20/09/2026 23:45 |
-| Días con actividad | 29 |
-| Interacciones | 18918 |
-| Sesiones | 52 |
-| **Horas** | **98.1** |
+| Última interacción | 21/09/2026 23:43 |
+| Días con actividad | 30 |
+| Interacciones | 19020 |
+| Sesiones | 53 |
+| **Horas** | **98.3** |
 | Corte entre sesiones | 90 minutos |
 
 ## Detalle
@@ -69,4 +69,5 @@
 | 49 | 19/09/2026 | 11:51 | 18:44 | 6.88 |
 | 50 | 19/09/2026 | 22:11 | 20/09/2026 01:01 | 2.83 |
 | 51 | 20/09/2026 | 10:51 | 15:23 | 4.54 |
-| 52 | 20/09/2026 | 18:57 | 23:45 | 4.81 |
+| 52 | 20/09/2026 | 18:57 | 23:57 | 5.00 |
+| 53 | 21/09/2026 | 23:41 | 23:43 | 0.04 |

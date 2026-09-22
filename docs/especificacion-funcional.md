@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.40 |
+| **Versión** | 1.41 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -218,7 +218,7 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-071 | Los cuatro destinos de tenencias muestran totales separados por moneda: ARS, USD y el combinado |
 | RF-072 | Cada panel distingue el importe líquido (destinado y no invertido) del invertido (colocado en activos) |
 | RF-072a | El líquido se informa en la fila ARS+USD y también en la fila ARS, con el mismo valor: los aportes son movimientos en pesos y las compras en dólares se pagan con esos pesos, de modo que el dinero sin invertir está en pesos. La fila USD no informa líquido, porque el producto no registra dólares sin invertir |
-| RF-072f | El cuerpo de cada panel de tenencias se organiza en tres secciones plegables, en este orden: **Activos**, **Concentración** y **Liquidado**. Se presentan con el mismo tratamiento que las secciones de Trading —mismo indicador de plegado y misma tipografía de título, con una bajada que se oculta al plegarlas— y arrancan cerradas: abiertas de entrada, una cartera con varios activos ocupa más de una pantalla. Las tres comparten márgenes: su contenido empieza y termina en la misma posición, de modo que las columnas de Activos se alinean con las de Concentración y Liquidado. Una sección sin contenido no se presenta |
+| RF-072f | El cuerpo de cada panel de tenencias se organiza en tres secciones plegables, en este orden: **Activos**, **Concentración** y **Liquidado**. Se presentan con el mismo tratamiento que las secciones de Trading —mismo indicador de plegado y misma tipografía de título, con una bajada que se oculta al plegarlas— y arrancan cerradas: abiertas de entrada, una cartera con varios activos ocupa más de una pantalla. Las tres comparten márgenes: su contenido empieza y termina en la misma posición, de modo que las columnas de Activos se alinean con las de Concentración y Liquidado. Una sección sin contenido no se presenta. Cada sección **conserva si estaba desplegada** cuando una operación vuelve a presentar la pantalla —registrar una venta, eliminar un activo, actualizar precios—, de manera independiente de las demás y de las de los otros destinos |
 | RF-072g | Dentro de la sección Concentración, cada gráfico se rotula por su criterio —"Por sector" y "Por tipo de riesgo"— sin repetir la palabra Concentración, que ya encabeza la sección. Esos rótulos se presentan en el mismo cuerpo que los títulos de los grupos de Liquidado: rotulan bloques del mismo rango. Por la misma razón, la sección Liquidado no lleva rótulo propio dentro de sí |
 | RF-072b | La sección Liquidado presenta lo que ya se vendió, en dos grupos: lo que salió en ganancia y, debajo, lo que salió en pérdida. Los títulos de los grupos se presentan en verde y en rojo respectivamente, con su total a continuación y en el mismo cuerpo: son las dos mitades de un mismo dato. El total se presenta en la tinta normal del texto —el título de al lado ya dice de cuál de los dos grupos es—. Cada grupo detalla una línea por venta con la fecha, el activo con su descripción en mayúsculas, los nominales vendidos sobre los de la compra de la que salieron, los días transcurridos entre esa compra y esta venta, el importe cobrado y el resultado. Las líneas van de la venta más reciente a la más antigua. El detalle se presenta con el mismo tratamiento que la tabla de activos: igual cuerpo de texto, iguales títulos de columna, el mismo divisor entre filas y el mismo alto de fila |
 | RF-072h | La sección cierra con el **total liquidado**: lo ganado menos lo perdido. A diferencia del total de cada grupo, se presenta en verde o en rojo, porque es una ganancia o una pérdida (RF-075) |
@@ -1105,9 +1105,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.37 | 20/09/2026 | La tabla de una moneda se presenta sólo si hay tenencias en ella (RF-073z) | Reemplazada |
 | 1.38 | 20/09/2026 | Cada tabla se encabeza con "Activos comprados en" y su moneda (RF-073y), y las filas de Liquidado toman el alto de las de Activos (RF-072b) | Reemplazada |
 | 1.39 | 20/09/2026 | El rótulo de cada tabla se presenta en una sola línea (RF-073y) y el total de cada grupo de Liquidado pasa a tinta normal (RF-072b) | Reemplazada |
-| 1.40 | 20/09/2026 | La sección Liquidado cierra con el total liquidado: lo ganado menos lo perdido (RF-072h) | **Vigente** |
+| 1.40 | 20/09/2026 | La sección Liquidado cierra con el total liquidado: lo ganado menos lo perdido (RF-072h) | Reemplazada |
+| 1.41 | 21/09/2026 | Las secciones del cuerpo conservan si estaban desplegadas cuando una operación vuelve a presentar la pantalla (RF-072f) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Las secciones conservan si estaban desplegadas al re-presentar la pantalla | RF-072f |
+
+**Implementados en la versión 1.40**
 
 | Cambio | Requerimiento |
 |---|---|

@@ -18392,7 +18392,10 @@ function buildLiquidadosBlock(entries) {
 // se lee como algo roto.
 function bloquePlegableInv(titulo, bajada, contenido, clase) {
   if (!contenido) return '';
-  return '<details class="mesa-fold inv-fold' + (clase ? ' ' + clase : '') + '">' +
+  // data-fold identifica la sección entre re-renders, para poder devolverla
+  // abierta si lo estaba (ver renderMainAssets).
+  return '<details class="mesa-fold inv-fold' + (clase ? ' ' + clase : '') + '"' +
+      ' data-fold="' + escapeHtmlSafe(titulo) + '">' +
     '<summary class="mesa-fold-sum">' +
       '<div>' +
         '<h4 class="mesa-block-title">' + escapeHtmlSafe(titulo) + '</h4>' +
@@ -20040,6 +20043,16 @@ function renderMainAssets() {
     const cls = (el.className || '').match(/inv-panel-(\S+)/);
     if (cls) openPanels[cls[1]] = true;
   });
+  // Lo mismo con las secciones de adentro —Activos, Concentración, Liquidado—,
+  // que también son <details> y también vuelven cerradas: registrar una venta
+  // cerraba la sección desde la que se acababa de vender. La clave lleva el
+  // panel porque el mismo título existe en los cuatro destinos.
+  const openFolds = {};
+  document.querySelectorAll('.investment-detail-panel .inv-fold[open]').forEach(function (el) {
+    const pan = el.closest('.investment-detail-panel');
+    const cls = pan && (pan.className || '').match(/inv-panel-(\S+)/);
+    if (cls) openFolds[cls[1] + '|' + (el.getAttribute('data-fold') || '')] = true;
+  });
 
   // Colores de los sectores: se reparten de nuevo en cada render, porque un
   // sector nuevo en cualquier cartera cambia cuáles están en uso.
@@ -20122,6 +20135,13 @@ function renderMainAssets() {
   Object.keys(openPanels).forEach(function (key) {
     const el = document.querySelector('.investment-detail-panel.inv-panel-' + key);
     if (el) el.setAttribute('open', '');
+  });
+  Object.keys(openFolds).forEach(function (key) {
+    const partes = key.split('|');
+    const pan = document.querySelector('.investment-detail-panel.inv-panel-' + partes[0]);
+    if (!pan) return;
+    const fold = pan.querySelector('.inv-fold[data-fold="' + partes[1].replace(/"/g, '') + '"]');
+    if (fold) fold.setAttribute('open', '');
   });
   // Con los paneles ya reabiertos, las barras tienen medida: se ubica el texto.
   ajustarEtiquetasSector();
