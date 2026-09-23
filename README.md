@@ -24,7 +24,7 @@ anamnesis parte de tres decisiones opuestas:
 
 ![Salud financiera](docs/salud-financiera.png)
 
-**Salud financiera** — el patrimonio repartido por destino, con el líquido y lo invertido separados por moneda y la variación contra el precio de hoy. En la tabla, cada activo con sus nominales, su precio promedio de compra y su resultado; los que ya se vendieron enteros quedan marcados como liquidados, con lo que dejaron.
+**Salud financiera** — el patrimonio repartido por destino, con el líquido y lo invertido separados por moneda y la variación contra el precio de hoy. Cada destino se abre en tres secciones plegables: **Activos**, cada uno con sus nominales, su precio promedio de compra y su resultado; **Concentración**, cuánto pesa cada sector y cada tipo de riesgo; y **Liquidado**, lo que ya se vendió separado en ganancias y pérdidas.
 
 ![Mesa de trading](docs/mesa-trading.png)
 
@@ -45,7 +45,7 @@ La metáfora médica no es decorativa: cada solapa responde una pregunta distint
 | **Historia clínica** | ¿En qué se fue la plata? Movimientos del período, recategorizables, con etiquetas y formas de pago. Dos vistas: **Resumen**, una fila por categoría con su peso sobre el total, y **Completa**, cada movimiento editable en su fila. |
 | **Ficha médica** | ¿Cómo estoy hoy? KPIs configurables, score de salud, distribución por categoría, tipo, periodicidad y medio de pago. También en dos vistas: **Completa** con todos los gráficos, y **Resumen** con las secciones que elijas dejar. |
 | **Diagnóstico** | ¿Qué está pasando? Flujo trimestral, evolución anual e insights automáticos. |
-| **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y las dos jubilaciones, con precios actualizados desde el mercado. Cada activo se despliega en sus compras individuales, con el rendimiento de cada una contra el precio de hoy, y se puede **vender** entero o por partes. Cada cartera muestra cuánto de su valor está en cada **sector** y en cada tipo de riesgo —renta variable, renta fija, cripto, liquidez—, y avisa cuando un sector o un tipo de riesgo pasa el límite que elegiste. Trading va último y aparte: es la [mesa de operaciones](#la-mesa-de-trading). |
+| **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y las dos jubilaciones, con precios actualizados desde el mercado. El cuerpo de cada cartera son tres secciones que se pliegan: **Activos** —cada uno se despliega en sus compras individuales, con el rendimiento y los días en tenencia de cada una, y se puede **vender** entero o por partes—, **Concentración** —cuánto de su valor está en cada **sector** y en cada tipo de riesgo, con aviso cuando alguno pasa el límite que elegiste— y **Liquidado**, el resultado de lo que ya vendiste. Trading va último y aparte: es la [mesa de operaciones](#la-mesa-de-trading). |
 | **Evolución** | ¿Estoy mejorando? Presupuestado contra real, mes a mes, con tendencias por categoría. |
 
 ### Importar los resúmenes
@@ -90,14 +90,18 @@ La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite
 
 - **Vender es sacar de las compras más viejas.** Un activo se liquida entero desde su fila o por partes desde una compra del detalle, y en el primer caso la cantidad se descuenta de las tandas más antiguas primero. Eso no es un capricho de orden: el costo de lo vendido sale del precio de cada compra, y de ahí depende cuánta ganancia realizaste. Cada venta deja además un movimiento con la fecha de la liquidación —Renta financiera o Pérdida financiera—, así el resultado aparece en el flujo del mes y no solo en la cartera.
 
+- **Lo vendido no se valúa: se cobró.** La tabla de activos mide lo que todavía tenés contra el precio de hoy, así que lo ya liquidado no tiene lugar ahí. Vive en su propia sección, en dos columnas —lo que salió en ganancia y lo que salió en pérdida—, con una línea por venta y no por activo: una compra se vende en tandas, y cada tanda tiene su fecha, sus días en tenencia y su resultado propio. Abajo, el neto de las dos columnas, que es el único número del bloque que va en verde o en rojo.
+
+- **El sector no lo informa nadie.** Ninguna fuente pública accesible devuelve el sector de un CEDEAR, así que el listado de BYMA que trae la app lo lleva incorporado: 396 instrumentos con su ratio, su nombre y su sector, y sólo los que efectivamente cotizan. Lo que no está —acciones locales, bonos, un fondo— se asigna a mano desde la tabla o al cargarlo, y esa asignación es del instrumento, no de la moneda: vale para el CEDEAR en pesos y para la acción en dólares.
+
 - **Aritmética con signo explícito.** Todos los montos se guardan positivos, sin excepción, y el signo lo aplica cada operación según su semántica (`+ Sueldo − gastos − Inversión…`). Suena menor, pero es lo que permite que una misma transacción cuente distinto según el KPI que la mire. La devolución de capital es el caso que lo justifica: resta en el balance de flujo, porque es plata que salió del bolsillo.
 
 ### Cómo se organiza
 
 ```
-dashboard.html    3.177 líneas    estructura, modales, formularios
-dashboard.css     8.090 líneas    estilos y theming claro/oscuro
-dashboard.js     23.127 líneas    lógica, render, estado, importación
+dashboard.html    3.175 líneas    estructura, modales, formularios
+dashboard.css     8.256 líneas    estilos y theming claro/oscuro
+dashboard.js     23.361 líneas    lógica, render, estado, importación
 core.js           2.902 líneas    funciones puras + motor de plantillas
 mesa-trading.js   2.985 líneas    mesa de trading: riesgo, liquidación, historial
 mesa-trading.css  1.029 líneas    estilos de la mesa

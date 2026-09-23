@@ -190,12 +190,12 @@ window.MANUAL = {
       p: [
         'Cada activo de la tabla tiene su sector. Si el ticker está en el listado de CEDEARs de BYMA, viene solo; si es un par cripto, es Cripto. Lo que no está en el listado —acciones locales, bonos, un fondo— aparece sin sector, y se lo asignás desde la columna Sector de la tabla o al cargarlo.',
         'El sector se elige de una lista fija: los once sectores de la bolsa, más Indices y ETF, Commodities, Cripto y Renta fija. No se escribe a mano a propósito: con texto libre, "Tecnología" y "tecnologia" serían dos sectores y el gráfico partiría en dos lo que es uno solo.',
-        'Al abrir Reserva, Inversiones o una Jubilación, arriba de la tabla está la concentración por sector. Cada fila dice el sector, qué porcentaje de la cartera ocupa, cuánta plata es y su barra, con los activos que lo componen escritos adentro. La barra entera es el 100% de la cartera, y la línea vertical es el límite que elegiste en Parámetros. Lo que lo pasa lleva un ícono de alerta, el porcentaje en rojo y un aviso arriba que dice cuánto concentra; lo que queda dentro del límite, un tilde verde. Los que no se controlan —índices, renta fija, liquidez y lo que no tiene sector— llevan el tilde en gris; pasando el mouse por él se ve por qué: tener el 80% en el S&P 500 es estar diversificado, no concentrado.',
+        'Al abrir Reserva, Inversiones o una Jubilación, la sección Concentración trae dos gráficos. El de la izquierda, Por sector: cada fila dice el sector, qué porcentaje de la cartera ocupa, cuánta plata es y su barra, con los activos que lo componen escritos adentro. La barra entera es el 100% de la cartera, y la línea vertical es el límite que elegiste en Parámetros. Lo que lo pasa lleva un ícono de alerta, el porcentaje en rojo y un aviso arriba que dice cuánto concentra; lo que queda dentro del límite, un tilde verde. Los que no se controlan —índices, renta fija, liquidez y lo que no tiene sector— llevan el tilde en gris; pasando el mouse por él se ve por qué: tener el 80% en el S&P 500 es estar diversificado, no concentrado.',
         'La Liquidez también aparece en la composición, pero no se asigna a ningún activo: es la plata del destino que todavía no invertiste, y el número es el mismo que el Líquido de la cabecera del panel. Si el Líquido da negativo, no aparece.',
-        'Al lado, la concentración por tipo de riesgo reparte el mismo total en Renta variable, Renta fija, Cripto y Liquidez. Sale del sector: las acciones, los índices y los commodities son renta variable; lo sin sector queda sin clasificar. Tiene su propio límite, 70% de entrada, y avisa igual que la de sector.'
+        'El de la derecha, Por tipo de riesgo, reparte el mismo total en Renta variable, Renta fija, Cripto y Liquidez. Sale del sector: las acciones, los índices y los commodities son renta variable; lo sin sector queda sin clasificar. Tiene su propio límite, 70% de entrada, y avisa igual que la de sector.'
       ],
       lista: [
-        'Cada sector tiene su color, y es el mismo en todas las carteras: si Tecnología es azul en Inversiones, es azul en Jubilación. Índices y Renta fija van en tonos neutros, la Liquidez en naranja, y lo que no tiene sector va rayado.',
+        'Cada sector tiene su color, y es el mismo en todas las carteras: si Tecnología es azul en Inversiones, es azul en Jubilación. Indices y ETF y Renta fija van en tonos neutros, la Liquidez en naranja, y lo que no tiene sector va rayado.',
         'La cabecera de cada panel repite la concentración por moneda: la barra ARS reparte lo que tenés en pesos, liquidez incluida, y la USD lo que tenés en dólares. Con todo en una sola moneda, la barra ARS da lo mismo que el gráfico de abajo.',
         'Pasando el mouse por un tramo de las barras de la cabecera se ve, en negrita, el sector con su porcentaje y su monto, y debajo cada activo con su porcentaje. Las filas del gráfico no lo llevan: ya lo tienen escrito, y si la barra es corta los activos van al lado.',
         'Un sector cambiado a mano queda marcado como editado y muestra el del listado al pasar el mouse. El sector es del activo, no de la moneda.',
@@ -219,6 +219,23 @@ window.MANUAL = {
         'Después de vender, las columnas muestran lo que QUEDA. Si de 1.000 vendiste 200, la fila dice 800 y su rendimiento se mide sobre esos 800; debajo de la fecha aparece cuántos vendiste.',
         'Un activo sin saldo no desaparece ni queda en cero: se marca como liquidado y muestra cuántos nominales se vendieron, por cuánto y qué resultado dejaron. Se sigue desplegando para ver la fecha de cada venta.',
         'Cada venta deja además un movimiento con la fecha de la liquidación, por el resultado: Renta financiera si ganaste, Pérdida financiera si perdiste. Viene clasificado solo, como esporádico y por transferencia. Es lo que hace que la venta se vea también en Historia clínica y en Evolución, y no sólo acá. La devolución del capital no genera movimiento — eso ya está contemplado en que el invertido baje.'
+      ]
+    },
+    {
+      h: 'Lo liquidado',
+      sub: '¿Cuánto me dejó lo que vendí?',
+      img: '21-liquidado',
+      imgCap: 'Las dos columnas de Liquidado y, cruzándolas, el total: lo ganado menos lo perdido.',
+      p: [
+        'La tabla de activos mide lo que todavía tenés contra el precio de hoy. Lo que ya vendiste no se valúa: se cobró, y su resultado es definitivo. Eso vive en su propia sección del panel, Liquidado, y se lee en dos columnas: a la izquierda lo que salió en ganancia y a la derecha lo que salió en pérdida.',
+        'Cada línea es una venta, no un activo: una compra se puede vender en tandas, y cada tanda tiene su fecha y su resultado propio. La línea dice cuándo vendiste, qué activo, cuántos nominales sobre los de la compra de la que salieron —15 / 35 dice que liquidaste una parte—, cuántos días lo tuviste hasta esa venta, cuánto cobraste y qué te dejó.',
+        'Abajo, cruzando las dos columnas, el total liquidado: lo ganado menos lo perdido. Es el único número del bloque que va en verde o en rojo, porque es el que dice si el conjunto de tus ventas te dejó a favor o en contra.'
+      ],
+      lista: [
+        'Las ventas parciales cuentan: lo liquidado es lo vendido, tengas o no saldo en esa compra.',
+        'Las líneas van de la venta más reciente a la más vieja, al revés que el detalle de compras.',
+        'Cada línea va en la moneda de su compra; los totales pasan a pesos al MEP si hay ventas en las dos.',
+        'Si no vendiste nada en una de las dos columnas, la columna lo dice, para que se distinga de un dato que falta.'
       ]
     },
     {
