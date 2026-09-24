@@ -357,6 +357,23 @@ window.MANUAL = {
       ]
     },
     {
+      h: 'Atajos de teclado',
+      // Sin figura a propósito: la captura del modal es la misma lista que las
+      // viñetas de acá, y el modal es tan alto que ocupaba una hoja entera para
+      // repetir lo que se lee arriba.
+      p: [
+        'Cada pantalla tiene su tecla. Funcionan desde cualquier lugar de la app, salvo mientras escribís en un campo: ahí la letra se escribe y no dispara nada, así no te rompe la carga.'
+      ],
+      lista: [
+        'Del 1 al 5, las cinco solapas principales en el orden en que están: Historia clínica, Ficha médica, Diagnóstico, Salud financiera y Evolución.',
+        'A abre Administración. Adentro, K va a Ficha médica, P a Parámetros y S a Salud financiera, que es donde se administran los portafolios.',
+        'C, E, R y V abren Administración en la solapa que corresponde y dejan el cursor en el nombre: categoría, etiqueta, regla y viaje.',
+        'D abre el diagnóstico del archivo y T cambia entre tema claro y oscuro.',
+        'Ctrl+K —Cmd+K en Mac— abre el buscador de acciones, que llega a todo lo anterior escribiendo. Ctrl+S fuerza el guardado y Esc cierra lo que esté abierto.',
+        '? muestra esta misma lista dentro de la app.'
+      ]
+    },
+    {
       h: 'Guardar y respaldos',
       p: [
         'Los cambios de las pantallas de administración quedan pendientes hasta que apretás GUARDAR: el pie del modal indica cuántos hay. Eso permite revisar antes de confirmar, y descartar todo si te arrepentís.',
