@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.50 |
+| **Versión** | 1.51 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -218,7 +218,7 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-071 | Los cuatro destinos de tenencias muestran totales separados por moneda: ARS, USD y el combinado |
 | RF-072 | Cada panel distingue el importe líquido (destinado y no invertido) del invertido (colocado en activos) |
 | RF-072a | El líquido se informa en la fila ARS+USD y también en la fila ARS, con el mismo valor: los aportes son movimientos en pesos y las compras en dólares se pagan con esos pesos, de modo que el dinero sin invertir está en pesos. La fila USD no informa líquido, porque el producto no registra dólares sin invertir |
-| RF-072f | El cuerpo de cada panel de tenencias se organiza en tres secciones plegables, en este orden: **Activos**, **Concentración** y **Liquidado**. Se presentan con el mismo tratamiento que las secciones de Trading —mismo indicador de plegado y misma tipografía de título, con una bajada que se oculta al plegarlas— y arrancan cerradas: abiertas de entrada, una cartera con varios activos ocupa más de una pantalla. El indicador de plegado es **el mismo que abre y cierra el panel que las contiene**: va antes del título, apunta a la derecha con la sección cerrada y rota noventa grados al desplegarla. Las tres comparten márgenes: su contenido empieza y termina en la misma posición, de modo que las columnas de Activos se alinean con las de Concentración y Liquidado. Una sección sin contenido no se presenta. Cada sección **conserva si estaba desplegada** cuando una operación vuelve a presentar la pantalla —registrar una venta, eliminar un activo, actualizar precios—, de manera independiente de las demás y de las de los otros destinos |
+| RF-072f | El cuerpo de cada panel de tenencias se organiza en tres secciones plegables, en este orden: **Activos**, **Concentración** y **Liquidado**. Se presentan con el mismo tratamiento que las secciones de Trading —mismo indicador de plegado y misma tipografía de título, con una bajada que se oculta al plegarlas— y arrancan cerradas: abiertas de entrada, una cartera con varios activos ocupa más de una pantalla. El indicador de plegado es **el mismo que abre y cierra el panel que las contiene**: va antes del título, apunta a la derecha con la sección cerrada y rota noventa grados al desplegarla. **El título de cada sección arranca en la misma columna que el título del panel**, y su indicador en la misma que el del panel. Las tres comparten márgenes: su contenido empieza y termina en la misma posición, de modo que las columnas de Activos se alinean con las de Concentración y Liquidado. Una sección sin contenido no se presenta. Cada sección **conserva si estaba desplegada** cuando una operación vuelve a presentar la pantalla —registrar una venta, eliminar un activo, actualizar precios—, de manera independiente de las demás y de las de los otros destinos |
 | RF-072g | Dentro de la sección Concentración, cada gráfico se rotula por su criterio —"Por sector" y "Por tipo de riesgo"— sin repetir la palabra Concentración, que ya encabeza la sección. Esos rótulos se presentan en el mismo cuerpo que los títulos de los grupos de Liquidado: rotulan bloques del mismo rango. Por la misma razón, la sección Liquidado no lleva rótulo propio dentro de sí |
 | RF-072b | La sección Liquidado presenta lo que ya se vendió en dos columnas, con el mismo tratamiento que la sección Concentración: lo que salió en ganancia a la izquierda y lo que salió en pérdida a la derecha, separadas por el mismo divisor y arrancando a la misma altura aunque una tenga más líneas. Los títulos de los grupos se presentan en verde y en rojo respectivamente, con su total a continuación y en el mismo cuerpo: son las dos mitades de un mismo dato. El total se presenta en la tinta normal del texto —el título de al lado ya dice de cuál de los dos grupos es—. Cada grupo detalla una línea por venta con la fecha, el activo con su descripción en mayúsculas, los nominales vendidos sobre los de la compra de la que salieron, los días transcurridos entre esa compra y esta venta, el importe cobrado y el resultado. Las líneas van de la venta más reciente a la más antigua. El detalle se presenta con el mismo tratamiento que la tabla de activos: igual cuerpo de texto, iguales títulos de columna, el mismo divisor entre filas y el mismo alto de fila |
 | RF-072h | La sección cierra, cruzando las dos columnas, con el **total liquidado**: lo ganado menos lo perdido. A diferencia del total de cada grupo, se presenta en verde o en rojo, porque es una ganancia o una pérdida (RF-075) |
@@ -357,7 +357,7 @@ Módulo de gestión de riesgo por operación apalancada.
 
 | ID | Requerimiento |
 |---|---|
-| RF-078b | El contenido del destino Trading se organiza en **tres secciones plegables**: Mesa de trabajo, Métricas del historial e Historial de operaciones. Llevan el mismo indicador de plegado que las secciones de los otros destinos, que es a su vez el del panel que las contiene (RF-072f) |
+| RF-078b | El contenido del destino Trading se organiza en **tres secciones plegables**: Mesa de trabajo, Métricas del historial e Historial de operaciones. Llevan el mismo indicador de plegado que las secciones de los otros destinos, que es a su vez el del panel que las contiene, y sus títulos arrancan en la misma columna que el título del panel (RF-072f) |
 | RF-078c | Las tres secciones se presentan **cerradas por defecto**. Abiertas de entrada, el panel ocupaba varias pantallas y obligaba a desplazarse hasta el final para alcanzar el historial, que es la sección de consulta más frecuente |
 | RF-078d | Registrar una operación o un cierre no altera el estado de apertura de las secciones |
 | RF-078e | Las acciones de la sección Mesa de trabajo —consultar el reglamento, registrar operación y limpiar— permanecen accesibles con la sección cerrada, y accionarlas no la abre ni la cierra |
@@ -1153,9 +1153,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.47 | 24/09/2026 | La cabecera de cada portafolio suma su valor y su resultado (RF-080n), y la tabla de activos la columna % sobre su ámbito (RF-080o). Se incorporan los umbrales de concentración por activo y de cantidad de activos por portafolio, con sus avisos (RF-195, RF-196, RF-080p) | Reemplazada |
 | 1.48 | 24/09/2026 | El resultado de cada portafolio informa su porcentaje, y su cabecera queda idéntica en las tres secciones (RF-080n) | Reemplazada |
 | 1.49 | 24/09/2026 | La cabecera de cada portafolio suma su fecha de inicio y pasa a presentar los mismos datos en las tres secciones (RF-080n) | Reemplazada |
-| 1.50 | 24/09/2026 | Las secciones plegables llevan antes del título el mismo indicador de plegado que abre y cierra el panel (RF-072f, RF-078b) | **Vigente** |
+| 1.50 | 24/09/2026 | Las secciones plegables llevan antes del título el mismo indicador de plegado que abre y cierra el panel (RF-072f, RF-078b) | Reemplazada |
+| 1.51 | 24/09/2026 | El título de cada sección plegable arranca en la misma columna que el título de su panel (RF-072f, RF-078b) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Títulos de sección en la misma columna que el título del panel | RF-072f, RF-078b |
+
+**Implementados en la versión 1.50**
 
 | Cambio | Requerimiento |
 |---|---|

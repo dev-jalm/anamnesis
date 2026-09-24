@@ -97,7 +97,9 @@
 .mesa-fold > summary .mesa-block-title::before {
   content: '▸';
   position: absolute;
-  left: -14px;
+  /* Los mismos 18px que separan el chevron del panel de su nombre, así los dos
+     caen en la misma columna (x=59, medido). */
+  left: -18px;
   top: 50%;
   transform: translateY(-50%);
   font-family: monospace;
@@ -115,6 +117,17 @@
    pegarían al título en vez de irse al margen derecho. */
 .mesa-fold > summary > .mesa-bench-head,
 .mesa-fold > summary > div:first-of-type { flex: 1 1 auto; min-width: 0; }
+
+/* El título de cada sección arranca en la misma columna que el título del panel
+   que la contiene —medido, x=77—, y su chevron queda alineado con el del panel.
+   Acá el summary ya arranca sangrado por el padding de .mesa (x=57), así que
+   faltan 20px; en los paneles de inversión el sangrado lo pone el div interno
+   (.inv-fold > summary > div), porque ahí el summary arranca 14px más a la
+   izquierda.
+   Va como margen y no como padding porque el chevron se posiciona contra la
+   caja del título: con padding se corría el texto y el chevron se quedaba. */
+.mesa-fold > summary > .mesa-bench-head,
+.mesa-fold > summary > .mesa-block-title { margin-left: 20px; }
 
 /* Cerrada, la sección muestra SOLO su nombre. La bajada explica cómo se usa lo
    que hay adentro: con el cuerpo plegado no tiene a qué referirse, y tres
