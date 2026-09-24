@@ -23301,16 +23301,17 @@ function buildCommandPaletteCatalog() {
     action: function () { openShortcutsHelp(); } });
 
   // --- ATAJOS A SUB-SECCIONES DE ADMINISTRACIÓN ---
-  ['manage', 'labels', 'rules', 'travel', 'config', 'params'].forEach(function (tab) {
+  ['manage', 'labels', 'rules', 'travel', 'config', 'params', 'portafolios'].forEach(function (tab) {
     const labels = {
       manage: 'Administración → Categorías',
       labels: 'Administración → Etiquetas',
       rules: 'Administración → Reglas',
       travel: 'Administración → Modo viaje',
       config: 'Administración → Ficha médica',
-      params: 'Administración → Parámetros'
+      params: 'Administración → Parámetros',
+      portafolios: 'Administración → Salud financiera'
     };
-    const icons = { manage: 'tag', labels: 'bookmark', rules: 'zap', travel: 'plane', config: 'activity', params: 'sliders-horizontal' };
+    const icons = { manage: 'tag', labels: 'bookmark', rules: 'zap', travel: 'plane', config: 'activity', params: 'sliders-horizontal', portafolios: 'target' };
     cmds.push({
       id: 'admin.' + tab,
       label: labels[tab],
@@ -23687,6 +23688,14 @@ document.addEventListener('keydown', function (e) {
     e.preventDefault();
     if (typeof openCategoriesModal === 'function') openCategoriesModal();
     setTimeout(function () { if (typeof setActiveCatTab === 'function') setActiveCatTab('params'); }, 60);
+    return;
+  }
+  // s → Administración en sub-solapa Salud financiera (los portafolios).
+  // La S sola no choca con el guardado: ese pide Cmd/Ctrl y se atiende arriba.
+  if (e.key === 's' || e.key === 'S') {
+    e.preventDefault();
+    if (typeof openCategoriesModal === 'function') openCategoriesModal();
+    setTimeout(function () { if (typeof setActiveCatTab === 'function') setActiveCatTab('portafolios'); }, 60);
     return;
   }
 });

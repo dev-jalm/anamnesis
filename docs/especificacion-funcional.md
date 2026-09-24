@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.51 |
+| **Versión** | 1.52 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -290,7 +290,7 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 |---|---|
 | RF-080 | Un **portafolio** agrupa activos según para qué se tienen: de los activos de Inversiones, unos pueden ser un viaje y otros un auto. No es un destino: los destinos (RF-070) son fijos, y un portafolio agrupa activos **dentro** de ellos |
 | RF-080a | Un portafolio se compone de **nombre**, **objetivo** —texto libre que describe para qué es— y **plazo**, que es una fecha y puede no informarse |
-| RF-080b | Los portafolios se administran desde **Administración → Salud financiera**: se crean, se modifican y se eliminan. La pantalla informa, por cada uno, su objetivo, su plazo y cuántos activos tiene asignados, y señala los de plazo vencido |
+| RF-080b | Los portafolios se administran desde **Administración → Salud financiera**: se crean, se modifican y se eliminan. La pantalla informa, por cada uno, su objetivo, su plazo y cuántos activos tiene asignados, y señala los de plazo vencido. Se llega ahí por la **tecla S**, con el mismo criterio que las demás solapas de Administración, y desde el buscador de acciones |
 | RF-080c | El nombre es obligatorio, admite hasta 40 caracteres y no puede repetirse. La comparación ignora mayúsculas y acentos: dos portafolios que se leen igual son el mismo |
 | RF-080d | La asignación de activos **no** se hace en Administración sino en la propia solapa Salud financiera, donde están los activos a la vista: cada activo de la tabla se puede seleccionar, y la selección se asigna a un portafolio —o se saca del que tenga— en una sola acción |
 | RF-080e | La asignación es del activo **en su destino y su moneda**: el mismo ticker tenido en dos carteras son dos tenencias distintas y pueden ir a portafolios distintos. Comprar más de un activo ya asignado no lo saca de su portafolio |
@@ -1154,9 +1154,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.48 | 24/09/2026 | El resultado de cada portafolio informa su porcentaje, y su cabecera queda idéntica en las tres secciones (RF-080n) | Reemplazada |
 | 1.49 | 24/09/2026 | La cabecera de cada portafolio suma su fecha de inicio y pasa a presentar los mismos datos en las tres secciones (RF-080n) | Reemplazada |
 | 1.50 | 24/09/2026 | Las secciones plegables llevan antes del título el mismo indicador de plegado que abre y cierra el panel (RF-072f, RF-078b) | Reemplazada |
-| 1.51 | 24/09/2026 | El título de cada sección plegable arranca en la misma columna que el título de su panel (RF-072f, RF-078b) | **Vigente** |
+| 1.51 | 24/09/2026 | El título de cada sección plegable arranca en la misma columna que el título de su panel (RF-072f, RF-078b) | Reemplazada |
+| 1.52 | 24/09/2026 | La tecla S abre Administración en la solapa Salud financiera (RF-080b) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| La tecla S abre el ABM de portafolios | RF-080b |
+
+**Implementados en la versión 1.51**
 
 | Cambio | Requerimiento |
 |---|---|
