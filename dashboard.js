@@ -12061,30 +12061,44 @@ function totalesDePortafolio(destinos, pfId, moneda) {
 // El contenido de la cabecera de un portafolio: los mismos datos y el mismo
 // formato en las tres secciones. Lo que cambia es sólo el envoltorio —una fila
 // de tabla en Activos, un div en las otras dos—.
+//
+// Una sola línea con los campos rotulados y separados por barras:
+//   PORTAFOLIO N° 1: VIAJE A MARRUECOS (objetivo · plazo · desde) | ACTIVOS: 2 |
+//   TOTAL: $ 2.258.900 | G/P: $ 510.100 (+29,18%)
+// Todo al mismo cuerpo menos la descripción, que es el texto libre que
+// acompaña y no un dato de la fila.
 function contenidoCabeceraPortafolio(p, nro, tot) {
   const excede = maxActivosPortafolio() > 0 && p && tot.n > maxActivosPortafolio();
-  // El mismo pie en las tres secciones: para qué es, hasta cuándo y desde
-  // cuándo. El "sin portafolio" no tiene definición, así que explica qué es.
+  // La descripción, entre paréntesis y pegada al nombre: para qué es, hasta
+  // cuándo y desde cuándo. El "sin portafolio" no tiene definición, así que
+  // explica qué es.
   const plazo = p && p.plazo ? p.plazo.split('-').reverse().join('/') : '';
   const meta = (p
     ? [p.objetivo || '', plazo ? 'plazo ' + plazo : '']
     : ['Activos que todavía no asignaste a ningún portafolio.'])
     .concat(tot.desde ? ['desde ' + tot.desde.split('-').reverse().join('/')] : [])
     .filter(Boolean).join(' · ');
-  return '<div class="inv-currency-head-inner">' +
+  const sep = '<span class="inv-pf-sep">|</span>';
+  return '<div class="inv-currency-head-inner inv-pf-cab">' +
     rotuloPortafolioHtml(p, nro) +
+    // El title repite la descripción: si la línea no le da el ancho, se recorta
+    // con puntos suspensivos y ahí se lee entera.
+    (meta ? '<span class="inv-pf-meta" title="' + escapeHtmlSafe(meta) + '">(' +
+      escapeHtmlSafe(meta) + ')</span>' : '') +
+    sep +
     '<span class="inv-section-count' + (excede ? ' is-over' : '') + '"' +
       (excede ? ' title="Supera los ' + maxActivosPortafolio() + ' activos que configuraste por portafolio"' : '') + '>' +
-      tot.n + ' activo' + (tot.n === 1 ? '' : 's') + (excede ? ' ⚠' : '') + '</span>' +
-    '<span class="inv-pf-total">' + tot.prefijo + ' ' + fmt(Math.round(tot.valor)) + '</span>' +
+      'Activos: ' + tot.n + (excede ? ' ⚠' : '') + '</span>' +
+    sep +
+    '<span class="inv-pf-total">Total: ' + tot.prefijo + ' ' + fmt(Math.round(tot.valor)) + '</span>' +
+    sep +
     '<span class="inv-pf-gp ' + (tot.gp > 0 ? 'inv-gp-positive' : (tot.gp < 0 ? 'inv-gp-negative' : '')) + '">' +
-      (tot.gp === null ? '<span class="inv-na">—</span>'
+      'G/P: ' + (tot.gp === null ? '<span class="inv-na">—</span>'
         : tot.prefijo + ' ' + fmt(Math.round(Math.abs(tot.gp))) +
           (tot.gpPct !== null
-            ? '<span class="inv-pf-gp-pct">' + (tot.gp > 0 ? '+' : (tot.gp < 0 ? '-' : '')) +
-              Math.abs(tot.gpPct).toFixed(2) + '%</span>'
+            ? '<span class="inv-pf-gp-pct">(' + (tot.gp > 0 ? '+' : (tot.gp < 0 ? '-' : '')) +
+              Math.abs(tot.gpPct).toFixed(2) + '%)</span>'
             : '')) + '</span>' +
-    (meta ? '<span class="inv-pf-meta">' + escapeHtmlSafe(meta) + '</span>' : '') +
   '</div>';
 }
 
@@ -18449,8 +18463,14 @@ function concentracionDeCartera(destinos, filtroPf) {
 // los avisos de Diagnóstico, para que digan lo mismo con las mismas palabras.
 // Sin la lista de tickers: ya están escritos en la barra del sector, justo
 // debajo, y en una cartera grande la lista alargaba el aviso sin agregar nada.
-function textoAlertaSector(s, nombreCartera, umbral) {
-  return '<strong>' + escapeHtmlSafe(etiquetaSector(s.sector)) + '</strong> concentra el <strong>' +
+// `plano` devuelve el mismo texto sin marcado ni escapes, para el tooltip de la
+// fila: ahí el texto se asigna con textContent y las etiquetas se verían.
+function textoAlertaSector(s, nombreCartera, umbral, plano) {
+  const nombre = etiquetaSector(s.sector);
+  const cola = ' concentra el ' + s.pct.toFixed(0) + '% de ' + nombreCartera +
+    ', por encima del ' + umbral + '% configurado.';
+  if (plano) return nombre + cola;
+  return '<strong>' + escapeHtmlSafe(nombre) + '</strong> concentra el <strong>' +
     s.pct.toFixed(0) + '%</strong> de ' + escapeHtmlSafe(nombreCartera) +
     ', por encima del ' + umbral + '% configurado.';
 }
@@ -18561,15 +18581,24 @@ function filaConcentracion(s, o) {
   // el de la marca sobre la barra—, por eso la regla de tres.
   const anchoPct = Math.max(0.5, s.pct);
   const umbralEnBarra = (o.umbral > 0 && anchoPct > o.umbral) ? (o.umbral / anchoPct * 100) : null;
+  // El aviso de lo concentrado ya no ocupa un renglón arriba del gráfico: va
+  // como emergente del triángulo y del porcentaje, que son las dos marcas que
+  // lo anuncian en la fila. El mismo texto, en el lugar donde se pregunta.
+  const tipAlerta = (o.over && o.alerta)
+    ? ' data-tip-titulo="POR ENCIMA DEL UMBRAL" data-tip-detalle="' + escapeHtmlSafe(o.alerta) + '"'
+    : '';
   return '<div class="inv-sector-row' + (o.over ? ' is-over' : '') + (dentro ? ' is-ok' : '') + (exento ? ' is-exento' : '') + (sinClave ? ' is-none' : '') + '"' +
       tooltipSector(s, '$', o.etiqueta, true) + '>' +
     '<span class="inv-sector-name">' +
-      (o.over ? '<i data-lucide="alert-triangle" style="width:11px;height:11px"></i>' : '') +
+      // El ícono va envuelto: lucide reemplaza el <i> por un <svg> propio y los
+      // atributos del emergente se irían con él.
+      (o.over ? '<span class="inv-sector-alerta"' + tipAlerta + '>' +
+        '<i data-lucide="alert-triangle" style="width:11px;height:11px"></i></span>' : '') +
       (dentro ? '<i data-lucide="check" style="width:11px;height:11px"></i>' : '') +
       iconoExento +
       escapeHtmlSafe(o.etiqueta(s.sector)) +
     '</span>' +
-    '<span class="inv-sector-pct">' + pctTxt + '</span>' +
+    '<span class="inv-sector-pct"' + tipAlerta + '>' + pctTxt + '</span>' +
     // Monto en pesos: el mismo valor sobre el que se calcula el porcentaje
     // (dólares al MEP, a costo lo que no tiene precio actual).
     '<span class="inv-sector-monto">$ ' + fmt(Math.round(s.valor)) + '</span>' +
@@ -18594,10 +18623,6 @@ function subtituloConcentracion(sobre, umbral) {
       ? 'umbral ' + umbral + '% <span class="inv-sector-umbral-key"></span>'
       : 'alertas desactivadas en Parámetros') +
   '</span>';
-}
-
-function avisoConcentracion(html) {
-  return '<div class="inv-sector-alert"><i data-lucide="alert-triangle" style="width:13px;height:13px"></i><span>' + html + '</span></div>';
 }
 
 // La sección Concentración. En la vista Activos mide la cartera entera; en la
@@ -18658,9 +18683,11 @@ function bloqueConcentracion(destinos, nombreCartera, filtroPf, totalCartera) {
   c.concentrados.forEach(function (s) { concentrados[s.sector] = true; });
   const filasSector = c.sectores.map(function (s) {
     const def = s.sector && sectorPorClave(s.sector);
+    const over = !!(s.sector && concentrados[s.sector]);
     return filaConcentracion(s, {
       etiqueta: etiquetaSector, color: colorDeSector(s.sector), umbral: umbral,
-      over: !!(s.sector && concentrados[s.sector]),
+      over: over,
+      alerta: over ? textoAlertaSector(s, nombreCartera, umbral, true) : '',
       exento: !def || def.alerta === false,
       motivo: MOTIVO_SIN_CONTROL[s.sector || '__sin__']
     });
@@ -18674,7 +18701,6 @@ function bloqueConcentracion(destinos, nombreCartera, filtroPf, totalCartera) {
   // dos columnas se muestran juntas y arrancan con la misma fila.
   const filaTotalTipo = filaResumenConcentracion(
     c.porTipo, filtroPf !== undefined, totalCartera, colorDeTipoRiesgo, etiquetaTipoRiesgo);
-  const alertasSector = c.concentrados.map(function (s) { return avisoConcentracion(textoAlertaSector(s, nombreCartera, umbral)); }).join('');
   const notas = [];
   if (c.aCosto.length) notas.push('Valuados a costo por no tener precio actual: ' + c.aCosto.join(', ') + '.');
 
@@ -18685,18 +18711,22 @@ function bloqueConcentracion(destinos, nombreCartera, filtroPf, totalCartera) {
   c.tiposConcentrados.forEach(function (s) { concT[s.sector] = true; });
   const filasTipo = ct.sectores.map(function (s) {
     const def = TIPOS_RIESGO.filter(function (t) { return t.key === s.sector; })[0];
+    const over = !!(s.sector && concT[s.sector]);
     return filaConcentracion(s, {
       etiqueta: etiquetaTipoRiesgo, color: colorDeTipoRiesgo(s.sector), umbral: umbralT,
-      over: !!(s.sector && concT[s.sector]),
+      over: over,
+      alerta: over ? textoAlertaTipo(s, nombreCartera, umbralT, true) : '',
       exento: !def || def.alerta === false,
       motivo: MOTIVO_SIN_CONTROL_TIPO[s.sector || '__sin__']
     });
   }).join('');
-  const alertasTipo = c.tiposConcentrados.map(function (s) { return avisoConcentracion(textoAlertaTipo(s, nombreCartera, umbralT)); }).join('');
 
-  // Una sola grilla de 2 columnas × 3 filas —título, avisos, barras— y no dos
-  // bloques sueltos: así las barras de las dos columnas arrancan a la misma
-  // altura aunque sólo una tenga aviso, o tengan una cantidad distinta.
+  // Una sola grilla de 2 columnas × 2 filas —título y barras— y no dos bloques
+  // sueltos: así las barras de las dos columnas arrancan a la misma altura.
+  // La fila de avisos que había en el medio se fue a los emergentes del
+  // triángulo y del porcentaje de cada fila concentrada: decía lo mismo que la
+  // fila que está diez píxeles más abajo, y con dos o tres sectores pasados
+  // empujaba los gráficos fuera de la pantalla.
   return '<div class="inv-conc-grid">' +
     '<div class="inv-conc-celda inv-conc-fila-titulo">' +
       // Sin repetir "Concentración": ya lo dice el título de la sección que los
@@ -18706,8 +18736,6 @@ function bloqueConcentracion(destinos, nombreCartera, filtroPf, totalCartera) {
     '<div class="inv-conc-celda inv-conc-fila-titulo inv-conc-col2">' +
       '<div class="inv-sector-head"><span class="inv-section-label">Por tipo de riesgo</span>' + subtituloConcentracion(sobre, umbralT) + '</div>' +
     '</div>' +
-    '<div class="inv-conc-celda">' + alertasSector + '</div>' +
-    '<div class="inv-conc-celda inv-conc-col2">' + alertasTipo + '</div>' +
     '<div class="inv-conc-celda inv-conc-fila-barras">' +
       '<div class="inv-sector-bars">' + filaTotal + filasSector + '</div>' +
       (notas.length ? '<div class="inv-sector-nota">' + escapeHtmlSafe(notas.join(' ')) + '</div>' : '') +
@@ -18725,8 +18753,13 @@ const MOTIVO_SIN_CONTROL_TIPO = {
 };
 
 // Texto del aviso de un tipo concentrado. Lo usan el panel y Diagnóstico.
-function textoAlertaTipo(s, nombreCartera, umbral) {
-  return '<strong>' + escapeHtmlSafe(etiquetaTipoRiesgo(s.sector)) + '</strong> concentra el <strong>' +
+function textoAlertaTipo(s, nombreCartera, umbral, plano) {
+  const nombre = etiquetaTipoRiesgo(s.sector);
+  if (plano) {
+    return nombre + ' concentra el ' + s.pct.toFixed(0) + '% de ' + nombreCartera +
+      ', por encima del ' + umbral + '% configurado para un mismo tipo de riesgo.';
+  }
+  return '<strong>' + escapeHtmlSafe(nombre) + '</strong> concentra el <strong>' +
     s.pct.toFixed(0) + '%</strong> de ' + escapeHtmlSafe(nombreCartera) +
     ', por encima del ' + umbral + '% configurado para un mismo tipo de riesgo.';
 }

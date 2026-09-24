@@ -186,11 +186,11 @@ window.MANUAL = {
       h: 'Sector y concentración',
       sub: '¿Tengo todo en el mismo lugar?',
       img: '20-concentracion-sector',
-      imgCap: 'Inversiones de la demo: Tecnología pasa el límite de sector (30%) y Renta variable, el de tipo de riesgo (70%).',
+      imgCap: 'Inversiones de la demo: Tecnología pasa el límite de sector (30%) y Renta variable, el de tipo de riesgo (70%). El aviso se lee pasando el mouse por el triángulo o por el porcentaje.',
       p: [
         'Cada activo de la tabla tiene su sector. Si el ticker está en el listado de CEDEARs de BYMA, viene solo; si es un par cripto, es Cripto. Lo que no está en el listado —acciones locales, bonos, un fondo— aparece sin sector, y se lo asignás desde la columna Sector de la tabla o al cargarlo.',
         'El sector se elige de una lista fija: los once sectores de la bolsa, más Indices y ETF, Commodities, Cripto y Renta fija. No se escribe a mano a propósito: con texto libre, "Tecnología" y "tecnologia" serían dos sectores y el gráfico partiría en dos lo que es uno solo.',
-        'Al abrir Reserva, Inversiones o una Jubilación, la sección Concentración trae dos gráficos. El de la izquierda, Por sector: cada fila dice el sector, qué porcentaje de la cartera ocupa, cuánta plata es y su barra, con los activos que lo componen escritos adentro. La barra entera es el 100% de la cartera, y la línea vertical es el límite que elegiste en Parámetros. Lo que lo pasa lleva un ícono de alerta, el porcentaje en rojo y un aviso arriba que dice cuánto concentra; lo que queda dentro del límite, un tilde verde. Los que no se controlan —índices, renta fija, liquidez y lo que no tiene sector— llevan el tilde en gris; pasando el mouse por él se ve por qué: tener el 80% en el S&P 500 es estar diversificado, no concentrado.',
+        'Al abrir Reserva, Inversiones o una Jubilación, la sección Concentración trae dos gráficos. El de la izquierda, Por sector: cada fila dice el sector, qué porcentaje de la cartera ocupa, cuánta plata es y su barra, con los activos que lo componen escritos adentro. La barra entera es el 100% de la cartera, y la línea vertical es el límite que elegiste en Parámetros. Lo que lo pasa lleva un ícono de alerta y el porcentaje en rojo; pasando el mouse por cualquiera de los dos se lee cuánto concentra y contra qué límite. Lo que queda dentro, un tilde verde. Los que no se controlan —índices, renta fija, liquidez y lo que no tiene sector— llevan el tilde en gris; pasando el mouse por él se ve por qué: tener el 80% en el S&P 500 es estar diversificado, no concentrado.',
         'La Liquidez también aparece en la composición, pero no se asigna a ningún activo: es la plata del destino que todavía no invertiste, y el número es el mismo que el Líquido de la cabecera del panel. Si el Líquido da negativo, no aparece.',
         'El de la derecha, Por tipo de riesgo, reparte el mismo total en Renta variable, Renta fija, Cripto y Liquidez. Sale del sector: las acciones, los índices y los commodities son renta variable; lo sin sector queda sin clasificar. Tiene su propio límite, 70% de entrada, y avisa igual que la de sector.'
       ],
@@ -219,7 +219,7 @@ window.MANUAL = {
         'Comprar más de un activo ya asignado no lo saca de su portafolio.',
         'El orden por columna sigue funcionando en la vista agrupada, pero ordena adentro de cada grupo: nunca mezcla activos de portafolios distintos.',
         'Eliminar un portafolio no toca las tenencias: sus activos vuelven al grupo sin portafolio. La app te dice cuántos son antes de confirmar.',
-        'La cabecera de cada portafolio, igual en las tres secciones, dice cuánto vale, qué dejó en plata y en porcentaje, y desde cuándo: su compra más vieja.',
+        'La cabecera de cada portafolio es una línea igual en las tres secciones: número y nombre, entre paréntesis para qué es —con su plazo y desde cuándo, que es su compra más vieja— y después, separados por barras, cuántos activos tiene, cuánto vale y qué dejó, en plata y en porcentaje.',
         'En Parámetros configurás cuánto puede pesar un solo activo y cuántos activos puede agrupar un portafolio. Pasados esos números, la app los marca.'
       ]
     },

@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.52 |
+| **Versión** | 1.53 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -296,6 +296,7 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-080e | La asignación es del activo **en su destino y su moneda**: el mismo ticker tenido en dos carteras son dos tenencias distintas y pueden ir a portafolios distintos. Comprar más de un activo ya asignado no lo saca de su portafolio |
 | RF-080f | La tabla de activos de cada moneda ofrece dos vistas: **Activos**, la lista plana, y **Portafolio**, que agrupa los activos bajo el nombre de su portafolio, con su objetivo y su plazo. La cabecera de cada grupo se presenta con el mismo tratamiento que el rótulo de la tabla (RF-073y): son rótulos del mismo rango. Cada portafolio se rotula **"Portafolio n° N: nombre"**, con N el orden en que se presenta, el prefijo en el color de los rótulos de sección y el nombre en tinta plena. Las cabeceras de los grupos de Concentración y Liquidado usan el mismo tratamiento que ésta. Los portafolios sin activos en esa tabla no se presentan, y lo que no está asignado va en un grupo propio, siempre último, atenuado y sin número —no es un portafolio— |
 | RF-080n | La cabecera de cada portafolio informa, además de su nombre y su cantidad de activos, el **valor** del grupo y su **resultado** contra el precio de hoy, con su porcentaje sobre lo invertido a continuación. El resultado no se informa si a algún activo del grupo le falta el precio actual: un total parcial se leería como el total. Informa además su **fecha de inicio**: la compra más antigua de sus activos, que es cuándo empezó a armarse el objetivo —cuenta aunque el activo ya se haya liquidado, porque el portafolio arrancó igual—. La cabecera es **idéntica en las tres secciones** —Activos, Concentración y Liquidado—: mismos datos, mismo tratamiento, mismo ancho y misma posición de arranque. En la tabla de una moneda los importes van en esa moneda; en Concentración y Liquidado, que abarcan las dos, van en pesos al MEP |
+| RF-080n1 | La cabecera se presenta en **una sola línea con los campos rotulados y separados por barras**: `Portafolio n° 1: Nombre (descripción) \| Activos: n \| Total: importe \| G/P: importe (porcentaje)`. La descripción reúne el objetivo, el plazo y la fecha de inicio, entre paréntesis y a continuación del nombre. Todos los campos se presentan con el mismo cuerpo tipográfico salvo la descripción, que es texto libre y no un dato de la línea; si no entra, es ella la que se recorta —los datos no se corren ni se parten— y su texto completo queda accesible en su información emergente |
 | RF-080o | La tabla de activos presenta la columna **%**: cuánto pesa cada activo sobre su ámbito —la cartera entera en la vista Activos, su portafolio en la vista Portafolio—. Se valúa como en RF-073i. Un activo liquidado no tiene peso |
 | RF-080p | Un activo que supera el **umbral de concentración por activo** (RF-195) se señala en esa columna. Un portafolio que supera el **máximo de activos** (RF-196) lo señala en su cantidad. Los dos avisos informan el umbral configurado |
 | RF-080m | Cada gráfico de concentración se encabeza con una fila de resumen —**Cartera completa** o **Portafolio completo** según la vista— que informa qué parte de la cartera ocupa el ámbito, su importe y, en lugar de una barra simple, la composición apilada de sus tramos. Cada tramo presenta la información emergente de RF-073r. Las dos columnas la llevan, para arrancar con la misma fila |
@@ -329,12 +330,12 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-073x | Las filas de la concentración —por sector y por tipo de riesgo— no presentan información emergente. Conservan el mismo texto para lectores de pantalla, y el ícono de lo que no se controla conserva su leyenda (RF-073k) |
 | RF-073i | El valor de cada tenencia es nominales por precio actual. Sin precio actual se toma el costo, y el sistema informa qué tenencias se valuaron así. Las tenencias en dólares se convierten a pesos a la cotización MEP. Las posiciones liquidadas no intervienen |
 | RF-073j | Las tenencias sin sector se presentan en un renglón propio y cuentan en el total. Sus activos se leen en la barra y en la información emergente, como los de cualquier sector |
-| RF-073k | Cuando un sector supera el umbral, el sistema emite una **alerta de concentración** en el panel del destino y en las observaciones de Diagnóstico (RF-064), con el mismo texto: sector, porcentaje, destino y umbral. No enumera los activos: ya figuran en la barra del sector y en su información emergente. Se señala con ícono y texto, no sólo con color. En el gráfico, los sectores evaluados que no superan el umbral llevan un tilde verde. Los que no se evalúan (RF-073l) llevan el mismo tilde en gris, con información emergente que explica por qué esa clase no se controla: un tilde verde afirmaría una revisión que no se hizo, y la ausencia de ícono se leía como un olvido |
+| RF-073k | Cuando un sector supera el umbral, el sistema emite una **alerta de concentración** en el panel del destino y en las observaciones de Diagnóstico (RF-064), con el mismo texto: sector, porcentaje, destino y umbral. No enumera los activos: ya figuran en la barra del sector y en su información emergente. Se señala con ícono y texto, no sólo con color. En el panel la alerta **no ocupa un renglón propio**: se presenta como información emergente del ícono de alerta y del porcentaje de la fila concentrada, que son las dos marcas que la anuncian. En el gráfico, los sectores evaluados que no superan el umbral llevan un tilde verde. Los que no se evalúan (RF-073l) llevan el mismo tilde en gris, con información emergente que explica por qué esa clase no se controla: un tilde verde afirmaría una revisión que no se hizo, y la ausencia de ícono se leía como un olvido |
 | RF-073l | No emiten alerta los Indices y ETF, la Renta fija, la Liquidez ni las tenencias sin sector |
 | RF-073m | El umbral es configurable en Parámetros (RF-193) |
 | RF-073s | Junto a la concentración por sector, en una segunda columna, se presenta la **concentración por tipo de riesgo**: Renta variable, Renta fija, Cripto y Liquidez, con el mismo formato de fila y sobre el mismo total. El tipo se deriva del sector: Renta fija, Cripto y Liquidez son su propio tipo; los sectores bursátiles, los índices y los commodities son Renta variable. Las tenencias sin sector se presentan como sin clasificar, porque no puede saberse si son renta variable o fija |
-| RF-073t | La concentración por tipo de riesgo tiene su propio umbral (RF-194) y emite su alerta con el mismo tratamiento que RF-073k: aviso en el panel y en Diagnóstico, ícono por fila y tilde gris con el motivo en lo que no se controla. La Liquidez y lo sin clasificar no alertan |
-| RF-073u | Las dos columnas comparten filas: título, avisos y barras. Las barras de ambas comienzan a la misma altura aunque sólo una tenga avisos, o tengan una cantidad distinta |
+| RF-073t | La concentración por tipo de riesgo tiene su propio umbral (RF-194) y emite su alerta con el mismo tratamiento que RF-073k: emergente sobre el ícono y el porcentaje de la fila, aviso en Diagnóstico, y tilde gris con el motivo en lo que no se controla. La Liquidez y lo sin clasificar no alertan |
+| RF-073u | Las dos columnas comparten filas: título y barras. Las barras de ambas comienzan a la misma altura aunque una tenga más sectores que la otra |
 | RF-073v | La línea del umbral se dibuja detrás de las barras y sobresale por encima y por debajo de ellas. En la barra que supera el límite, además, se marca sobre el relleno y por debajo del texto de los activos, en la misma tinta con que ese texto se escribe (RF-073p). Así el límite se lee en todas las filas —también en la que dispara la alerta, que antes lo tapaba— sin cruzar ninguna letra. El trazo es idéntico en los dos gráficos de la sección y en la clave del subtítulo que lo explica |
 
 **Fundamento de RF-073b.** Con texto libre, "Tecnología", "tecnologia" y "Tech" serían tres sectores, y la concentración repartiría en tres lo que es uno solo, subestimando justamente lo que se quiere detectar. Las clases de activo están porque una cartera real las contiene y no pertenecen a ningún sector bursátil. La Liquidez no se asigna porque no es un activo sino lo que el destino aún no invirtió, y su valor ya lo conoce el sistema (RF-073n).
@@ -1155,9 +1156,17 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.49 | 24/09/2026 | La cabecera de cada portafolio suma su fecha de inicio y pasa a presentar los mismos datos en las tres secciones (RF-080n) | Reemplazada |
 | 1.50 | 24/09/2026 | Las secciones plegables llevan antes del título el mismo indicador de plegado que abre y cierra el panel (RF-072f, RF-078b) | Reemplazada |
 | 1.51 | 24/09/2026 | El título de cada sección plegable arranca en la misma columna que el título de su panel (RF-072f, RF-078b) | Reemplazada |
-| 1.52 | 24/09/2026 | La tecla S abre Administración en la solapa Salud financiera (RF-080b) | **Vigente** |
+| 1.52 | 24/09/2026 | La tecla S abre Administración en la solapa Salud financiera (RF-080b) | Reemplazada |
+| 1.53 | 24/09/2026 | La cabecera de cada portafolio pasa a una línea de campos rotulados (RF-080n1) y las alertas de concentración dejan el renglón propio para presentarse como emergente de la fila concentrada (RF-073k, RF-073t, RF-073u) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Cabecera del portafolio en una línea de campos rotulados | RF-080n1 |
+| La alerta de concentración, como emergente de su fila | RF-073k, RF-073t, RF-073u |
+
+**Implementados en la versión 1.52**
 
 | Cambio | Requerimiento |
 |---|---|

@@ -6276,21 +6276,6 @@ body[data-exporting="true"] .section-card {
   background: var(--ink-2);
   vertical-align: -1px;
 }
-.inv-sector-alert {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 7px 10px;
-  margin-bottom: 8px;
-  border-left: 3px solid var(--red);
-  /* Fondo de token y no color-mix(): html2canvas, con el que se sacan las
-     capturas del manual, no entiende color-mix y el render falla. */
-  background: var(--bg-2);
-  border-radius: 0 6px 6px 0;
-  font-size: 12px;
-  color: var(--ink);
-}
-.inv-sector-alert svg { color: var(--red); flex-shrink: 0; margin-top: 2px; }
 .inv-sector-bars {
   display: flex;
   flex-direction: column;
@@ -6320,6 +6305,11 @@ body[data-exporting="true"] .section-card {
 .inv-sector-row.is-over .inv-sector-name svg { color: var(--red); flex-shrink: 0; }
 /* Dentro del límite: tilde verde, el par del triángulo rojo de arriba. */
 .inv-sector-row.is-ok .inv-sector-name svg { color: var(--green); flex-shrink: 0; }
+/* Pasa el límite: el triángulo lleva el aviso como emergente, igual que el
+   porcentaje de la misma fila. El envoltorio existe porque lucide reemplaza el
+   <i> por un <svg> propio y se llevaría los atributos del emergente. */
+.inv-sector-alerta { display: inline-flex; flex-shrink: 0; cursor: help; }
+.inv-sector-row.is-over .inv-sector-pct { cursor: help; }
 /* No se controla: el mismo tilde, en gris. Su tooltip dice por qué. */
 .inv-sector-exento { display: inline-flex; flex-shrink: 0; cursor: help; }
 /* Al 50%: a opacidad plena, el gris y el verde del tilde medían ΔE 11,5 en
@@ -6863,9 +6853,32 @@ body[data-exporting="true"] .section-card {
 }
 .inv-pf-gp.inv-gp-positive { color: var(--green); }
 .inv-pf-gp.inv-gp-negative { color: var(--red); }
-/* El porcentaje al lado del importe, más chico: el dato es el monto y el
-   porcentaje lo pone en escala. */
-.inv-pf-gp-pct { font-size: 10px; font-weight: 500; opacity: .85; margin-left: 5px; }
+.inv-pf-gp-pct { font-weight: 500; opacity: .85; margin-left: 4px; }
+
+/* ── La cabecera de un portafolio, en una sola línea ──────────────────────
+   Rótulo, descripción, activos, total y resultado separados por barras. Todos
+   los campos van al mismo cuerpo para que la línea se lea de corrido; la única
+   excepción es la descripción, que es texto libre y no un dato de la fila.
+   El :not() no es cosmético: el rótulo lo fija .inv-currency-header-row
+   .inv-section-label en 12px, y `.inv-pf-cab > *` pesa menos —el universal no
+   suma— así que no lo tocaba. Con el :not() la regla empata en especificidad y
+   gana por estar declarada después, y de paso deja afuera la descripción. */
+.inv-pf-cab { gap: 6px; }
+.inv-pf-cab > *:not(.inv-pf-meta),
+.inv-pf-cab .inv-pf-gp-pct { font-size: 11px; }
+/* Si la descripción no entra, es ella la que cede: los datos de la línea no se
+   corren ni se parten. El texto completo queda en el título del elemento. */
+.inv-pf-cab > *:not(.inv-pf-meta) { flex-shrink: 0; }
+.inv-pf-cab .inv-pf-meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* La barra separadora no compite con los datos que separa, pero se ve: con
+   var(--border) —medido, #2F2A24 sobre la banda— no se distinguía del fondo y
+   la línea quedaba sin las divisiones que la ordenan. */
+.inv-pf-sep { color: var(--muted); font-weight: 400; }
 /* Demasiados activos para un objetivo: el conteo lo señala. */
 .inv-section-count.is-over { color: var(--red); }
 
