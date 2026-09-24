@@ -6815,11 +6815,19 @@ body[data-exporting="true"] .section-card {
 /* La banda de cada portafolio usa .inv-currency-header-row, igual que la
    cabecera de la tabla de Activos. Acá no es una fila de tabla, así que el
    fondo y el borde los pone este selector en vez de sus celdas. */
+/* Los 14px de margen la dejan arrancando en la misma X que la cabecera de la
+   tabla de Activos: allá el sangrado se lo da el padding del cuerpo de esa
+   sección, y acá el cuerpo no lo tiene porque cada bloque pone el suyo.
+   Medido: sin esto la banda arrancaba en 43 contra los 57 de aquélla. */
 .inv-conc-pf-head.inv-currency-header-row {
   background: rgba(74, 107, 138, 0.12);
   border-bottom: 1px solid var(--border);
   padding: 8px 5px;
+  margin: 0 14px;
 }
+/* Aire entre la cabecera del portafolio y su bloque, el mismo que la
+   concentración tiene por el padding de su primera fila. */
+.inv-conc-pf .inv-liq { padding-top: 12px; }
 .inv-conc-pf + .inv-conc-pf { border-top: 1px solid var(--border); }
 /* El nombre del portafolio, en tinta plena: "Portafolio n° 1" se queda en el
    acento de los rótulos y el nombre es el dato que se busca. */
@@ -6851,6 +6859,9 @@ body[data-exporting="true"] .section-card {
 }
 .inv-pf-gp.inv-gp-positive { color: var(--green); }
 .inv-pf-gp.inv-gp-negative { color: var(--red); }
+/* El porcentaje al lado del importe, más chico: el dato es el monto y el
+   porcentaje lo pone en escala. */
+.inv-pf-gp-pct { font-size: 10px; font-weight: 500; opacity: .85; margin-left: 5px; }
 /* Demasiados activos para un objetivo: el conteo lo señala. */
 .inv-section-count.is-over { color: var(--red); }
 

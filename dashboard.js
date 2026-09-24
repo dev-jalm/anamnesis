@@ -19215,7 +19215,14 @@ function buildInvestmentDetailPanel(destinos, title) {
       if (pa === null) { todosConPrecio = false; valor += g.invertidoBruto; }
       else valor += pa * g.cantidadTotal;
     });
-    return { valor: valor, gp: todosConPrecio ? (valor - invertido) : null };
+    const gp = todosConPrecio ? (valor - invertido) : null;
+    return {
+      valor: valor,
+      gp: gp,
+      // El porcentaje es sobre lo invertido, igual que el de cada fila: dice
+      // cuánto rindió lo que se puso, no cuánto pesa sobre lo que vale hoy.
+      gpPct: (gp !== null && invertido !== 0) ? (gp / Math.abs(invertido) * 100) : null
+    };
   }
 
   // ─── Peso de cada activo ───
@@ -19566,7 +19573,11 @@ function buildInvestmentDetailPanel(destinos, title) {
             '<span class="inv-pf-total">' + prefijo + ' ' + fmt(Math.round(tot.valor)) + '</span>' +
             '<span class="inv-pf-gp ' + (tot.gp > 0 ? 'inv-gp-positive' : (tot.gp < 0 ? 'inv-gp-negative' : '')) + '">' +
               (tot.gp === null ? '<span class="inv-na">—</span>'
-                : prefijo + ' ' + fmt(Math.round(Math.abs(tot.gp)))) + '</span>' +
+                : prefijo + ' ' + fmt(Math.round(Math.abs(tot.gp))) +
+                  (tot.gpPct !== null
+                    ? '<span class="inv-pf-gp-pct">' + (tot.gp > 0 ? '+' : (tot.gp < 0 ? '-' : '')) +
+                      Math.abs(tot.gpPct).toFixed(2) + '%</span>'
+                    : '')) + '</span>' +
             (meta ? '<span class="inv-pf-meta">' + escapeHtmlSafe(meta) + '</span>' : '') +
           '</div>' +
         '</td></tr>' +
