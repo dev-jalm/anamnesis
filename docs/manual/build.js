@@ -210,8 +210,8 @@ window.MANUAL = {
       p: [
         'Una cartera no siempre es una sola cosa. De los diez CEDEARs que tenés en Inversiones, tres pueden ser el viaje del año que viene, dos el auto y el resto no tener destino todavía. Un portafolio es eso: un agrupamiento de activos según para qué son. No es una cartera nueva —las carteras siguen siendo Reserva, Inversiones, las Jubilaciones y Trading— sino un corte adentro de ellas.',
         'Los portafolios se crean en Administración → Salud financiera, con tres datos: el nombre, el objetivo —para qué es, en texto libre— y el plazo, que es una fecha y podés dejar vacía. Ahí mismo los editás y los eliminás, y cada uno muestra cuántos activos tiene asignados.',
-        'Decir qué activos lo componen se hace en la solapa Salud financiera, que es donde los tenés a la vista: abrís la sección Activos, tildás los que quieras, elegís el portafolio y los asignás de una. La misma lista sirve para sacarlos, con la opción de quitar del portafolio.',
-        'Con los activos agrupados, la tabla ofrece dos vistas. Listado es la de siempre. Por portafolio los reparte en grupos, cada uno encabezado por su nombre, su objetivo y su plazo, y deja al final lo que todavía no asignaste a ninguno.'
+        'Decir qué activos lo componen se hace en la solapa Salud financiera, que es donde los tenés a la vista: tildás los que quieras, elegís el portafolio y los asignás de una. La misma lista sirve para sacarlos, con la opción de quitar del portafolio.',
+        'La tabla ofrece dos vistas. Activos es la lista de siempre, y ahí sólo se pueden tildar los que todavía no tienen portafolio: es la vista para agrupar lo suelto. Portafolio los reparte en grupos —cada uno encabezado por su nombre, su objetivo y su plazo, y al final lo que no asignaste— y ahí se puede tildar cualquiera, que es donde se los mueve de grupo o se los saca.'
       ],
       lista: [
         'La asignación es del activo en SU cartera: el mismo ticker en Inversiones y en Jubilación son dos tenencias y pueden ir a portafolios distintos.',

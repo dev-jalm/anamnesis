@@ -6729,7 +6729,10 @@ body[data-exporting="true"] .section-card {
    .investment-detail-tables .inv-currency-header-row th más abajo (uniforme
    para ARS y USD). La celda queda como celda de tabla: el flex va adentro, en
    .inv-currency-head-inner. */
-.inv-currency-header-row th {
+/* Vale también para la cabecera de cada portafolio en la vista agrupada, que
+   es un rótulo del mismo rango y usa una celda de cuerpo en vez de un th. */
+.inv-currency-header-row th,
+.inv-currency-header-row td {
   /* Padding lateral reducido para alinear el rótulo con el inicio de las
      columnas de abajo, sin desperdiciar espacio a la izquierda. */
   padding: 8px 5px !important;
@@ -6801,35 +6804,27 @@ body[data-exporting="true"] .section-card {
 .inv-agrupar-btn:hover { background: var(--accent); color: var(--on-accent, #1A1714); }
 
 /* ── Vista por portafolio ─────────────────────────────────────────────── */
-/* El título de cada grupo. Misma banda que el rótulo de la tabla, un escalón
-   más abajo en la jerarquía: el nombre en tinta normal y el resto apagado. */
-.inv-pf-head td {
-  padding: 8px 10px !important;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-0);
-}
-.inv-pf-nombre {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: var(--ink);
-  margin-right: 10px;
-}
-.inv-pf-count {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted-2);
-  margin-right: 10px;
-}
+/* La cabecera de cada grupo no tiene estilo propio: usa las mismas clases que
+   el rótulo de la tabla (.inv-currency-header-row + .inv-section-label +
+   .inv-section-count). Acá va sólo el objetivo y el plazo, que aquélla no
+   tiene, en la tinta apagada del texto secundario. */
 .inv-pf-meta {
+  font-family: 'Inter', sans-serif;
   font-size: 10px;
+  letter-spacing: normal;
+  text-transform: none;
   color: var(--muted-2);
 }
 /* El grupo sin portafolio va atenuado: es lo que falta clasificar, no un
    portafolio más. */
-.inv-pf-grupo:last-child .inv-pf-nombre { color: var(--muted); }
+.inv-pf-grupo:last-child .inv-section-label { color: var(--muted); }
+/* Lo que ya está en un portafolio no se elige desde la vista Activos. Se deja
+   a la vista —no se esconde— para que se entienda que la fila existe y que el
+   activo ya está agrupado. */
+.investment-detail-grouped .inv-sel-check:disabled {
+  opacity: .3;
+  cursor: not-allowed;
+}
 .inv-currency-header-row .inv-section-label {
   color: var(--accent);
   font-weight: 600;
@@ -6859,7 +6854,8 @@ body[data-exporting="true"] .section-card {
    fondo (azul-acero sutil) para que se vean uniformes como divisores de
    sección. La diferencia entre las dos sub-tablas se mantiene a nivel del
    fondo del <table> en sí (la tabla USD tiene un tinte general más sutil). */
-.investment-detail-tables .inv-currency-header-row th {
+.investment-detail-tables .inv-currency-header-row th,
+.investment-detail-tables .inv-currency-header-row td {
   background: rgba(74, 107, 138, 0.12);
 }
 

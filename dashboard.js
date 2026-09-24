@@ -11987,9 +11987,27 @@ function vistaDeTabla(clave) {
 function vistaActivosToggle(clave) {
   const v = vistaDeTabla(clave);
   return '<span class="view-mode-toggle inv-vista-toggle" data-vista-tabla="' + escapeHtmlSafe(clave) + '">' +
-    '<button type="button" class="view-mode-btn' + (v === 'listado' ? ' active' : '') + '" data-vista="listado">Listado</button>' +
-    '<button type="button" class="view-mode-btn' + (v === 'portafolio' ? ' active' : '') + '" data-vista="portafolio">Por portafolio</button>' +
+    '<button type="button" class="view-mode-btn' + (v === 'listado' ? ' active' : '') + '" data-vista="listado">Activos</button>' +
+    '<button type="button" class="view-mode-btn' + (v === 'portafolio' ? ' active' : '') + '" data-vista="portafolio">Portafolio</button>' +
   '</span>';
+}
+
+// El tilde de selección de una fila. Deshabilitado en la vista Activos cuando
+// el activo ya tiene portafolio: esa vista sirve para agrupar lo suelto, y
+// mover o sacar se hace en la vista Portafolio, donde el activo se ve dentro
+// del grupo del que va a salir.
+function celdaSeleccionActivo(destino, ticker, moneda) {
+  const clave = claveActivoPortafolio(destino, ticker, moneda);
+  const asignado = portafolioDeActivo(state.activoPortafolio, destino, ticker, moneda);
+  const enListado = vistaDeTabla(destino + '|' + (moneda === 'USD' ? 'USD' : 'ARS')) !== 'portafolio';
+  const bloqueado = enListado && !!asignado;
+  const p = bloqueado ? portafolioPorId(portafolios(), asignado) : null;
+  const titulo = bloqueado
+    ? 'Ya está en ' + ((p && p.nombre) || 'un portafolio') + '. Para moverlo o sacarlo, pasá a la vista Portafolio.'
+    : 'Seleccionar para agrupar en un portafolio';
+  return '<input type="checkbox" class="inv-sel-check" data-sel-clave="' + escapeHtmlSafe(clave) + '"' +
+    (bloqueado ? ' disabled' : '') +
+    ' title="' + escapeHtmlSafe(titulo) + '">';
 }
 
 // <option>s de portafolio para el selector de asignación. La primera opción
@@ -19187,9 +19205,12 @@ function buildInvestmentDetailPanel(destinos, title) {
           // Seleccionar para agrupar. La clave lleva destino, ticker y moneda:
           // el mismo ticker en dos carteras son dos tenencias distintas y
           // pueden ir a portafolios distintos.
-          '<input type="checkbox" class="inv-sel-check" data-sel-clave="' +
-            escapeHtmlSafe(claveActivoPortafolio(destinos[0], tk, g.moneda)) + '"' +
-            ' title="Seleccionar para agrupar en un portafolio">' +
+          //
+          // En la vista Activos sólo se elige lo que todavía no tiene
+          // portafolio: ahí se agrupa lo suelto. Para mover un activo de
+          // portafolio o sacarlo está la vista Portafolio, donde se lo ve
+          // junto a los demás del grupo del que sale.
+          celdaSeleccionActivo(destinos[0], tk, g.moneda) +
           '<button class="inv-toggle-btn" data-action="toggle-ticker" title="Ver compras individuales"><i data-lucide="chevron-right" style="width:13px;height:13px"></i></button>' +
           // Vender TODO el ticker. La venta parcial va en las filas de detalle,
           // porque el costo de lo vendido sale del precio de cada compra.
@@ -19264,11 +19285,15 @@ function buildInvestmentDetailPanel(destinos, title) {
       const meta = p
         ? [p.objetivo || '', plazo ? 'plazo ' + plazo : ''].filter(Boolean).join(' · ')
         : 'Activos que todavía no asignaste a ningún portafolio.';
+      // Misma cabecera que la de la tabla ("ACTIVOS COMPRADOS EN ARS"): son
+      // rótulos del mismo rango y comparten clases, no un estilo propio.
       return '<tbody class="inv-pf-grupo">' +
-        '<tr class="inv-pf-head"><td colspan="12">' +
-          '<span class="inv-pf-nombre">' + escapeHtmlSafe(p ? p.nombre : 'Sin portafolio') + '</span>' +
-          '<span class="inv-pf-count">' + g.tickers.length + ' activo' + (g.tickers.length === 1 ? '' : 's') + '</span>' +
-          (meta ? '<span class="inv-pf-meta">' + escapeHtmlSafe(meta) + '</span>' : '') +
+        '<tr class="inv-currency-header-row inv-pf-head"><td colspan="12">' +
+          '<div class="inv-currency-head-inner">' +
+            '<span class="inv-section-label">' + escapeHtmlSafe(p ? p.nombre : 'Sin portafolio') + '</span>' +
+            '<span class="inv-section-count">' + g.tickers.length + ' activo' + (g.tickers.length === 1 ? '' : 's') + '</span>' +
+            (meta ? '<span class="inv-pf-meta">' + escapeHtmlSafe(meta) + '</span>' : '') +
+          '</div>' +
         '</td></tr>' +
         buildRows(groups, g.tickers, prefijo) +
       '</tbody>';

@@ -106,6 +106,12 @@ Un detalle si las regenerás con html2canvas: la versión 1.4.1 no entiende
 inversión. Hay que convertirlo a `rgba()` en el clon (`onclone`) o el render
 falla.
 
+Y otro más: html2canvas dibuja el texto de un `<input>` corrido hacia abajo
+respecto de su caja. En las capturas de la tabla de activos eso hace que la
+descripción y el precio actual se vean desalineados contra el resto de la fila.
+No es un bug del CSS —medido en el DOM, el input está centrado en su celda con
+desfase 0—: es cómo esa librería rasteriza los campos de formulario.
+
 Y otro: si el elemento capturado no tiene fondo propio, el PNG sale
 transparente, y en tema oscuro el texto claro queda invisible sobre el blanco
 del visor —pasó con `20-concentracion-sector.png`—. Hay que pasarle a
