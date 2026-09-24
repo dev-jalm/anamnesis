@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.46 |
+| **Versión** | 1.47 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -295,6 +295,9 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-080d | La asignación de activos **no** se hace en Administración sino en la propia solapa Salud financiera, donde están los activos a la vista: cada activo de la tabla se puede seleccionar, y la selección se asigna a un portafolio —o se saca del que tenga— en una sola acción |
 | RF-080e | La asignación es del activo **en su destino y su moneda**: el mismo ticker tenido en dos carteras son dos tenencias distintas y pueden ir a portafolios distintos. Comprar más de un activo ya asignado no lo saca de su portafolio |
 | RF-080f | La tabla de activos de cada moneda ofrece dos vistas: **Activos**, la lista plana, y **Portafolio**, que agrupa los activos bajo el nombre de su portafolio, con su objetivo y su plazo. La cabecera de cada grupo se presenta con el mismo tratamiento que el rótulo de la tabla (RF-073y): son rótulos del mismo rango. Cada portafolio se rotula **"Portafolio n° N: nombre"**, con N el orden en que se presenta, el prefijo en el color de los rótulos de sección y el nombre en tinta plena. Las cabeceras de los grupos de Concentración y Liquidado usan el mismo tratamiento que ésta. Los portafolios sin activos en esa tabla no se presentan, y lo que no está asignado va en un grupo propio, siempre último, atenuado y sin número —no es un portafolio— |
+| RF-080n | La cabecera de cada portafolio informa, además de su nombre y su cantidad de activos, el **valor** del grupo y su **resultado** contra el precio de hoy. El resultado no se informa si a algún activo del grupo le falta el precio actual: un total parcial se leería como el total |
+| RF-080o | La tabla de activos presenta la columna **%**: cuánto pesa cada activo sobre su ámbito —la cartera entera en la vista Activos, su portafolio en la vista Portafolio—. Se valúa como en RF-073i. Un activo liquidado no tiene peso |
+| RF-080p | Un activo que supera el **umbral de concentración por activo** (RF-195) se señala en esa columna. Un portafolio que supera el **máximo de activos** (RF-196) lo señala en su cantidad. Los dos avisos informan el umbral configurado |
 | RF-080m | Cada gráfico de concentración se encabeza con una fila de resumen —**Cartera completa** o **Portafolio completo** según la vista— que informa qué parte de la cartera ocupa el ámbito, su importe y, en lugar de una barra simple, la composición apilada de sus tramos. Cada tramo presenta la información emergente de RF-073r. Las dos columnas la llevan, para arrancar con la misma fila |
 | RF-080k | Las secciones **Concentración** y **Liquidado** ofrecen el mismo par de vistas. El selector de cada una se presenta junto al título de su sección y se oculta al plegarla. En Portafolio, cada sección se repite una vez por portafolio con los datos de sus activos: la concentración de cada objetivo por separado —que revela un portafolio concentrado aunque la cartera en conjunto no lo esté— y lo que dejó lo vendido de cada uno. El selector no se presenta si todavía no hay portafolios creados |
 | RF-080l | En la concentración de un portafolio **no interviene la Liquidez**: la plata sin invertir es del destino y no de un objetivo, y sumarla a cada portafolio la contaría varias veces. Por eso la suma de los portafolios equivale al valor invertido del destino, no a su valor total |
@@ -515,6 +518,8 @@ Cinco pantallas.
 | RF-191 | Los pesos y umbrales de las cinco dimensiones del score son configurables |
 | RF-192 | Los textos que acompañan a las dos jubilaciones son configurables. Modificarlos altera únicamente lo que se muestra: las claves internas y los datos guardados no cambian |
 | RF-193 | El umbral de concentración por sector (RF-073k) es configurable entre 0 y 100%. El valor inicial es 30%; en 0 las alertas quedan desactivadas y el gráfico se presenta sin línea de umbral |
+| RF-195 | El umbral de concentración **por activo** (RF-080p) es configurable entre 0 y 100%. El valor inicial es 15%: más bajo que el de sector porque un sector lo forman varios activos, y que uno solo pese como un rubro entero es otra cosa. En 0 se desactiva |
+| RF-196 | El **máximo de activos por portafolio** (RF-080p) es configurable. El valor inicial es 12: pasado ese número, un portafolio deja de ser un objetivo con sus activos y se parece a otra cartera, que es lo que los destinos ya resuelven. En 0 se desactiva |
 | RF-194 | El umbral de concentración por tipo de riesgo (RF-073t) es configurable entre 0 y 100%, por separado del de sector. El valor inicial es 70%: una cartera de acciones es enteramente renta variable, y con el umbral de sector alertaría siempre. En 0 las alertas quedan desactivadas |
 
 ---
@@ -1144,9 +1149,18 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.43 | 23/09/2026 | Incorpora los **portafolios**: agrupar los activos de una cartera según para qué son, con su ABM en Administración → Salud financiera y la asignación desde la propia solapa. La tabla de activos suma la vista por portafolio (RF-080 a RF-080i) | Reemplazada |
 | 1.44 | 23/09/2026 | Las vistas pasan a llamarse Activos y Portafolio, la cabecera de cada grupo toma el tratamiento del rótulo de la tabla y la selección se restringe según la vista (RF-080f, RF-080j) | Reemplazada |
 | 1.45 | 23/09/2026 | Cada portafolio se rotula con su número de orden, y las secciones Concentración y Liquidado suman el mismo par de vistas, repitiéndose por portafolio (RF-080f, RF-080k, RF-080l) | Reemplazada |
-| 1.46 | 24/09/2026 | Los gráficos de concentración se encabezan con la fila de resumen del ámbito y su composición apilada (RF-080m). Los selectores de vista pasan junto al título de su sección y las cabeceras de grupo adoptan el tratamiento de la tabla de Activos (RF-080f, RF-080k) | **Vigente** |
+| 1.46 | 24/09/2026 | Los gráficos de concentración se encabezan con la fila de resumen del ámbito y su composición apilada (RF-080m). Los selectores de vista pasan junto al título de su sección y las cabeceras de grupo adoptan el tratamiento de la tabla de Activos (RF-080f, RF-080k) | Reemplazada |
+| 1.47 | 24/09/2026 | La cabecera de cada portafolio suma su valor y su resultado (RF-080n), y la tabla de activos la columna % sobre su ámbito (RF-080o). Se incorporan los umbrales de concentración por activo y de cantidad de activos por portafolio, con sus avisos (RF-195, RF-196, RF-080p) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Valor y resultado de cada portafolio en su cabecera | RF-080n |
+| Columna % con el peso de cada activo en su ámbito | RF-080o |
+| Umbrales por activo y de activos por portafolio, con sus avisos | RF-195, RF-196, RF-080p |
+
+**Implementados en la versión 1.46**
 
 | Cambio | Requerimiento |
 |---|---|

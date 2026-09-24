@@ -389,6 +389,8 @@ const state = {
     periFugaPct: 40,   // umbral % de fuga: gastos de una periodicidad sobre gastos básicos
     concentracionSectorPct: 30, // umbral % de un sector sobre el valor de una cartera; 0 desactiva
     concentracionTipoPct: 70,   // umbral % de un tipo de riesgo sobre el valor de una cartera; 0 desactiva
+    concentracionActivoPct: 15, // umbral % de un solo activo sobre su ámbito; 0 desactiva
+    activosPorPortafolioMax: 12, // cuántos activos puede tener un portafolio antes de avisar; 0 desactiva
     learnRulesMonths: 3, // cantidad de meses hacia atrás de los que se aprenden reglas
     // Cotización MEP del USD/ARS — usada para convertir tickers USD a ARS
     // y mostrar el total combinado en Salud financiera. Editable en Parámetros.
@@ -11504,12 +11506,15 @@ function renderParamsTab() {
     }
   }
 
-  // Umbrales de concentración, por sector y por tipo de riesgo (0..100; 0
-  // desactiva). Mismo comportamiento para los dos: sólo cambian el campo, la
-  // clave del parámetro y cómo se lee el valor vigente.
+  // Umbrales enteros (0 desactiva). Mismo comportamiento para todos: sólo
+  // cambian el campo, la clave del parámetro, cómo se lee el valor vigente y
+  // el tope. Los porcentajes cortan en 100; la cantidad de activos no, que un
+  // portafolio de 150 es posible aunque no sea buena idea.
   [
-    { id: 'paramConcSectorInput', clave: 'concentracionSectorPct', actual: umbralConcentracionSector },
-    { id: 'paramConcTipoInput',   clave: 'concentracionTipoPct',   actual: umbralConcentracionTipo }
+    { id: 'paramConcSectorInput', clave: 'concentracionSectorPct', actual: umbralConcentracionSector, tope: 100 },
+    { id: 'paramConcTipoInput',   clave: 'concentracionTipoPct',   actual: umbralConcentracionTipo,   tope: 100 },
+    { id: 'paramConcActivoInput', clave: 'concentracionActivoPct', actual: umbralConcentracionActivo, tope: 100 },
+    { id: 'paramActivosPfInput',  clave: 'activosPorPortafolioMax', actual: maxActivosPortafolio,     tope: 999 }
   ].forEach(function (p) {
     const inp = document.getElementById(p.id);
     if (!inp) return;
@@ -11521,7 +11526,7 @@ function renderParamsTab() {
       const cleaned = e.target.value.replace(/[^\d]/g, '');
       if (cleaned !== e.target.value) e.target.value = cleaned;
       let val = parseInt(cleaned || '0', 10);
-      if (val > 100) val = 100;
+      if (val > p.tope) val = p.tope;
       if (val === p.actual()) delete catModalState.pendingParamChanges[p.clave];
       else catModalState.pendingParamChanges[p.clave] = val;
       inp.classList.toggle('modified', catModalState.pendingParamChanges[p.clave] !== undefined);
@@ -14020,6 +14025,12 @@ function applyCategoryChanges() {
   }
   if (catModalState.pendingParamChanges.concentracionTipoPct !== undefined) {
     state.params.concentracionTipoPct = catModalState.pendingParamChanges.concentracionTipoPct;
+  }
+  if (catModalState.pendingParamChanges.concentracionActivoPct !== undefined) {
+    state.params.concentracionActivoPct = catModalState.pendingParamChanges.concentracionActivoPct;
+  }
+  if (catModalState.pendingParamChanges.activosPorPortafolioMax !== undefined) {
+    state.params.activosPorPortafolioMax = catModalState.pendingParamChanges.activosPorPortafolioMax;
   }
   if (catModalState.pendingParamChanges.learnRulesMonths !== undefined) {
     state.params.learnRulesMonths = catModalState.pendingParamChanges.learnRulesMonths;
@@ -18222,6 +18233,21 @@ function umbralConcentracionTipo() {
   return (v !== undefined && v !== null && v !== '') ? Number(v) : 70;
 }
 
+// Umbral de un solo activo sobre su ámbito —la cartera, o el portafolio si se
+// está mirando por portafolio—. Más bajo que el de sector: un sector lo forman
+// varios activos, y que uno solo pese lo mismo que un rubro entero es otra cosa.
+function umbralConcentracionActivo() {
+  const v = state.params && state.params.concentracionActivoPct;
+  return (v !== undefined && v !== null && v !== '') ? Number(v) : 15;
+}
+
+// Cuántos activos puede tener un portafolio antes de avisar. Un portafolio con
+// demasiados deja de ser un objetivo y pasa a ser otra cartera.
+function maxActivosPortafolio() {
+  const v = state.params && state.params.activosPorPortafolioMax;
+  return (v !== undefined && v !== null && v !== '') ? Number(v) : 12;
+}
+
 // Guarda el sector elegido a mano. Si coincide con el automático no se guarda
 // nada —y se borra el que hubiera—: así, si el listado se corrige más adelante,
 // el activo toma la corrección en vez de quedar congelado en una copia.
@@ -18262,7 +18288,7 @@ function celdaSectorTicker(tk, moneda) {
   const title = esManual
     ? 'Original: ' + etiquetaSector(auto)
     : (r.origen === 'listado' ? 'Del listado de CEDEARs de BYMA' : (r.origen === 'cripto' ? 'Par cripto' : (r.sector ? 'Cargado a mano' : 'Sin sector: elegilo de la lista')));
-  return '<td><select class="inv-sector-sel' + (esManual ? ' modified' : '') + (r.sector ? '' : ' inv-sector-vacio') + '" ' +
+  return '<td class="inv-sector-cell"><select class="inv-sector-sel' + (esManual ? ' modified' : '') + (r.sector ? '' : ' inv-sector-vacio') + '" ' +
     'data-ticker="' + escapeHtmlSafe(tk) + '" data-moneda="' + escapeHtmlSafe(moneda || 'ARS') + '" title="' + escapeHtmlSafe(title) + '">' +
     opcionesSector(r.sector, !r.sector) +
   '</select></td>';
@@ -19176,6 +19202,64 @@ function buildInvestmentDetailPanel(destinos, title) {
       '</div>' +
     '</div>';
 
+  // Valor actual y resultado de un conjunto de tickers, en su propia moneda.
+  function totalesDeGrupo(groups, tickers) {
+    let valor = 0, invertido = 0, todosConPrecio = true;
+    tickers.forEach(function (tk) {
+      const g = groups[tk];
+      if (!g || !(g.cantidadTotal > 0)) return;
+      const info = infoDeTicker(state.tickerInfo, tk, g.moneda);
+      const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
+        ? Number(info.precioActual) : null;
+      invertido += g.invertidoBruto;
+      if (pa === null) { todosConPrecio = false; valor += g.invertidoBruto; }
+      else valor += pa * g.cantidadTotal;
+    });
+    return { valor: valor, gp: todosConPrecio ? (valor - invertido) : null };
+  }
+
+  // ─── Peso de cada activo ───
+  // El valor de una tenencia se mide igual que en la concentración: nominales
+  // por precio actual, a costo si no hay precio, y los dólares al MEP.
+  function valorDeTenencia(tk, moneda, g) {
+    if (!(g.cantidadTotal > 0)) return 0;
+    const mon = moneda === 'USD' ? 'USD' : 'ARS';
+    const info = infoDeTicker(state.tickerInfo, tk, mon);
+    const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
+      ? Number(info.precioActual) : null;
+    const v = (pa !== null) ? pa * g.cantidadTotal : g.invertidoBruto;
+    if (mon !== 'USD') return v;
+    const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+    return v * mep;
+  }
+  // El total contra el que se mide, memorizado: la cartera entera en la vista
+  // Activos y el portafolio del activo en la vista Portafolio. Sin memorizar,
+  // cada fila recalcularía la concentración de toda la cartera.
+  const _totalesPeso = {};
+  function totalDeReferencia(destino, tk, moneda) {
+    const porPf = vistaDeTabla(destino + '|' + (moneda === 'USD' ? 'USD' : 'ARS')) === 'portafolio';
+    let clave = '__todo__';
+    if (porPf) {
+      const pf = portafolioDeActivo(state.activoPortafolio, destino, tk, moneda);
+      clave = (pf && portafolioPorId(portafolios(), pf)) ? pf : '__sin__';
+    }
+    if (_totalesPeso[clave] === undefined) {
+      _totalesPeso[clave] = (clave === '__todo__')
+        ? (concentracionDeCartera(destinos).total || 0)
+        : (concentracionDeCartera(destinos, clave).total || 0);
+    }
+    return _totalesPeso[clave];
+  }
+  function celdaPesoActivo(destino, tk, moneda, valor) {
+    const total = totalDeReferencia(destino, tk, moneda);
+    if (!(total > 0) || !(valor > 0)) return '<td class="num"><span class="inv-na">—</span></td>';
+    const pct = valor / total * 100;
+    const alto = pct >= umbralConcentracionActivo() && umbralConcentracionActivo() > 0;
+    return '<td class="num inv-peso' + (alto ? ' is-over' : '') + '"' +
+      (alto ? ' title="Supera el ' + umbralConcentracionActivo() + '% que configuraste para un solo activo"' : '') + '>' +
+      pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%</td>';
+  }
+
   // ─── 4. Helper para construir las filas de una moneda ───
   function buildRows(groups, tickers, monedaPrefix) {
     if (tickers.length === 0) return '';
@@ -19242,7 +19326,8 @@ function buildInvestmentDetailPanel(destinos, title) {
             '<td>' + (showDestColumn ? escapeHtmlSafe(destLabel) : '') + '</td>' +
             '<td class="inv-entry-fecha">' + fechaDisplay + '</td>' +
             celdaDiasTenencia(e) +
-            '<td></td>' +
+            '<td></td>' +   /* Sector */
+            '<td></td>' +   /* % */
             '<td class="num"><span class="inv-chip-liquidado">liquidada</span></td>' +
             '<td class="num" colspan="4"><span class="inv-na">vendidos ' + fmtNominales(eVendida) + ' nominales por ' +
               monedaPrefix + ' ' + fmt(productoVentas(e)) + '</span></td>' +
@@ -19273,7 +19358,8 @@ function buildInvestmentDetailPanel(destinos, title) {
           // Días en tenencia: va en la columna de Descripción, que en el detalle
           // está vacía y queda justo después de la fecha.
           celdaDiasTenencia(e) +
-          '<td></td>' +
+          '<td></td>' +   /* Sector */
+          '<td></td>' +   /* % */
           '<td class="num">' + (eCant < 0 ? '-' : '') + fmtNominales(eCant) + '</td>' +
           '<td class="num">' + monedaPrefix + ' ' + fmtPrecio(ePrecio) + '</td>' +
           '<td class="num">' + (eTotal < 0 ? '-' : '') + monedaPrefix + ' ' + fmt(Math.abs(eTotal)) + '</td>' +
@@ -19298,7 +19384,8 @@ function buildInvestmentDetailPanel(destinos, title) {
         '<td>' + (showDestColumn ? 'Destino' : '') + '</td>' +
         '<td>Fecha</td>' +
         '<td title="Días desde la compra hasta hoy; si se vendió entera, hasta la última venta">Días en tenencia</td>' +
-        '<td></td>' +
+        '<td></td>' +   /* Sector */
+        '<td></td>' +   /* % */
         '<td class="num">Nominales</td>' +
         '<td class="num">Precio de compra</td>' +
         '<td class="num">Total comprado</td>' +
@@ -19339,6 +19426,7 @@ function buildInvestmentDetailPanel(destinos, title) {
       const ordenAttrs = atributosOrden({
         broker: brokerKeys.length === 1 ? brokerLabel(brokerKeys[0]) : (brokerKeys.length ? 'MULTI' : ''),
         ticker: tk,
+        peso: liquidado ? null : valorDeTenencia(tk, g.moneda, g),
         nominales: liquidado ? 0 : g.cantidadTotal,
         ppc: liquidado ? null : g.ppc,
         invertido: liquidado ? 0 : invertido,
@@ -19355,6 +19443,8 @@ function buildInvestmentDetailPanel(destinos, title) {
           '<td class="ticker">' + escapeHtmlSafe(tk) + '</td>' +
           '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(tk) + '" data-moneda="' + escapeHtmlSafe(g.moneda || 'ARS') + '" value="' + escapeHtmlSafe(descripcion).replace(/"/g, '&quot;') + '" placeholder="ej: SPDR S&P 500 ETF"></td>' +
           celdaSectorTicker(tk, g.moneda) +
+          // Un ticker sin saldo no pesa en la cartera: no le corresponde un %.
+          '<td class="num"><span class="inv-na">—</span></td>' +
           '<td class="num"><span class="inv-chip-liquidado">liquidado</span></td>' +
           '<td class="num" colspan="4"><span class="inv-na">vendidos ' + fmt(g.vendida) + ' nominales por ' + monedaPrefix + ' ' + fmt(g.producto) + '</span></td>' +
           '<td class="num ' + rCls + '" colspan="2">' + monedaPrefix + ' ' + fmt(Math.abs(g.realizado)) +
@@ -19384,6 +19474,10 @@ function buildInvestmentDetailPanel(destinos, title) {
         '<td class="ticker">' + escapeHtmlSafe(tk) + '</td>' +
         '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(tk) + '" data-moneda="' + escapeHtmlSafe(g.moneda || 'ARS') + '" value="' + escapeHtmlSafe(descripcion).replace(/"/g, '&quot;') + '" placeholder="ej: SPDR S&P 500 ETF"></td>' +
         celdaSectorTicker(tk, g.moneda) +
+        // Cuánto pesa este activo: en la vista Activos sobre la cartera entera,
+        // en la vista Portafolio sobre el portafolio al que pertenece. Es la
+        // misma pregunta a distinta escala, y por eso cambia con la vista.
+        celdaPesoActivo(destinos[0], tk, g.moneda, valorDeTenencia(tk, g.moneda, g)) +
         '<td class="num">' + (g.cantidadTotal < 0 ? '-' : '') + fmtNominales(g.cantidadTotal) + '</td>' +
         // PPC sin decimales, igual que el resto de los importes de la fila. Era
         // la única celda con dos decimales y desalineaba la columna: el
@@ -19446,6 +19540,13 @@ function buildInvestmentDetailPanel(destinos, title) {
     return gs.map(function (g) {
       const p = g.portafolio;
       if (p) nro++;
+      // Valor y resultado del grupo: la suma de sus tenencias. El resultado
+      // queda en null si a algún activo le falta el precio de hoy, que es el
+      // mismo criterio de la cabecera del panel: sin precio no hay contra qué
+      // comparar y un total parcial se leería como el total.
+      const tot = totalesDeGrupo(groups, g.tickers);
+      const prefijo = moneda === 'USD' ? 'US$' : '$';
+      const excede = maxActivosPortafolio() > 0 && p && g.tickers.length > maxActivosPortafolio();
       const plazo = p && p.plazo ? p.plazo.split('-').reverse().join('/') : '';
       const meta = p
         ? [p.objetivo || '', plazo ? 'plazo ' + plazo : ''].filter(Boolean).join(' · ')
@@ -19453,10 +19554,19 @@ function buildInvestmentDetailPanel(destinos, title) {
       // Misma cabecera que la de la tabla ("ACTIVOS COMPRADOS EN ARS"): son
       // rótulos del mismo rango y comparten clases, no un estilo propio.
       return '<tbody class="inv-pf-grupo">' +
-        '<tr class="inv-currency-header-row inv-pf-head"><td colspan="12">' +
+        '<tr class="inv-currency-header-row inv-pf-head"><td colspan="13">' +
           '<div class="inv-currency-head-inner">' +
             rotuloPortafolioHtml(p, nro) +
-            '<span class="inv-section-count">' + g.tickers.length + ' activo' + (g.tickers.length === 1 ? '' : 's') + '</span>' +
+            '<span class="inv-section-count' + (excede ? ' is-over' : '') + '"' +
+              (excede ? ' title="Supera los ' + maxActivosPortafolio() + ' activos que configuraste por portafolio"' : '') + '>' +
+              g.tickers.length + ' activo' + (g.tickers.length === 1 ? '' : 's') +
+              (excede ? ' ⚠' : '') + '</span>' +
+            // Cuánto vale el grupo y qué dejó: la misma pregunta que responde la
+            // cabecera del panel, a escala de portafolio.
+            '<span class="inv-pf-total">' + prefijo + ' ' + fmt(Math.round(tot.valor)) + '</span>' +
+            '<span class="inv-pf-gp ' + (tot.gp > 0 ? 'inv-gp-positive' : (tot.gp < 0 ? 'inv-gp-negative' : '')) + '">' +
+              (tot.gp === null ? '<span class="inv-na">—</span>'
+                : prefijo + ' ' + fmt(Math.round(Math.abs(tot.gp)))) + '</span>' +
             (meta ? '<span class="inv-pf-meta">' + escapeHtmlSafe(meta) + '</span>' : '') +
           '</div>' +
         '</td></tr>' +
@@ -19504,29 +19614,30 @@ function buildInvestmentDetailPanel(destinos, title) {
            Lo que sobraba paga el ensanche de la primera columna, así el ancho
            total de la tabla no cambia. */
         '<col style="width:94px">' +   /* Broker/Exchange · en el detalle, destino */
-        '<col style="width:80px">' +   /* Ticker · en el detalle, fecha. Entra "ETH-USDT" */
+        '<col style="width:72px">' +   /* Ticker · en el detalle, fecha. Entra "ETH-USDT" */
         /* Descripción: 195 para que entre "BARRICK GOLD CORPORATION", la más
            larga de la demo: el campo necesita 170 de ancho útil y la celda le
            resta 20 de padding. Con 190 entraba sólo porque la tabla sumaba
            menos que el contenedor y el sobrante se repartía entre columnas. */
         '<col style="width:195px">' +  /* Descripción · vacía en el detalle */
-        /* Sector: en mayúsculas y JetBrains Mono semibold, la opción más larga
-           —"CONSUMO DISCRECIONAL" desde que Índices perdió "amplios"— mide
-           161,6 medida con width:auto, y la celda le suma 20 de padding. */
-        '<col style="width:182px">' +  /* Sector · vacía en el detalle */
+        /* Sector: la opción más larga, "CONSUMO DISCRECIONAL", mide 162 con
+           width:auto. La celda le sumaba 20 de padding; se le bajó a 10 (ver
+           .inv-sector-cell) para achicar la columna sin recortar la opción. */
+        '<col style="width:172px">' +  /* Sector · vacía en el detalle */
+        '<col style="width:65px">' +   /* % sobre la cartera o sobre el portafolio */
         '<col style="width:85px">' +   /* Cantidad */
-        '<col style="width:105px">' +  /* PPC · en el detalle, precio de compra */
-        '<col style="width:105px">' +  /* Invertido · en el detalle, total comprado */
+        '<col style="width:95px">' +   /* PPC · en el detalle, precio de compra */
+        '<col style="width:90px">' +   /* Invertido · en el detalle, total comprado */
         /* Precio actual: 125 para que entre "$ 1.234.567,89" en el campo
            editable, que lleva padding y borde además del número. */
-        '<col style="width:125px">' +  /* Precio actual */
-        '<col style="width:110px">' +  /* Variación por nominal */
-        '<col style="width:110px">' +  /* Actualizado · en el detalle, total actualizado */
+        '<col style="width:120px">' +  /* Precio actual */
+        '<col style="width:100px">' +  /* Variación por nominal */
+        '<col style="width:103px">' +  /* Actualizado · en el detalle, total actualizado */
         '<col style="width:100px">' +  /* G/P */
       '</colgroup>' +
       '<thead>' +
         '<tr class="inv-currency-header-row">' +
-          '<th colspan="12">' +
+          '<th colspan="13">' +
             // El flex va en este div y no en el <th>: un th en display:flex
             // deja de ser celda de tabla, el colspan no le aplica y tomaba el
             // ancho de la primera columna —40px, medido—, con el rótulo
@@ -19552,6 +19663,7 @@ function buildInvestmentDetailPanel(destinos, title) {
           thOrden('ticker', 'Ticker') +
           thOrden('descripcion', 'Descripción') +
           thOrden('sector', 'Sector', 'Del listado de BYMA cuando el ticker está ahí; si no, elegilo de la lista') +
+          thOrden('peso', '%', 'Cuánto pesa el activo: sobre la cartera en la vista Activos, sobre su portafolio en la vista Portafolio', true) +
           thOrden('nominales', 'Nominales', '', true) +
           thOrden('ppc', 'PPC', 'Precio Promedio de Compra ponderado', true) +
           thOrden('invertido', 'Total invertido', 'Nominales × PPC', true) +
@@ -23804,7 +23916,7 @@ function openFullConfigModal(mode) {
   // Parámetros: contamos los campos NO vacíos del bloque params que efectivamente
   // exportamos (umbrales + plan de reserva + tema). Esto da al usuario una idea
   // de cuánto configuró sin tener que listar campo a campo.
-  const PARAMS_KEYS = ['diasBajo','periFugaPct','concentracionSectorPct','concentracionTipoPct','learnRulesMonths','themeAuto','reservaMode','reservaMeses','reservaValorMensual','reservaAmount','reservaMonths','reservaStart'];
+  const PARAMS_KEYS = ['diasBajo','periFugaPct','concentracionSectorPct','concentracionTipoPct','concentracionActivoPct','activosPorPortafolioMax','learnRulesMonths','themeAuto','reservaMode','reservaMeses','reservaValorMensual','reservaAmount','reservaMonths','reservaStart'];
   const pCount = PARAMS_KEYS.filter(function (k) {
     const v = state.params && state.params[k];
     return v !== undefined && v !== null && v !== '' && v !== 0;

@@ -218,7 +218,9 @@ window.MANUAL = {
         'La asignación es del activo en SU cartera: el mismo ticker en Inversiones y en Jubilación son dos tenencias y pueden ir a portafolios distintos.',
         'Comprar más de un activo ya asignado no lo saca de su portafolio.',
         'El orden por columna sigue funcionando en la vista agrupada, pero ordena adentro de cada grupo: nunca mezcla activos de portafolios distintos.',
-        'Eliminar un portafolio no toca las tenencias: sus activos vuelven al grupo sin portafolio. La app te dice cuántos son antes de confirmar.'
+        'Eliminar un portafolio no toca las tenencias: sus activos vuelven al grupo sin portafolio. La app te dice cuántos son antes de confirmar.',
+        'La cabecera de cada portafolio dice cuánto vale y qué te dejó, igual que la del panel pero a escala del objetivo.',
+        'En Parámetros configurás cuánto puede pesar un solo activo y cuántos activos puede agrupar un portafolio. Pasados esos números, la app los marca.'
       ]
     },
     {
@@ -233,6 +235,7 @@ window.MANUAL = {
       ],
       lista: [
         'La cantidad viene precargada con todo lo disponible y el precio con el actual del ticker: vender todo al precio de hoy es el caso más frecuente, y lo demás se escribe encima.',
+        'La columna % dice cuánto pesa cada activo: sobre la cartera en la vista Activos y sobre su portafolio en la vista Portafolio. Si pasa el umbral que configurás en Parámetros, la fila lo marca.',
         'Vendiendo todo un ticker que se compró en varias tandas, se descuenta de las compras más viejas primero. Está dicho en la pantalla, porque cambia la ganancia realizada.',
         'La plata cobrada pasa al Líquido del destino. Ahí es donde queda disponible para volver a invertir o para sacar.',
         'Después de vender, las columnas muestran lo que QUEDA. Si de 1.000 vendiste 200, la fila dice 800 y su rendimiento se mide sobre esos 800; debajo de la fecha aparece cuántos vendiste.',

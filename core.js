@@ -1270,6 +1270,8 @@ function serializeFullConfig(stateLike, sections) {
       periFugaPct: p.periFugaPct,
       concentracionSectorPct: p.concentracionSectorPct,
       concentracionTipoPct: p.concentracionTipoPct,
+      concentracionActivoPct: p.concentracionActivoPct,
+      activosPorPortafolioMax: p.activosPorPortafolioMax,
       learnRulesMonths: p.learnRulesMonths,
       themeAuto: p.themeAuto,
       // Plan de Reserva (todos los campos del plan, no incluye estado de

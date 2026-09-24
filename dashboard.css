@@ -6832,6 +6832,28 @@ body[data-exporting="true"] .section-card {
 .inv-currency-header-row .inv-section-label.es-sin,
 .inv-section-label.es-sin { color: var(--muted); }
 
+/* El selector de sector queda justo en su columna: la opción más larga mide
+   162 y la celda le sumaba 20 de padding. Con 10 la columna baja a 172 y la
+   opción sigue entrando entera. */
+.investment-detail-grouped .inv-sector-cell { padding-left: 5px !important; padding-right: 5px !important; }
+
+/* Columna %: cuánto pesa el activo en su ámbito. En rojo cuando pasa el
+   umbral por activo, con el mismo criterio con que se marca un sector. */
+.inv-peso.is-over { color: var(--red); font-weight: 600; }
+
+/* Monto y resultado del portafolio, en su cabecera. */
+.inv-pf-total, .inv-pf-gp {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: normal;
+}
+.inv-pf-gp.inv-gp-positive { color: var(--green); }
+.inv-pf-gp.inv-gp-negative { color: var(--red); }
+/* Demasiados activos para un objetivo: el conteo lo señala. */
+.inv-section-count.is-over { color: var(--red); }
+
 /* Fila de resumen del gráfico de sectores: el total del ámbito y su barra
    apilada. Va separada de los sectores que tiene abajo. */
 .inv-sector-row.inv-sector-total {

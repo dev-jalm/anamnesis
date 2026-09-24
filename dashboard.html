@@ -2858,6 +2858,27 @@
           </div>
         </div>
 
+        <div class="param-row">
+          <div class="param-info">
+            <div class="param-label">Alerta de concentración por activo</div>
+            <div class="param-desc">Si un solo activo supera este porcentaje, su fila lo señala en la columna <strong>%</strong> de la tabla de activos. Se mide sobre la cartera entera en la vista Activos y sobre su portafolio en la vista Portafolio. Es más bajo que el de sector: un sector lo forman varios activos, y que uno solo pese como un rubro entero es otra cosa. En 0 se desactiva.</div>
+          </div>
+          <div class="param-input-wrap">
+            <input type="text" inputmode="numeric" id="paramConcActivoInput" value="15">
+            <span class="param-suffix">%</span>
+          </div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-info">
+            <div class="param-label">Activos totales por portafolio</div>
+            <div class="param-desc">Cuántos activos puede agrupar un portafolio antes de que la app lo señale. Pasado ese número, un portafolio deja de ser un objetivo con sus activos y se parece más a otra cartera, que es lo que los destinos ya resuelven. En 0 se desactiva.</div>
+          </div>
+          <div class="param-input-wrap">
+            <input type="text" inputmode="numeric" id="paramActivosPfInput" value="12">
+          </div>
+        </div>
+
         <div class="param-row param-row-vertical">
           <div class="param-info">
             <div class="param-label">Reserva</div>
