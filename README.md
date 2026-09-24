@@ -45,7 +45,7 @@ La metáfora médica no es decorativa: cada solapa responde una pregunta distint
 | **Historia clínica** | ¿En qué se fue la plata? Movimientos del período, recategorizables, con etiquetas y formas de pago. Dos vistas: **Resumen**, una fila por categoría con su peso sobre el total, y **Completa**, cada movimiento editable en su fila. |
 | **Ficha médica** | ¿Cómo estoy hoy? KPIs configurables, score de salud, distribución por categoría, tipo, periodicidad y medio de pago. También en dos vistas: **Completa** con todos los gráficos, y **Resumen** con las secciones que elijas dejar. |
 | **Diagnóstico** | ¿Qué está pasando? Flujo trimestral, evolución anual e insights automáticos. |
-| **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y las dos jubilaciones, con precios actualizados desde el mercado. El cuerpo de cada cartera son tres secciones que se pliegan: **Activos** —cada uno se despliega en sus compras individuales, con el rendimiento y los días en tenencia de cada una, y se puede **vender** entero o por partes—, **Concentración** —cuánto de su valor está en cada **sector** y en cada tipo de riesgo, con aviso cuando alguno pasa el límite que elegiste— y **Liquidado**, el resultado de lo que ya vendiste. Trading va último y aparte: es la [mesa de operaciones](#la-mesa-de-trading). |
+| **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y las dos jubilaciones, con precios actualizados desde el mercado. El cuerpo de cada cartera son tres secciones que se pliegan: **Activos** —cada uno se despliega en sus compras individuales, con el rendimiento y los días en tenencia de cada una, y se puede **vender** entero o por partes—, **Concentración** —cuánto de su valor está en cada **sector** y en cada tipo de riesgo, con aviso cuando alguno pasa el límite que elegiste— y **Liquidado**, el resultado de lo que ya vendiste. Los activos se agrupan además en **portafolios** según para qué son, y la tabla se puede ver agrupada por ellos. Trading va último y aparte: es la [mesa de operaciones](#la-mesa-de-trading). |
 | **Evolución** | ¿Estoy mejorando? Presupuestado contra real, mes a mes, con tendencias por categoría. |
 
 ### Importar los resúmenes
@@ -80,7 +80,7 @@ La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite
 
 - **El navegador como runtime completo.** La persistencia usa la File System Access API contra un archivo que elige el usuario, con guardado por debounce para no escribir en cada tecla. El handle queda en IndexedDB, así que la app reconecta sola con el mismo archivo en la sesión siguiente y solo hay que elegirlo una vez. No hay backend porque no hace falta.
 
-- **Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado: parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas y parseo de resúmenes bancarios. `tests.html` la cubre con **418 tests** en 49 grupos, incluidos casos de integración sobre un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
+- **Funciones puras aisladas y testeadas.** `core.js` concentra la lógica de cálculo sin estado: parseo de números en formato argentino, clasificación de categorías, motor de KPIs, cálculo del score, migración de esquemas y parseo de resúmenes bancarios. `tests.html` la cubre con **428 tests** en 50 grupos, incluidos casos de integración sobre un trimestre completo. Es un mini-framework propio de unas 70 líneas —`group`, `test` y cuatro aserciones— que corre en el navegador y no necesita Node.
 
 - **Cada banco es un dato, no código.** Los parsers de Mercado Pago y Galicia eran el mismo algoritmo con constantes distintas, así que ese algoritmo vive una sola vez y cada entidad es una plantilla. Ocho campos alcanzan para describir un resumen: qué columna trae la fecha, si el importe viene firmado o partido en débito y crédito, en qué formato están los números, qué filas hay que ignorar. El motor trabaja sobre filas, así que da igual que el archivo sea CSV o Excel.
 
@@ -92,6 +92,8 @@ La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite
 
 - **Lo vendido no se valúa: se cobró.** La tabla de activos mide lo que todavía tenés contra el precio de hoy, así que lo ya liquidado no tiene lugar ahí. Vive en su propia sección, en dos columnas —lo que salió en ganancia y lo que salió en pérdida—, con una línea por venta y no por activo: una compra se vende en tandas, y cada tanda tiene su fecha, sus días en tenencia y su resultado propio. Abajo, el neto de las dos columnas, que es el único número del bloque que va en verde o en rojo.
 
+- **Una cartera no es una sola cosa.** De los CEDEARs que tenés en Inversiones, unos son el viaje del año que viene y otros el auto. Un **portafolio** es ese corte: agrupa activos según para qué son, con su objetivo y su plazo, sin inventar una cartera nueva —las carteras siguen siendo cinco y son fijas—. Se crean en Administración, pero decir qué activos lo componen se hace en la propia pantalla de Salud financiera, que es donde están a la vista: pedir esa decisión en una pantalla que no los muestra obliga a recordarlos de memoria. La asignación es del activo **en su cartera**: el mismo ticker en Inversiones y en Jubilación son dos tenencias y pueden ir a objetivos distintos.
+
 - **El sector no lo informa nadie.** Ninguna fuente pública accesible devuelve el sector de un CEDEAR, así que el listado de BYMA que trae la app lo lleva incorporado: 396 instrumentos con su ratio, su nombre y su sector, y sólo los que efectivamente cotizan. Lo que no está —acciones locales, bonos, un fondo— se asigna a mano desde la tabla o al cargarlo, y esa asignación es del instrumento, no de la moneda: vale para el CEDEAR en pesos y para la acción en dólares.
 
 - **Aritmética con signo explícito.** Todos los montos se guardan positivos, sin excepción, y el signo lo aplica cada operación según su semántica (`+ Sueldo − gastos − Inversión…`). Suena menor, pero es lo que permite que una misma transacción cuente distinto según el KPI que la mire. La devolución de capital es el caso que lo justifica: resta en el balance de flujo, porque es plata que salió del bolsillo.
@@ -99,18 +101,18 @@ La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite
 ### Cómo se organiza
 
 ```
-dashboard.html    3.175 líneas    estructura, modales, formularios
-dashboard.css     8.256 líneas    estilos y theming claro/oscuro
-dashboard.js     23.361 líneas    lógica, render, estado, importación
-core.js           2.902 líneas    funciones puras + motor de plantillas
+dashboard.html    3.215 líneas    estructura, modales, formularios
+dashboard.css     8.338 líneas    estilos y theming claro/oscuro
+dashboard.js     23.736 líneas    lógica, render, estado, importación
+core.js           2.999 líneas    funciones puras + motor de plantillas
 mesa-trading.js   2.985 líneas    mesa de trading: riesgo, liquidación, historial
 mesa-trading.css  1.029 líneas    estilos de la mesa
 sistema-4k.js       478 líneas    el reglamento de trading, consultable en la app
 cedears-byma.js     462 líneas    ratio, nombre y sector de los CEDEARs de BYMA
-demo-data.js        731 líneas    generador del dataset de demostración
+demo-data.js        761 líneas    generador del dataset de demostración
 tour.js             302 líneas    el recorrido guiado del modo demo
 tour.css            131 líneas    estilos del recorrido
-tests.html        3.558 líneas    418 tests sobre core.js
+tests.html        3.614 líneas    428 tests sobre core.js
 ```
 
 ### Cómo se prueba

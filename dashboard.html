@@ -2458,6 +2458,10 @@
         <i data-lucide="activity" style="width:13px;height:13px"></i>
         Ficha médica
       </button>
+      <button class="cat-tab" data-tab="portafolios">
+        <i data-lucide="target" style="width:13px;height:13px"></i>
+        Salud financiera
+      </button>
       <button class="cat-tab" data-tab="params">
         <i data-lucide="sliders-horizontal" style="width:13px;height:13px"></i>
         Parámetros
@@ -2731,6 +2735,42 @@
       <div class="travels-list-wrap">
         <div class="travels-list-header">VIAJES Y EVENTOS <span id="travelsCount" style="opacity:0.6"></span></div>
         <div class="travels-list" id="travelsList"></div>
+      </div>
+    </div>
+
+    <!-- Tab Salud financiera: ABM de portafolios. Un portafolio agrupa los
+         activos de una cartera según para qué son; la asignación de cada
+         activo se hace desde la propia solapa Salud financiera. -->
+    <div class="cat-tab-panel hidden" id="catTabPortafolios">
+      <p class="travel-intro">Un <strong>portafolio</strong> agrupa activos según para qué los tenés: de los CEDEARs de Inversiones, tres pueden ser el viaje y dos el auto. Acá los creás, los editás y los eliminás. Para decir qué activo va en cuál, abrí la sección en la solapa <strong>Salud financiera</strong>, seleccioná los que quieras y asignalos.</p>
+      <div class="travel-add-form">
+        <div class="travel-add-row">
+          <div class="travel-field" style="flex:1.2;min-width:150px">
+            <span class="travel-field-label">Nombre</span>
+            <input type="text" id="pfNombreInput" class="period-select" maxlength="40" placeholder="ej: Viaje a Marruecos, auto...">
+          </div>
+          <div class="travel-field" style="flex:2;min-width:200px">
+            <span class="travel-field-label">Objetivo</span>
+            <input type="text" id="pfObjetivoInput" class="period-select" maxlength="120" placeholder="para qué es esta plata">
+          </div>
+          <div class="travel-field">
+            <span class="travel-field-label">Plazo</span>
+            <input type="date" id="pfPlazoInput" class="period-select">
+          </div>
+          <div class="travel-field" style="align-self:flex-end">
+            <button class="upload-btn" id="pfAddBtn">
+              <i data-lucide="plus" style="width:14px;height:14px"></i>
+              <span id="pfAddBtnLabel">CREAR PORTAFOLIO</span>
+            </button>
+          </div>
+          <div class="travel-field hidden" id="pfCancelWrap" style="align-self:flex-end">
+            <button class="upload-btn secondary" id="pfCancelBtn">CANCELAR</button>
+          </div>
+        </div>
+      </div>
+      <div class="travels-list-wrap">
+        <div class="travels-list-header">PORTAFOLIOS <span id="pfCount" style="opacity:0.6"></span></div>
+        <div class="travels-list" id="pfList"></div>
       </div>
     </div>
 

@@ -1506,6 +1506,100 @@ function sectoresSeleccionables() {
   return SECTORES.filter(function (s) { return s.seleccionable !== false; });
 }
 
+/* ==========================================================================
+   PORTAFOLIOS — agrupar activos por objetivo
+
+   Un portafolio NO es un destino más: los destinos siguen siendo Reserva,
+   Inversiones, las dos Jubilaciones y Trading, y son fijos. Un portafolio es
+   un rótulo que agrupa activos ADENTRO de esos destinos según para qué son:
+   de los diez CEDEARs de Inversiones, tres son el viaje, dos el auto y tres
+   el cumpleaños de quince.
+
+   Por eso la asignación es del activo EN SU DESTINO y no del instrumento: el
+   mismo ticker puede estar en Inversiones para el viaje y en Jubilación sin
+   objetivo, y son dos cosas distintas. La clave lleva los tres datos que
+   identifican una fila de la tabla: destino, ticker y moneda.
+   ========================================================================== */
+
+const MAX_LEN_PORTAFOLIO = 40;
+
+function claveActivoPortafolio(destino, ticker, moneda) {
+  return String(destino || '') + '|' + String(ticker || '').toUpperCase() +
+    '|' + (moneda === 'USD' ? 'USD' : 'ARS');
+}
+
+// El portafolio asignado a una tenencia, o null. `mapa` es state.activoPortafolio.
+function portafolioDeActivo(mapa, destino, ticker, moneda) {
+  if (!mapa) return null;
+  const id = mapa[claveActivoPortafolio(destino, ticker, moneda)];
+  return id || null;
+}
+
+function portafolioPorId(portafolios, id) {
+  const arr = Array.isArray(portafolios) ? portafolios : [];
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] && arr[i].id === id) return arr[i];
+  }
+  return null;
+}
+
+// Valida el alta o la edición de un portafolio. `id` distingue editar de crear:
+// al editar, el propio portafolio no cuenta como nombre repetido.
+// Devuelve { ok, error }.
+function validarPortafolio(datos, portafolios, id) {
+  const nombre = String((datos && datos.nombre) || '').trim();
+  if (!nombre) return { ok: false, error: 'Ponele un nombre al portafolio.' };
+  if (nombre.length > MAX_LEN_PORTAFOLIO) {
+    return { ok: false, error: 'El nombre no puede pasar de ' + MAX_LEN_PORTAFOLIO + ' caracteres.' };
+  }
+  // Nombres únicos comparando sin acentos ni mayúsculas: "Viaje" y "viaje" son
+  // el mismo portafolio para quien lo lee, y tenerlos separados sólo confunde.
+  const arr = Array.isArray(portafolios) ? portafolios : [];
+  for (let i = 0; i < arr.length; i++) {
+    if (!arr[i] || arr[i].id === id) continue;
+    if (norm(arr[i].nombre) === norm(nombre)) {
+      return { ok: false, error: 'Ya existe un portafolio que se llama "' + arr[i].nombre + '".' };
+    }
+  }
+  const plazo = String((datos && datos.plazo) || '').trim();
+  if (plazo && !/^\d{4}-\d{2}-\d{2}$/.test(plazo)) {
+    return { ok: false, error: 'El plazo tiene que ser una fecha válida.' };
+  }
+  return { ok: true, error: '' };
+}
+
+// Agrupa los tickers de una tabla por portafolio. Devuelve un array de
+// { portafolio, tickers } en el orden en que están los portafolios, y al final
+// —siempre último— el grupo de lo que no tiene ninguno asignado. Los grupos
+// vacíos no se devuelven: un portafolio sin activos en ESTA tabla no tiene
+// por qué ocupar lugar en ella.
+function agruparPorPortafolio(tickers, portafolios, mapa, destino, moneda) {
+  const lista = Array.isArray(tickers) ? tickers : [];
+  const arr = Array.isArray(portafolios) ? portafolios : [];
+  const porId = {};
+  lista.forEach(function (tk) {
+    const id = portafolioDeActivo(mapa, destino, tk, moneda) || '__sin__';
+    if (!porId[id]) porId[id] = [];
+    porId[id].push(tk);
+  });
+  const grupos = [];
+  arr.forEach(function (p) {
+    if (p && porId[p.id] && porId[p.id].length) {
+      grupos.push({ portafolio: p, tickers: porId[p.id] });
+    }
+  });
+  // Lo asignado a un portafolio que ya no existe cae acá junto con lo que
+  // nunca tuvo: borrar un portafolio no puede esconder activos.
+  const sin = [];
+  Object.keys(porId).forEach(function (id) {
+    if (id === '__sin__' || !portafolioPorId(arr, id)) {
+      porId[id].forEach(function (tk) { sin.push(tk); });
+    }
+  });
+  if (sin.length) grupos.push({ portafolio: null, tickers: sin.sort() });
+  return grupos;
+}
+
 function sectorPorClave(key) {
   for (let i = 0; i < SECTORES.length; i++) {
     if (SECTORES[i].key === key) return SECTORES[i];
@@ -2853,6 +2947,9 @@ if (typeof module !== 'undefined' && module.exports) {
     claveTickerInfo, infoDeTicker,
     // sector de los activos
     SECTORES, sectorPorClave, etiquetaSector, sectorDeActivo, sectoresSeleccionables,
+    // portafolios: agrupar activos por objetivo adentro de cada cartera
+    MAX_LEN_PORTAFOLIO, claveActivoPortafolio, portafolioDeActivo, portafolioPorId,
+    validarPortafolio, agruparPorPortafolio,
     concentracionPorSector, sectoresConcentrados,
     TIPOS_RIESGO, etiquetaTipoRiesgo, tipoDeRiesgo, concentracionPorTipo, tiposConcentrados,
     // ventas de activos

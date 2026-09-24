@@ -1235,6 +1235,62 @@ group('tickerInfo por ticker y moneda', function () {
   });
 });
 
+group('Portafolios', function () {
+  const PFS = [
+    { id: 'p1', nombre: 'Viaje a Marruecos', objetivo: 'dos semanas', plazo: '2027-11-28' },
+    { id: 'p2', nombre: 'Auto', objetivo: '', plazo: '' }
+  ];
+  test('la clave del activo lleva destino, ticker y moneda', function () {
+    assertEqual(claveActivoPortafolio('inversiones', 'aapl', 'USD'), 'inversiones|AAPL|USD');
+    assertEqual(claveActivoPortafolio('reserva', 'GOLD'), 'reserva|GOLD|ARS');
+  });
+  test('el mismo ticker en dos destinos son dos asignaciones distintas', function () {
+    const mapa = { 'inversiones|AAPL|ARS': 'p1' };
+    assertEqual(portafolioDeActivo(mapa, 'inversiones', 'AAPL', 'ARS'), 'p1');
+    assertEqual(portafolioDeActivo(mapa, 'jubilacion_jalm', 'AAPL', 'ARS'), null);
+  });
+  test('no se admite un portafolio sin nombre', function () {
+    assertEqual(validarPortafolio({ nombre: '   ' }, PFS).ok, false);
+  });
+  test('el nombre repetido se rechaza sin importar mayúsculas ni acentos', function () {
+    assertEqual(validarPortafolio({ nombre: 'auto' }, PFS).ok, false);
+    assertEqual(validarPortafolio({ nombre: 'Casa' }, PFS).ok, true);
+  });
+  test('al editar, el propio nombre no cuenta como repetido', function () {
+    assertEqual(validarPortafolio({ nombre: 'Auto' }, PFS, 'p2').ok, true);
+  });
+  test('el plazo tiene que ser una fecha, y puede no estar', function () {
+    assertEqual(validarPortafolio({ nombre: 'X', plazo: 'mañana' }, PFS).ok, false);
+    assertEqual(validarPortafolio({ nombre: 'X', plazo: '' }, PFS).ok, true);
+    assertEqual(validarPortafolio({ nombre: 'X', plazo: '2027-01-05' }, PFS).ok, true);
+  });
+  test('agrupa en el orden de los portafolios y deja lo sin asignar al final', function () {
+    const mapa = { 'inversiones|SPY|ARS': 'p2', 'inversiones|AAPL|ARS': 'p1' };
+    const gs = agruparPorPortafolio(['AAPL', 'SPY', 'MELI'], PFS, mapa, 'inversiones', 'ARS');
+    assertEqual(gs.length, 3);
+    assertEqual(gs[0].portafolio.id, 'p1');
+    assertEqual(gs[1].portafolio.id, 'p2');
+    assertEqual(gs[2].portafolio, null);
+    assertEqual(gs[2].tickers.join(','), 'MELI');
+  });
+  test('un portafolio sin activos en esta tabla no ocupa lugar', function () {
+    const gs = agruparPorPortafolio(['AAPL'], PFS, { 'inversiones|AAPL|ARS': 'p1' }, 'inversiones', 'ARS');
+    assertEqual(gs.length, 1);
+    assertEqual(gs[0].portafolio.id, 'p1');
+  });
+  test('lo asignado a un portafolio borrado cae en sin portafolio', function () {
+    const gs = agruparPorPortafolio(['AAPL'], PFS, { 'inversiones|AAPL|ARS': 'fantasma' }, 'inversiones', 'ARS');
+    assertEqual(gs.length, 1);
+    assertEqual(gs[0].portafolio, null);
+    assertEqual(gs[0].tickers.join(','), 'AAPL');
+  });
+  test('sin asignaciones, todo va a un solo grupo sin portafolio', function () {
+    const gs = agruparPorPortafolio(['B', 'A'], PFS, {}, 'inversiones', 'ARS');
+    assertEqual(gs.length, 1);
+    assertEqual(gs[0].tickers.join(','), 'A,B');
+  });
+});
+
 group('Sector de los activos', function () {
   const LISTADO = { AAPL: { r: 20, n: 'Apple Inc.', s: 'tecnologia' }, SPY: { r: 60, n: 'SPDR S&P 500', s: 'indices' } };
   test('sin carga manual, el sector sale del listado', function () {

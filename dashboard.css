@@ -6742,12 +6742,94 @@ body[data-exporting="true"] .section-card {
   text-align: left;
   border-bottom: 1px solid var(--border);
 }
-/* Rótulo, conteo y refresco en una línea, uno al lado del otro. */
+/* Rótulo, conteo, refresco, selector de vista y barra de agrupar, todo en una
+   línea. La barra de agrupar se va al margen derecho: aparece y desaparece
+   según haya selección, y desde el borde no corre a los otros al hacerlo. */
 .inv-currency-head-inner {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+.inv-currency-head-inner .inv-agrupar { margin-left: auto; }
+
+/* ── Agrupar activos en un portafolio ─────────────────────────────────── */
+/* El tilde de selección, en la misma celda que el chevron y el vender. */
+.investment-detail-grouped .inv-sel-check {
+  width: 13px;
+  height: 13px;
+  margin: 0 2px 0 0;
+  vertical-align: middle;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.inv-agrupar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  color: var(--muted);
+  text-transform: none;
+}
+.inv-agrupar-n { color: var(--accent); }
+.inv-agrupar-sel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  height: 22px;
+  padding: 0 6px;
+  background: var(--bg-2);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.inv-agrupar-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  height: 22px;
+  padding: 0 10px;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.inv-agrupar-btn:hover { background: var(--accent); color: var(--on-accent, #1A1714); }
+
+/* ── Vista por portafolio ─────────────────────────────────────────────── */
+/* El título de cada grupo. Misma banda que el rótulo de la tabla, un escalón
+   más abajo en la jerarquía: el nombre en tinta normal y el resto apagado. */
+.inv-pf-head td {
+  padding: 8px 10px !important;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-0);
+}
+.inv-pf-nombre {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-right: 10px;
+}
+.inv-pf-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted-2);
+  margin-right: 10px;
+}
+.inv-pf-meta {
+  font-size: 10px;
+  color: var(--muted-2);
+}
+/* El grupo sin portafolio va atenuado: es lo que falta clasificar, no un
+   portafolio más. */
+.inv-pf-grupo:last-child .inv-pf-nombre { color: var(--muted); }
 .inv-currency-header-row .inv-section-label {
   color: var(--accent);
   font-weight: 600;

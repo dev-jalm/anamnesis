@@ -408,6 +408,16 @@ const state = {
   // Array de { id, name, dateStart, dateEnd, tagKey, createdAt }
   // tagKey apunta a una entrada en state.taglabels (auto-creada al iniciar el viaje)
   travels: [],
+  // Portafolios: agrupan los activos de una cartera según para qué son.
+  // Array de { id, nombre, objetivo, plazo, createdAt }. Se administran en
+  // Administración → Salud financiera; la asignación de cada activo vive en
+  // activoPortafolio.
+  portafolios: [],
+  // Qué activo va en qué portafolio: { 'destino|TICKER|MONEDA': portafolioId }.
+  // La clave la arma claveActivoPortafolio() en core.js. Es un mapa y no un
+  // campo de cada compra porque el portafolio es de la tenencia, no de la
+  // tanda: comprar más del mismo ticker no lo saca de su portafolio.
+  activoPortafolio: {},
   // Preferencias de visibilidad de secciones de Ficha médica.
   // Si una key no está, se asume true (visible). Hacemos una excepción para
   // `distRingsSection` (la vista compacta de los 3 anillos) que arranca oculta
@@ -7975,6 +7985,8 @@ function setActiveCatTab(tab) {
   const travelTab = document.getElementById('catTabTravel');
   if (travelTab) travelTab.classList.toggle('hidden', tab !== 'travel');
   document.getElementById('catTabParams').classList.toggle('hidden', tab !== 'params');
+  const pfTab = document.getElementById('catTabPortafolios');
+  if (pfTab) pfTab.classList.toggle('hidden', tab !== 'portafolios');
   const configTab = document.getElementById('catTabConfig');
   if (configTab) configTab.classList.toggle('hidden', tab !== 'config');
   // Compat con state guardado que apunte a 'kpis' (tab eliminada): redirigir a 'config'
@@ -8004,6 +8016,8 @@ function setActiveCatTab(tab) {
     renderTravelSection();
   } else if (tab === 'params') {
     renderParamsTab();
+  } else if (tab === 'portafolios') {
+    renderPortafoliosTab();
   } else if (tab === 'config') {
     // Ficha médica unifica visibilidad de secciones + vista resumen + configuración de KPIs
     renderConfigTab();
@@ -11952,6 +11966,307 @@ function applyTravelTagsToNewTx(tx) {
   });
 }
 
+/* ==========================================================================
+   PORTAFOLIOS — la parte de la solapa Salud financiera
+
+   Dos cosas: elegir activos y agruparlos, y ver la tabla agrupada por
+   portafolio en lugar de como lista plana.
+   ========================================================================== */
+
+// Qué vista tiene cada tabla: 'listado' (la de siempre) o 'portafolio'.
+// La clave es destino|moneda, la misma del orden por columna. No se persiste,
+// igual que el orden: es cómo estás mirando ahora, no una preferencia.
+const vistaActivos = {};
+
+function vistaDeTabla(clave) {
+  return vistaActivos[clave] === 'portafolio' ? 'portafolio' : 'listado';
+}
+
+// El selector de vista. Usa las clases de los otros selectores de la app
+// —el de Resumen/Completa, el de Evolución— porque es el mismo control.
+function vistaActivosToggle(clave) {
+  const v = vistaDeTabla(clave);
+  return '<span class="view-mode-toggle inv-vista-toggle" data-vista-tabla="' + escapeHtmlSafe(clave) + '">' +
+    '<button type="button" class="view-mode-btn' + (v === 'listado' ? ' active' : '') + '" data-vista="listado">Listado</button>' +
+    '<button type="button" class="view-mode-btn' + (v === 'portafolio' ? ' active' : '') + '" data-vista="portafolio">Por portafolio</button>' +
+  '</span>';
+}
+
+// <option>s de portafolio para el selector de asignación. La primera opción
+// saca del portafolio: un solo control para poner y para quitar.
+function opcionesPortafolio() {
+  return '<option value="">— elegí un portafolio —</option>' +
+    portafolios().slice().sort(function (a, b) {
+      return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es');
+    }).map(function (p) {
+      return '<option value="' + escapeHtmlSafe(p.id) + '">' + escapeHtmlSafe(p.nombre) + '</option>';
+    }).join('') +
+    '<option value="__quitar__">— quitar del portafolio —</option>';
+}
+
+// La barra de agrupar. Se dibuja siempre pero arranca oculta: aparece cuando
+// hay algo tildado, así la cabecera no lleva controles que no aplican.
+function barraAgruparHtml(clave) {
+  return '<span class="inv-agrupar hidden" data-agrupar="' + escapeHtmlSafe(clave) + '">' +
+    '<span class="inv-agrupar-n">0</span>' +
+    '<select class="inv-agrupar-sel">' + opcionesPortafolio() + '</select>' +
+    '<button type="button" class="inv-agrupar-btn" data-action="asignar-portafolio">ASIGNAR</button>' +
+  '</span>';
+}
+
+// Muestra u oculta la barra de cada tabla según cuántos activos tenga tildados.
+function actualizarBarrasAgrupar(root) {
+  const ambito = root || document;
+  ambito.querySelectorAll('.inv-agrupar').forEach(function (barra) {
+    const tabla = barra.closest('.investment-detail-table');
+    if (!tabla) return;
+    const n = tabla.querySelectorAll('.inv-sel-check:checked').length;
+    barra.classList.toggle('hidden', n === 0);
+    const cnt = barra.querySelector('.inv-agrupar-n');
+    if (cnt) cnt.textContent = n + ' seleccionado' + (n === 1 ? '' : 's');
+  });
+}
+
+// Asigna —o saca— los activos tildados de una tabla. Devuelve cuántos tocó.
+function asignarPortafolioASeleccion(tabla, valor) {
+  const mapa = mapaActivoPortafolio();
+  let n = 0;
+  tabla.querySelectorAll('.inv-sel-check:checked').forEach(function (chk) {
+    const clave = chk.getAttribute('data-sel-clave');
+    if (!clave) return;
+    if (valor === '__quitar__') { delete mapa[clave]; }
+    else { mapa[clave] = valor; }
+    n++;
+  });
+  return n;
+}
+
+(function bindAgruparActivos() {
+  // Tildar o destildar sólo actualiza la barra: no se rehace la tabla, que
+  // borraría la selección que se está armando.
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('inv-sel-check')) {
+      actualizarBarrasAgrupar(e.target.closest('.investment-detail-table') || document);
+    }
+  });
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest && e.target.closest('[data-action="asignar-portafolio"]');
+    if (btn) {
+      const barra = btn.closest('.inv-agrupar');
+      const tabla = btn.closest('.investment-detail-table');
+      const sel = barra && barra.querySelector('.inv-agrupar-sel');
+      if (!tabla || !sel) return;
+      if (!sel.value) { appAlert('Elegí a qué portafolio van los activos seleccionados.'); return; }
+      if (sel.value !== '__quitar__' && !portafolioPorId(portafolios(), sel.value)) {
+        appAlert('Ese portafolio ya no existe. Crealo en Administración → Salud financiera.');
+        return;
+      }
+      const n = asignarPortafolioASeleccion(tabla, sel.value);
+      if (!n) return;
+      scheduleSave();
+      renderMainAssets();
+      return;
+    }
+    const vistaBtn = e.target.closest && e.target.closest('.inv-vista-toggle [data-vista]');
+    if (vistaBtn) {
+      const cont = vistaBtn.closest('.inv-vista-toggle');
+      const clave = cont && cont.getAttribute('data-vista-tabla');
+      if (!clave) return;
+      vistaActivos[clave] = vistaBtn.getAttribute('data-vista');
+      renderMainAssets();
+    }
+  });
+})();
+
+/* ==========================================================================
+   PORTAFOLIOS — Administración → Salud financiera
+
+   El ABM de los agrupamientos. Acá se crean, editan y eliminan; qué activo va
+   en cuál se decide en la propia solapa Salud financiera, que es donde están
+   los activos a la vista. El dominio —validación, agrupado— vive en core.js.
+   ========================================================================== */
+
+// Qué portafolio se está editando. null = el formulario está en modo alta.
+let pfEditandoId = null;
+
+function portafolios() {
+  if (!Array.isArray(state.portafolios)) state.portafolios = [];
+  return state.portafolios;
+}
+
+function mapaActivoPortafolio() {
+  if (!state.activoPortafolio || typeof state.activoPortafolio !== 'object') state.activoPortafolio = {};
+  return state.activoPortafolio;
+}
+
+// Cuántos activos tiene asignados un portafolio. Se cuenta sobre el mapa y no
+// sobre las tenencias: un activo que se vendió entero sigue asignado, y que el
+// conteo lo refleje evita que un portafolio parezca vacío cuando no lo está.
+function activosDePortafolio(id) {
+  const mapa = mapaActivoPortafolio();
+  return Object.keys(mapa).filter(function (k) { return mapa[k] === id; }).length;
+}
+
+function renderPortafoliosTab() {
+  const list = document.getElementById('pfList');
+  const count = document.getElementById('pfCount');
+  if (!list) return;
+  const arr = portafolios().slice().sort(function (a, b) {
+    // Por plazo: lo que vence antes va arriba. Los que no tienen plazo van al
+    // final, que es donde va lo que no corre contra una fecha.
+    const pa = a.plazo || '9999-12-31', pb = b.plazo || '9999-12-31';
+    return pa.localeCompare(pb);
+  });
+  if (count) count.textContent = arr.length > 0 ? '(' + arr.length + ')' : '';
+  if (arr.length === 0) {
+    list.innerHTML = '<div class="travels-empty">Todavía no creaste ningún portafolio. Creá uno acá arriba y después, en Salud financiera, elegí qué activos lo componen.</div>';
+    return;
+  }
+  const hoy = todayISO();
+  list.innerHTML = arr.map(function (p) {
+    const n = activosDePortafolio(p.id);
+    const vencido = p.plazo && p.plazo < hoy;
+    const plazoTxt = p.plazo
+      ? (p.plazo.split('-').reverse().join('/') + (vencido ? ' · vencido' : ''))
+      : 'sin plazo';
+    return '<div class="travel-row" data-pf-id="' + escapeHtmlSafe(p.id) + '">' +
+      '<div class="travel-row-info">' +
+        '<div class="travel-row-name">' +
+          '<span>' + escapeHtmlSafe(p.nombre) + '</span>' +
+          '<span class="travel-status ' + (vencido ? 'finished' : 'future') + '">' + escapeHtmlSafe(plazoTxt) + '</span>' +
+        '</div>' +
+        '<div class="travel-row-meta">' +
+          (p.objetivo ? escapeHtmlSafe(p.objetivo) + ' · ' : '') +
+          n + ' activo' + (n === 1 ? '' : 's') +
+        '</div>' +
+      '</div>' +
+      '<button class="travel-row-edit" data-action="edit-pf" title="Editar portafolio">' +
+        '<i data-lucide="edit-2" style="width:14px;height:14px"></i>' +
+      '</button>' +
+      '<button class="travel-row-delete" data-action="delete-pf" title="Eliminar portafolio">' +
+        '<i data-lucide="trash-2" style="width:14px;height:14px"></i>' +
+      '</button>' +
+    '</div>';
+  }).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function limpiarFormPortafolio() {
+  pfEditandoId = null;
+  const n = document.getElementById('pfNombreInput');
+  const o = document.getElementById('pfObjetivoInput');
+  const p = document.getElementById('pfPlazoInput');
+  if (n) n.value = '';
+  if (o) o.value = '';
+  if (p) p.value = '';
+  const lbl = document.getElementById('pfAddBtnLabel');
+  if (lbl) lbl.textContent = 'CREAR PORTAFOLIO';
+  const cancel = document.getElementById('pfCancelWrap');
+  if (cancel) cancel.classList.add('hidden');
+}
+
+function guardarPortafolioDesdeForm() {
+  const datos = {
+    nombre: (document.getElementById('pfNombreInput') || {}).value || '',
+    objetivo: (document.getElementById('pfObjetivoInput') || {}).value || '',
+    plazo: (document.getElementById('pfPlazoInput') || {}).value || ''
+  };
+  const v = validarPortafolio(datos, portafolios(), pfEditandoId);
+  if (!v.ok) { appAlert(v.error); return; }
+  if (pfEditandoId) {
+    const p = portafolioPorId(portafolios(), pfEditandoId);
+    if (p) {
+      p.nombre = datos.nombre.trim();
+      p.objetivo = datos.objetivo.trim();
+      p.plazo = datos.plazo.trim();
+    }
+  } else {
+    portafolios().push({
+      id: 'pf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      nombre: datos.nombre.trim(),
+      objetivo: datos.objetivo.trim(),
+      plazo: datos.plazo.trim(),
+      createdAt: Date.now()
+    });
+  }
+  scheduleSave();
+  limpiarFormPortafolio();
+  renderPortafoliosTab();
+  // La solapa principal muestra los portafolios en su vista agrupada y en el
+  // selector de asignación: se rehace para que el cambio se vea sin recargar.
+  if (typeof renderMainAssets === 'function') renderMainAssets();
+}
+
+function editarPortafolio(id) {
+  const p = portafolioPorId(portafolios(), id);
+  if (!p) return;
+  pfEditandoId = id;
+  const n = document.getElementById('pfNombreInput');
+  const o = document.getElementById('pfObjetivoInput');
+  const pl = document.getElementById('pfPlazoInput');
+  if (n) n.value = p.nombre || '';
+  if (o) o.value = p.objetivo || '';
+  if (pl) pl.value = p.plazo || '';
+  const lbl = document.getElementById('pfAddBtnLabel');
+  if (lbl) lbl.textContent = 'GUARDAR CAMBIOS';
+  const cancel = document.getElementById('pfCancelWrap');
+  if (cancel) cancel.classList.remove('hidden');
+  if (n) n.focus();
+}
+
+function eliminarPortafolio(id) {
+  const p = portafolioPorId(portafolios(), id);
+  if (!p) return;
+  const n = activosDePortafolio(id);
+  appConfirm({
+    title: 'Eliminar portafolio',
+    eyebrow: 'Salud financiera',
+    danger: true,
+    icon: 'trash-2',
+    message: n > 0
+      ? 'Se elimina <strong>' + escapeHtmlSafe(p.nombre) + '</strong> y sus ' + n + ' activo' + (n === 1 ? '' : 's') +
+        ' vuelve' + (n === 1 ? '' : 'n') + ' al grupo sin portafolio. Las tenencias no se tocan: lo único que se borra es el agrupamiento.'
+      : 'Se elimina <strong>' + escapeHtmlSafe(p.nombre) + '</strong>. No tiene activos asignados.',
+    confirmLabel: n > 0 ? 'Eliminar y desagrupar ' + n : 'Eliminar'
+  }, function (ok) {
+    if (!ok) return;
+    state.portafolios = portafolios().filter(function (x) { return x.id !== id; });
+    // Se limpian las asignaciones: dejarlas apuntando a un portafolio que ya no
+    // existe deja basura que crece con cada borrado.
+    const mapa = mapaActivoPortafolio();
+    Object.keys(mapa).forEach(function (k) { if (mapa[k] === id) delete mapa[k]; });
+    if (pfEditandoId === id) limpiarFormPortafolio();
+    scheduleSave();
+    renderPortafoliosTab();
+    if (typeof renderMainAssets === 'function') renderMainAssets();
+  });
+}
+
+(function bindPortafoliosTab() {
+  const add = document.getElementById('pfAddBtn');
+  if (add) add.addEventListener('click', guardarPortafolioDesdeForm);
+  const cancel = document.getElementById('pfCancelBtn');
+  if (cancel) cancel.addEventListener('click', function () { limpiarFormPortafolio(); });
+  const list = document.getElementById('pfList');
+  if (list) {
+    list.addEventListener('click', function (e) {
+      const row = e.target.closest('[data-pf-id]');
+      if (!row) return;
+      const id = row.getAttribute('data-pf-id');
+      if (e.target.closest('[data-action="edit-pf"]')) editarPortafolio(id);
+      else if (e.target.closest('[data-action="delete-pf"]')) eliminarPortafolio(id);
+    });
+  }
+  // Enter en cualquiera de los campos de texto guarda, como en el resto de los
+  // formularios de alta de la app.
+  ['pfNombreInput', 'pfObjetivoInput'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); guardarPortafolioDesdeForm(); }
+    });
+  });
+})();
+
 function renderTravelSection() {
   const list = document.getElementById('travelsList');
   const count = document.getElementById('travelsCount');
@@ -13982,6 +14297,8 @@ function buildStateSnapshot() {
     params: state.params,
     recurringDismissed: state.recurringDismissed,
     travels: state.travels,
+    portafolios: state.portafolios,
+    activoPortafolio: state.activoPortafolio,
     visibilityPrefs: state.visibilityPrefs,
     kpiCardsConfig: state.kpiCardsConfig,
     loadReminderDismissed: state.loadReminderDismissed,
@@ -14160,6 +14477,12 @@ function applyStateSnapshot(snap) {
   if (snap.params) state.params = Object.assign({}, state.params, snap.params);
   if (Array.isArray(snap.recurringDismissed)) state.recurringDismissed = snap.recurringDismissed;
   if (Array.isArray(snap.travels)) state.travels = snap.travels;
+  // Se resetean si el snapshot no los trae, igual que trades: si no, los
+  // portafolios reales sobreviven al modo demo y se arrastran al abrir otro
+  // archivo, que después los guarda como propios.
+  state.portafolios = Array.isArray(snap.portafolios) ? snap.portafolios : [];
+  state.activoPortafolio = (snap.activoPortafolio && typeof snap.activoPortafolio === 'object')
+    ? snap.activoPortafolio : {};
   if (snap.visibilityPrefs && typeof snap.visibilityPrefs === 'object') state.visibilityPrefs = snap.visibilityPrefs;
   if (Array.isArray(snap.kpiCardsConfig)) state.kpiCardsConfig = snap.kpiCardsConfig;
   if (snap.loadReminderDismissed && typeof snap.loadReminderDismissed === 'object') state.loadReminderDismissed = snap.loadReminderDismissed;
@@ -17711,10 +18034,18 @@ function valorOrden(fila, clave) {
   return isFinite(n) ? n : null;
 }
 
+// En la vista por portafolio cada grupo es su propio <tbody>, así que se ordena
+// uno por uno: las filas nunca cruzan de grupo y el orden que se pide en el
+// título de la columna vale adentro de cada portafolio.
 function ordenarTablaActivos(tabla) {
+  Array.from(tabla.tBodies).forEach(function (tb) { ordenarCuerpoActivos(tabla, tb); });
+  const est = ordenActivos[tabla.getAttribute('data-orden-tabla')];
+  marcarOrdenTitulos(tabla, est);
+}
+
+function ordenarCuerpoActivos(tabla, tbody) {
   const est = ordenActivos[tabla.getAttribute('data-orden-tabla')];
   if (!est) return;
-  const tbody = tabla.tBodies[0];
   if (!tbody) return;
   // Grupos: cada fila de ticker seguida de sus filas de detalle.
   const grupos = [];
@@ -17722,7 +18053,7 @@ function ordenarTablaActivos(tabla) {
     if (tr.classList.contains('inv-ticker-row')) grupos.push([tr]);
     else if (grupos.length && tr.hasAttribute('data-ticker-detail')) grupos[grupos.length - 1].push(tr);
   });
-  if (grupos.length < 2) return marcarOrdenTitulos(tabla, est);
+  if (grupos.length < 2) return;
   grupos.sort(function (a, b) {
     const va = valorOrden(a[0], est.clave), vb = valorOrden(b[0], est.clave);
     // Lo que no tiene dato —vacío, sin precio— va siempre al final, sea cual
@@ -17733,8 +18064,9 @@ function ordenarTablaActivos(tabla) {
       ? va - vb : String(va).localeCompare(String(vb), 'es');
     return cmp * est.dir;
   });
+  // La fila de título del portafolio no entra en `grupos` —no es ni ticker ni
+  // detalle—, así que no se mueve y queda primera al reordenar las demás.
   grupos.forEach(function (g) { g.forEach(function (tr) { tbody.appendChild(tr); }); });
-  marcarOrdenTitulos(tabla, est);
 }
 
 function marcarOrdenTitulos(tabla, est) {
@@ -18852,6 +19184,12 @@ function buildInvestmentDetailPanel(destinos, title) {
       }
       return '<tr class="inv-ticker-row" data-ticker="' + escapeHtmlSafe(tk) + '"' + ordenAttrs + '>' +
         '<td class="inv-ticker-toggle">' +
+          // Seleccionar para agrupar. La clave lleva destino, ticker y moneda:
+          // el mismo ticker en dos carteras son dos tenencias distintas y
+          // pueden ir a portafolios distintos.
+          '<input type="checkbox" class="inv-sel-check" data-sel-clave="' +
+            escapeHtmlSafe(claveActivoPortafolio(destinos[0], tk, g.moneda)) + '"' +
+            ' title="Seleccionar para agrupar en un portafolio">' +
           '<button class="inv-toggle-btn" data-action="toggle-ticker" title="Ver compras individuales"><i data-lucide="chevron-right" style="width:13px;height:13px"></i></button>' +
           // Vender TODO el ticker. La venta parcial va en las filas de detalle,
           // porque el costo de lo vendido sale del precio de cada compra.
@@ -18910,8 +19248,34 @@ function buildInvestmentDetailPanel(destinos, title) {
       entriesRowsHtml;
     }).join('');
   }
-  const arsRows = buildRows(arsGroups, arsTickers, '$');
-  const usdRows = buildRows(usdGroups, usdTickers, 'US$');
+  // El cuerpo de una tabla, según la vista elegida. En listado es un <tbody>
+  // con todo; por portafolio, un <tbody> por grupo encabezado por su título,
+  // que es lo que deja que el orden por columna siga valiendo adentro de cada
+  // uno sin mezclar activos de portafolios distintos.
+  function cuerpoTabla(groups, tickers, prefijo, moneda) {
+    const clave = (destinos[0] || '') + '|' + moneda;
+    if (vistaDeTabla(clave) !== 'portafolio') {
+      return '<tbody>' + buildRows(groups, tickers, prefijo) + '</tbody>';
+    }
+    const gs = agruparPorPortafolio(tickers, portafolios(), state.activoPortafolio, destinos[0], moneda);
+    return gs.map(function (g) {
+      const p = g.portafolio;
+      const plazo = p && p.plazo ? p.plazo.split('-').reverse().join('/') : '';
+      const meta = p
+        ? [p.objetivo || '', plazo ? 'plazo ' + plazo : ''].filter(Boolean).join(' · ')
+        : 'Activos que todavía no asignaste a ningún portafolio.';
+      return '<tbody class="inv-pf-grupo">' +
+        '<tr class="inv-pf-head"><td colspan="12">' +
+          '<span class="inv-pf-nombre">' + escapeHtmlSafe(p ? p.nombre : 'Sin portafolio') + '</span>' +
+          '<span class="inv-pf-count">' + g.tickers.length + ' activo' + (g.tickers.length === 1 ? '' : 's') + '</span>' +
+          (meta ? '<span class="inv-pf-meta">' + escapeHtmlSafe(meta) + '</span>' : '') +
+        '</td></tr>' +
+        buildRows(groups, g.tickers, prefijo) +
+      '</tbody>';
+    }).join('');
+  }
+  const arsRows = cuerpoTabla(arsGroups, arsTickers, '$', 'ARS');
+  const usdRows = cuerpoTabla(usdGroups, usdTickers, 'US$', 'USD');
 
   // Helper para construir una tabla por moneda. Cabecera de dos filas:
   //   fila 1: label de moneda (ARS / USD) + contador de tickers
@@ -18922,6 +19286,9 @@ function buildInvestmentDetailPanel(destinos, title) {
   function buildCurrencyTable(monedaLabel, count, rowsHtml) {
     if (!count) return '';
     const bodyHtml = rowsHtml;
+    // La misma clave que usa el orden por columna: destino + moneda. La vista
+    // y la selección son de esta tabla, no del panel entero.
+    const claveTabla = (destinos[0] || '') + '|' + monedaLabel;
     // El botón "actualizar precios" va SOLO en la fila ARS — actualiza tanto
     // tickers ARS (precio directo desde data912/CEDEARs) como tickers USD
     // (precio implícito desde su CEDEAR equivalente vía cotización MEP).
@@ -18939,24 +19306,24 @@ function buildInvestmentDetailPanel(destinos, title) {
     return '<table class="investment-detail-table investment-detail-grouped inv-table-' + monedaLabel.toLowerCase() + '"' +
       ' data-orden-tabla="' + escapeHtmlSafe((destinos[0] || '') + '|' + monedaLabel) + '">' +
       '<colgroup>' +
-        /* Chevron + vender, uno al lado del otro: cada botón mide 17 y en 20px
-           se apilaban en dos renglones. En el detalle, borrar + vender. */
-        '<col style="width:40px">' +   /* toggle chevron y vender · en el detalle, borrar */
+        /* Selección + chevron + vender, uno al lado del otro: cada control mide
+           17 y en 40px no entraban los tres. En el detalle, borrar + vender. */
+        '<col style="width:64px">' +   /* seleccionar, desplegar y vender */
         /* Broker/Exchange: desde que es texto y no un chip, el más largo
            —BULL MARKET— mide 72,6 y con el padding de la celda necesita 89.
-           Los 20 que sobraban pagan el ensanche de la primera columna, así el
-           ancho total de la tabla no cambia. */
-        '<col style="width:105px">' +  /* Broker/Exchange · en el detalle, destino */
+           Lo que sobraba paga el ensanche de la primera columna, así el ancho
+           total de la tabla no cambia. */
+        '<col style="width:94px">' +   /* Broker/Exchange · en el detalle, destino */
         '<col style="width:80px">' +   /* Ticker · en el detalle, fecha. Entra "ETH-USDT" */
         /* Descripción: 195 para que entre "BARRICK GOLD CORPORATION", la más
            larga de la demo: el campo necesita 170 de ancho útil y la celda le
            resta 20 de padding. Con 190 entraba sólo porque la tabla sumaba
            menos que el contenedor y el sobrante se repartía entre columnas. */
         '<col style="width:195px">' +  /* Descripción · vacía en el detalle */
-        /* Sector: en mayúsculas y JetBrains Mono semibold, la opción más
-           larga, "ÍNDICES Y ETF AMPLIOS", mide 169px con su padding y su
-           flecha (medido con width:auto). La celda le resta 20 de padding. */
-        '<col style="width:195px">' +  /* Sector · vacía en el detalle */
+        /* Sector: en mayúsculas y JetBrains Mono semibold, la opción más larga
+           —"CONSUMO DISCRECIONAL" desde que Índices perdió "amplios"— mide
+           161,6 medida con width:auto, y la celda le suma 20 de padding. */
+        '<col style="width:182px">' +  /* Sector · vacía en el detalle */
         '<col style="width:85px">' +   /* Cantidad */
         '<col style="width:105px">' +  /* PPC · en el detalle, precio de compra */
         '<col style="width:105px">' +  /* Invertido · en el detalle, total comprado */
@@ -18980,12 +19347,18 @@ function buildInvestmentDetailPanel(destinos, title) {
               '<span class="inv-section-label">Activos comprados en ' + monedaLabel + '</span>' +
               '<span class="inv-section-count">' + count + ' ticker' + (count === 1 ? '' : 's') + '</span>' +
               updateBtnHtml +
+              vistaActivosToggle(claveTabla) +
+              barraAgruparHtml(claveTabla) +
             '</div>' +
           '</th>' +
         '</tr>' +
         '<tr class="inv-columns-header-row">' +
           '<th></th>' +
-          thOrden('broker', 'Broker/Exchange', 'Broker o exchange donde se opera el activo') +
+          // Parte en dos renglones como "Variación x nominal": sin espacios era
+          // una sola palabra para el navegador y medía 99 en una columna de 94.
+          // El espacio duro antes de la barra la mantiene pegada a "Broker";
+          // con dos espacios normales la barra caía sola en un tercer renglón.
+          thOrden('broker', 'Broker / Exchange', 'Broker o exchange donde se opera el activo') +
           thOrden('ticker', 'Ticker') +
           thOrden('descripcion', 'Descripción') +
           thOrden('sector', 'Sector', 'Del listado de BYMA cuando el ticker está ahí; si no, elegilo de la lista') +
@@ -18998,7 +19371,9 @@ function buildInvestmentDetailPanel(destinos, title) {
           thOrden('gp', 'G/P', 'Ganancia o pérdida vs PPC', true) +
         '</tr>' +
       '</thead>' +
-      '<tbody>' + bodyHtml + '</tbody>' +
+      // bodyHtml ya trae sus <tbody>: uno en la vista listado, uno por
+      // portafolio en la agrupada.
+      bodyHtml +
     '</table>';
   }
 

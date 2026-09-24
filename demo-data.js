@@ -576,6 +576,30 @@ function buildDemoSnapshot(mesesAtras) {
       return copia;
     });
 
+  // ============================================================
+  // Portafolios: agrupan los CEDEARs de Inversiones según para qué son. Dos
+  // objetivos con plazo y tres activos sin asignar, para que la vista por
+  // portafolio muestre a la vez los grupos y el renglón de lo que no tiene.
+  // ============================================================
+  const plazoDemo = function (meses) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() + meses, 28);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-28';
+  };
+  const portafolios = [
+    { id: 'pf_demo_viaje', nombre: 'Viaje a Marruecos',
+      objetivo: 'Dos semanas, pasajes y estadía para dos personas.',
+      plazo: plazoDemo(14), createdAt: Date.now() },
+    { id: 'pf_demo_auto', nombre: 'Auto',
+      objetivo: 'Cambiar el usado por uno más nuevo, sin tomar prenda.',
+      plazo: plazoDemo(30), createdAt: Date.now() }
+  ];
+  const activoPortafolio = {
+    'inversiones|SPY|ARS': 'pf_demo_viaje',
+    'inversiones|AAPL|ARS': 'pf_demo_viaje',
+    'inversiones|MELI|ARS': 'pf_demo_auto',
+    'inversiones|NVDA|ARS': 'pf_demo_auto'
+  };
+
   const snap = {
     schemaVersion: (typeof SCHEMA_VERSION !== 'undefined' ? SCHEMA_VERSION : 4),
     version: (typeof STATE_VERSION !== 'undefined' ? STATE_VERSION : 4),
@@ -715,6 +739,12 @@ function buildDemoSnapshot(mesesAtras) {
     loadReminderDismissed: {},
     origins: DEMO_ORIGENES.slice(),
     uploadHistoryByOrigin: {},
+    // Dos portafolios que reparten parte de los CEDEARs de Inversiones y dejan
+    // el resto sin asignar, que es el caso más común: se agrupa lo que tiene un
+    // destino pensado y lo demás queda suelto. Las fechas de plazo son futuras y
+    // relativas a hoy, así la demo no envejece.
+    portafolios: portafolios,
+    activoPortafolio: activoPortafolio,
     investmentEntries: investmentEntries,
     trades: trades,
     tickerInfo: tickerInfo,

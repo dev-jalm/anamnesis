@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.42 |
+| **Versión** | 1.43 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -284,7 +284,24 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 
 **Fundamento de RF-079g.** El costo de lo vendido se toma del precio de la compra de la que sale, de modo que el criterio de reparto determina el resultado realizado. Se adopta el criterio de primeras entradas, primeras salidas por ser el uso contable habitual y el único que no depende de qué compra elija el usuario en cada venta. El sistema lo informa en pantalla.
 
-#### 4.6.2 Sector de los activos y concentración
+#### 4.6.2 Portafolios
+
+| ID | Requerimiento |
+|---|---|
+| RF-080 | Un **portafolio** agrupa activos según para qué se tienen: de los activos de Inversiones, unos pueden ser un viaje y otros un auto. No es un destino: los destinos (RF-070) son fijos, y un portafolio agrupa activos **dentro** de ellos |
+| RF-080a | Un portafolio se compone de **nombre**, **objetivo** —texto libre que describe para qué es— y **plazo**, que es una fecha y puede no informarse |
+| RF-080b | Los portafolios se administran desde **Administración → Salud financiera**: se crean, se modifican y se eliminan. La pantalla informa, por cada uno, su objetivo, su plazo y cuántos activos tiene asignados, y señala los de plazo vencido |
+| RF-080c | El nombre es obligatorio, admite hasta 40 caracteres y no puede repetirse. La comparación ignora mayúsculas y acentos: dos portafolios que se leen igual son el mismo |
+| RF-080d | La asignación de activos **no** se hace en Administración sino en la propia solapa Salud financiera, donde están los activos a la vista: cada activo de la tabla se puede seleccionar, y la selección se asigna a un portafolio —o se saca del que tenga— en una sola acción |
+| RF-080e | La asignación es del activo **en su destino y su moneda**: el mismo ticker tenido en dos carteras son dos tenencias distintas y pueden ir a portafolios distintos. Comprar más de un activo ya asignado no lo saca de su portafolio |
+| RF-080f | La tabla de activos de cada moneda ofrece dos vistas: **Listado**, la lista plana, y **Por portafolio**, que agrupa los activos bajo el nombre de su portafolio, con su objetivo y su plazo. Los portafolios sin activos en esa tabla no se presentan, y lo que no está asignado va en un grupo propio, siempre último |
+| RF-080g | El orden por columna (RF-074c) sigue vigente en la vista por portafolio, y opera **dentro** de cada grupo: ordenar no mezcla activos de portafolios distintos |
+| RF-080h | Eliminar un portafolio no toca las tenencias: sólo se deshace el agrupamiento, y sus activos vuelven al grupo sin portafolio. El sistema informa cuántos son antes de confirmar |
+| RF-080i | Un activo asignado a un portafolio que ya no existe se presenta como sin portafolio: eliminar no puede esconder tenencias |
+
+**Fundamento de RF-080d.** Crear el portafolio y decir qué lo compone son dos momentos distintos: el primero es una definición y vive donde se administra el producto; el segundo es una decisión sobre activos concretos, y pedirla en una pantalla que no los muestra obligaría a recordarlos de memoria.
+
+#### 4.6.3 Sector de los activos y concentración
 
 | ID | Requerimiento |
 |---|---|
@@ -570,6 +587,18 @@ Compartida por todas las compras del mismo símbolo.
 | `sector` | Clave del catálogo de RF-073b | No |
 
 `sector` se guarda sólo cuando el usuario lo asigna y difiere del automático (RF-073f). El sector que proviene del listado de BYMA no se copia a este registro: se lee del listado cada vez.
+
+### 5.3.1 Portafolio
+
+| Campo | Tipo | Obligatorio |
+|---|---|---|
+| `id` | Identificador | Sí |
+| `nombre` | Texto (hasta 40) | Sí |
+| `objetivo` | Texto (hasta 120) | No |
+| `plazo` | Fecha | No |
+| `createdAt` | Marca temporal | Sí |
+
+Qué activo pertenece a qué portafolio se registra aparte, en un índice cuya clave es **destino + ticker + moneda** (RF-080e) y cuyo valor es el identificador del portafolio. Va separado de la compra porque el portafolio es de la tenencia y no de la tanda: incorporar una compra más del mismo activo no lo saca de su portafolio.
 
 ### 5.4 Regla
 
@@ -1107,9 +1136,17 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.39 | 20/09/2026 | El rótulo de cada tabla se presenta en una sola línea (RF-073y) y el total de cada grupo de Liquidado pasa a tinta normal (RF-072b) | Reemplazada |
 | 1.40 | 20/09/2026 | La sección Liquidado cierra con el total liquidado: lo ganado menos lo perdido (RF-072h) | Reemplazada |
 | 1.41 | 21/09/2026 | Las secciones del cuerpo conservan si estaban desplegadas cuando una operación vuelve a presentar la pantalla (RF-072f) | Reemplazada |
-| 1.42 | 21/09/2026 | La sección Liquidado se presenta en dos columnas: ganancias a la izquierda y pérdidas a la derecha (RF-072b) | **Vigente** |
+| 1.42 | 21/09/2026 | La sección Liquidado se presenta en dos columnas: ganancias a la izquierda y pérdidas a la derecha (RF-072b) | Reemplazada |
+| 1.43 | 23/09/2026 | Incorpora los **portafolios**: agrupar los activos de una cartera según para qué son, con su ABM en Administración → Salud financiera y la asignación desde la propia solapa. La tabla de activos suma la vista por portafolio (RF-080 a RF-080i) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Portafolios: ABM en Administración y agrupamiento de activos | RF-080 a RF-080i |
+| Vista por portafolio en la tabla de activos | RF-080f, RF-080g |
+
+**Implementados en la versión 1.42**
 
 | Cambio | Requerimiento |
 |---|---|
