@@ -6803,6 +6803,27 @@ body[data-exporting="true"] .section-card {
 }
 .inv-agrupar-btn:hover { background: var(--accent); color: var(--on-accent, #1A1714); }
 
+/* ── Vista por portafolio en Concentración y Liquidado ────────────────── */
+/* El selector de estas dos secciones no vive en la cabecera de una tabla, así
+   que lleva su propia barra. Los 14px de la izquierda son los mismos con los
+   que arrancan los bloques que tiene abajo. */
+.inv-vista-barra {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 14px 0;
+}
+/* Cada portafolio, con su rótulo arriba de su bloque. El rótulo usa la misma
+   clase que el de la tabla; acá va sólo la banda que lo separa del anterior. */
+.inv-conc-pf + .inv-conc-pf { border-top: 1px solid var(--border); }
+.inv-conc-pf-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px 0;
+}
+.inv-conc-pf-head.es-sin .inv-section-label { color: var(--muted); }
+
 /* ── Vista por portafolio ─────────────────────────────────────────────── */
 /* La cabecera de cada grupo no tiene estilo propio: usa las mismas clases que
    el rótulo de la tabla (.inv-currency-header-row + .inv-section-label +

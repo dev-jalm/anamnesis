@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.44 |
+| **Versión** | 1.45 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -294,7 +294,9 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-080c | El nombre es obligatorio, admite hasta 40 caracteres y no puede repetirse. La comparación ignora mayúsculas y acentos: dos portafolios que se leen igual son el mismo |
 | RF-080d | La asignación de activos **no** se hace en Administración sino en la propia solapa Salud financiera, donde están los activos a la vista: cada activo de la tabla se puede seleccionar, y la selección se asigna a un portafolio —o se saca del que tenga— en una sola acción |
 | RF-080e | La asignación es del activo **en su destino y su moneda**: el mismo ticker tenido en dos carteras son dos tenencias distintas y pueden ir a portafolios distintos. Comprar más de un activo ya asignado no lo saca de su portafolio |
-| RF-080f | La tabla de activos de cada moneda ofrece dos vistas: **Activos**, la lista plana, y **Portafolio**, que agrupa los activos bajo el nombre de su portafolio, con su objetivo y su plazo. La cabecera de cada grupo se presenta con el mismo tratamiento que el rótulo de la tabla (RF-073y): son rótulos del mismo rango. Los portafolios sin activos en esa tabla no se presentan, y lo que no está asignado va en un grupo propio, siempre último y atenuado |
+| RF-080f | La tabla de activos de cada moneda ofrece dos vistas: **Activos**, la lista plana, y **Portafolio**, que agrupa los activos bajo el nombre de su portafolio, con su objetivo y su plazo. La cabecera de cada grupo se presenta con el mismo tratamiento que el rótulo de la tabla (RF-073y): son rótulos del mismo rango. Cada portafolio se rotula **"Portafolio n° N: nombre"**, con N el orden en que se presenta. Los portafolios sin activos en esa tabla no se presentan, y lo que no está asignado va en un grupo propio, siempre último, atenuado y sin número —no es un portafolio— |
+| RF-080k | Las secciones **Concentración** y **Liquidado** ofrecen el mismo par de vistas. En Portafolio, cada sección se repite una vez por portafolio con los datos de sus activos: la concentración de cada objetivo por separado —que revela un portafolio concentrado aunque la cartera en conjunto no lo esté— y lo que dejó lo vendido de cada uno. El selector no se presenta si todavía no hay portafolios creados |
+| RF-080l | En la concentración de un portafolio **no interviene la Liquidez**: la plata sin invertir es del destino y no de un objetivo, y sumarla a cada portafolio la contaría varias veces. Por eso la suma de los portafolios equivale al valor invertido del destino, no a su valor total |
 | RF-080j | Qué activos se pueden seleccionar depende de la vista. En **Activos** sólo los que todavía no tienen portafolio, porque esa vista sirve para agrupar lo suelto; los ya asignados se presentan pero no se pueden elegir, e informan en cuál están. En **Portafolio** se puede seleccionar cualquiera, que es donde se los mueve de grupo o se los saca, viéndolos junto a los demás del portafolio del que salen |
 | RF-080g | El orden por columna (RF-074c) sigue vigente en la vista por portafolio, y opera **dentro** de cada grupo: ordenar no mezcla activos de portafolios distintos |
 | RF-080h | Eliminar un portafolio no toca las tenencias: sólo se deshace el agrupamiento, y sus activos vuelven al grupo sin portafolio. El sistema informa cuántos son antes de confirmar |
@@ -1139,9 +1141,17 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.41 | 21/09/2026 | Las secciones del cuerpo conservan si estaban desplegadas cuando una operación vuelve a presentar la pantalla (RF-072f) | Reemplazada |
 | 1.42 | 21/09/2026 | La sección Liquidado se presenta en dos columnas: ganancias a la izquierda y pérdidas a la derecha (RF-072b) | Reemplazada |
 | 1.43 | 23/09/2026 | Incorpora los **portafolios**: agrupar los activos de una cartera según para qué son, con su ABM en Administración → Salud financiera y la asignación desde la propia solapa. La tabla de activos suma la vista por portafolio (RF-080 a RF-080i) | Reemplazada |
-| 1.44 | 23/09/2026 | Las vistas pasan a llamarse Activos y Portafolio, la cabecera de cada grupo toma el tratamiento del rótulo de la tabla y la selección se restringe según la vista (RF-080f, RF-080j) | **Vigente** |
+| 1.44 | 23/09/2026 | Las vistas pasan a llamarse Activos y Portafolio, la cabecera de cada grupo toma el tratamiento del rótulo de la tabla y la selección se restringe según la vista (RF-080f, RF-080j) | Reemplazada |
+| 1.45 | 23/09/2026 | Cada portafolio se rotula con su número de orden, y las secciones Concentración y Liquidado suman el mismo par de vistas, repitiéndose por portafolio (RF-080f, RF-080k, RF-080l) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Cada portafolio rotulado con su número de orden | RF-080f |
+| Concentración y Liquidado, también por portafolio | RF-080k, RF-080l |
+
+**Implementados en la versión 1.44**
 
 | Cambio | Requerimiento |
 |---|---|

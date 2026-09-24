@@ -11992,6 +11992,39 @@ function vistaActivosToggle(clave) {
   '</span>';
 }
 
+// El rótulo de un grupo: "Portafolio n° 1: Viaje a Marruecos". El número es el
+// orden en que sale en pantalla, no un dato guardado: sirve para nombrarlo de
+// un vistazo cuando hay varios. Lo que no tiene portafolio no lleva número.
+function tituloPortafolio(p, nro) {
+  return p ? ('Portafolio n° ' + nro + ': ' + p.nombre) : 'Sin portafolio';
+}
+
+// Los portafolios que tienen algún activo en esta cartera, en orden, más el
+// grupo de lo que no tiene. Cada uno con su id para filtrar, su número y su
+// definición. Lo usan las secciones de Concentración y Liquidado, que agrupan
+// por portafolio pero no listan activos uno por uno.
+function gruposDePortafolioDeCartera(destinos) {
+  const mapa = mapaActivoPortafolio();
+  const presentes = {};
+  let hayHuerfanos = false;
+  (Array.isArray(state.investmentEntries) ? state.investmentEntries : []).forEach(function (e) {
+    if (destinos.indexOf(e.destino) < 0) return;
+    const mon = e.moneda === 'USD' ? 'USD' : 'ARS';
+    const id = mapa[claveActivoPortafolio(e.destino, e.ticker, mon)];
+    if (id && portafolioPorId(portafolios(), id)) presentes[id] = true;
+    else hayHuerfanos = true;
+  });
+  const grupos = [];
+  let nro = 0;
+  portafolios().forEach(function (p) {
+    if (!presentes[p.id]) return;
+    nro++;
+    grupos.push({ id: p.id, portafolio: p, nro: nro });
+  });
+  if (hayHuerfanos) grupos.push({ id: '__sin__', portafolio: null, nro: 0 });
+  return grupos;
+}
+
 // El tilde de selección de una fila. Deshabilitado en la vista Activos cuando
 // el activo ya tiene portafolio: esa vista sirve para agrupar lo suelto, y
 // mover o sacar se hace en la vista Portafolio, donde el activo se ve dentro
@@ -12008,6 +12041,15 @@ function celdaSeleccionActivo(destino, ticker, moneda) {
   return '<input type="checkbox" class="inv-sel-check" data-sel-clave="' + escapeHtmlSafe(clave) + '"' +
     (bloqueado ? ' disabled' : '') +
     ' title="' + escapeHtmlSafe(titulo) + '">';
+}
+
+// El mismo selector, para las secciones que no son una tabla —Concentración y
+// Liquidado—. Va en su propia barra, arriba del contenido.
+function vistaSeccionToggle(clave) {
+  // Sin portafolios creados no hay nada que elegir: el selector sólo agrega
+  // ruido y una vista que saldría vacía.
+  if (!portafolios().length) return '';
+  return '<div class="inv-vista-barra">' + vistaActivosToggle(clave) + '</div>';
 }
 
 // <option>s de portafolio para el selector de asignación. La primera opción
@@ -18228,7 +18270,11 @@ function liquidoDeDestino(destinos) {
 // a precio actual cuando lo hay, a costo cuando no —y se informa cuáles, para
 // que el porcentaje no se lea como más preciso de lo que es—. Los dólares se
 // pasan a pesos al MEP, igual que la fila ARS+USD de la cabecera.
-function concentracionDeCartera(destinos) {
+// `filtroPf` acota el cálculo a un portafolio: su id, o '__sin__' para lo que
+// no tiene ninguno. Sin él —el caso normal— se mide la cartera entera. Con
+// filtro no entra la Liquidez: la plata sin invertir es del destino, no de un
+// objetivo en particular, y sumarla a cada portafolio la contaría de más.
+function concentracionDeCartera(destinos, filtroPf) {
   const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
   const entries = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
     .filter(function (e) { return destinos.indexOf(e.destino) >= 0; });
@@ -18241,6 +18287,11 @@ function concentracionDeCartera(destinos) {
       const g = groups[tk];
       // Lo liquidado no es tenencia: no concentra nada.
       if (!(g.cantidadTotal > 0)) return;
+      if (filtroPf !== undefined) {
+        const pf = portafolioDeActivo(state.activoPortafolio, destinos[0], tk, mon);
+        const suyo = pf && portafolioPorId(portafolios(), pf) ? pf : '__sin__';
+        if (suyo !== filtroPf) return;
+      }
       const info = infoDeTicker(state.tickerInfo, tk, mon);
       const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
         ? Number(info.precioActual) : null;
@@ -18257,7 +18308,7 @@ function concentracionDeCartera(destinos) {
   // cartera: sin ella, una Reserva con un solo activo daba 100% en ese sector
   // aunque el grueso estuviera en efectivo. Sale del Líquido de la cabecera.
   // Negativo —se invirtió más de lo aportado— no es tenencia, así que no entra.
-  const liquido = liquidoDeDestino(destinos);
+  const liquido = (filtroPf === undefined) ? liquidoDeDestino(destinos) : 0;
   // En mayúsculas, como los tickers con los que comparte la barra.
   if (liquido > 0) posiciones.push({ ticker: 'LÍQUIDO', sector: 'liquidez', valor: liquido, aCosto: false });
   const c = concentracionPorSector(posiciones);
@@ -18425,8 +18476,34 @@ function avisoConcentracion(html) {
   return '<div class="inv-sector-alert"><i data-lucide="alert-triangle" style="width:13px;height:13px"></i><span>' + html + '</span></div>';
 }
 
+// La sección Concentración. En la vista Activos mide la cartera entera; en la
+// vista Portafolio repite el mismo par de gráficos para cada portafolio, así
+// se ve si un objetivo concreto está concentrado aunque la cartera en conjunto
+// no lo esté.
 function buildSectorConcentrationBlock(destinos, nombreCartera) {
-  const c = concentracionDeCartera(destinos);
+  const claveVista = (destinos[0] || '') + '|conc';
+  if (vistaDeTabla(claveVista) === 'portafolio') {
+    const grupos = gruposDePortafolioDeCartera(destinos);
+    const bloques = grupos.map(function (g) {
+      const html = bloqueConcentracion(destinos, tituloPortafolio(g.portafolio, g.nro), g.id);
+      if (!html) return '';
+      return '<div class="inv-conc-pf">' +
+        '<div class="inv-conc-pf-head' + (g.portafolio ? '' : ' es-sin') + '">' +
+          '<span class="inv-section-label">' + escapeHtmlSafe(tituloPortafolio(g.portafolio, g.nro)) + '</span>' +
+          (g.portafolio && g.portafolio.objetivo
+            ? '<span class="inv-pf-meta">' + escapeHtmlSafe(g.portafolio.objetivo) + '</span>' : '') +
+        '</div>' + html +
+      '</div>';
+    }).filter(Boolean).join('');
+    if (!bloques) return '';
+    return vistaSeccionToggle(claveVista) + bloques;
+  }
+  return vistaSeccionToggle(claveVista) + bloqueConcentracion(destinos, nombreCartera);
+}
+
+// El par de gráficos de un ámbito: la cartera entera o uno de sus portafolios.
+function bloqueConcentracion(destinos, nombreCartera, filtroPf) {
+  const c = concentracionDeCartera(destinos, filtroPf);
   if (!c.total || c.sectores.length === 0) return '';
   const sobre = 'sobre $ ' + fmt(Math.round(c.total)) + (c.liquido > 0 ? ' entre activos y líquido' : ' valuados');
 
@@ -18639,7 +18716,38 @@ function ventasDelPanel(entries) {
 // salió en pérdida. Cada fila es una venta —fecha, activo, nominales vendidos
 // sobre el total de la compra, lo cobrado y el resultado—, y el título de cada
 // grupo lleva su total. Sin ventas registradas el bloque no se dibuja.
-function buildLiquidadosBlock(entries) {
+// La sección Liquidado. En la vista Portafolio repite el bloque para cada
+// portafolio, con las ventas de sus activos: qué dejó cada objetivo por
+// separado, que es la pregunta que el total de la cartera no responde.
+function buildLiquidadosBlock(entries, destinos) {
+  const dest = (destinos && destinos[0]) || '';
+  const claveVista = dest + '|liq';
+  if (dest && vistaDeTabla(claveVista) === 'portafolio') {
+    const grupos = gruposDePortafolioDeCartera(destinos);
+    const mapa = mapaActivoPortafolio();
+    const bloques = grupos.map(function (g) {
+      const suyas = (entries || []).filter(function (e) {
+        const mon = e.moneda === 'USD' ? 'USD' : 'ARS';
+        const id = mapa[claveActivoPortafolio(e.destino, e.ticker, mon)];
+        const suyo = (id && portafolioPorId(portafolios(), id)) ? id : '__sin__';
+        return suyo === g.id;
+      });
+      const html = bloqueLiquidado(suyas);
+      if (!html) return '';
+      return '<div class="inv-conc-pf">' +
+        '<div class="inv-conc-pf-head' + (g.portafolio ? '' : ' es-sin') + '">' +
+          '<span class="inv-section-label">' + escapeHtmlSafe(tituloPortafolio(g.portafolio, g.nro)) + '</span>' +
+        '</div>' + html +
+      '</div>';
+    }).filter(Boolean).join('');
+    if (!bloques) return '';
+    return vistaSeccionToggle(claveVista) + bloques;
+  }
+  const uno = bloqueLiquidado(entries);
+  return uno ? (vistaSeccionToggle(claveVista) + uno) : '';
+}
+
+function bloqueLiquidado(entries) {
   const filas = ventasDelPanel(entries);
   // Una venta al costo exacto no es una pérdida: va con las ganancias, donde
   // suma cero y no ensucia el total de lo perdido.
@@ -18962,7 +19070,7 @@ function buildInvestmentDetailPanel(destinos, title) {
 
   // Lo liquidado, debajo del total ARS+USD: qué salió en ganancia y qué en
   // pérdida. Se arma con las mismas entradas del panel.
-  const liquidadoHtml = buildLiquidadosBlock(all);
+  const liquidadoHtml = buildLiquidadosBlock(all, destinos);
 
   // Sparkline: serie por mes del invertido acumulado de los tickers del panel.
   // Va en la fila combinada ARS+USD. Las filas ARS y USD individuales muestran
@@ -19279,8 +19387,12 @@ function buildInvestmentDetailPanel(destinos, title) {
       return '<tbody>' + buildRows(groups, tickers, prefijo) + '</tbody>';
     }
     const gs = agruparPorPortafolio(tickers, portafolios(), state.activoPortafolio, destinos[0], moneda);
+    // Los portafolios se numeran en el orden en que salen; el grupo de lo que
+    // no tiene no lleva número, porque no es un portafolio.
+    let nro = 0;
     return gs.map(function (g) {
       const p = g.portafolio;
+      if (p) nro++;
       const plazo = p && p.plazo ? p.plazo.split('-').reverse().join('/') : '';
       const meta = p
         ? [p.objetivo || '', plazo ? 'plazo ' + plazo : ''].filter(Boolean).join(' · ')
@@ -19290,7 +19402,7 @@ function buildInvestmentDetailPanel(destinos, title) {
       return '<tbody class="inv-pf-grupo">' +
         '<tr class="inv-currency-header-row inv-pf-head"><td colspan="12">' +
           '<div class="inv-currency-head-inner">' +
-            '<span class="inv-section-label">' + escapeHtmlSafe(p ? p.nombre : 'Sin portafolio') + '</span>' +
+            '<span class="inv-section-label">' + escapeHtmlSafe(tituloPortafolio(p, nro)) + '</span>' +
             '<span class="inv-section-count">' + g.tickers.length + ' activo' + (g.tickers.length === 1 ? '' : 's') + '</span>' +
             (meta ? '<span class="inv-pf-meta">' + escapeHtmlSafe(meta) + '</span>' : '') +
           '</div>' +
