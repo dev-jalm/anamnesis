@@ -12013,16 +12013,89 @@ function rotuloPortafolioHtml(p, nro) {
     '<span class="inv-pf-nombre">' + escapeHtmlSafe(p.nombre) + '</span></span>';
 }
 
+// Valor, resultado, cantidad de activos y fecha de inicio de un portafolio
+// dentro de una cartera. `moneda` acota a una sola —para la tabla de esa
+// moneda, en sus propias unidades—; sin ella se toman las dos y se convierten
+// a pesos al MEP, como el resto de los totales del panel.
+//
+// La fecha de inicio es la compra más vieja de sus activos: cuándo empezó a
+// armarse el objetivo. Cuenta aunque el activo ya esté liquidado, porque el
+// portafolio arrancó igual.
+function totalesDePortafolio(destinos, pfId, moneda) {
+  const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+  const entries = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
+    .filter(function (e) { return destinos.indexOf(e.destino) >= 0; });
+  const monedas = moneda ? [moneda === 'USD' ? 'USD' : 'ARS'] : ['ARS', 'USD'];
+  let valor = 0, invertido = 0, todosConPrecio = true, desde = '', n = 0;
+  monedas.forEach(function (mon) {
+    const groups = groupInvestmentEntriesByTicker(entries.filter(function (e) {
+      return (e.moneda === 'USD' ? 'USD' : 'ARS') === mon;
+    }));
+    Object.keys(groups).forEach(function (tk) {
+      const g = groups[tk];
+      const id = portafolioDeActivo(state.activoPortafolio, destinos[0], tk, mon);
+      const suyo = (id && portafolioPorId(portafolios(), id)) ? id : '__sin__';
+      if (suyo !== pfId) return;
+      n++;
+      (g.entries || []).forEach(function (e) {
+        if (e.fecha && (!desde || e.fecha < desde)) desde = e.fecha;
+      });
+      if (!(g.cantidadTotal > 0)) return;
+      const factor = (!moneda && mon === 'USD') ? mep : 1;
+      const info = infoDeTicker(state.tickerInfo, tk, mon);
+      const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
+        ? Number(info.precioActual) : null;
+      invertido += g.invertidoBruto * factor;
+      if (pa === null) { todosConPrecio = false; valor += g.invertidoBruto * factor; }
+      else valor += pa * g.cantidadTotal * factor;
+    });
+  });
+  const gp = todosConPrecio ? (valor - invertido) : null;
+  return {
+    n: n, valor: valor, gp: gp, desde: desde,
+    gpPct: (gp !== null && invertido !== 0) ? (gp / Math.abs(invertido) * 100) : null,
+    prefijo: (moneda === 'USD') ? 'US$' : '$'
+  };
+}
+
+// El contenido de la cabecera de un portafolio: los mismos datos y el mismo
+// formato en las tres secciones. Lo que cambia es sólo el envoltorio —una fila
+// de tabla en Activos, un div en las otras dos—.
+function contenidoCabeceraPortafolio(p, nro, tot) {
+  const excede = maxActivosPortafolio() > 0 && p && tot.n > maxActivosPortafolio();
+  // El mismo pie en las tres secciones: para qué es, hasta cuándo y desde
+  // cuándo. El "sin portafolio" no tiene definición, así que explica qué es.
+  const plazo = p && p.plazo ? p.plazo.split('-').reverse().join('/') : '';
+  const meta = (p
+    ? [p.objetivo || '', plazo ? 'plazo ' + plazo : '']
+    : ['Activos que todavía no asignaste a ningún portafolio.'])
+    .concat(tot.desde ? ['desde ' + tot.desde.split('-').reverse().join('/')] : [])
+    .filter(Boolean).join(' · ');
+  return '<div class="inv-currency-head-inner">' +
+    rotuloPortafolioHtml(p, nro) +
+    '<span class="inv-section-count' + (excede ? ' is-over' : '') + '"' +
+      (excede ? ' title="Supera los ' + maxActivosPortafolio() + ' activos que configuraste por portafolio"' : '') + '>' +
+      tot.n + ' activo' + (tot.n === 1 ? '' : 's') + (excede ? ' ⚠' : '') + '</span>' +
+    '<span class="inv-pf-total">' + tot.prefijo + ' ' + fmt(Math.round(tot.valor)) + '</span>' +
+    '<span class="inv-pf-gp ' + (tot.gp > 0 ? 'inv-gp-positive' : (tot.gp < 0 ? 'inv-gp-negative' : '')) + '">' +
+      (tot.gp === null ? '<span class="inv-na">—</span>'
+        : tot.prefijo + ' ' + fmt(Math.round(Math.abs(tot.gp))) +
+          (tot.gpPct !== null
+            ? '<span class="inv-pf-gp-pct">' + (tot.gp > 0 ? '+' : (tot.gp < 0 ? '-' : '')) +
+              Math.abs(tot.gpPct).toFixed(2) + '%</span>'
+            : '')) + '</span>' +
+    (meta ? '<span class="inv-pf-meta">' + escapeHtmlSafe(meta) + '</span>' : '') +
+  '</div>';
+}
+
 // La banda que encabeza cada portafolio en Concentración y en Liquidado. Usa
 // las mismas clases que la cabecera de la tabla de Activos —.inv-currency-
 // header-row y su contenido— para que las tres secciones se lean igual; acá no
 // es una fila de tabla, así que la banda va en un div.
-function cabeceraPortafolioHtml(g, objetivo) {
+function cabeceraPortafolioHtml(destinos, g) {
+  const tot = totalesDePortafolio(destinos, g.id, null);
   return '<div class="inv-currency-header-row inv-conc-pf-head">' +
-    '<div class="inv-currency-head-inner">' +
-      rotuloPortafolioHtml(g.portafolio, g.nro) +
-      (objetivo ? '<span class="inv-pf-meta">' + escapeHtmlSafe(objetivo) + '</span>' : '') +
-    '</div>' +
+    contenidoCabeceraPortafolio(g.portafolio, g.nro, tot) +
   '</div>';
 }
 
@@ -18543,9 +18616,7 @@ function buildSectorConcentrationBlock(destinos, nombreCartera) {
     const bloques = grupos.map(function (g) {
       const html = bloqueConcentracion(destinos, tituloPortafolio(g.portafolio, g.nro), g.id, totalDeCartera);
       if (!html) return '';
-      return '<div class="inv-conc-pf">' +
-        cabeceraPortafolioHtml(g, g.portafolio && g.portafolio.objetivo) + html +
-      '</div>';
+      return '<div class="inv-conc-pf">' + cabeceraPortafolioHtml(destinos, g) + html + '</div>';
     }).filter(Boolean).join('');
     return bloques;
   }
@@ -18817,7 +18888,7 @@ function buildLiquidadosBlock(entries, destinos) {
       });
       const html = bloqueLiquidado(suyas);
       if (!html) return '';
-      return '<div class="inv-conc-pf">' + cabeceraPortafolioHtml(g) + html + '</div>';
+      return '<div class="inv-conc-pf">' + cabeceraPortafolioHtml(destinos, g) + html + '</div>';
     }).filter(Boolean).join('');
     return bloques;
   }
@@ -19202,29 +19273,6 @@ function buildInvestmentDetailPanel(destinos, title) {
       '</div>' +
     '</div>';
 
-  // Valor actual y resultado de un conjunto de tickers, en su propia moneda.
-  function totalesDeGrupo(groups, tickers) {
-    let valor = 0, invertido = 0, todosConPrecio = true;
-    tickers.forEach(function (tk) {
-      const g = groups[tk];
-      if (!g || !(g.cantidadTotal > 0)) return;
-      const info = infoDeTicker(state.tickerInfo, tk, g.moneda);
-      const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
-        ? Number(info.precioActual) : null;
-      invertido += g.invertidoBruto;
-      if (pa === null) { todosConPrecio = false; valor += g.invertidoBruto; }
-      else valor += pa * g.cantidadTotal;
-    });
-    const gp = todosConPrecio ? (valor - invertido) : null;
-    return {
-      valor: valor,
-      gp: gp,
-      // El porcentaje es sobre lo invertido, igual que el de cada fila: dice
-      // cuánto rindió lo que se puso, no cuánto pesa sobre lo que vale hoy.
-      gpPct: (gp !== null && invertido !== 0) ? (gp / Math.abs(invertido) * 100) : null
-    };
-  }
-
   // ─── Peso de cada activo ───
   // El valor de una tenencia se mide igual que en la concentración: nominales
   // por precio actual, a costo si no hay precio, y los dólares al MEP.
@@ -19547,39 +19595,16 @@ function buildInvestmentDetailPanel(destinos, title) {
     return gs.map(function (g) {
       const p = g.portafolio;
       if (p) nro++;
-      // Valor y resultado del grupo: la suma de sus tenencias. El resultado
-      // queda en null si a algún activo le falta el precio de hoy, que es el
-      // mismo criterio de la cabecera del panel: sin precio no hay contra qué
-      // comparar y un total parcial se leería como el total.
-      const tot = totalesDeGrupo(groups, g.tickers);
-      const prefijo = moneda === 'USD' ? 'US$' : '$';
-      const excede = maxActivosPortafolio() > 0 && p && g.tickers.length > maxActivosPortafolio();
-      const plazo = p && p.plazo ? p.plazo.split('-').reverse().join('/') : '';
-      const meta = p
-        ? [p.objetivo || '', plazo ? 'plazo ' + plazo : ''].filter(Boolean).join(' · ')
-        : 'Activos que todavía no asignaste a ningún portafolio.';
+      // Los mismos totales que muestran Concentración y Liquidado, acotados a
+      // la moneda de esta tabla y en sus propias unidades.
+      // agruparPorPortafolio devuelve el portafolio, no su id: el del grupo sin
+      // asignar es el centinela que usa totalesDePortafolio.
+      const tot = totalesDePortafolio(destinos, p ? p.id : '__sin__', moneda);
       // Misma cabecera que la de la tabla ("ACTIVOS COMPRADOS EN ARS"): son
       // rótulos del mismo rango y comparten clases, no un estilo propio.
       return '<tbody class="inv-pf-grupo">' +
         '<tr class="inv-currency-header-row inv-pf-head"><td colspan="13">' +
-          '<div class="inv-currency-head-inner">' +
-            rotuloPortafolioHtml(p, nro) +
-            '<span class="inv-section-count' + (excede ? ' is-over' : '') + '"' +
-              (excede ? ' title="Supera los ' + maxActivosPortafolio() + ' activos que configuraste por portafolio"' : '') + '>' +
-              g.tickers.length + ' activo' + (g.tickers.length === 1 ? '' : 's') +
-              (excede ? ' ⚠' : '') + '</span>' +
-            // Cuánto vale el grupo y qué dejó: la misma pregunta que responde la
-            // cabecera del panel, a escala de portafolio.
-            '<span class="inv-pf-total">' + prefijo + ' ' + fmt(Math.round(tot.valor)) + '</span>' +
-            '<span class="inv-pf-gp ' + (tot.gp > 0 ? 'inv-gp-positive' : (tot.gp < 0 ? 'inv-gp-negative' : '')) + '">' +
-              (tot.gp === null ? '<span class="inv-na">—</span>'
-                : prefijo + ' ' + fmt(Math.round(Math.abs(tot.gp))) +
-                  (tot.gpPct !== null
-                    ? '<span class="inv-pf-gp-pct">' + (tot.gp > 0 ? '+' : (tot.gp < 0 ? '-' : '')) +
-                      Math.abs(tot.gpPct).toFixed(2) + '%</span>'
-                    : '')) + '</span>' +
-            (meta ? '<span class="inv-pf-meta">' + escapeHtmlSafe(meta) + '</span>' : '') +
-          '</div>' +
+          contenidoCabeceraPortafolio(p, nro, tot) +
         '</td></tr>' +
         buildRows(groups, g.tickers, prefijo) +
       '</tbody>';

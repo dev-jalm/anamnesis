@@ -6732,7 +6732,11 @@ body[data-exporting="true"] .section-card {
 /* Vale también para la cabecera de cada portafolio en la vista agrupada, que
    es un rótulo del mismo rango y usa una celda de cuerpo en vez de un th. */
 .inv-currency-header-row th,
-.inv-currency-header-row td {
+.inv-currency-header-row td,
+/* La banda de Concentración y Liquidado no es una celda de tabla, así que no
+   heredaba esta tipografía: sin ella el conteo salía en minúscula mientras en
+   Activos salía en mayúscula, y las tres cabeceras tenían que leerse igual. */
+.inv-conc-pf-head {
   /* Padding lateral reducido para alinear el rótulo con el inicio de las
      columnas de abajo, sin desperdiciar espacio a la izquierda. */
   padding: 8px 5px !important;
@@ -6822,7 +6826,6 @@ body[data-exporting="true"] .section-card {
 .inv-conc-pf-head.inv-currency-header-row {
   background: rgba(74, 107, 138, 0.12);
   border-bottom: 1px solid var(--border);
-  padding: 8px 5px;
   margin: 0 14px;
 }
 /* Aire entre la cabecera del portafolio y su bloque, el mismo que la
