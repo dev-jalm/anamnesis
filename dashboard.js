@@ -11999,6 +11999,28 @@ function tituloPortafolio(p, nro) {
   return p ? ('Portafolio n° ' + nro + ': ' + p.nombre) : 'Sin portafolio';
 }
 
+// El mismo rótulo en dos tintas: "Portafolio n° 1" queda en el acento de los
+// rótulos de sección y el nombre pasa a tinta plena, que es el dato que se
+// busca cuando hay varios.
+function rotuloPortafolioHtml(p, nro) {
+  if (!p) return '<span class="inv-section-label es-sin">Sin portafolio</span>';
+  return '<span class="inv-section-label">Portafolio n° ' + nro + ':' +
+    '<span class="inv-pf-nombre">' + escapeHtmlSafe(p.nombre) + '</span></span>';
+}
+
+// La banda que encabeza cada portafolio en Concentración y en Liquidado. Usa
+// las mismas clases que la cabecera de la tabla de Activos —.inv-currency-
+// header-row y su contenido— para que las tres secciones se lean igual; acá no
+// es una fila de tabla, así que la banda va en un div.
+function cabeceraPortafolioHtml(g, objetivo) {
+  return '<div class="inv-currency-header-row inv-conc-pf-head">' +
+    '<div class="inv-currency-head-inner">' +
+      rotuloPortafolioHtml(g.portafolio, g.nro) +
+      (objetivo ? '<span class="inv-pf-meta">' + escapeHtmlSafe(objetivo) + '</span>' : '') +
+    '</div>' +
+  '</div>';
+}
+
 // Los portafolios que tienen algún activo en esta cartera, en orden, más el
 // grupo de lo que no tiene. Cada uno con su id para filtrar, su número y su
 // definición. Lo usan las secciones de Concentración y Liquidado, que agrupan
@@ -12044,12 +12066,12 @@ function celdaSeleccionActivo(destino, ticker, moneda) {
 }
 
 // El mismo selector, para las secciones que no son una tabla —Concentración y
-// Liquidado—. Va en su propia barra, arriba del contenido.
+// Liquidado—. Va al lado del título de la sección.
 function vistaSeccionToggle(clave) {
   // Sin portafolios creados no hay nada que elegir: el selector sólo agrega
   // ruido y una vista que saldría vacía.
   if (!portafolios().length) return '';
-  return '<div class="inv-vista-barra">' + vistaActivosToggle(clave) + '</div>';
+  return vistaActivosToggle(clave);
 }
 
 // <option>s de portafolio para el selector de asignación. La primera opción
@@ -12129,6 +12151,9 @@ function asignarPortafolioASeleccion(tabla, valor) {
     }
     const vistaBtn = e.target.closest && e.target.closest('.inv-vista-toggle [data-vista]');
     if (vistaBtn) {
+      // En Concentración y Liquidado el selector vive adentro del <summary>:
+      // sin esto, el click plegaría la sección además de cambiar la vista.
+      if (vistaBtn.closest('summary')) e.preventDefault();
       const cont = vistaBtn.closest('.inv-vista-toggle');
       const clave = cont && cont.getAttribute('data-vista-tabla');
       if (!clave) return;
@@ -18484,25 +18509,48 @@ function buildSectorConcentrationBlock(destinos, nombreCartera) {
   const claveVista = (destinos[0] || '') + '|conc';
   if (vistaDeTabla(claveVista) === 'portafolio') {
     const grupos = gruposDePortafolioDeCartera(destinos);
+    // El total invertido de la cartera, para que cada portafolio pueda decir
+    // qué parte de ella ocupa. Se calcula una vez y se pasa a cada bloque.
+    const totalDeCartera = grupos.reduce(function (s, g) {
+      return s + (concentracionDeCartera(destinos, g.id).total || 0);
+    }, 0);
     const bloques = grupos.map(function (g) {
-      const html = bloqueConcentracion(destinos, tituloPortafolio(g.portafolio, g.nro), g.id);
+      const html = bloqueConcentracion(destinos, tituloPortafolio(g.portafolio, g.nro), g.id, totalDeCartera);
       if (!html) return '';
       return '<div class="inv-conc-pf">' +
-        '<div class="inv-conc-pf-head' + (g.portafolio ? '' : ' es-sin') + '">' +
-          '<span class="inv-section-label">' + escapeHtmlSafe(tituloPortafolio(g.portafolio, g.nro)) + '</span>' +
-          (g.portafolio && g.portafolio.objetivo
-            ? '<span class="inv-pf-meta">' + escapeHtmlSafe(g.portafolio.objetivo) + '</span>' : '') +
-        '</div>' + html +
+        cabeceraPortafolioHtml(g, g.portafolio && g.portafolio.objetivo) + html +
       '</div>';
     }).filter(Boolean).join('');
-    if (!bloques) return '';
-    return vistaSeccionToggle(claveVista) + bloques;
+    return bloques;
   }
-  return vistaSeccionToggle(claveVista) + bloqueConcentracion(destinos, nombreCartera);
+  return bloqueConcentracion(destinos, nombreCartera);
+}
+
+// La fila que encabeza el gráfico de sectores: cuánto vale el ámbito y cómo se
+// reparte, en una sola barra apilada. El porcentaje es la parte de la cartera
+// que ocupa —en la vista de la cartera entera, el 100%—.
+function filaResumenConcentracion(c, esPortafolio, totalCartera, colorDe, etiquetaDe) {
+  const pct = (totalCartera > 0) ? (c.total / totalCartera * 100) : 100;
+  const segmentos = c.sectores.map(function (s) {
+    const color = (colorDe || colorDeSector)(s.sector);
+    return '<span class="inv-distbar-seg' + (s.sector ? '' : ' inv-distbar-sin-sector') + '"' +
+      ' style="width:' + s.pct.toFixed(2) + '%' + (color ? ';background:' + color : '') + '"' +
+      tooltipSector(s, '$', etiquetaDe) + '></span>';
+  }).join('');
+  return '<div class="inv-sector-row inv-sector-total">' +
+    '<span class="inv-sector-name">' + (esPortafolio ? 'Portafolio completo' : 'Cartera completa') + '</span>' +
+    '<span class="inv-sector-pct">' + pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%</span>' +
+    '<span class="inv-sector-monto">$ ' + fmt(Math.round(c.total)) + '</span>' +
+    '<span class="inv-sector-track">' +
+      '<span class="inv-distbar" aria-label="Composición por sector">' + segmentos + '</span>' +
+    '</span>' +
+  '</div>';
 }
 
 // El par de gráficos de un ámbito: la cartera entera o uno de sus portafolios.
-function bloqueConcentracion(destinos, nombreCartera, filtroPf) {
+// `totalCartera` sólo llega en la vista por portafolio, para que la fila de
+// resumen diga qué parte de la cartera ocupa este portafolio.
+function bloqueConcentracion(destinos, nombreCartera, filtroPf, totalCartera) {
   const c = concentracionDeCartera(destinos, filtroPf);
   if (!c.total || c.sectores.length === 0) return '';
   const sobre = 'sobre $ ' + fmt(Math.round(c.total)) + (c.liquido > 0 ? ' entre activos y líquido' : ' valuados');
@@ -18520,6 +18568,15 @@ function bloqueConcentracion(destinos, nombreCartera, filtroPf) {
       motivo: MOTIVO_SIN_CONTROL[s.sector || '__sin__']
     });
   }).join('');
+  // Fila de resumen arriba de los sectores: el total del ámbito y, en la barra,
+  // sus sectores apilados. Es la misma barra de las filas ARS y USD de la
+  // cabecera —mismos colores, mismos tramos, mismo emergente de dos líneas—,
+  // así que al recorrerla se lee de dónde sale cada tramo.
+  const filaTotal = filaResumenConcentracion(c, filtroPf !== undefined, totalCartera);
+  // La misma fila en la segunda columna, con sus colores y sus etiquetas: las
+  // dos columnas se muestran juntas y arrancan con la misma fila.
+  const filaTotalTipo = filaResumenConcentracion(
+    c.porTipo, filtroPf !== undefined, totalCartera, colorDeTipoRiesgo, etiquetaTipoRiesgo);
   const alertasSector = c.concentrados.map(function (s) { return avisoConcentracion(textoAlertaSector(s, nombreCartera, umbral)); }).join('');
   const notas = [];
   if (c.aCosto.length) notas.push('Valuados a costo por no tener precio actual: ' + c.aCosto.join(', ') + '.');
@@ -18555,11 +18612,11 @@ function bloqueConcentracion(destinos, nombreCartera, filtroPf) {
     '<div class="inv-conc-celda">' + alertasSector + '</div>' +
     '<div class="inv-conc-celda inv-conc-col2">' + alertasTipo + '</div>' +
     '<div class="inv-conc-celda inv-conc-fila-barras">' +
-      '<div class="inv-sector-bars">' + filasSector + '</div>' +
+      '<div class="inv-sector-bars">' + filaTotal + filasSector + '</div>' +
       (notas.length ? '<div class="inv-sector-nota">' + escapeHtmlSafe(notas.join(' ')) + '</div>' : '') +
     '</div>' +
     '<div class="inv-conc-celda inv-conc-fila-barras inv-conc-col2">' +
-      '<div class="inv-sector-bars">' + filasTipo + '</div>' +
+      '<div class="inv-sector-bars">' + filaTotalTipo + filasTipo + '</div>' +
     '</div>' +
   '</div>';
 }
@@ -18734,17 +18791,11 @@ function buildLiquidadosBlock(entries, destinos) {
       });
       const html = bloqueLiquidado(suyas);
       if (!html) return '';
-      return '<div class="inv-conc-pf">' +
-        '<div class="inv-conc-pf-head' + (g.portafolio ? '' : ' es-sin') + '">' +
-          '<span class="inv-section-label">' + escapeHtmlSafe(tituloPortafolio(g.portafolio, g.nro)) + '</span>' +
-        '</div>' + html +
-      '</div>';
+      return '<div class="inv-conc-pf">' + cabeceraPortafolioHtml(g) + html + '</div>';
     }).filter(Boolean).join('');
-    if (!bloques) return '';
-    return vistaSeccionToggle(claveVista) + bloques;
+    return bloques;
   }
-  const uno = bloqueLiquidado(entries);
-  return uno ? (vistaSeccionToggle(claveVista) + uno) : '';
+  return bloqueLiquidado(entries);
 }
 
 function bloqueLiquidado(entries) {
@@ -18858,7 +18909,7 @@ function bloqueLiquidado(entries) {
 // .mesa con márgenes negativos y acá el contenedor no tiene ese padding—.
 // Sin contenido no se dibuja la sección: un título que se despliega en nada
 // se lee como algo roto.
-function bloquePlegableInv(titulo, bajada, contenido, clase) {
+function bloquePlegableInv(titulo, bajada, contenido, clase, extraTitulo) {
   if (!contenido) return '';
   // data-fold identifica la sección entre re-renders, para poder devolverla
   // abierta si lo estaba (ver renderMainAssets).
@@ -18866,7 +18917,9 @@ function bloquePlegableInv(titulo, bajada, contenido, clase) {
       ' data-fold="' + escapeHtmlSafe(titulo) + '">' +
     '<summary class="mesa-fold-sum">' +
       '<div>' +
-        '<h4 class="mesa-block-title">' + escapeHtmlSafe(titulo) + '</h4>' +
+        // El selector de vista va al lado del título, no adentro del cuerpo:
+        // con la sección plegada se oculta, como la bajada.
+        '<h4 class="mesa-block-title">' + escapeHtmlSafe(titulo) + (extraTitulo || '') + '</h4>' +
         '<p class="mesa-block-sub">' + escapeHtmlSafe(bajada) + '</p>' +
       '</div>' +
     '</summary>' +
@@ -19402,7 +19455,7 @@ function buildInvestmentDetailPanel(destinos, title) {
       return '<tbody class="inv-pf-grupo">' +
         '<tr class="inv-currency-header-row inv-pf-head"><td colspan="12">' +
           '<div class="inv-currency-head-inner">' +
-            '<span class="inv-section-label">' + escapeHtmlSafe(tituloPortafolio(p, nro)) + '</span>' +
+            rotuloPortafolioHtml(p, nro) +
             '<span class="inv-section-count">' + g.tickers.length + ' activo' + (g.tickers.length === 1 ? '' : 's') + '</span>' +
             (meta ? '<span class="inv-pf-meta">' + escapeHtmlSafe(meta) + '</span>' : '') +
           '</div>' +
@@ -19541,9 +19594,11 @@ function buildInvestmentDetailPanel(destinos, title) {
           buildCurrencyTable('ARS', arsTickers.length, arsRows) +
           buildCurrencyTable('USD', usdTickers.length, usdRows), 'inv-fold-activos') +
         bloquePlegableInv('Concentración', 'Cuánto pesa cada sector y cada tipo de riesgo en la cartera.',
-          buildSectorConcentrationBlock(destinos, title)) +
+          buildSectorConcentrationBlock(destinos, title), '',
+          vistaSeccionToggle((destinos[0] || '') + '|conc')) +
         bloquePlegableInv('Liquidado', 'Lo que ya se vendió, separado en ganancias y pérdidas.',
-          liquidadoHtml)) +
+          liquidadoHtml, '',
+          vistaSeccionToggle((destinos[0] || '') + '|liq'))) +
     '</div>' +
   '</details>';
 }

@@ -6804,25 +6804,43 @@ body[data-exporting="true"] .section-card {
 .inv-agrupar-btn:hover { background: var(--accent); color: var(--on-accent, #1A1714); }
 
 /* ── Vista por portafolio en Concentración y Liquidado ────────────────── */
-/* El selector de estas dos secciones no vive en la cabecera de una tabla, así
-   que lleva su propia barra. Los 14px de la izquierda son los mismos con los
-   que arrancan los bloques que tiene abajo. */
-.inv-vista-barra {
-  display: flex;
-  justify-content: flex-end;
-  padding: 10px 14px 0;
+/* El selector va al lado del título de la sección. Con la sección plegada se
+   oculta, igual que la bajada: no hay contenido al que aplicarle una vista. */
+.mesa-block-title .inv-vista-toggle {
+  margin-left: 12px;
+  text-transform: none;
+  letter-spacing: normal;
 }
-/* Cada portafolio, con su rótulo arriba de su bloque. El rótulo usa la misma
-   clase que el de la tabla; acá va sólo la banda que lo separa del anterior. */
+.mesa-fold:not([open]) > summary .inv-vista-toggle { display: none; }
+/* La banda de cada portafolio usa .inv-currency-header-row, igual que la
+   cabecera de la tabla de Activos. Acá no es una fila de tabla, así que el
+   fondo y el borde los pone este selector en vez de sus celdas. */
+.inv-conc-pf-head.inv-currency-header-row {
+  background: rgba(74, 107, 138, 0.12);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 5px;
+}
 .inv-conc-pf + .inv-conc-pf { border-top: 1px solid var(--border); }
-.inv-conc-pf-head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 12px 14px 0;
+/* El nombre del portafolio, en tinta plena: "Portafolio n° 1" se queda en el
+   acento de los rótulos y el nombre es el dato que se busca. */
+.inv-pf-nombre {
+  color: var(--ink);
+  margin-left: 6px;
 }
-.inv-conc-pf-head.es-sin .inv-section-label { color: var(--muted); }
+/* Con la clase sola no alcanza: .inv-currency-header-row .inv-section-label
+   tiene la misma especificidad y está declarada más abajo, así que ganaba. */
+.inv-currency-header-row .inv-section-label.es-sin,
+.inv-section-label.es-sin { color: var(--muted); }
+
+/* Fila de resumen del gráfico de sectores: el total del ámbito y su barra
+   apilada. Va separada de los sectores que tiene abajo. */
+.inv-sector-row.inv-sector-total {
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.inv-sector-total .inv-sector-name { color: var(--ink); font-weight: 600; }
+.inv-sector-total .inv-distbar { width: 100%; }
 
 /* ── Vista por portafolio ─────────────────────────────────────────────── */
 /* La cabecera de cada grupo no tiene estilo propio: usa las mismas clases que
