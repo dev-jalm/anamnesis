@@ -65,7 +65,7 @@
    Abiertos de entrada, el panel de Trading medía varias pantallas y había que
    scrollear hasta el final para llegar al historial, que es lo que más se mira.
 
-   El triángulo es el mismo tratamiento que usan los paneles de inversión: se
+   El chevron es el mismo tratamiento que usan los paneles de inversión: se
    saca el marcador nativo —que cambia de dibujo entre navegadores— y se pone
    uno propio que rota al abrir. */
 .mesa-fold > summary {
@@ -79,17 +79,35 @@
   padding: 2px 0;
 }
 .mesa-fold > summary::-webkit-details-marker { display: none; }
-.mesa-fold > summary::before {
-  content: '';
-  flex-shrink: 0;
-  width: 0; height: 0;
-  border-left: 5px solid var(--muted);
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  margin-top: 6px;
-  transition: transform 120ms ease;
+/* El chevron va colgado del título y no del summary, por dos razones medidas:
+
+   1. Estas secciones viven adentro de un panel de inversión, y ahí
+      `.investment-detail-panel summary::before` está en display:none —la regla
+      que apaga el chevron viejo del panel alcanza también a los summary
+      anidados—. Un ::before sobre el summary no se dibujaba nunca: medido, los
+      doce plegables de la pantalla tenían el triángulo en display:none.
+   2. Absoluto no ocupa lugar en la fila, así que el título sigue arrancando en
+      la misma x que las columnas de su tabla (57px) y que los títulos de
+      Trading, que es la alineación que ya estaba calibrada.
+
+   Mismo glifo, misma tipografía, mismo color y misma rotación que el chevron de
+   la cabecera del panel (.inv-header-name::before): es el mismo control y tiene
+   que verse igual. */
+.mesa-fold > summary .mesa-block-title { position: relative; }
+.mesa-fold > summary .mesa-block-title::before {
+  content: '▸';
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--muted-2);
+  transition: transform 0.15s;
 }
-.mesa-fold[open] > summary::before { transform: rotate(90deg); }
+.mesa-fold[open] > summary .mesa-block-title::before {
+  transform: translateY(-50%) rotate(90deg);
+}
 .mesa-fold > summary:hover .mesa-block-title { color: var(--accent); }
 
 /* El div que sigue al summary lleva el contenido. Sin el flex:1 el bloque de
@@ -123,7 +141,6 @@
    y el botón se acomodan solos al alto real del título. */
 .mesa-fold:not([open]) > summary { align-items: center; padding: 4px 0; }
 .mesa-fold:not([open]) > summary .mesa-bench-head { align-items: center; }
-.mesa-fold:not([open]) > summary::before { margin-top: 0; }
 /* El margen inferior del título separa el título de la bajada. Plegada no hay
    bajada, así que ese margen sólo lo corre hacia arriba. */
 .mesa-fold:not([open]) > summary .mesa-block-title { margin-bottom: 0; }
