@@ -12310,16 +12310,32 @@ function asignarPortafolioASeleccion(tabla, valor) {
       renderMainAssets();
       return;
     }
-    const vistaBtn = e.target.closest && e.target.closest('.inv-vista-toggle [data-vista]');
-    if (vistaBtn) {
-      // En Concentración y Liquidado el selector vive adentro del <summary>:
-      // sin esto, el click plegaría la sección además de cambiar la vista.
-      if (vistaBtn.closest('summary')) e.preventDefault();
-      const cont = vistaBtn.closest('.inv-vista-toggle');
-      const clave = cont && cont.getAttribute('data-vista-tabla');
-      if (!clave) return;
-      vistaActivos[clave] = vistaBtn.getAttribute('data-vista');
+    // En Concentración y Liquidado el selector vive adentro del <summary>, así
+    // que el click hay que cancelarlo en TODO el control y no sólo en sus dos
+    // botones: el marco tiene 3px de padding alrededor de ellos y un click ahí
+    // —que a la vista es el mismo control— caía en el summary y plegaba la
+    // sección entera. Medido: con el click sobre el botón la sección queda
+    // abierta, con el click sobre el borde se cerraba.
+    const vistaCont = e.target.closest && e.target.closest('.inv-vista-toggle');
+    if (vistaCont) {
+      if (vistaCont.closest('summary')) e.preventDefault();
+      const vistaBtn = e.target.closest('[data-vista]');
+      const clave = vistaCont.getAttribute('data-vista-tabla');
+      if (!vistaBtn || !clave) return;
+      const vista = vistaBtn.getAttribute('data-vista');
+      if (vistaActivos[clave] === vista) return;   // ya está en esa vista
+      vistaActivos[clave] = vista;
+      // El re-render rehace el panel entero y con él el botón que se acaba de
+      // tocar: el foco se pierde —medido, pasa a <body>— y si el alto del
+      // documento cambia mientras se rehace, el scroll se recorta. Se devuelve
+      // el punto de lectura y el foco, como en el selector de sector.
+      const doc = document.scrollingElement || document.documentElement;
+      const scrollAntes = doc ? doc.scrollTop : 0;
       renderMainAssets();
+      const vuelto = document.querySelector(
+        '.inv-vista-toggle[data-vista-tabla="' + clave + '"] [data-vista="' + vista + '"]');
+      if (vuelto) vuelto.focus({ preventScroll: true });
+      if (doc && doc.scrollTop !== scrollAntes) doc.scrollTop = scrollAntes;
     }
   });
 })();

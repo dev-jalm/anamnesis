@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.55 |
+| **Versión** | 1.56 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -304,6 +304,7 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-080p | Un activo que supera el **umbral de concentración por activo** (RF-195) se señala en esa columna. Un portafolio que supera el **máximo de activos** (RF-196) lo señala en su cantidad. Los dos avisos informan el umbral configurado |
 | RF-080m | Cada gráfico de concentración se encabeza con una fila de resumen —**Cartera completa** o **Portafolio completo** según la vista— que informa qué parte de la cartera ocupa el ámbito, su importe y, en lugar de una barra simple, la composición apilada de sus tramos. Cada tramo presenta la información emergente de RF-073r. Las dos columnas la llevan, para arrancar con la misma fila |
 | RF-080k | Las secciones **Concentración** y **Liquidado** ofrecen el mismo par de vistas. El selector de cada una se presenta junto al título de su sección y se oculta al plegarla. En Portafolio, cada sección se repite una vez por portafolio con los datos de sus activos: la concentración de cada objetivo por separado —que revela un portafolio concentrado aunque la cartera en conjunto no lo esté— y lo que dejó lo vendido de cada uno. El selector no se presenta si todavía no hay portafolios creados |
+| RF-080k1 | Cambiar de vista **no altera el punto de lectura**: la sección sigue desplegada, la pantalla no se desplaza y el selector conserva el foco del teclado. El selector es un control completo: un clic en cualquier parte de él —también en su marco, fuera de los dos botones— no pliega la sección que lo contiene. Elegir la vista que ya está activa no vuelve a presentar la pantalla |
 | RF-080l | En la concentración de un portafolio **no interviene la Liquidez**: la plata sin invertir es del destino y no de un objetivo, y sumarla a cada portafolio la contaría varias veces. Por eso la suma de los portafolios equivale al valor invertido del destino, no a su valor total |
 | RF-080j | Qué activos se pueden seleccionar depende de la vista. En **Activos** sólo los que todavía no tienen portafolio, porque esa vista sirve para agrupar lo suelto; los ya asignados se presentan pero no se pueden elegir, e informan en cuál están. En **Portafolio** se puede seleccionar cualquiera, que es donde se los mueve de grupo o se los saca, viéndolos junto a los demás del portafolio del que salen |
 | RF-080g | El orden por columna (RF-074c) sigue vigente en la vista por portafolio, y opera **dentro** de cada grupo: ordenar no mezcla activos de portafolios distintos |
@@ -1163,9 +1164,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.52 | 24/09/2026 | La tecla S abre Administración en la solapa Salud financiera (RF-080b) | Reemplazada |
 | 1.53 | 24/09/2026 | La cabecera de cada portafolio pasa a una línea de campos rotulados (RF-080n1) y las alertas de concentración dejan el renglón propio para presentarse como emergente de la fila concentrada (RF-073k, RF-073t, RF-073u) | Reemplazada |
 | 1.54 | 24/09/2026 | En Liquidado la cabecera informa lo realizado y el resultado de las otras dos secciones pasa a llamarse G/P potencial (RF-080n2); cada grupo de Liquidado suma su porcentaje y la sección deja de cerrar con un total propio (RF-072b, RF-072h). El portafolio incorpora su monto objetivo (RF-080a) | Reemplazada |
-| 1.55 | 24/09/2026 | La vista Activos encabeza las tres secciones con la banda de la cartera completa (RF-080n3) y la cabecera de cada portafolio informa su avance contra el monto objetivo (RF-080n1b) | **Vigente** |
+| 1.55 | 24/09/2026 | La vista Activos encabeza las tres secciones con la banda de la cartera completa (RF-080n3) y la cabecera de cada portafolio informa su avance contra el monto objetivo (RF-080n1b) | Reemplazada |
+| 1.56 | 24/09/2026 | Cambiar de vista deja de mover la pantalla: el selector no pliega su sección ni pierde el foco (RF-080k1) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| El selector de vista conserva sección, foco y punto de lectura | RF-080k1 |
+
+**Implementados en la versión 1.55**
 
 | Cambio | Requerimiento |
 |---|---|
