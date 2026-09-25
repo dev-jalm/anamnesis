@@ -215,9 +215,9 @@ window.MANUAL = {
         'El mismo selector está en Concentración y en Liquidado. En vista Portafolio esas secciones se repiten una vez por cada uno: vas a ver la concentración de cada objetivo por separado —que es donde aparece un portafolio concentrado aunque la cartera entera no lo esté— y qué te dejó lo que vendiste de cada uno. La Liquidez no entra ahí: es plata de la cartera, no de un objetivo.'
       ],
       lista: [
-        'La asignación es del activo en SU cartera: el mismo ticker en Inversiones y en Jubilación son dos tenencias y pueden ir a portafolios distintos.',
-        'Comprar más de un activo ya asignado no lo saca de su portafolio.',
-        'El orden por columna sigue funcionando en la vista agrupada, pero ordena adentro de cada grupo: nunca mezcla activos de portafolios distintos.',
+        'La asignación es del activo en SU cartera: el mismo ticker en Inversiones y en Jubilación pueden ir a portafolios distintos. Comprar más de uno ya asignado no lo saca del suyo.',
+        'Lo que liquidás de un portafolio no se le escapa al objetivo: queda como su líquido y sigue contando para la meta hasta que lo reinviertas.',
+        'El orden por columna ordena adentro de cada grupo: nunca mezcla portafolios.',
         'Eliminar un portafolio no toca las tenencias: sus activos vuelven al grupo sin portafolio. La app te dice cuántos son antes de confirmar.',
         'La cabecera de cada portafolio es una línea igual en las tres secciones: número y nombre, entre paréntesis para qué es, y después cuántos activos tiene, cuánto vale, qué dejó y, si le pusiste monto objetivo, cuánto llevás alcanzado. En la vista Activos la misma banda encabeza la cartera completa.',
         'En Parámetros configurás cuánto puede pesar un solo activo y cuántos activos puede agrupar un portafolio. Pasados esos números, la app los marca.'

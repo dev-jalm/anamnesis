@@ -12032,6 +12032,10 @@ function totalesDePortafolio(destinos, pfId, moneda) {
   // contra el monto objetivo se mide sobre el portafolio entero, no sobre la
   // parte que muestra la tabla de una moneda.
   let valorPesos = 0;
+  // Los movimientos de plata del portafolio, en pesos, para reconstruir su caja
+  // (ver saldoDeCaja). Una caja sola y no una por moneda: el objetivo es uno
+  // solo, y si se vendió en pesos para comprar en dólares esa plata se usó.
+  const eventos = [];
   ['ARS', 'USD'].forEach(function (mon) {
     const deEstaTabla = !moneda || (moneda === 'USD' ? 'USD' : 'ARS') === mon;
     const groups = groupInvestmentEntriesByTicker(entries.filter(function (e) {
@@ -12042,6 +12046,21 @@ function totalesDePortafolio(destinos, pfId, moneda) {
       const id = portafolioDeActivo(state.activoPortafolio, destinos[0], tk, mon);
       const suyo = (id && portafolioPorId(portafolios(), id)) ? id : '__sin__';
       if (pfId !== null && suyo !== pfId) return;
+      const aPesos = (mon === 'USD') ? mep : 1;
+      // La caja se arma con TODAS las compras y ventas del portafolio, también
+      // las de la moneda que esta tabla no muestra y las de los activos ya
+      // liquidados: la plata entró y salió igual.
+      (g.entries || []).forEach(function (e) {
+        const costo = (Number(e.cantidad) || 0) * (Number(e.precio) || 0);
+        if (costo) eventos.push({ fecha: e.fecha || '', tipo: 'compra', monto: costo * aPesos });
+        ventasDeEntrada(e).forEach(function (v) {
+          const cant = Number(v && v.cantidad) || 0;
+          const prec = Number(v && v.precio) || 0;
+          const tot = Number(v && v.total);
+          const producto = (isFinite(tot) && tot !== 0) ? tot : cant * prec;
+          if (producto) eventos.push({ fecha: (v && v.fecha) || '', tipo: 'venta', monto: producto * aPesos });
+        });
+      });
       if (deEstaTabla) {
         n++;
         (g.entries || []).forEach(function (e) {
@@ -12062,13 +12081,18 @@ function totalesDePortafolio(destinos, pfId, moneda) {
     });
   });
   const gp = todosConPrecio ? (valor - invertido) : null;
+  // Lo que las ventas del portafolio dejaron en caja y todavía no volvió a un
+  // activo suyo. No entra en `valor` —no es tenencia y no es ganancia— pero sí
+  // en el avance hacia el objetivo: esa plata se juntó para eso.
+  const liquido = saldoDeCaja(eventos);
   return {
     n: n, valor: valor, gp: gp, desde: desde, valorPesos: valorPesos,
+    liquidoPesos: liquido,
     gpPct: (gp !== null && invertido !== 0) ? (gp / Math.abs(invertido) * 100) : null,
     prefijo: (moneda === 'USD') ? 'US$' : '$',
-    // Contra qué se mide el avance hacia el monto objetivo: acá, lo que la
-    // tenencia vale hoy.
-    baseMeta: valorPesos, rotuloBaseMeta: 'Vale hoy',
+    // Contra qué se mide el avance hacia el monto objetivo: lo que la tenencia
+    // vale hoy más lo que las ventas dejaron sin reinvertir.
+    baseMeta: valorPesos + liquido, liquidoMeta: liquido, rotuloBaseMeta: 'Vale hoy',
     // Potencial porque todavía no se realizó: es lo que dejaría el portafolio si
     // se vendiera hoy. En Liquidado, donde el resultado ya se cobró, la misma
     // cabecera lo rotula G/P a secas.
@@ -12177,8 +12201,11 @@ function contenidoCabeceraPortafolio(p, nro, tot) {
     (metaPct !== null
       ? sep + '<span class="inv-pf-meta-pct"' +
           tip('AVANCE SOBRE EL OBJETIVO',
-            (tot.rotuloBaseMeta || 'Vale hoy') + ' $ ' + fmt(Math.round(base)) +
-            ' sobre un objetivo de $ ' + fmt(Math.round(obj.monto)) + '.') +
+            (tot.rotuloBaseMeta || 'Vale hoy') + ' $ ' + fmt(Math.round(base - (tot.liquidoMeta || 0))) +
+            (tot.liquidoMeta > 0
+              ? ' más $ ' + fmt(Math.round(tot.liquidoMeta)) + ' de ventas todavía sin reinvertir'
+              : '') +
+            ', sobre un objetivo de $ ' + fmt(Math.round(obj.monto)) + '.') +
           '>Meta: ' + metaPct.toFixed(2) + '%</span>'
       : '') +
   '</div>';
@@ -12435,12 +12462,28 @@ function resumenPortafolio(id) {
   ventasDelPanel(suyas).forEach(function (f) {
     realizado += (f.moneda === 'USD') ? f.resultado * mep : f.resultado;
   });
+  // La caja del portafolio, con el mismo criterio que la cabecera de las
+  // secciones: lo que sus ventas dejaron y todavía no volvió a un activo suyo.
+  const eventos = [];
+  suyas.forEach(function (e) {
+    const aPesos = (e.moneda === 'USD') ? mep : 1;
+    const costo = (Number(e.cantidad) || 0) * (Number(e.precio) || 0);
+    if (costo) eventos.push({ fecha: e.fecha || '', tipo: 'compra', monto: costo * aPesos });
+    ventasDeEntrada(e).forEach(function (v) {
+      const cant = Number(v && v.cantidad) || 0;
+      const prec = Number(v && v.precio) || 0;
+      const tot = Number(v && v.total);
+      const producto = (isFinite(tot) && tot !== 0) ? tot : cant * prec;
+      if (producto) eventos.push({ fecha: (v && v.fecha) || '', tipo: 'venta', monto: producto * aPesos });
+    });
+  });
   return {
     valor: valor,
     // Sin el precio de algún activo el potencial no se informa: un total
     // parcial se leería como el total.
     gp: todosConPrecio ? (valor - invertido) : null,
-    realizado: realizado
+    realizado: realizado,
+    liquido: saldoDeCaja(eventos)
   };
 }
 
@@ -12464,9 +12507,15 @@ function acumuladoPortafolioHtml(p) {
     '<span class="pf-acum-item">G/P potencial ' +
       (r.gp === null ? '<span class="inv-na">—</span>' : importe(r.gp) + pct(r.gp)) + '</span>' +
     '<span class="pf-acum-item">G/P liquidado ' + importe(r.realizado) + pct(r.realizado) + '</span>' +
+    // La caja del objetivo sólo aparece si hay algo adentro: un "líquido $ 0"
+    // en cada portafolio es ruido.
+    // Sin la tinta de ganancia: la caja no es un resultado, es plata esperando.
+    (r.liquido > 0
+      ? '<span class="pf-acum-item">Líquido sin reinvertir <span class="pf-acum-monto">$ ' +
+          fmt(Math.round(r.liquido)) + '</span></span>' : '') +
     (meta
       ? '<span class="pf-acum-item">Alcanzado <span class="pf-acum-monto">' +
-          (r.valor / meta * 100).toFixed(2) + '%</span><span class="pf-acum-pct">del objetivo</span></span>'
+          ((r.valor + r.liquido) / meta * 100).toFixed(2) + '%</span><span class="pf-acum-pct">del objetivo</span></span>'
       : '') +
   '</div>';
 }

@@ -1580,6 +1580,40 @@ function validarPortafolio(datos, portafolios, id) {
   return { ok: true, error: '' };
 }
 
+// La caja de un portafolio: la plata que entró por sus ventas y todavía no
+// volvió a ponerse en un activo suyo.
+//
+// Un portafolio agrupa activos, no plata, así que cuando uno se liquida lo
+// cobrado se va al líquido de la cartera y el objetivo parecía retroceder
+// aunque la venta hubiera sido con ganancia. Acá se lo sigue: se recorren los
+// eventos del portafolio en orden —{ fecha, tipo: 'venta' | 'compra', monto }—
+// y cada compra consume primero lo que haya en la caja; lo que le falte vino de
+// afuera. Nunca queda negativa.
+//
+// La caja puede quedar corta pero nunca larga: si después de vender comprás con
+// plata nueva, la compra igual consume el saldo y el objetivo declara menos
+// avance del que tiene. Es la dirección en la que conviene equivocarse.
+//
+// En una misma fecha las ventas van antes que las compras, por el mismo
+// motivo: así la compra puede consumirlas y el saldo queda en el menor valor
+// defendible. Lo que no tiene fecha se ordena primero.
+function saldoDeCaja(eventos) {
+  const orden = (Array.isArray(eventos) ? eventos.slice() : []).sort(function (a, b) {
+    const fa = (a && a.fecha) || '', fb = (b && b.fecha) || '';
+    if (fa !== fb) return fa < fb ? -1 : 1;
+    const pa = (a && a.tipo === 'venta') ? 0 : 1;
+    const pb = (b && b.tipo === 'venta') ? 0 : 1;
+    return pa - pb;
+  });
+  let saldo = 0;
+  orden.forEach(function (ev) {
+    const monto = Number(ev && ev.monto) || 0;
+    if (ev && ev.tipo === 'venta') saldo += monto;
+    else saldo = Math.max(0, saldo - monto);
+  });
+  return saldo;
+}
+
 // Agrupa los tickers de una tabla por portafolio. Devuelve un array de
 // { portafolio, tickers } en el orden en que están los portafolios, y al final
 // —siempre último— el grupo de lo que no tiene ninguno asignado. Los grupos
@@ -2961,7 +2995,7 @@ if (typeof module !== 'undefined' && module.exports) {
     SECTORES, sectorPorClave, etiquetaSector, sectorDeActivo, sectoresSeleccionables,
     // portafolios: agrupar activos por objetivo adentro de cada cartera
     MAX_LEN_PORTAFOLIO, claveActivoPortafolio, portafolioDeActivo, portafolioPorId,
-    validarPortafolio, agruparPorPortafolio,
+    validarPortafolio, agruparPorPortafolio, saldoDeCaja,
     concentracionPorSector, sectoresConcentrados,
     TIPOS_RIESGO, etiquetaTipoRiesgo, tipoDeRiesgo, concentracionPorTipo, tiposConcentrados,
     // ventas de activos

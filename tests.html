@@ -1273,6 +1273,42 @@ group('Portafolios', function () {
     assertEqual(validarPortafolio({ nombre: 'X', monto: '-5' }, PFS).ok, false);
     assertEqual(validarPortafolio({ nombre: 'X', monto: 'mucho' }, PFS).ok, false);
   });
+  test('la caja del portafolio guarda lo que dejó una venta sin reinvertir', function () {
+    const evs = [
+      { fecha: '2026-01-10', tipo: 'compra', monto: 100000 },
+      { fecha: '2026-06-10', tipo: 'venta', monto: 130000 }
+    ];
+    assertEqual(saldoDeCaja(evs), 130000);
+  });
+  test('una compra posterior consume la caja, y lo que falta vino de afuera', function () {
+    const evs = [
+      { fecha: '2026-01-10', tipo: 'compra', monto: 100000 },
+      { fecha: '2026-06-10', tipo: 'venta', monto: 130000 },
+      { fecha: '2026-07-01', tipo: 'compra', monto: 50000 }
+    ];
+    assertEqual(saldoDeCaja(evs), 80000);
+    const evs2 = evs.concat([{ fecha: '2026-08-01', tipo: 'compra', monto: 200000 }]);
+    assertEqual(saldoDeCaja(evs2), 0);   // nunca queda negativa
+  });
+  test('sin ventas la caja está vacía, por muchas compras que haya', function () {
+    assertEqual(saldoDeCaja([
+      { fecha: '2026-01-10', tipo: 'compra', monto: 100000 },
+      { fecha: '2026-02-10', tipo: 'compra', monto: 300000 }
+    ]), 0);
+    assertEqual(saldoDeCaja([]), 0);
+  });
+  test('el orden es por fecha, no el de la lista, y la venta va antes en el mismo día', function () {
+    // La compra llega primero en el array pero es posterior: igual consume.
+    assertEqual(saldoDeCaja([
+      { fecha: '2026-07-01', tipo: 'compra', monto: 50000 },
+      { fecha: '2026-06-10', tipo: 'venta', monto: 130000 }
+    ]), 80000);
+    // Mismo día: la venta entra antes, así la compra puede consumirla.
+    assertEqual(saldoDeCaja([
+      { fecha: '2026-06-10', tipo: 'compra', monto: 50000 },
+      { fecha: '2026-06-10', tipo: 'venta', monto: 130000 }
+    ]), 80000);
+  });
   test('agrupa en el orden de los portafolios y deja lo sin asignar al final', function () {
     const mapa = { 'inversiones|SPY|ARS': 'p2', 'inversiones|AAPL|ARS': 'p1' };
     const gs = agruparPorPortafolio(['AAPL', 'SPY', 'MELI'], PFS, mapa, 'inversiones', 'ARS');
