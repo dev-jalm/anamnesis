@@ -1614,24 +1614,31 @@ function saldoDeCaja(eventos) {
   return saldo;
 }
 
-// Agrupa los tickers de una tabla por portafolio. Devuelve un array de
-// { portafolio, tickers } en el orden en que están los portafolios, y al final
-// —siempre último— el grupo de lo que no tiene ninguno asignado. Los grupos
-// vacíos no se devuelven: un portafolio sin activos en ESTA tabla no tiene
-// por qué ocupar lugar en ella.
-function agruparPorPortafolio(tickers, portafolios, mapa, destino, moneda) {
-  const lista = Array.isArray(tickers) ? tickers : [];
+// El portafolio de UNA compra. La asignación es de la compra y no del ticker:
+// el mismo activo puede comprarse para dos objetivos distintos —tres tandas de
+// IBIT repartidas en tres portafolios— y con una clave por ticker eso era
+// imposible de representar.
+function portafolioDeCompra(e) {
+  return (e && e.portafolio) ? String(e.portafolio) : '';
+}
+
+// Agrupa compras por portafolio. Devuelve un array de { portafolio, entries }
+// en el orden en que están los portafolios y, al final —siempre último—, el
+// grupo de lo que no tiene ninguno asignado. Los grupos vacíos no se devuelven:
+// un portafolio sin compras en ESTE conjunto no tiene por qué ocupar lugar.
+function agruparPorPortafolio(entries, portafolios) {
+  const lista = Array.isArray(entries) ? entries : [];
   const arr = Array.isArray(portafolios) ? portafolios : [];
   const porId = {};
-  lista.forEach(function (tk) {
-    const id = portafolioDeActivo(mapa, destino, tk, moneda) || '__sin__';
+  lista.forEach(function (e) {
+    const id = portafolioDeCompra(e) || '__sin__';
     if (!porId[id]) porId[id] = [];
-    porId[id].push(tk);
+    porId[id].push(e);
   });
   const grupos = [];
   arr.forEach(function (p) {
     if (p && porId[p.id] && porId[p.id].length) {
-      grupos.push({ portafolio: p, tickers: porId[p.id] });
+      grupos.push({ portafolio: p, entries: porId[p.id] });
     }
   });
   // Lo asignado a un portafolio que ya no existe cae acá junto con lo que
@@ -1639,10 +1646,10 @@ function agruparPorPortafolio(tickers, portafolios, mapa, destino, moneda) {
   const sin = [];
   Object.keys(porId).forEach(function (id) {
     if (id === '__sin__' || !portafolioPorId(arr, id)) {
-      porId[id].forEach(function (tk) { sin.push(tk); });
+      porId[id].forEach(function (e) { sin.push(e); });
     }
   });
-  if (sin.length) grupos.push({ portafolio: null, tickers: sin.sort() });
+  if (sin.length) grupos.push({ portafolio: null, entries: sin });
   return grupos;
 }
 
@@ -2995,7 +3002,7 @@ if (typeof module !== 'undefined' && module.exports) {
     SECTORES, sectorPorClave, etiquetaSector, sectorDeActivo, sectoresSeleccionables,
     // portafolios: agrupar activos por objetivo adentro de cada cartera
     MAX_LEN_PORTAFOLIO, claveActivoPortafolio, portafolioDeActivo, portafolioPorId,
-    validarPortafolio, agruparPorPortafolio, saldoDeCaja,
+    validarPortafolio, agruparPorPortafolio, saldoDeCaja, portafolioDeCompra,
     concentracionPorSector, sectoresConcentrados,
     TIPOS_RIESGO, etiquetaTipoRiesgo, tipoDeRiesgo, concentracionPorTipo, tiposConcentrados,
     // ventas de activos

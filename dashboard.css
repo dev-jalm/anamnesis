@@ -6017,6 +6017,27 @@ body[data-exporting="true"] .section-card {
   }
   .investment-row .inv-row-sector { grid-row: 2; grid-column: 3 / 6; }
 }
+/* Con portafolios creados la fila suma un selector más: para qué objetivo es
+   ESTA compra. La asignación es de la compra y no del ticker, así que el lugar
+   donde se decide es el mismo donde se la carga. Sin portafolios creados la
+   columna no existe: un selector con una sola opción vacía es ruido. */
+.investment-row.con-portafolio {
+  grid-template-columns:
+    112px 108px calc(5ch + 16px) calc(11ch + 16px) 100px 132px 64px 190px 140px
+    minmax(90px, 1fr) 30px
+    !important;
+}
+/* La columna extra corre el quiebre: con ella la fila pide ~140px más, así que
+   Sector y Portafolio bajan juntos a una segunda línea antes que sin ella. */
+@media (max-width: 1359px) {
+  .investment-row.con-portafolio {
+    grid-template-columns:
+      112px 108px calc(5ch + 16px) calc(11ch + 16px) 100px 132px 64px minmax(90px, 1fr) 30px
+      !important;
+  }
+  .investment-row.con-portafolio .inv-row-sector { grid-row: 2; grid-column: 3 / 6; }
+  .investment-row.con-portafolio .inv-row-portafolio { grid-row: 2; grid-column: 6 / 9; }
+}
 .investment-row:last-child { border-bottom: none; }
 .investment-row input {
   background: var(--card);

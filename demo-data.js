@@ -593,12 +593,29 @@ function buildDemoSnapshot(mesesAtras) {
       objetivo: 'Cambiar el usado por uno más nuevo, sin tomar prenda.',
       plazo: plazoDemo(30), monto: 12000000, createdAt: Date.now() }
   ];
+  // La asignación es de cada compra, así que se aplica sobre las entradas más
+  // abajo. Este mapa dice qué activo va a qué portafolio en la demo; las tandas
+  // de un mismo ticker van todas al mismo, salvo NVDA, que se reparte para
+  // mostrar el caso de un activo comprado para dos objetivos.
   const activoPortafolio = {
     'inversiones|SPY|ARS': 'pf_demo_viaje',
     'inversiones|AAPL|ARS': 'pf_demo_viaje',
     'inversiones|MELI|ARS': 'pf_demo_auto',
     'inversiones|NVDA|ARS': 'pf_demo_auto'
   };
+  // Se baja a cada compra, que es donde vive la asignación. NVDA queda partido:
+  // su compra más vieja es del auto y la más nueva del viaje, para que la demo
+  // muestre un activo comprado para dos objetivos distintos.
+  investmentEntries.forEach(function (e) {
+    const clave = e.destino + '|' + String(e.ticker).toUpperCase() + '|' + (e.moneda === 'USD' ? 'USD' : 'ARS');
+    if (activoPortafolio[clave]) e.portafolio = activoPortafolio[clave];
+  });
+  (function repartirNvda() {
+    const nvda = investmentEntries
+      .filter(function (e) { return e.destino === 'inversiones' && e.ticker === 'NVDA'; })
+      .sort(function (a, b) { return String(a.fecha).localeCompare(String(b.fecha)); });
+    if (nvda.length > 1) nvda[nvda.length - 1].portafolio = 'pf_demo_viaje';
+  })();
 
   const snap = {
     schemaVersion: (typeof SCHEMA_VERSION !== 'undefined' ? SCHEMA_VERSION : 4),
@@ -744,7 +761,10 @@ function buildDemoSnapshot(mesesAtras) {
     // destino pensado y lo demás queda suelto. Las fechas de plazo son futuras y
     // relativas a hoy, así la demo no envejece.
     portafolios: portafolios,
-    activoPortafolio: activoPortafolio,
+    // Vacío a propósito: la asignación ya viaja en cada compra. El campo sigue
+    // en el snapshot para que la demo resetee el mapa viejo de un archivo real
+    // en vez de dejarlo vivo.
+    activoPortafolio: {},
     investmentEntries: investmentEntries,
     trades: trades,
     tickerInfo: tickerInfo,

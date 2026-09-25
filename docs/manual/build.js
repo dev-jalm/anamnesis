@@ -206,21 +206,20 @@ window.MANUAL = {
       h: 'Portafolios',
       sub: '¿Para qué es cada peso?',
       img: '22-portafolios',
-      imgCap: 'La tabla de activos en vista por portafolio: cada grupo con su objetivo y su plazo, y al final lo que todavía no asignaste.',
+      imgCap: 'Vista por portafolio: NVDA está repartido en los dos objetivos, cada uno con sus nominales y su resultado. Al final, lo que todavía no asignaste.',
       p: [
         'Una cartera no siempre es una sola cosa. De los diez CEDEARs que tenés en Inversiones, tres pueden ser el viaje del año que viene, dos el auto y el resto no tener destino todavía. Un portafolio es eso: un agrupamiento de activos según para qué son. No es una cartera nueva —las carteras siguen siendo Reserva, Inversiones, las Jubilaciones y Trading— sino un corte adentro de ellas.',
-        'Los portafolios se crean en Administración → Salud financiera con cuatro datos: nombre, objetivo —para qué es, en texto libre—, plazo y monto objetivo, la cifra que perseguís. Los dos últimos podés dejarlos vacíos. Ahí mismo los editás, los eliminás y ves lo que cada uno acumuló: lo ganado sin vender, lo ya realizado y cuánto llevás del objetivo.',
-        'Decir qué activos lo componen se hace en la solapa Salud financiera, que es donde los tenés a la vista: tildás los que quieras, elegís el portafolio y los asignás de una. La misma lista sirve para sacarlos, con la opción de quitar del portafolio.',
-        'La tabla ofrece dos vistas. Activos es la lista de siempre, y ahí sólo se pueden tildar los que todavía no tienen portafolio: es la vista para agrupar lo suelto. Portafolio los reparte en grupos —y al final lo que no asignaste— y ahí se puede tildar cualquiera, que es donde se los mueve de grupo o se los saca.',
+        'Los portafolios se crean en Administración → Salud financiera con cuatro datos: nombre, objetivo, plazo y monto objetivo, la cifra que perseguís. Los dos últimos podés dejarlos vacíos. Ahí mismo los editás, los eliminás y ves lo que cada uno acumuló: lo ganado sin vender, lo ya realizado y cuánto llevás del objetivo.',
+        'Lo que va a cada objetivo es cada COMPRA, no el ticker: podés comprar el mismo activo tres veces y mandar cada tanda a un objetivo distinto. Se elige al cargarla y se cambia después en el detalle del activo. Para repartir lo que ya tenías, en la solapa tildás los activos, elegís el portafolio y los asignás de una.',
+        'La tabla ofrece dos vistas. Activos es la lista de siempre, con el total de cada ticker, y ahí se tilda lo que todavía no está en ningún objetivo. Portafolio reparte en grupos —y al final lo que no asignaste—: un activo repartido sale una vez en cada uno, con lo que le toca.',
         'El mismo selector está en Concentración y en Liquidado. En vista Portafolio esas secciones se repiten una vez por cada uno: vas a ver la concentración de cada objetivo por separado —que es donde aparece un portafolio concentrado aunque la cartera entera no lo esté— y qué te dejó lo que vendiste de cada uno. La Liquidez que ves ahí es la caja del objetivo, no la de la cartera.'
       ],
       lista: [
-        'La asignación es del activo en SU cartera: el mismo ticker en Inversiones y en Jubilación pueden ir a portafolios distintos. Comprar más de uno ya asignado no lo saca del suyo.',
+        'Una compra liquidada conserva su portafolio y se puede mover igual: lo que dejó alimenta la caja de ese objetivo.',
         'Lo que liquidás no se le escapa al objetivo: queda como su caja, cuenta para la meta y aparece como Liquidez en su concentración.',
         'El orden por columna ordena adentro de cada grupo: nunca mezcla portafolios.',
         'Eliminar un portafolio no toca las tenencias: sus activos vuelven al grupo sin portafolio. La app te dice cuántos son antes de confirmar.',
-        'La cabecera de cada portafolio es una línea igual en las tres secciones: número y nombre, entre paréntesis para qué es, y después cuántos activos tiene, cuánto vale, qué dejó y, si le pusiste monto objetivo, cuánto llevás alcanzado. En la vista Activos la misma banda encabeza la cartera completa.',
-        'En Parámetros configurás cuánto puede pesar un solo activo y cuántos activos puede agrupar un portafolio. Pasados esos números, la app los marca.'
+        'La cabecera de cada portafolio es una línea igual en las tres secciones: número y nombre, para qué es, cuántos activos tiene, cuánto vale, qué dejó y cuánto llevás del objetivo. En la vista Activos esa banda encabeza la cartera completa.'
       ]
     },
     {
@@ -352,7 +351,7 @@ window.MANUAL = {
         'Nombres de las jubilaciones: qué texto se muestra después de la palabra Jubilación en toda la app. Cambia sólo el texto; los movimientos y los activos ya cargados no se tocan.',
         'Días bajo $: el umbral para contar cuántos días el saldo estuvo por debajo.',
         'Cotización MEP: se usa para convertir entre pesos y dólares. El botón de refresco la trae de dolarapi.com.',
-        'Alertas de concentración: el porcentaje de una cartera a partir del cual un mismo sector (30% de entrada) o un mismo tipo de riesgo (70%) dispara la alerta. En 0 se apagan.',
+        'Alertas de concentración: el porcentaje de una cartera a partir del cual un mismo sector (30% de entrada) o un mismo tipo de riesgo (70%) dispara la alerta. En 0 se apagan. Más abajo, cuánto puede pesar un solo activo y cuántos puede agrupar un portafolio.',
         'Más abajo, el peso y los umbrales de cada dimensión del score, y el plan de la reserva (cuántos meses de gastos querés cubrir y en qué plazo).'
       ]
     },

@@ -410,15 +410,16 @@ const state = {
   // Array de { id, name, dateStart, dateEnd, tagKey, createdAt }
   // tagKey apunta a una entrada en state.taglabels (auto-creada al iniciar el viaje)
   travels: [],
-  // Portafolios: agrupan los activos de una cartera según para qué son.
-  // Array de { id, nombre, objetivo, plazo, createdAt }. Se administran en
-  // Administración → Salud financiera; la asignación de cada activo vive en
-  // activoPortafolio.
+  // Portafolios: agrupan compras según para qué son.
+  // Array de { id, nombre, objetivo, plazo, monto, createdAt }. Se administran
+  // en Administración → Salud financiera; qué compra va en cuál vive en el
+  // campo `portafolio` de cada entrada de investmentEntries.
   portafolios: [],
-  // Qué activo va en qué portafolio: { 'destino|TICKER|MONEDA': portafolioId }.
-  // La clave la arma claveActivoPortafolio() en core.js. Es un mapa y no un
-  // campo de cada compra porque el portafolio es de la tenencia, no de la
-  // tanda: comprar más del mismo ticker no lo saca de su portafolio.
+  // Mapa viejo { 'destino|TICKER|MONEDA': portafolioId }, de cuando la
+  // asignación era del ticker y no de la compra. Se conserva sólo para migrar
+  // los archivos que lo traigan (ver migrarAsignacionPorCompra) y queda vacío
+  // después: el mismo activo puede comprarse para dos objetivos distintos, y
+  // una clave por ticker no podía representarlo.
   activoPortafolio: {},
   // Preferencias de visibilidad de secciones de Ficha médica.
   // Si una key no está, se asume true (visible). Hacemos una excepción para
@@ -6041,7 +6042,10 @@ function addInvestmentRow() {
     cantidad: '',
     precio: '',
     destino: (ultima && ultima.destino) || '',
-    moneda: (ultima && ultima.moneda) || 'ARS'
+    moneda: (ultima && ultima.moneda) || 'ARS',
+    // También se hereda: cargar tres activos para el mismo objetivo es el caso
+    // habitual, y re-elegirlo en cada renglón no agrega nada.
+    portafolio: (ultima && ultima.portafolio) || ''
   });
   renderInvestmentList();
 }
@@ -6068,7 +6072,8 @@ function renderInvestmentList() {
     // El precio va con dos decimales, como en la tabla de la cartera. La cantidad
     // conserva los que tenga: un CEDEAR es entero y una fraccion de cripto no.
     const precDisplay = (r.precio !== '' && r.precio != null) ? fmtPrecio(r.precio) : '';
-    return '<div class="manual-row investment-row" data-id="' + r.id + '">' +
+    return '<div class="manual-row investment-row' + (portafolios().length ? ' con-portafolio' : '') +
+        '" data-id="' + r.id + '">' +
       '<input type="date" data-field="fecha" value="' + r.fecha + '" title="Fecha">' +
       '<select data-field="broker" class="inv-broker-sel broker-bg-' + (r.broker || 'BALANZ') + '" title="Broker o exchange">' +
         BROKER_OPTIONS.map(function (b) {
@@ -6103,6 +6108,19 @@ function renderInvestmentList() {
       '<select data-field="sector" class="inv-row-sector" title="Sector del activo. Se completa solo si el ticker está en el listado de CEDEARs de BYMA.">' +
         opcionesSector(valorSectorFila(r), true) +
       '</select>' +
+      // Portafolio de ESTA compra. Sin portafolios creados no se ofrece: sería
+      // un selector con una sola opción vacía.
+      (portafolios().length
+        ? '<select data-field="portafolio" class="inv-row-portafolio" title="Para qué objetivo es esta compra. Se puede dejar vacío y asignarla después.">' +
+            '<option value=""' + (r.portafolio ? '' : ' selected') + '>— sin portafolio —</option>' +
+            portafolios().slice().sort(function (a, b) {
+              return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es');
+            }).map(function (p) {
+              return '<option value="' + escapeHtmlSafe(p.id) + '"' + (r.portafolio === p.id ? ' selected' : '') + '>' +
+                escapeHtmlSafe(p.nombre) + '</option>';
+            }).join('') +
+          '</select>'
+        : '') +
       '<span class="investment-row-total mono" title="Cantidad × Precio">' + totalStr + '</span>' +
       '<button class="manual-row-delete" data-action="delete-row" title="Borrar fila">' +
         '<i data-lucide="trash-2" style="width:13px;height:13px"></i>' +
@@ -6294,6 +6312,9 @@ function validateAndSaveInvestmentRows() {
       // mezclar pesos y dólares, y repartirse entre varios destinos.
       destino: r.destino,
       moneda: (r.moneda === 'USD') ? 'USD' : 'ARS',
+      // El portafolio es de esta compra: dos tandas del mismo ticker pueden
+      // ir a objetivos distintos. Vacío queda sin asignar.
+      portafolio: r.portafolio || undefined,
       createdAt: now
     });
     // El sector es del ticker, no de la compra: va a tickerInfo, donde lo lee
@@ -12043,18 +12064,21 @@ function eventosDeCaja(entries, mep) {
   return eventos;
 }
 
-// Las tenencias de un portafolio dentro de una cartera, liquidadas incluidas.
+// El portafolio al que pertenece una compra, o el centinela de las que no
+// tienen ninguno. Una compra asignada a un portafolio que ya no existe cuenta
+// como sin asignar: borrar un portafolio no puede esconder activos.
+function pfDeCompra(e) {
+  const id = portafolioDeCompra(e);
+  return (id && portafolioPorId(portafolios(), id)) ? id : '__sin__';
+}
+
+// Las compras de un portafolio dentro de una cartera, liquidadas incluidas.
 // `pfId` en null son todas, sin filtrar.
 function tenenciasDePortafolio(destinos, pfId) {
-  const mapa = mapaActivoPortafolio();
   return (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
     .filter(function (e) {
       if (destinos.indexOf(e.destino) < 0) return false;
-      if (pfId === null) return true;
-      const mon = (e.moneda === 'USD') ? 'USD' : 'ARS';
-      const id = mapa[claveActivoPortafolio(e.destino, e.ticker, mon)];
-      const suyo = (id && portafolioPorId(portafolios(), id)) ? id : '__sin__';
-      return suyo === pfId;
+      return pfId === null || pfDeCompra(e) === pfId;
     });
 }
 
@@ -12067,8 +12091,10 @@ function cajaDePortafolio(destinos, pfId) {
 
 function totalesDePortafolio(destinos, pfId, moneda) {
   const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
-  const entries = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
-    .filter(function (e) { return destinos.indexOf(e.destino) >= 0; });
+  // Las compras del portafolio, no las del ticker: el agrupado por ticker se
+  // hace DESPUÉS de filtrar, así que un activo comprado para dos objetivos
+  // aporta a cada uno sólo sus propias tandas.
+  const entries = tenenciasDePortafolio(destinos, pfId);
   let valor = 0, invertido = 0, todosConPrecio = true, desde = '', n = 0;
   // El valor en pesos de las DOS monedas, se haya acotado o no a una: el avance
   // contra el monto objetivo se mide sobre el portafolio entero, no sobre la
@@ -12081,9 +12107,6 @@ function totalesDePortafolio(destinos, pfId, moneda) {
     }));
     Object.keys(groups).forEach(function (tk) {
       const g = groups[tk];
-      const id = portafolioDeActivo(state.activoPortafolio, destinos[0], tk, mon);
-      const suyo = (id && portafolioPorId(portafolios(), id)) ? id : '__sin__';
-      if (pfId !== null && suyo !== pfId) return;
       if (deEstaTabla) {
         n++;
         (g.entries || []).forEach(function (e) {
@@ -12260,15 +12283,13 @@ function cabeceraCarteraHtml(destinos, tot) {
 // definición. Lo usan las secciones de Concentración y Liquidado, que agrupan
 // por portafolio pero no listan activos uno por uno.
 function gruposDePortafolioDeCartera(destinos) {
-  const mapa = mapaActivoPortafolio();
   const presentes = {};
   let hayHuerfanos = false;
   (Array.isArray(state.investmentEntries) ? state.investmentEntries : []).forEach(function (e) {
     if (destinos.indexOf(e.destino) < 0) return;
-    const mon = e.moneda === 'USD' ? 'USD' : 'ARS';
-    const id = mapa[claveActivoPortafolio(e.destino, e.ticker, mon)];
-    if (id && portafolioPorId(portafolios(), id)) presentes[id] = true;
-    else hayHuerfanos = true;
+    const id = pfDeCompra(e);
+    if (id === '__sin__') hayHuerfanos = true;
+    else presentes[id] = true;
   });
   const grupos = [];
   let nro = 0;
@@ -12281,22 +12302,58 @@ function gruposDePortafolioDeCartera(destinos) {
   return grupos;
 }
 
-// El tilde de selección de una fila. Deshabilitado en la vista Activos cuando
-// el activo ya tiene portafolio: esa vista sirve para agrupar lo suelto, y
-// mover o sacar se hace en la vista Portafolio, donde el activo se ve dentro
-// del grupo del que va a salir.
-function celdaSeleccionActivo(destino, ticker, moneda) {
-  const clave = claveActivoPortafolio(destino, ticker, moneda);
-  const asignado = portafolioDeActivo(state.activoPortafolio, destino, ticker, moneda);
-  const enListado = vistaDeTabla(destino + '|' + (moneda === 'USD' ? 'USD' : 'ARS')) !== 'portafolio';
-  const bloqueado = enListado && !!asignado;
-  const p = bloqueado ? portafolioPorId(portafolios(), asignado) : null;
-  const titulo = bloqueado
-    ? 'Ya está en ' + ((p && p.nombre) || 'un portafolio') + '. Para moverlo o sacarlo, pasá a la vista Portafolio.'
-    : 'Seleccionar para agrupar en un portafolio';
-  return '<input type="checkbox" class="inv-sel-check" data-sel-clave="' + escapeHtmlSafe(clave) + '"' +
-    (bloqueado ? ' disabled' : '') +
+// El tilde de selección de una fila. La asignación es de cada compra, así que
+// el tilde arrastra compras y no un ticker: lleva los ids de las que le tocan.
+//
+// En la vista Activos la fila suma todas las tandas del ticker y el tilde toma
+// sólo las que todavía no tienen portafolio —esa vista sirve para agrupar lo
+// suelto—; si no queda ninguna, se deshabilita y el título dice dónde están.
+// En la vista Portafolio la fila ya es la porción de un grupo, y el tilde toma
+// esas compras: es donde se las mueve o se las saca.
+function celdaSeleccionActivo(destino, ticker, moneda, entries, enPortafolio) {
+  const todas = Array.isArray(entries) ? entries : [];
+  const libres = todas.filter(function (e) { return pfDeCompra(e) === '__sin__'; });
+  const elegibles = enPortafolio ? todas : libres;
+  const ids = elegibles.map(function (e) { return e.id; }).filter(Boolean);
+  const nombres = {};
+  todas.forEach(function (e) {
+    const p = portafolioPorId(portafolios(), portafolioDeCompra(e));
+    if (p) nombres[p.nombre] = true;
+  });
+  const enCuales = Object.keys(nombres);
+  const titulo = ids.length
+    ? (enPortafolio
+      ? 'Seleccionar para mover o sacar del portafolio'
+      : 'Seleccionar para agrupar ' + (libres.length === todas.length
+        ? 'en un portafolio'
+        : (libres.length === 1
+          ? 'la compra que todavía no está en ninguno'
+          : 'las ' + libres.length + ' compras que todavía no están en ninguno')))
+    : 'Todas sus compras ya están en ' + (enCuales.length === 1
+      ? enCuales[0] : enCuales.length + ' portafolios') + '. Para moverlas, pasá a la vista Portafolio.';
+  return '<input type="checkbox" class="inv-sel-check" data-sel-ids="' + escapeHtmlSafe(ids.join(',')) + '"' +
+    (ids.length ? '' : ' disabled') +
     ' title="' + escapeHtmlSafe(titulo) + '">';
+}
+
+// El portafolio de UNA compra, en su fila del detalle. Va en la columna de
+// Sector, que en el detalle está vacía y ya tiene el ancho de un selector.
+// Es el lugar donde se reparte un mismo activo entre objetivos: la fila del
+// ticker suma todas sus tandas y no puede decir a cuál va cada una.
+function celdaPortafolioCompra(e) {
+  if (!portafolios().length) return '<td></td>';
+  const actual = portafolioDeCompra(e);
+  return '<td class="inv-sector-cell">' +
+    '<select class="inv-pf-compra-sel" data-inv-id="' + escapeHtmlSafe(e.id) + '" ' +
+      'title="Portafolio de esta compra">' +
+      '<option value=""' + (actual ? '' : ' selected') + '>— sin portafolio —</option>' +
+      portafolios().slice().sort(function (a, b) {
+        return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es');
+      }).map(function (p) {
+        return '<option value="' + escapeHtmlSafe(p.id) + '"' + (p.id === actual ? ' selected' : '') + '>' +
+          escapeHtmlSafe(p.nombre) + '</option>';
+      }).join('') +
+    '</select></td>';
 }
 
 // El mismo selector, para las secciones que no son una tabla —Concentración y
@@ -12344,15 +12401,22 @@ function actualizarBarrasAgrupar(root) {
 }
 
 // Asigna —o saca— los activos tildados de una tabla. Devuelve cuántos tocó.
+// Devuelve cuántas COMPRAS se movieron: es lo que cambia de verdad, y un
+// ticker seleccionado puede arrastrar varias.
 function asignarPortafolioASeleccion(tabla, valor) {
-  const mapa = mapaActivoPortafolio();
+  const porId = {};
+  (Array.isArray(state.investmentEntries) ? state.investmentEntries : []).forEach(function (e) {
+    if (e.id) porId[e.id] = e;
+  });
   let n = 0;
   tabla.querySelectorAll('.inv-sel-check:checked').forEach(function (chk) {
-    const clave = chk.getAttribute('data-sel-clave');
-    if (!clave) return;
-    if (valor === '__quitar__') { delete mapa[clave]; }
-    else { mapa[clave] = valor; }
-    n++;
+    (chk.getAttribute('data-sel-ids') || '').split(',').forEach(function (id) {
+      const e = id && porId[id];
+      if (!e) return;
+      if (valor === '__quitar__') delete e.portafolio;
+      else e.portafolio = valor;
+      n++;
+    });
   });
   return n;
 }
@@ -12434,12 +12498,42 @@ function mapaActivoPortafolio() {
   return state.activoPortafolio;
 }
 
-// Cuántos activos tiene asignados un portafolio. Se cuenta sobre el mapa y no
-// sobre las tenencias: un activo que se vendió entero sigue asignado, y que el
-// conteo lo refleje evita que un portafolio parezca vacío cuando no lo está.
-function activosDePortafolio(id) {
+// Migración del mapa por ticker al campo por compra. Los archivos anteriores
+// guardaban { 'destino|TICKER|MONEDA': portafolio }: cada compra de ese ticker
+// hereda esa asignación, que es exactamente lo que el mapa significaba. Corre
+// al cargar y al aplicar un snapshot, y deja el mapa vacío para no pisar
+// después las asignaciones finas que se hagan compra por compra.
+function migrarAsignacionPorCompra() {
   const mapa = mapaActivoPortafolio();
-  return Object.keys(mapa).filter(function (k) { return mapa[k] === id; }).length;
+  const claves = Object.keys(mapa);
+  if (!claves.length) return 0;
+  let n = 0;
+  (Array.isArray(state.investmentEntries) ? state.investmentEntries : []).forEach(function (e) {
+    if (e.portafolio) return;
+    const mon = (e.moneda === 'USD') ? 'USD' : 'ARS';
+    const id = mapa[claveActivoPortafolio(e.destino, e.ticker, mon)];
+    if (id) { e.portafolio = id; n++; }
+  });
+  state.activoPortafolio = {};
+  return n;
+}
+
+// Las compras asignadas a un portafolio, en todas las carteras.
+function comprasDePortafolio(id) {
+  return (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
+    .filter(function (e) { return portafolioDeCompra(e) === id; });
+}
+
+// Cuántos activos tiene un portafolio: tickers distintos en su cartera y su
+// moneda, no cantidad de compras. Se cuenta sobre las compras asignadas —no
+// sobre las tenencias vivas— para que un activo vendido entero siga contando y
+// el portafolio no parezca vacío cuando no lo está.
+function activosDePortafolio(id) {
+  const vistos = {};
+  comprasDePortafolio(id).forEach(function (e) {
+    vistos[claveActivoPortafolio(e.destino, e.ticker, (e.moneda === 'USD') ? 'USD' : 'ARS')] = true;
+  });
+  return Object.keys(vistos).length;
 }
 
 // Lo que un portafolio acumuló hasta hoy, para la lista del ABM: lo que vale su
@@ -12450,13 +12544,8 @@ function activosDePortafolio(id) {
 // toman todas las tenencias cuya clave apunta a este portafolio, y todo va a
 // pesos al MEP porque el monto objetivo contra el que se compara es uno solo.
 function resumenPortafolio(id) {
-  const mapa = mapaActivoPortafolio();
   const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
-  const suyas = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
-    .filter(function (e) {
-      const mon = (e.moneda === 'USD') ? 'USD' : 'ARS';
-      return mapa[claveActivoPortafolio(e.destino, e.ticker, mon)] === id;
-    });
+  const suyas = comprasDePortafolio(id);
   // Por destino y moneda antes de agrupar por ticker: el mismo ticker en dos
   // carteras son dos tenencias y no pueden sumarse como una.
   const porGrupo = {};
@@ -12668,8 +12757,7 @@ function eliminarPortafolio(id) {
     state.portafolios = portafolios().filter(function (x) { return x.id !== id; });
     // Se limpian las asignaciones: dejarlas apuntando a un portafolio que ya no
     // existe deja basura que crece con cada borrado.
-    const mapa = mapaActivoPortafolio();
-    Object.keys(mapa).forEach(function (k) { if (mapa[k] === id) delete mapa[k]; });
+    comprasDePortafolio(id).forEach(function (e) { delete e.portafolio; });
     if (pfEditandoId === id) limpiarFormPortafolio();
     scheduleSave();
     renderPortafoliosTab();
@@ -14940,6 +15028,10 @@ function applyStateSnapshot(snap) {
   state.trades = Array.isArray(snap.trades) ? snap.trades : [];
   if (snap.tickerInfo && typeof snap.tickerInfo === 'object') state.tickerInfo = snap.tickerInfo;
   if (snap.txIncludedInBudget && typeof snap.txIncludedInBudget === 'object') state.txIncludedInBudget = snap.txIncludedInBudget;
+  // Los archivos anteriores guardaban la asignación por ticker: se pasa a cada
+  // compra antes de dibujar nada. Va después de investmentEntries, que es lo
+  // que la migración toca.
+  migrarAsignacionPorCompra();
 
   // Validar invariantes y mostrar warnings (no bloquea la carga)
   if (typeof validateState === 'function') {
@@ -18677,8 +18769,9 @@ function liquidoDeDestino(destinos) {
 // contaría varias veces.
 function concentracionDeCartera(destinos, filtroPf) {
   const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
-  const entries = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
-    .filter(function (e) { return destinos.indexOf(e.destino) >= 0; });
+  // Filtrar las compras ANTES de agruparlas por ticker: un activo comprado para
+  // dos objetivos pesa en cada uno sólo por sus propias tandas.
+  const entries = tenenciasDePortafolio(destinos, filtroPf === undefined ? null : filtroPf);
   const posiciones = [];
   ['ARS', 'USD'].forEach(function (mon) {
     const groups = groupInvestmentEntriesByTicker(entries.filter(function (e) {
@@ -18688,11 +18781,6 @@ function concentracionDeCartera(destinos, filtroPf) {
       const g = groups[tk];
       // Lo liquidado no es tenencia: no concentra nada.
       if (!(g.cantidadTotal > 0)) return;
-      if (filtroPf !== undefined) {
-        const pf = portafolioDeActivo(state.activoPortafolio, destinos[0], tk, mon);
-        const suyo = pf && portafolioPorId(portafolios(), pf) ? pf : '__sin__';
-        if (suyo !== filtroPf) return;
-      }
       const info = infoDeTicker(state.tickerInfo, tk, mon);
       const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
         ? Number(info.precioActual) : null;
@@ -19182,14 +19270,8 @@ function buildLiquidadosBlock(entries, destinos) {
   const claveVista = dest + '|liq';
   if (dest && vistaDeTabla(claveVista) === 'portafolio') {
     const grupos = gruposDePortafolioDeCartera(destinos);
-    const mapa = mapaActivoPortafolio();
     const bloques = grupos.map(function (g) {
-      const suyas = (entries || []).filter(function (e) {
-        const mon = e.moneda === 'USD' ? 'USD' : 'ARS';
-        const id = mapa[claveActivoPortafolio(e.destino, e.ticker, mon)];
-        const suyo = (id && portafolioPorId(portafolios(), id)) ? id : '__sin__';
-        return suyo === g.id;
-      });
+      const suyas = (entries || []).filter(function (e) { return pfDeCompra(e) === g.id; });
       const html = bloqueLiquidado(suyas);
       if (!html) return '';
       // La cantidad de activos y la fecha de inicio son del portafolio —los
@@ -19605,14 +19687,11 @@ function buildInvestmentDetailPanel(destinos, title) {
   // El total contra el que se mide, memorizado: la cartera entera en la vista
   // Activos y el portafolio del activo en la vista Portafolio. Sin memorizar,
   // cada fila recalcularía la concentración de toda la cartera.
+  // `pfGrupo` es el ámbito de la fila: el id del portafolio en la vista
+  // agrupada, vacío en la vista Activos, donde se mide sobre la cartera entera.
   const _totalesPeso = {};
-  function totalDeReferencia(destino, tk, moneda) {
-    const porPf = vistaDeTabla(destino + '|' + (moneda === 'USD' ? 'USD' : 'ARS')) === 'portafolio';
-    let clave = '__todo__';
-    if (porPf) {
-      const pf = portafolioDeActivo(state.activoPortafolio, destino, tk, moneda);
-      clave = (pf && portafolioPorId(portafolios(), pf)) ? pf : '__sin__';
-    }
+  function totalDeReferencia(pfGrupo) {
+    const clave = pfGrupo || '__todo__';
     if (_totalesPeso[clave] === undefined) {
       _totalesPeso[clave] = (clave === '__todo__')
         ? (concentracionDeCartera(destinos).total || 0)
@@ -19620,8 +19699,8 @@ function buildInvestmentDetailPanel(destinos, title) {
     }
     return _totalesPeso[clave];
   }
-  function celdaPesoActivo(destino, tk, moneda, valor) {
-    const total = totalDeReferencia(destino, tk, moneda);
+  function celdaPesoActivo(tk, valor, pfGrupo) {
+    const total = totalDeReferencia(pfGrupo);
     if (!(total > 0) || !(valor > 0)) return '<td class="num"><span class="inv-na">—</span></td>';
     const pct = valor / total * 100;
     const alto = pct >= umbralConcentracionActivo() && umbralConcentracionActivo() > 0;
@@ -19629,13 +19708,8 @@ function buildInvestmentDetailPanel(destinos, title) {
     // misma clase de aviso —un umbral superado— y tiene que verse igual.
     let tip = '';
     if (alto) {
-      const porPf = vistaDeTabla(destino + '|' + (moneda === 'USD' ? 'USD' : 'ARS')) === 'portafolio';
-      let ambito = title;
-      if (porPf) {
-        const pfId = portafolioDeActivo(state.activoPortafolio, destino, tk, moneda);
-        const p = pfId && portafolioPorId(portafolios(), pfId);
-        ambito = p ? p.nombre : 'Sin portafolio';
-      }
+      const p = pfGrupo && portafolioPorId(portafolios(), pfGrupo);
+      const ambito = pfGrupo ? (p ? p.nombre : 'Sin portafolio') : title;
       tip = ' data-tip-titulo="POR ENCIMA DEL UMBRAL" data-tip-detalle="' +
         escapeHtmlSafe(tk + ' concentra el ' + pct.toFixed(0) + '% de ' + ambito +
           ', por encima del ' + umbralConcentracionActivo() + '% configurado para un solo activo.') + '"';
@@ -19645,7 +19719,10 @@ function buildInvestmentDetailPanel(destinos, title) {
   }
 
   // ─── 4. Helper para construir las filas de una moneda ───
-  function buildRows(groups, tickers, monedaPrefix) {
+  // `pfGrupo` es el id del portafolio cuando la tabla está agrupada: distingue
+  // dos filas del mismo ticker repartido en dos objetivos, tanto para el tilde
+  // como para el detalle que se despliega.
+  function buildRows(groups, tickers, monedaPrefix, pfGrupo) {
     if (tickers.length === 0) return '';
     return tickers.map(function (tk) {
       const g = groups[tk];
@@ -19710,7 +19787,9 @@ function buildInvestmentDetailPanel(destinos, title) {
             '<td>' + (showDestColumn ? escapeHtmlSafe(destLabel) : '') + '</td>' +
             '<td class="inv-entry-fecha">' + fechaDisplay + '</td>' +
             celdaDiasTenencia(e) +
-            '<td></td>' +   /* Sector */
+            // Una compra vendida sigue siendo del portafolio: lo que dejó
+            // alimenta su caja, así que se puede seguir moviendo de objetivo.
+            celdaPortafolioCompra(e) +
             '<td></td>' +   /* % */
             '<td class="num"><span class="inv-chip-liquidado">liquidada</span></td>' +
             '<td class="num" colspan="4"><span class="inv-na">vendidos ' + fmtNominales(eVendida) + ' nominales por ' +
@@ -19742,7 +19821,7 @@ function buildInvestmentDetailPanel(destinos, title) {
           // Días en tenencia: va en la columna de Descripción, que en el detalle
           // está vacía y queda justo después de la fecha.
           celdaDiasTenencia(e) +
-          '<td></td>' +   /* Sector */
+          celdaPortafolioCompra(e) +
           '<td></td>' +   /* % */
           '<td class="num">' + (eCant < 0 ? '-' : '') + fmtNominales(eCant) + '</td>' +
           '<td class="num">' + monedaPrefix + ' ' + fmtPrecio(ePrecio) + '</td>' +
@@ -19821,7 +19900,8 @@ function buildInvestmentDetailPanel(destinos, title) {
       });
       if (liquidado) {
         const rCls = g.realizado > 0 ? 'inv-gp-positive' : (g.realizado < 0 ? 'inv-gp-negative' : '');
-        return '<tr class="inv-ticker-row inv-ticker-liquidado" data-ticker="' + escapeHtmlSafe(tk) + '"' + ordenAttrs + '>' +
+        return '<tr class="inv-ticker-row inv-ticker-liquidado" data-ticker="' + escapeHtmlSafe(tk) + '"' +
+          ' data-pf="' + escapeHtmlSafe(pfGrupo || '') + '"' + ordenAttrs + '>' +
           '<td class="inv-ticker-toggle"><button class="inv-toggle-btn" data-action="toggle-ticker" title="Ver las compras y sus ventas"><i data-lucide="chevron-right" style="width:13px;height:13px"></i></button></td>' +
           brokerCellHtml +
           '<td class="ticker">' + escapeHtmlSafe(tk) + '</td>' +
@@ -19835,17 +19915,12 @@ function buildInvestmentDetailPanel(destinos, title) {
             '<div class="inv-gp-pct">realizado</div></td>' +
         '</tr>' + entriesHeadHtml + entriesRowsHtml;
       }
-      return '<tr class="inv-ticker-row" data-ticker="' + escapeHtmlSafe(tk) + '"' + ordenAttrs + '>' +
+      return '<tr class="inv-ticker-row" data-ticker="' + escapeHtmlSafe(tk) + '"' +
+          ' data-pf="' + escapeHtmlSafe(pfGrupo || '') + '"' + ordenAttrs + '>' +
         '<td class="inv-ticker-toggle">' +
-          // Seleccionar para agrupar. La clave lleva destino, ticker y moneda:
-          // el mismo ticker en dos carteras son dos tenencias distintas y
-          // pueden ir a portafolios distintos.
-          //
-          // En la vista Activos sólo se elige lo que todavía no tiene
-          // portafolio: ahí se agrupa lo suelto. Para mover un activo de
-          // portafolio o sacarlo está la vista Portafolio, donde se lo ve
-          // junto a los demás del grupo del que sale.
-          celdaSeleccionActivo(destinos[0], tk, g.moneda) +
+          // Seleccionar para agrupar. Arrastra compras, no el ticker: ver
+          // celdaSeleccionActivo.
+          celdaSeleccionActivo(destinos[0], tk, g.moneda, g.entries, !!pfGrupo) +
           '<button class="inv-toggle-btn" data-action="toggle-ticker" title="Ver compras individuales"><i data-lucide="chevron-right" style="width:13px;height:13px"></i></button>' +
           // Vender TODO el ticker. La venta parcial va en las filas de detalle,
           // porque el costo de lo vendido sale del precio de cada compra.
@@ -19861,7 +19936,7 @@ function buildInvestmentDetailPanel(destinos, title) {
         // Cuánto pesa este activo: en la vista Activos sobre la cartera entera,
         // en la vista Portafolio sobre el portafolio al que pertenece. Es la
         // misma pregunta a distinta escala, y por eso cambia con la vista.
-        celdaPesoActivo(destinos[0], tk, g.moneda, valorDeTenencia(tk, g.moneda, g)) +
+        celdaPesoActivo(tk, valorDeTenencia(tk, g.moneda, g), pfGrupo) +
         '<td class="num">' + (g.cantidadTotal < 0 ? '-' : '') + fmtNominales(g.cantidadTotal) + '</td>' +
         // PPC sin decimales, igual que el resto de los importes de la fila. Era
         // la única celda con dos decimales y desalineaba la columna: el
@@ -19912,7 +19987,7 @@ function buildInvestmentDetailPanel(destinos, title) {
   // con todo; por portafolio, un <tbody> por grupo encabezado por su título,
   // que es lo que deja que el orden por columna siga valiendo adentro de cada
   // uno sin mezclar activos de portafolios distintos.
-  function cuerpoTabla(groups, tickers, prefijo, moneda) {
+  function cuerpoTabla(groups, tickers, prefijo, moneda, entriesMoneda) {
     const clave = (destinos[0] || '') + '|' + moneda;
     if (vistaDeTabla(clave) !== 'portafolio') {
       // La cartera entera se encabeza igual que un portafolio: sin grupos que
@@ -19921,33 +19996,37 @@ function buildInvestmentDetailPanel(destinos, title) {
         '<tr class="inv-currency-header-row inv-pf-head"><td colspan="13">' +
           contenidoCabeceraPortafolio('cartera', 0, totalesDePortafolio(destinos, null, moneda)) +
         '</td></tr>' +
-        buildRows(groups, tickers, prefijo) +
+        buildRows(groups, tickers, prefijo, '') +
       '</tbody>';
     }
-    const gs = agruparPorPortafolio(tickers, portafolios(), state.activoPortafolio, destinos[0], moneda);
+    // Se agrupan las COMPRAS y recién después se suman por ticker dentro de
+    // cada grupo: así un activo comprado para dos objetivos sale una vez en
+    // cada uno, con sus propias tandas, su propio PPC y su propio resultado.
+    const gs = agruparPorPortafolio(entriesMoneda, portafolios());
     // Los portafolios se numeran en el orden en que salen; el grupo de lo que
     // no tiene no lleva número, porque no es un portafolio.
     let nro = 0;
     return gs.map(function (g) {
       const p = g.portafolio;
       if (p) nro++;
+      const id = p ? p.id : '__sin__';
+      const grupoGroups = groupInvestmentEntriesByTicker(g.entries);
+      const grupoTickers = Object.keys(grupoGroups).sort();
       // Los mismos totales que muestran Concentración y Liquidado, acotados a
       // la moneda de esta tabla y en sus propias unidades.
-      // agruparPorPortafolio devuelve el portafolio, no su id: el del grupo sin
-      // asignar es el centinela que usa totalesDePortafolio.
-      const tot = totalesDePortafolio(destinos, p ? p.id : '__sin__', moneda);
+      const tot = totalesDePortafolio(destinos, id, moneda);
       // Misma cabecera que la de la tabla ("ACTIVOS COMPRADOS EN ARS"): son
       // rótulos del mismo rango y comparten clases, no un estilo propio.
       return '<tbody class="inv-pf-grupo">' +
         '<tr class="inv-currency-header-row inv-pf-head"><td colspan="13">' +
           contenidoCabeceraPortafolio(p, nro, tot) +
         '</td></tr>' +
-        buildRows(groups, g.tickers, prefijo) +
+        buildRows(grupoGroups, grupoTickers, prefijo, id) +
       '</tbody>';
     }).join('');
   }
-  const arsRows = cuerpoTabla(arsGroups, arsTickers, '$', 'ARS');
-  const usdRows = cuerpoTabla(usdGroups, usdTickers, 'US$', 'USD');
+  const arsRows = cuerpoTabla(arsGroups, arsTickers, '$', 'ARS', arsEntries);
+  const usdRows = cuerpoTabla(usdGroups, usdTickers, 'US$', 'USD', usdEntries);
 
   // Helper para construir una tabla por moneda. Cabecera de dos filas:
   //   fila 1: label de moneda (ARS / USD) + contador de tickers
@@ -20677,7 +20756,9 @@ function claveDespliegue(row) {
   if (!row) return null;
   const cont = row.closest('[id$="Content"]');
   const tk = row.getAttribute('data-ticker');
-  return (cont && tk) ? cont.id + '::' + tk : null;
+  // El portafolio entra en la clave: el mismo ticker repartido en dos objetivos
+  // son dos filas, y sin él desplegar una abriría las dos.
+  return (cont && tk) ? cont.id + '::' + (row.getAttribute('data-pf') || '') + '::' + tk : null;
 }
 
 // Vuelve a abrir los detalles que estaban abiertos antes de repintar.
@@ -21041,6 +21122,28 @@ function bindInvestmentDetailDelegation() {
       state.tickerInfo[k].lastUpdate = state.tickerInfo[k].lastUpdate || new Date().toISOString();
       scheduleSave();
       // No re-renderizamos: el cambio ya está visible
+      return;
+    }
+    // Portafolio de una compra. Rehace el panel —cambian los grupos, las
+    // cabeceras, la concentración y las cajas— y devuelve el punto de lectura y
+    // el foco, con el mismo remedio que el selector de sector: sin eso, la
+    // lista que se estaba repartiendo se mueve sola.
+    const pfSel = e.target.closest('.inv-pf-compra-sel');
+    if (pfSel) {
+      const invId = pfSel.getAttribute('data-inv-id');
+      const entrada = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
+        .filter(function (x) { return x.id === invId; })[0];
+      if (!entrada) return;
+      if (pfSel.value) entrada.portafolio = pfSel.value;
+      else delete entrada.portafolio;
+      scheduleSave();
+      const doc = document.scrollingElement || document.documentElement;
+      const scrollAntes = doc ? doc.scrollTop : 0;
+      if (typeof renderMainAssets === 'function') renderMainAssets();
+      const vuelto = document.querySelector('.inv-pf-compra-sel[data-inv-id="' +
+        String(invId).replace(/"/g, '') + '"]');
+      if (vuelto) vuelto.focus({ preventScroll: true });
+      if (doc && doc.scrollTop !== scrollAntes) doc.scrollTop = scrollAntes;
       return;
     }
     // Sector: se re-renderiza porque cambia el gráfico de concentración y sus

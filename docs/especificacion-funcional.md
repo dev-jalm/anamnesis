@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.60 |
+| **Versión** | 1.61 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -294,7 +294,9 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-080b1 | Cada portafolio informa además lo que lleva **acumulado hasta hoy**, desglosado en dos: el **G/P potencial** —lo que dejaría su tenencia si se vendiera hoy— y el **G/P liquidado** —lo que ya dejó lo vendido—, cada uno con el porcentaje que representa sobre el monto objetivo, y el **porcentaje alcanzado** de ese monto, que se mide igual que en las secciones (RF-080n1b). Si el portafolio tiene caja (RF-080q) también la informa, y sin la tinta de ganancia: no es un resultado sino plata esperando. Los importes abarcan todas las carteras en las que el portafolio tenga activos y se expresan en pesos, porque el objetivo es uno solo. Los porcentajes sólo se presentan si el portafolio informó un monto objetivo; los importes, siempre. El potencial no se informa si a algún activo le falta el precio actual |
 | RF-080c | El nombre es obligatorio, admite hasta 40 caracteres y no puede repetirse. La comparación ignora mayúsculas y acentos: dos portafolios que se leen igual son el mismo |
 | RF-080d | La asignación de activos **no** se hace en Administración sino en la propia solapa Salud financiera, donde están los activos a la vista: cada activo de la tabla se puede seleccionar, y la selección se asigna a un portafolio —o se saca del que tenga— en una sola acción |
-| RF-080e | La asignación es del activo **en su destino y su moneda**: el mismo ticker tenido en dos carteras son dos tenencias distintas y pueden ir a portafolios distintos. Comprar más de un activo ya asignado no lo saca de su portafolio |
+| RF-080e | La asignación es **de cada compra**. Un mismo activo puede comprarse para objetivos distintos —tres tandas de un ETF repartidas en tres portafolios— y cada tanda lleva el suyo, con su fecha, su precio y sus propias ventas. Por lo mismo, el activo tenido en dos carteras son dos tenencias y pueden ir a portafolios distintos |
+| RF-080e1 | En la **vista Portafolio** un activo repartido se presenta **una vez en cada grupo**, con los nominales, el precio promedio y el resultado de las tandas que le corresponden. En la **vista Activos** se presenta una sola vez, con el total del ticker, y su selección alcanza a las compras que todavía no están en ningún portafolio; si no queda ninguna, la fila informa en cuál o cuáles está y la selección se hace desde la vista Portafolio |
+| RF-080e2 | El portafolio de una compra se elige **en el alta del activo** y se puede cambiar después en el **detalle de compras** de la tabla. Una compra liquidada conserva su portafolio y se puede mover igual: lo que dejó alimenta la caja de ese objetivo |
 | RF-080f | La tabla de activos de cada moneda ofrece dos vistas: **Activos**, la lista plana, y **Portafolio**, que agrupa los activos bajo el nombre de su portafolio, con su objetivo y su plazo. La cabecera de cada grupo se presenta con el mismo tratamiento que el rótulo de la tabla (RF-073y): son rótulos del mismo rango. Cada portafolio se rotula **"Portafolio n° N: nombre"**, con N el orden en que se presenta, el prefijo en el color de los rótulos de sección y el nombre en tinta plena. Las cabeceras de los grupos de Concentración y Liquidado usan el mismo tratamiento que ésta. Los portafolios sin activos en esa tabla no se presentan, y lo que no está asignado va en un grupo propio, siempre último, atenuado y sin número —no es un portafolio— |
 | RF-080n | La cabecera de cada portafolio informa, además de su nombre y su cantidad de activos, el **valor** del grupo y su **resultado** contra el precio de hoy, con su porcentaje sobre lo invertido a continuación. El resultado no se informa si a algún activo del grupo le falta el precio actual: un total parcial se leería como el total. Informa además su **fecha de inicio**: la compra más antigua de sus activos, que es cuándo empezó a armarse el objetivo —cuenta aunque el activo ya se haya liquidado, porque el portafolio arrancó igual—. La cabecera es **idéntica en las tres secciones** —Activos, Concentración y Liquidado—: mismos datos, mismo tratamiento, mismo ancho y misma posición de arranque. En la tabla de una moneda los importes van en esa moneda; en Concentración y Liquidado, que abarcan las dos, van en pesos al MEP |
 | RF-080n1 | La cabecera se presenta en **una sola línea con los campos rotulados y separados por barras**: `Portafolio n° 1: Nombre (descripción) \| Activos: n \| Total: importe \| G/P: importe (porcentaje)`. La descripción reúne el objetivo, el plazo y la fecha de inicio, entre paréntesis y a continuación del nombre. Todos los campos se presentan con el mismo cuerpo tipográfico —el de los rótulos de los gráficos de Concentración (RF-072g), que son los rótulos del mismo rango en la pantalla— salvo la descripción, que es texto libre y no un dato de la línea; si no entra, es ella la que se recorta —los datos no se corren ni se parten— y su texto completo queda accesible en su información emergente |
@@ -616,7 +618,7 @@ Compartida por todas las compras del mismo símbolo.
 | `monto` | Importe mayor que cero | No |
 | `createdAt` | Marca temporal | Sí |
 
-Qué activo pertenece a qué portafolio se registra aparte, en un índice cuya clave es **destino + ticker + moneda** (RF-080e) y cuyo valor es el identificador del portafolio. Va separado de la compra porque el portafolio es de la tenencia y no de la tanda: incorporar una compra más del mismo activo no lo saca de su portafolio.
+Qué compra pertenece a qué portafolio se registra **en la compra misma** (RF-080e). Un índice por ticker no podía representar el caso corriente de comprar el mismo activo para dos objetivos distintos: la unidad más fina que el producto maneja es la compra, con su fecha, su precio y sus ventas colgando de ella, y es la que lleva el portafolio. Los archivos anteriores, que guardaban la asignación por destino + ticker + moneda, se migran al abrirlos: cada compra hereda la asignación de su ticker, que es exactamente lo que ese índice significaba.
 
 ### 5.4 Regla
 
@@ -1173,9 +1175,17 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.57 | 24/09/2026 | El ABM de portafolios informa lo acumulado hasta hoy de cada uno, potencial y liquidado, contra su monto objetivo (RF-080b1) | Reemplazada |
 | 1.58 | 24/09/2026 | Toda información emergente que explique un dato usa el componente propio del producto (RNF-19), y en Liquidado el avance contra el objetivo se mide sobre lo realizado (RF-080n1b) | Reemplazada |
 | 1.59 | 25/09/2026 | El portafolio incorpora su **caja**: lo que dejaron sus ventas y todavía no se reinvirtió deja de desaparecer del avance hacia el objetivo (RF-080q, RF-080q1, RF-080n1b, RF-080b1) | Reemplazada |
-| 1.60 | 25/09/2026 | La caja del portafolio entra como Liquidez en sus dos gráficos de concentración (RF-080l) | **Vigente** |
+| 1.60 | 25/09/2026 | La caja del portafolio entra como Liquidez en sus dos gráficos de concentración (RF-080l) | Reemplazada |
+| 1.61 | 25/09/2026 | La asignación a un portafolio pasa a ser **de cada compra** y no del ticker: un mismo activo puede comprarse para objetivos distintos (RF-080e, RF-080e1, RF-080e2) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Un mismo activo repartido entre varios portafolios | RF-080e, RF-080e1 |
+| El portafolio se elige al cargar la compra y se cambia en su detalle | RF-080e2 |
+
+**Implementados en la versión 1.60**
 
 | Cambio | Requerimiento |
 |---|---|

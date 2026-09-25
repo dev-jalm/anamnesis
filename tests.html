@@ -1310,29 +1310,43 @@ group('Portafolios', function () {
     ]), 80000);
   });
   test('agrupa en el orden de los portafolios y deja lo sin asignar al final', function () {
-    const mapa = { 'inversiones|SPY|ARS': 'p2', 'inversiones|AAPL|ARS': 'p1' };
-    const gs = agruparPorPortafolio(['AAPL', 'SPY', 'MELI'], PFS, mapa, 'inversiones', 'ARS');
+    const gs = agruparPorPortafolio([
+      { ticker: 'AAPL', portafolio: 'p1' },
+      { ticker: 'SPY', portafolio: 'p2' },
+      { ticker: 'MELI' }
+    ], PFS);
     assertEqual(gs.length, 3);
     assertEqual(gs[0].portafolio.id, 'p1');
     assertEqual(gs[1].portafolio.id, 'p2');
     assertEqual(gs[2].portafolio, null);
-    assertEqual(gs[2].tickers.join(','), 'MELI');
+    assertEqual(gs[2].entries.map(function (e) { return e.ticker; }).join(','), 'MELI');
   });
-  test('un portafolio sin activos en esta tabla no ocupa lugar', function () {
-    const gs = agruparPorPortafolio(['AAPL'], PFS, { 'inversiones|AAPL|ARS': 'p1' }, 'inversiones', 'ARS');
+  test('el mismo ticker comprado para dos objetivos va a los dos grupos', function () {
+    const gs = agruparPorPortafolio([
+      { id: 'a', ticker: 'IBIT', portafolio: 'p1' },
+      { id: 'b', ticker: 'IBIT', portafolio: 'p2' },
+      { id: 'c', ticker: 'IBIT' }
+    ], PFS);
+    assertEqual(gs.length, 3);
+    assertEqual(gs[0].entries.map(function (e) { return e.id; }).join(','), 'a');
+    assertEqual(gs[1].entries.map(function (e) { return e.id; }).join(','), 'b');
+    assertEqual(gs[2].entries.map(function (e) { return e.id; }).join(','), 'c');
+  });
+  test('un portafolio sin compras en esta tabla no ocupa lugar', function () {
+    const gs = agruparPorPortafolio([{ ticker: 'AAPL', portafolio: 'p1' }], PFS);
     assertEqual(gs.length, 1);
     assertEqual(gs[0].portafolio.id, 'p1');
   });
   test('lo asignado a un portafolio borrado cae en sin portafolio', function () {
-    const gs = agruparPorPortafolio(['AAPL'], PFS, { 'inversiones|AAPL|ARS': 'fantasma' }, 'inversiones', 'ARS');
+    const gs = agruparPorPortafolio([{ ticker: 'AAPL', portafolio: 'fantasma' }], PFS);
     assertEqual(gs.length, 1);
     assertEqual(gs[0].portafolio, null);
-    assertEqual(gs[0].tickers.join(','), 'AAPL');
+    assertEqual(gs[0].entries.map(function (e) { return e.ticker; }).join(','), 'AAPL');
   });
   test('sin asignaciones, todo va a un solo grupo sin portafolio', function () {
-    const gs = agruparPorPortafolio(['B', 'A'], PFS, {}, 'inversiones', 'ARS');
+    const gs = agruparPorPortafolio([{ ticker: 'B' }, { ticker: 'A' }], PFS);
     assertEqual(gs.length, 1);
-    assertEqual(gs[0].tickers.join(','), 'A,B');
+    assertEqual(gs[0].entries.length, 2);
   });
 });
 
