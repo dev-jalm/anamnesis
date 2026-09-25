@@ -12023,6 +12023,48 @@ function rotuloPortafolioHtml(p, nro) {
 // La fecha de inicio es la compra más vieja de sus activos: cuándo empezó a
 // armarse el objetivo. Cuenta aunque el activo ya esté liquidado, porque el
 // portafolio arrancó igual.
+// Las compras y las ventas de un conjunto de tenencias, en pesos, como los
+// espera saldoDeCaja. Una caja sola y no una por moneda: el objetivo es uno
+// solo, y si se vendió en pesos para comprar en dólares esa plata se usó.
+function eventosDeCaja(entries, mep) {
+  const eventos = [];
+  (entries || []).forEach(function (e) {
+    const aPesos = ((e.moneda === 'USD') ? mep : 1);
+    const costo = (Number(e.cantidad) || 0) * (Number(e.precio) || 0);
+    if (costo) eventos.push({ fecha: e.fecha || '', tipo: 'compra', monto: costo * aPesos });
+    ventasDeEntrada(e).forEach(function (v) {
+      const cant = Number(v && v.cantidad) || 0;
+      const prec = Number(v && v.precio) || 0;
+      const tot = Number(v && v.total);
+      const producto = (isFinite(tot) && tot !== 0) ? tot : cant * prec;
+      if (producto) eventos.push({ fecha: (v && v.fecha) || '', tipo: 'venta', monto: producto * aPesos });
+    });
+  });
+  return eventos;
+}
+
+// Las tenencias de un portafolio dentro de una cartera, liquidadas incluidas.
+// `pfId` en null son todas, sin filtrar.
+function tenenciasDePortafolio(destinos, pfId) {
+  const mapa = mapaActivoPortafolio();
+  return (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
+    .filter(function (e) {
+      if (destinos.indexOf(e.destino) < 0) return false;
+      if (pfId === null) return true;
+      const mon = (e.moneda === 'USD') ? 'USD' : 'ARS';
+      const id = mapa[claveActivoPortafolio(e.destino, e.ticker, mon)];
+      const suyo = (id && portafolioPorId(portafolios(), id)) ? id : '__sin__';
+      return suyo === pfId;
+    });
+}
+
+// La caja de un portafolio dentro de una cartera: lo que dejaron sus ventas y
+// todavía no volvió a un activo suyo.
+function cajaDePortafolio(destinos, pfId) {
+  const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+  return saldoDeCaja(eventosDeCaja(tenenciasDePortafolio(destinos, pfId), mep));
+}
+
 function totalesDePortafolio(destinos, pfId, moneda) {
   const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
   const entries = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
@@ -12032,10 +12074,6 @@ function totalesDePortafolio(destinos, pfId, moneda) {
   // contra el monto objetivo se mide sobre el portafolio entero, no sobre la
   // parte que muestra la tabla de una moneda.
   let valorPesos = 0;
-  // Los movimientos de plata del portafolio, en pesos, para reconstruir su caja
-  // (ver saldoDeCaja). Una caja sola y no una por moneda: el objetivo es uno
-  // solo, y si se vendió en pesos para comprar en dólares esa plata se usó.
-  const eventos = [];
   ['ARS', 'USD'].forEach(function (mon) {
     const deEstaTabla = !moneda || (moneda === 'USD' ? 'USD' : 'ARS') === mon;
     const groups = groupInvestmentEntriesByTicker(entries.filter(function (e) {
@@ -12046,21 +12084,6 @@ function totalesDePortafolio(destinos, pfId, moneda) {
       const id = portafolioDeActivo(state.activoPortafolio, destinos[0], tk, mon);
       const suyo = (id && portafolioPorId(portafolios(), id)) ? id : '__sin__';
       if (pfId !== null && suyo !== pfId) return;
-      const aPesos = (mon === 'USD') ? mep : 1;
-      // La caja se arma con TODAS las compras y ventas del portafolio, también
-      // las de la moneda que esta tabla no muestra y las de los activos ya
-      // liquidados: la plata entró y salió igual.
-      (g.entries || []).forEach(function (e) {
-        const costo = (Number(e.cantidad) || 0) * (Number(e.precio) || 0);
-        if (costo) eventos.push({ fecha: e.fecha || '', tipo: 'compra', monto: costo * aPesos });
-        ventasDeEntrada(e).forEach(function (v) {
-          const cant = Number(v && v.cantidad) || 0;
-          const prec = Number(v && v.precio) || 0;
-          const tot = Number(v && v.total);
-          const producto = (isFinite(tot) && tot !== 0) ? tot : cant * prec;
-          if (producto) eventos.push({ fecha: (v && v.fecha) || '', tipo: 'venta', monto: producto * aPesos });
-        });
-      });
       if (deEstaTabla) {
         n++;
         (g.entries || []).forEach(function (e) {
@@ -12084,7 +12107,7 @@ function totalesDePortafolio(destinos, pfId, moneda) {
   // Lo que las ventas del portafolio dejaron en caja y todavía no volvió a un
   // activo suyo. No entra en `valor` —no es tenencia y no es ganancia— pero sí
   // en el avance hacia el objetivo: esa plata se juntó para eso.
-  const liquido = saldoDeCaja(eventos);
+  const liquido = cajaDePortafolio(destinos, pfId);
   return {
     n: n, valor: valor, gp: gp, desde: desde, valorPesos: valorPesos,
     liquidoPesos: liquido,
@@ -12462,28 +12485,15 @@ function resumenPortafolio(id) {
   ventasDelPanel(suyas).forEach(function (f) {
     realizado += (f.moneda === 'USD') ? f.resultado * mep : f.resultado;
   });
-  // La caja del portafolio, con el mismo criterio que la cabecera de las
-  // secciones: lo que sus ventas dejaron y todavía no volvió a un activo suyo.
-  const eventos = [];
-  suyas.forEach(function (e) {
-    const aPesos = (e.moneda === 'USD') ? mep : 1;
-    const costo = (Number(e.cantidad) || 0) * (Number(e.precio) || 0);
-    if (costo) eventos.push({ fecha: e.fecha || '', tipo: 'compra', monto: costo * aPesos });
-    ventasDeEntrada(e).forEach(function (v) {
-      const cant = Number(v && v.cantidad) || 0;
-      const prec = Number(v && v.precio) || 0;
-      const tot = Number(v && v.total);
-      const producto = (isFinite(tot) && tot !== 0) ? tot : cant * prec;
-      if (producto) eventos.push({ fecha: (v && v.fecha) || '', tipo: 'venta', monto: producto * aPesos });
-    });
-  });
   return {
     valor: valor,
     // Sin el precio de algún activo el potencial no se informa: un total
     // parcial se leería como el total.
     gp: todosConPrecio ? (valor - invertido) : null,
     realizado: realizado,
-    liquido: saldoDeCaja(eventos)
+    // La caja, con el mismo criterio que la cabecera de las secciones: lo que
+    // sus ventas dejaron y todavía no volvió a un activo suyo.
+    liquido: saldoDeCaja(eventosDeCaja(suyas, mep))
   };
 }
 
@@ -18657,9 +18667,14 @@ function liquidoDeDestino(destinos) {
 // que el porcentaje no se lea como más preciso de lo que es—. Los dólares se
 // pasan a pesos al MEP, igual que la fila ARS+USD de la cabecera.
 // `filtroPf` acota el cálculo a un portafolio: su id, o '__sin__' para lo que
-// no tiene ninguno. Sin él —el caso normal— se mide la cartera entera. Con
-// filtro no entra la Liquidez: la plata sin invertir es del destino, no de un
-// objetivo en particular, y sumarla a cada portafolio la contaría de más.
+// no tiene ninguno. Sin él —el caso normal— se mide la cartera entera.
+//
+// La Liquidez entra en los dos casos, pero no es la misma plata: para la
+// cartera es su líquido —lo aportado que todavía no se invirtió— y para un
+// portafolio es su caja (RF-080q), lo que dejaron sus ventas y todavía no
+// volvió a un activo suyo. El líquido del destino NO se reparte entre los
+// portafolios: no es de ningún objetivo en particular y sumarlo a cada uno lo
+// contaría varias veces.
 function concentracionDeCartera(destinos, filtroPf) {
   const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
   const entries = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
@@ -18690,11 +18705,15 @@ function concentracionDeCartera(destinos, filtroPf) {
       });
     });
   });
-  // La plata del destino que todavía no se invirtió también es parte de la
-  // cartera: sin ella, una Reserva con un solo activo daba 100% en ese sector
-  // aunque el grueso estuviera en efectivo. Sale del Líquido de la cabecera.
+  // La plata que todavía no está invertida también es parte del ámbito: sin
+  // ella, una Reserva con un solo activo daba 100% en ese sector aunque el
+  // grueso estuviera en efectivo, y un portafolio que acaba de vender daba 100%
+  // en lo poco que le quedaba. Para la cartera es el Líquido de la cabecera;
+  // para un portafolio, su caja.
   // Negativo —se invirtió más de lo aportado— no es tenencia, así que no entra.
-  const liquido = (filtroPf === undefined) ? liquidoDeDestino(destinos) : 0;
+  const liquido = (filtroPf === undefined)
+    ? liquidoDeDestino(destinos)
+    : cajaDePortafolio(destinos, filtroPf);
   // En mayúsculas, como los tickers con los que comparte la barra.
   if (liquido > 0) posiciones.push({ ticker: 'LÍQUIDO', sector: 'liquidez', valor: liquido, aCosto: false });
   const c = concentracionPorSector(posiciones);

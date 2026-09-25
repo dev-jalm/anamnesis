@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.59 |
+| **Versión** | 1.60 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -308,7 +308,7 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-080m | Cada gráfico de concentración se encabeza con una fila de resumen —**Cartera completa** o **Portafolio completo** según la vista— que informa qué parte de la cartera ocupa el ámbito, su importe y, en lugar de una barra simple, la composición apilada de sus tramos. Cada tramo presenta la información emergente de RF-073r. Las dos columnas la llevan, para arrancar con la misma fila |
 | RF-080k | Las secciones **Concentración** y **Liquidado** ofrecen el mismo par de vistas. El selector de cada una se presenta junto al título de su sección y se oculta al plegarla. En Portafolio, cada sección se repite una vez por portafolio con los datos de sus activos: la concentración de cada objetivo por separado —que revela un portafolio concentrado aunque la cartera en conjunto no lo esté— y lo que dejó lo vendido de cada uno. El selector no se presenta si todavía no hay portafolios creados |
 | RF-080k1 | Cambiar de vista **no altera el punto de lectura**: la sección sigue desplegada, la pantalla no se desplaza y el selector conserva el foco del teclado. El selector es un control completo: un clic en cualquier parte de él —también en su marco, fuera de los dos botones— no pliega la sección que lo contiene. Elegir la vista que ya está activa no vuelve a presentar la pantalla |
-| RF-080l | En la concentración de un portafolio **no interviene la Liquidez**: la plata sin invertir es del destino y no de un objetivo, y sumarla a cada portafolio la contaría varias veces. Por eso la suma de los portafolios equivale al valor invertido del destino, no a su valor total |
+| RF-080l | En la concentración de un portafolio interviene **su caja** (RF-080q) como Liquidez, con el mismo tratamiento que el líquido de la cartera: un objetivo que acaba de vender no concentra todo en lo poco que le quedó. Lo que **no** interviene es el líquido del destino: no es de ningún objetivo en particular y sumarlo a cada portafolio lo contaría varias veces. Por eso la suma de los portafolios equivale al valor invertido del destino más las cajas de sus objetivos, no a su valor total |
 | RF-080j | Qué activos se pueden seleccionar depende de la vista. En **Activos** sólo los que todavía no tienen portafolio, porque esa vista sirve para agrupar lo suelto; los ya asignados se presentan pero no se pueden elegir, e informan en cuál están. En **Portafolio** se puede seleccionar cualquiera, que es donde se los mueve de grupo o se los saca, viéndolos junto a los demás del portafolio del que salen |
 | RF-080g | El orden por columna (RF-074c) sigue vigente en la vista por portafolio, y opera **dentro** de cada grupo: ordenar no mezcla activos de portafolios distintos |
 | RF-080h | Eliminar un portafolio no toca las tenencias: sólo se deshace el agrupamiento, y sus activos vuelven al grupo sin portafolio. El sistema informa cuántos son antes de confirmar |
@@ -1172,9 +1172,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.56 | 24/09/2026 | Cambiar de vista deja de mover la pantalla: el selector no pliega su sección ni pierde el foco (RF-080k1) | Reemplazada |
 | 1.57 | 24/09/2026 | El ABM de portafolios informa lo acumulado hasta hoy de cada uno, potencial y liquidado, contra su monto objetivo (RF-080b1) | Reemplazada |
 | 1.58 | 24/09/2026 | Toda información emergente que explique un dato usa el componente propio del producto (RNF-19), y en Liquidado el avance contra el objetivo se mide sobre lo realizado (RF-080n1b) | Reemplazada |
-| 1.59 | 25/09/2026 | El portafolio incorpora su **caja**: lo que dejaron sus ventas y todavía no se reinvirtió deja de desaparecer del avance hacia el objetivo (RF-080q, RF-080q1, RF-080n1b, RF-080b1) | **Vigente** |
+| 1.59 | 25/09/2026 | El portafolio incorpora su **caja**: lo que dejaron sus ventas y todavía no se reinvirtió deja de desaparecer del avance hacia el objetivo (RF-080q, RF-080q1, RF-080n1b, RF-080b1) | Reemplazada |
+| 1.60 | 25/09/2026 | La caja del portafolio entra como Liquidez en sus dos gráficos de concentración (RF-080l) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| La caja del portafolio, como Liquidez en su concentración | RF-080l |
+
+**Implementados en la versión 1.59**
 
 | Cambio | Requerimiento |
 |---|---|
