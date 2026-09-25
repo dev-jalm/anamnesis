@@ -12066,6 +12066,9 @@ function totalesDePortafolio(destinos, pfId, moneda) {
     n: n, valor: valor, gp: gp, desde: desde, valorPesos: valorPesos,
     gpPct: (gp !== null && invertido !== 0) ? (gp / Math.abs(invertido) * 100) : null,
     prefijo: (moneda === 'USD') ? 'US$' : '$',
+    // Contra qué se mide el avance hacia el monto objetivo: acá, lo que la
+    // tenencia vale hoy.
+    baseMeta: valorPesos, rotuloBaseMeta: 'Vale hoy',
     // Potencial porque todavía no se realizó: es lo que dejaría el portafolio si
     // se vendiera hoy. En Liquidado, donde el resultado ya se cobró, la misma
     // cabecera lo rotula G/P a secas.
@@ -12085,9 +12088,13 @@ function totalesLiquidados(entries) {
   const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
   const aMoneda = function (v, m) { return (todasUsd || m !== 'USD') ? v : v * mep; };
   let cobrado = 0, resultado = 0;
+  // Y el mismo resultado siempre en pesos, para medirlo contra el monto
+  // objetivo, que es uno solo y está en pesos.
+  let resultadoPesos = 0;
   filas.forEach(function (f) {
     cobrado += aMoneda(f.cobrado, f.moneda);
     resultado += aMoneda(f.resultado, f.moneda);
+    resultadoPesos += (f.moneda === 'USD') ? f.resultado * mep : f.resultado;
   });
   // Lo que costó lo vendido: lo cobrado menos lo que dejó. El porcentaje se
   // mide contra eso, igual que el G/P de una tenencia se mide contra lo
@@ -12097,7 +12104,10 @@ function totalesLiquidados(entries) {
     valor: cobrado, gp: resultado,
     gpPct: costo !== 0 ? (resultado / Math.abs(costo) * 100) : null,
     prefijo: todasUsd ? 'US$' : '$',
-    rotuloGp: 'G/P'
+    rotuloGp: 'G/P',
+    // En Liquidado el avance hacia el objetivo es lo que las ventas YA dejaron,
+    // no lo que vale la tenencia: esta sección habla de lo realizado.
+    baseMeta: resultadoPesos, rotuloBaseMeta: 'Lo vendido dejó'
   };
 }
 
@@ -12126,21 +12136,31 @@ function contenidoCabeceraPortafolio(p, nro, tot) {
     : (esCartera ? [] : ['Activos que todavía no asignaste a ningún portafolio.']))
     .concat(tot.desde ? ['desde ' + tot.desde.split('-').reverse().join('/')] : [])
     .filter(Boolean).join(' · ');
-  // Cuánto del monto objetivo lleva alcanzado. Se mide sobre el valor del
-  // portafolio entero en pesos, no sobre el de la tabla de una moneda: el
-  // objetivo es uno solo y no cambia según la tabla que se esté mirando.
-  const metaPct = (obj && obj.monto > 0 && tot.valorPesos !== undefined)
-    ? (tot.valorPesos / obj.monto * 100) : null;
+  // Cuánto del monto objetivo lleva alcanzado. Se mide en pesos sobre el
+  // portafolio entero y no sobre la tabla de una moneda —el objetivo es uno
+  // solo—, y contra lo que corresponde a cada sección: lo que vale hoy en
+  // Activos y Concentración, lo que ya dejó lo vendido en Liquidado.
+  const base = (tot.baseMeta !== undefined) ? tot.baseMeta : tot.valorPesos;
+  const metaPct = (obj && obj.monto > 0 && base !== undefined) ? (base / obj.monto * 100) : null;
   const sep = '<span class="inv-pf-sep">|</span>';
+  // El emergente propio de la app, el mismo de las alertas de concentración: en
+  // una línea no pueden convivir dos dibujos de emergente distintos.
+  const tip = function (titulo, detalle) {
+    return ' data-tip-titulo="' + escapeHtmlSafe(titulo) + '"' +
+      ' data-tip-detalle="' + escapeHtmlSafe(detalle) + '"';
+  };
+  const rotuloTip = (esCartera ? 'Cartera' : (obj ? tituloPortafolio(obj, nro) : 'Sin portafolio'))
+    .toLocaleUpperCase('es-AR');
   return '<div class="inv-currency-head-inner inv-pf-cab">' +
     (esCartera ? '<span class="inv-section-label">Cartera</span>' : rotuloPortafolioHtml(p, nro)) +
-    // El title repite la descripción: si la línea no le da el ancho, se recorta
-    // con puntos suspensivos y ahí se lee entera.
-    (meta ? '<span class="inv-pf-meta" title="' + escapeHtmlSafe(meta) + '">(' +
+    // El emergente repite la descripción: si la línea no le da el ancho, se
+    // recorta con puntos suspensivos y ahí se lee entera.
+    (meta ? '<span class="inv-pf-meta"' + tip(rotuloTip, meta) + '>(' +
       escapeHtmlSafe(meta) + ')</span>' : '') +
     sep +
     '<span class="inv-section-count' + (excede ? ' is-over' : '') + '"' +
-      (excede ? ' title="Supera los ' + maxActivosPortafolio() + ' activos que configuraste por portafolio"' : '') + '>' +
+      (excede ? tip('POR ENCIMA DEL UMBRAL', 'El portafolio agrupa ' + tot.n + ' activos, por encima de los ' +
+        maxActivosPortafolio() + ' que configuraste por portafolio.') : '') + '>' +
       'Activos: ' + tot.n + (excede ? ' ⚠' : '') + '</span>' +
     sep +
     '<span class="inv-pf-total">Total: ' + tot.prefijo + ' ' + fmt(Math.round(tot.valor)) + '</span>' +
@@ -12155,8 +12175,11 @@ function contenidoCabeceraPortafolio(p, nro, tot) {
     // El avance contra la meta cierra la línea, y sólo aparece si el portafolio
     // se puso una: no todo objetivo se mide en plata.
     (metaPct !== null
-      ? sep + '<span class="inv-pf-meta-pct" title="Sobre el monto objetivo: $ ' +
-          fmt(Math.round(obj.monto)) + '">Meta: ' + metaPct.toFixed(2) + '%</span>'
+      ? sep + '<span class="inv-pf-meta-pct"' +
+          tip('AVANCE SOBRE EL OBJETIVO',
+            (tot.rotuloBaseMeta || 'Vale hoy') + ' $ ' + fmt(Math.round(base)) +
+            ' sobre un objetivo de $ ' + fmt(Math.round(obj.monto)) + '.') +
+          '>Meta: ' + metaPct.toFixed(2) + '%</span>'
       : '') +
   '</div>';
 }
@@ -19534,8 +19557,22 @@ function buildInvestmentDetailPanel(destinos, title) {
     if (!(total > 0) || !(valor > 0)) return '<td class="num"><span class="inv-na">—</span></td>';
     const pct = valor / total * 100;
     const alto = pct >= umbralConcentracionActivo() && umbralConcentracionActivo() > 0;
-    return '<td class="num inv-peso' + (alto ? ' is-over' : '') + '"' +
-      (alto ? ' title="Supera el ' + umbralConcentracionActivo() + '% que configuraste para un solo activo"' : '') + '>' +
+    // El mismo emergente que las alertas de concentración por sector: es la
+    // misma clase de aviso —un umbral superado— y tiene que verse igual.
+    let tip = '';
+    if (alto) {
+      const porPf = vistaDeTabla(destino + '|' + (moneda === 'USD' ? 'USD' : 'ARS')) === 'portafolio';
+      let ambito = title;
+      if (porPf) {
+        const pfId = portafolioDeActivo(state.activoPortafolio, destino, tk, moneda);
+        const p = pfId && portafolioPorId(portafolios(), pfId);
+        ambito = p ? p.nombre : 'Sin portafolio';
+      }
+      tip = ' data-tip-titulo="POR ENCIMA DEL UMBRAL" data-tip-detalle="' +
+        escapeHtmlSafe(tk + ' concentra el ' + pct.toFixed(0) + '% de ' + ambito +
+          ', por encima del ' + umbralConcentracionActivo() + '% configurado para un solo activo.') + '"';
+    }
+    return '<td class="num inv-peso' + (alto ? ' is-over' : '') + '"' + tip + '>' +
       pct.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%</td>';
   }
 

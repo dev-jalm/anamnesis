@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.57 |
+| **Versión** | 1.58 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -298,7 +298,7 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-080f | La tabla de activos de cada moneda ofrece dos vistas: **Activos**, la lista plana, y **Portafolio**, que agrupa los activos bajo el nombre de su portafolio, con su objetivo y su plazo. La cabecera de cada grupo se presenta con el mismo tratamiento que el rótulo de la tabla (RF-073y): son rótulos del mismo rango. Cada portafolio se rotula **"Portafolio n° N: nombre"**, con N el orden en que se presenta, el prefijo en el color de los rótulos de sección y el nombre en tinta plena. Las cabeceras de los grupos de Concentración y Liquidado usan el mismo tratamiento que ésta. Los portafolios sin activos en esa tabla no se presentan, y lo que no está asignado va en un grupo propio, siempre último, atenuado y sin número —no es un portafolio— |
 | RF-080n | La cabecera de cada portafolio informa, además de su nombre y su cantidad de activos, el **valor** del grupo y su **resultado** contra el precio de hoy, con su porcentaje sobre lo invertido a continuación. El resultado no se informa si a algún activo del grupo le falta el precio actual: un total parcial se leería como el total. Informa además su **fecha de inicio**: la compra más antigua de sus activos, que es cuándo empezó a armarse el objetivo —cuenta aunque el activo ya se haya liquidado, porque el portafolio arrancó igual—. La cabecera es **idéntica en las tres secciones** —Activos, Concentración y Liquidado—: mismos datos, mismo tratamiento, mismo ancho y misma posición de arranque. En la tabla de una moneda los importes van en esa moneda; en Concentración y Liquidado, que abarcan las dos, van en pesos al MEP |
 | RF-080n1 | La cabecera se presenta en **una sola línea con los campos rotulados y separados por barras**: `Portafolio n° 1: Nombre (descripción) \| Activos: n \| Total: importe \| G/P: importe (porcentaje)`. La descripción reúne el objetivo, el plazo y la fecha de inicio, entre paréntesis y a continuación del nombre. Todos los campos se presentan con el mismo cuerpo tipográfico —el de los rótulos de los gráficos de Concentración (RF-072g), que son los rótulos del mismo rango en la pantalla— salvo la descripción, que es texto libre y no un dato de la línea; si no entra, es ella la que se recorta —los datos no se corren ni se parten— y su texto completo queda accesible en su información emergente |
-| RF-080n1b | La cabecera cierra con el **avance contra el monto objetivo**: el porcentaje que el valor del portafolio representa sobre la cifra que persigue. Sólo se presenta si el portafolio informó un monto, se mide siempre sobre el valor del portafolio completo en pesos —no sobre el de la tabla de una moneda, porque el objetivo es uno solo— y es el mismo número en las tres secciones |
+| RF-080n1b | La cabecera cierra con el **avance contra el monto objetivo**. Sólo se presenta si el portafolio informó un monto y se mide siempre en pesos sobre el portafolio completo, no sobre la tabla de una moneda, porque el objetivo es uno solo. **Lo que se mide depende de la sección**, con el mismo criterio de RF-080n2: en Activos y Concentración, lo que la tenencia vale hoy; en Liquidado, lo que ya dejó lo vendido. Su información emergente informa contra qué se midió y cuál es el objetivo |
 | RF-080n3 | En la **vista Activos**, donde no hay grupos que encabezar, las tres secciones se encabezan igual con una banda rotulada **Cartera**, que informa los mismos campos para la cartera completa y con el mismo tratamiento. En la tabla de una moneda los importes son los de esa moneda; en Concentración y Liquidado, los de las dos en pesos al MEP. No lleva avance contra un objetivo —una cartera no persigue una cifra— ni se contrasta contra el límite de activos por portafolio, que no la alcanza |
 | RF-080n2 | El **significado de los dos importes depende de la sección**. En Activos y en Concentración, Total es lo que el portafolio vale hoy y el resultado se rotula **G/P potencial**, porque todavía no se realizó. En Liquidado, Total es **lo que se cobró** por lo que ya se vendió y el resultado, rotulado G/P, es lo que dejaron esas ventas, con su porcentaje sobre lo que habían costado. La cantidad de activos y la fecha de inicio son siempre las del portafolio, iguales en las tres secciones |
 | RF-080o | La tabla de activos presenta la columna **%**: cuánto pesa cada activo sobre su ámbito —la cartera entera en la vista Activos, su portafolio en la vista Portafolio—. Se valúa como en RF-073i. Un activo liquidado no tiene peso |
@@ -929,6 +929,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-06 | El ancho máximo de contenido es de 1800 px, con margen lateral de 40 px |
 | RNF-07 | Las columnas de encabezado y de detalle comparten definición de anchos. No se alinean por relleno |
 | RNF-18 | Un campo nuevo adopta la tipografía —familia, tamaño y peso— de los campos vecinos de la misma fila o formulario. No se elige por separado |
+| RNF-19 | **Toda información emergente que explique un dato** —un umbral superado, un porcentaje, un texto recortado— se presenta con el componente propio del producto, de título y detalle, y no con el emergente nativo del navegador. Éste queda reservado para los controles de acción. Dos emergentes de dibujo y tiempo distintos no conviven en la misma línea |
 
 ### 9.2 Diálogos
 
@@ -1167,9 +1168,17 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.54 | 24/09/2026 | En Liquidado la cabecera informa lo realizado y el resultado de las otras dos secciones pasa a llamarse G/P potencial (RF-080n2); cada grupo de Liquidado suma su porcentaje y la sección deja de cerrar con un total propio (RF-072b, RF-072h). El portafolio incorpora su monto objetivo (RF-080a) | Reemplazada |
 | 1.55 | 24/09/2026 | La vista Activos encabeza las tres secciones con la banda de la cartera completa (RF-080n3) y la cabecera de cada portafolio informa su avance contra el monto objetivo (RF-080n1b) | Reemplazada |
 | 1.56 | 24/09/2026 | Cambiar de vista deja de mover la pantalla: el selector no pliega su sección ni pierde el foco (RF-080k1) | Reemplazada |
-| 1.57 | 24/09/2026 | El ABM de portafolios informa lo acumulado hasta hoy de cada uno, potencial y liquidado, contra su monto objetivo (RF-080b1) | **Vigente** |
+| 1.57 | 24/09/2026 | El ABM de portafolios informa lo acumulado hasta hoy de cada uno, potencial y liquidado, contra su monto objetivo (RF-080b1) | Reemplazada |
+| 1.58 | 24/09/2026 | Toda información emergente que explique un dato usa el componente propio del producto (RNF-19), y en Liquidado el avance contra el objetivo se mide sobre lo realizado (RF-080n1b) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Un solo componente de información emergente para los datos | RNF-19 |
+| El avance contra el objetivo, medido sobre lo realizado en Liquidado | RF-080n1b |
+
+**Implementados en la versión 1.57**
 
 | Cambio | Requerimiento |
 |---|---|

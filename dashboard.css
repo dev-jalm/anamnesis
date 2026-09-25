@@ -6865,7 +6865,7 @@ body[data-exporting="true"] .section-card {
 
 /* Columna %: cuánto pesa el activo en su ámbito. En rojo cuando pasa el
    umbral por activo, con el mismo criterio con que se marca un sector. */
-.inv-peso.is-over { color: var(--red); font-weight: 600; }
+.inv-peso.is-over { color: var(--red); font-weight: 600; cursor: help; }
 
 /* Monto y resultado del portafolio, en su cabecera. */
 .inv-pf-total, .inv-pf-gp {
@@ -6910,7 +6910,9 @@ body[data-exporting="true"] .section-card {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: help;
 }
+.inv-pf-cab .inv-section-count.is-over { cursor: help; }
 /* La barra separadora no compite con los datos que separa, pero se ve: con
    var(--border) —medido, #2F2A24 sobre la banda— no se distinguía del fondo y
    la línea quedaba sin las divisiones que la ordenan. */

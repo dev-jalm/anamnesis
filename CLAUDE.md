@@ -109,6 +109,12 @@ repetir.
 
 - **Controles gemelos comparten clase.** Nada de estilo inline caso por caso. Si
   dos botones hacen lo mismo en pantallas distintas, se ven igual.
+- **Un solo emergente para los datos.** Lo que explica un dato —un umbral
+  superado, un porcentaje, un texto recortado— usa el emergente propio de la app
+  (`data-tip-titulo` + `data-tip-detalle`, ver `bindTooltipSector`), nunca el
+  `title` nativo: son dos dibujos distintos, con tiempos distintos, y aparecían
+  en la misma línea. El `title` nativo queda para los controles —botones e
+  íconos de acción—, no para los números.
 - **Lo que se muestra junto se unifica sin que lo pidan.** Dos gráficos lado a
   lado, dos columnas de un panel, dos bloques de una misma sección: mismo grosor
   de trazo, mismo cuerpo de título, misma geometría. Si un cambio toca uno, toca
