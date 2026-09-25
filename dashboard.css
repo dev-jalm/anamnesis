@@ -7110,6 +7110,9 @@ body[data-exporting="true"] .section-card {
   font-family: 'JetBrains Mono', monospace;
   cursor: help;
 }
+/* Reservado por encima del líquido: algún objetivo gastó más de lo que se le
+   reservó. Mismo rojo que el resto de los umbrales pasados. */
+.inv-header-cell-sub.is-over { color: var(--red); }
 .inv-header-cell-value {
   font-size: 12px;
   font-weight: 600;

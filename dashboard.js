@@ -12296,7 +12296,7 @@ function contenidoCabeceraPortafolio(p, nro, tot) {
           tip('AVANCE SOBRE EL OBJETIVO',
             (tot.rotuloBaseMeta || 'Vale hoy') + ' $ ' + fmt(Math.round(base - (tot.liquidoMeta || 0))) +
             (tot.liquidoMeta > 0
-              ? ' más $ ' + fmt(Math.round(tot.liquidoMeta)) + ' de ventas todavía sin reinvertir'
+              ? ' más $ ' + fmt(Math.round(tot.liquidoMeta)) + ' reservados y todavía sin invertir'
               : '') +
             ', sobre un objetivo de $ ' + fmt(Math.round(obj.monto)) + '.') +
           '>Meta: ' + metaPct.toFixed(2) + '%</span>'
@@ -12657,10 +12657,12 @@ function acumuladoPortafolioHtml(p) {
       (r.gp === null ? '<span class="inv-na">—</span>' : importe(r.gp) + pct(r.gp)) + '</span>' +
     '<span class="pf-acum-item">G/P liquidado ' + importe(r.realizado) + pct(r.realizado) + '</span>' +
     // La caja del objetivo sólo aparece si hay algo adentro: un "líquido $ 0"
-    // en cada portafolio es ruido.
+    // en cada portafolio es ruido. No dice "sin reinvertir" porque parte de esa
+    // plata puede no haber estado nunca invertida: es lo que se le reservó al
+    // objetivo y todavía no se puso en un activo.
     // Sin la tinta de ganancia: la caja no es un resultado, es plata esperando.
     (r.liquido > 0
-      ? '<span class="pf-acum-item">Líquido sin reinvertir <span class="pf-acum-monto">$ ' +
+      ? '<span class="pf-acum-item">Líquido reservado <span class="pf-acum-monto">$ ' +
           fmt(Math.round(r.liquido)) + '</span></span>' : '') +
     (meta
       ? '<span class="pf-acum-item">Alcanzado <span class="pf-acum-monto">' +
@@ -19696,13 +19698,16 @@ function buildInvestmentDetailPanel(destinos, title) {
     // lo informa y sólo si hay algo reservado: en una cartera sin portafolios
     // el desglose no dice nada.
     const reservado = (liquido !== null && opts.destinos) ? liquidoReservado(opts.destinos) : 0;
+    const excedido = reservado > liquido;
     const desglose = (reservado > 0)
-      ? '<span class="inv-header-cell-sub"' +
+      ? '<span class="inv-header-cell-sub' + (excedido ? ' is-over' : '') + '"' +
           ' data-tip-titulo="LÍQUIDO RESERVADO"' +
           ' data-tip-detalle="' + escapeHtmlSafe('$ ' + fmt(Math.round(reservado)) +
-            ' están reservados a un objetivo. El resto todavía no tiene destino.' +
-            (reservado > liquido ? ' Hay más reservado que líquido: algún objetivo gastó de más.' : '')) + '">' +
-          (reservado > liquido ? '⚠ ' : '') + 'reservado $ ' + fmt(Math.round(reservado)) + '</span>'
+            ' están reservados a un objetivo' +
+            (excedido
+              ? ', más de lo que hay líquido: algún objetivo gastó más de lo que se le reservó.'
+              : '. El resto todavía no tiene destino.')) + '">' +
+          (excedido ? '⚠ ' : '') + 'reservado $ ' + fmt(Math.round(reservado)) + '</span>'
       : '';
     const liqCell = liqClickable
       ? '<span class="inv-header-total-cell inv-header-cell-liq inv-liq-clickable" data-action="goto-mov-liquido" data-destinos="' + escapeHtmlSafe((opts.destinos || []).join(',')) + '" title="Ver movimientos en Historia clínica">' +
