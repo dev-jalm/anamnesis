@@ -7102,6 +7102,14 @@ body[data-exporting="true"] .section-card {
   text-transform: uppercase;
   font-family: 'JetBrains Mono', monospace;
 }
+/* Debajo del líquido: cuánto de eso está reservado a un objetivo. Más chico y
+   apagado que el importe, que es el dato principal de la celda. */
+.inv-header-cell-sub {
+  font-size: 9px;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  cursor: help;
+}
 .inv-header-cell-value {
   font-size: 12px;
   font-weight: 600;

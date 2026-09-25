@@ -80,6 +80,9 @@ const DEMO_GASTOS = [
 const DEMO_APORTES = [
   { cat: 'Reserva',    tags: null,     monto: 200000, dia: 8,  desc: 'Transferencia a caja de ahorro USD' },
   { cat: 'Inversion',  tags: null,     monto: 220000, dia: 9,  desc: 'Transferencia a Balanz' },
+  // Etiquetado para el auto: entra a Inversiones como cualquier aporte, pero
+  // queda reservado a ese objetivo en vez de sumarse al líquido suelto.
+  { cat: 'Inversion',  tags: ['AUTO'], monto: 120000, dia: 9,  desc: 'Transferencia a Balanz — auto' },
   { cat: 'Trading',    tags: null,     monto: 85000,  dia: 9,  desc: 'Transferencia a Bull Market' },
   // Una sola jubilación en la demo: la separación JALM/CLM es una distinción
   // personal de quien usa la app y no le dice nada a un visitante. El aporte
@@ -591,7 +594,7 @@ function buildDemoSnapshot(mesesAtras) {
       plazo: plazoDemo(14), monto: 4000000, createdAt: Date.now() },
     { id: 'pf_demo_auto', nombre: 'Auto',
       objetivo: 'Cambiar el usado por uno más nuevo, sin tomar prenda.',
-      plazo: plazoDemo(30), monto: 12000000, createdAt: Date.now() }
+      plazo: plazoDemo(30), monto: 12000000, etiqueta: 'AUTO', createdAt: Date.now() }
   ];
   // La asignación es de cada compra, así que se aplica sobre las entradas más
   // abajo. Este mapa dice qué activo va a qué portafolio en la demo; las tandas
@@ -658,7 +661,13 @@ function buildDemoSnapshot(mesesAtras) {
     // de sus movimientos. El label es lo único que se ve en pantalla.
     taglabels: {
       JALM: { label: 'JALM',   color: '#8B8680' },
-      CLM:  { label: 'CLAUDE', color: '#D4849E' }
+      CLM:  { label: 'CLAUDE', color: '#D4849E' },
+      // Con esta etiqueta se le reserva plata al auto: los aportes a
+      // Inversiones que la lleven quedan en su caja en vez de irse al líquido
+      // suelto de la cartera. Va en el auto y no en el viaje porque el viaje ya
+      // puso en activos más de lo que se le reservaría, y su caja daría cero:
+      // la demo tiene que mostrar el caso, no esconderlo.
+      AUTO: { label: 'AUTO', color: '#E0742A' }
     },
     paymentMethodOverrides: paymentMethodOverrides,
     categoryRules: [],

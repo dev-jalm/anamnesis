@@ -1500,7 +1500,12 @@ const SECTORES = [
   // Liquidez no se asigna a un activo: es la plata del destino que todavía no
   // está invertida, y su valor sale de la cabecera del panel (el Líquido). Está
   // en el catálogo para poder mostrarla en la composición, no para elegirla.
-  { key: 'liquidez',             label: 'Liquidez',              alerta: false, seleccionable: false }
+  { key: 'liquidez',             label: 'Liquidez',              alerta: false, seleccionable: false },
+  // La parte del líquido que ya está reservada a un objetivo. Es una clase
+  // propia y no un rótulo adentro de Liquidez porque son dos decisiones
+  // distintas: una plata ya tiene para qué es y la otra todavía no. No se
+  // asigna a un activo, igual que Liquidez.
+  { key: 'liquidez_reservada',   label: 'Liquidez reservada',    alerta: false, seleccionable: false }
 ];
 
 // Los sectores que se ofrecen para asignar a un activo.
@@ -1548,6 +1553,19 @@ function portafolioPorId(portafolios, id) {
 // Valida el alta o la edición de un portafolio. `id` distingue editar de crear:
 // al editar, el propio portafolio no cuenta como nombre repetido.
 // Devuelve { ok, error }.
+// La etiqueta con la que se le reserva plata a un portafolio no puede estar en
+// dos objetivos: un movimiento etiquetado tiene que poder decir a cuál aporta.
+function etiquetaEnUso(etiqueta, portafolios, id) {
+  const e = String(etiqueta || '').trim();
+  if (!e) return null;
+  const arr = Array.isArray(portafolios) ? portafolios : [];
+  for (let i = 0; i < arr.length; i++) {
+    if (!arr[i] || arr[i].id === id) continue;
+    if (String(arr[i].etiqueta || '') === e) return arr[i];
+  }
+  return null;
+}
+
 function validarPortafolio(datos, portafolios, id) {
   const nombre = String((datos && datos.nombre) || '').trim();
   if (!nombre) return { ok: false, error: 'Ponele un nombre al portafolio.' };
@@ -1577,38 +1595,45 @@ function validarPortafolio(datos, portafolios, id) {
       return { ok: false, error: 'El monto objetivo tiene que ser un número mayor que cero.' };
     }
   }
+  const ocupada = etiquetaEnUso(datos && datos.etiqueta, portafolios, id);
+  if (ocupada) {
+    return { ok: false, error: 'Esa etiqueta ya reserva plata para "' + ocupada.nombre + '". ' +
+      'Un movimiento etiquetado tiene que poder decir a qué objetivo aporta.' };
+  }
   return { ok: true, error: '' };
 }
 
-// La caja de un portafolio: la plata que entró por sus ventas y todavía no
-// volvió a ponerse en un activo suyo.
+// La caja de un portafolio: la plata que tiene reservada y todavía no está
+// puesta en un activo suyo.
 //
-// Un portafolio agrupa activos, no plata, así que cuando uno se liquida lo
-// cobrado se va al líquido de la cartera y el objetivo parecía retroceder
-// aunque la venta hubiera sido con ganancia. Acá se lo sigue: se recorren los
-// eventos del portafolio en orden —{ fecha, tipo: 'venta' | 'compra', monto }—
-// y cada compra consume primero lo que haya en la caja; lo que le falte vino de
-// afuera. Nunca queda negativa.
+// Entra por dos lados: los aportes que se le destinaron —movimientos de la
+// cartera etiquetados para ese objetivo— y lo que dejaron sus ventas. Un
+// portafolio agrupa activos, no plata, así que sin esto lo cobrado al liquidar
+// se iba al líquido de la cartera y el objetivo parecía retroceder aunque la
+// venta hubiera sido con ganancia.
+//
+// Se recorren sus eventos en orden —{ fecha, tipo: 'aporte' | 'venta' |
+// 'compra', monto }—: los dos primeros suman y cada compra consume primero lo
+// que haya en la caja; lo que le falte vino de afuera. Nunca queda negativa.
 //
 // La caja puede quedar corta pero nunca larga: si después de vender comprás con
 // plata nueva, la compra igual consume el saldo y el objetivo declara menos
 // avance del que tiene. Es la dirección en la que conviene equivocarse.
 //
-// En una misma fecha las ventas van antes que las compras, por el mismo
-// motivo: así la compra puede consumirlas y el saldo queda en el menor valor
+// En una misma fecha lo que entra va antes que lo que sale, por el mismo
+// motivo: así la compra puede consumirlo y el saldo queda en el menor valor
 // defendible. Lo que no tiene fecha se ordena primero.
 function saldoDeCaja(eventos) {
+  const entra = function (ev) { return !!ev && ev.tipo !== 'compra'; };
   const orden = (Array.isArray(eventos) ? eventos.slice() : []).sort(function (a, b) {
     const fa = (a && a.fecha) || '', fb = (b && b.fecha) || '';
     if (fa !== fb) return fa < fb ? -1 : 1;
-    const pa = (a && a.tipo === 'venta') ? 0 : 1;
-    const pb = (b && b.tipo === 'venta') ? 0 : 1;
-    return pa - pb;
+    return (entra(a) ? 0 : 1) - (entra(b) ? 0 : 1);
   });
   let saldo = 0;
   orden.forEach(function (ev) {
     const monto = Number(ev && ev.monto) || 0;
-    if (ev && ev.tipo === 'venta') saldo += monto;
+    if (entra(ev)) saldo += monto;
     else saldo = Math.max(0, saldo - monto);
   });
   return saldo;
@@ -1743,6 +1768,9 @@ function etiquetaTipoRiesgo(key) {
 function tipoDeRiesgo(sector) {
   if (!sector || !sectorPorClave(sector)) return null;
   if (sector === 'renta_fija' || sector === 'cripto' || sector === 'liquidez') return sector;
+  // Reservada o no, sigue siendo plata sin invertir: en el gráfico de riesgo
+  // las dos son Liquidez. La distinción es de destino, no de riesgo.
+  if (sector === 'liquidez_reservada') return 'liquidez';
   return 'renta_variable';
 }
 
@@ -3002,7 +3030,7 @@ if (typeof module !== 'undefined' && module.exports) {
     SECTORES, sectorPorClave, etiquetaSector, sectorDeActivo, sectoresSeleccionables,
     // portafolios: agrupar activos por objetivo adentro de cada cartera
     MAX_LEN_PORTAFOLIO, claveActivoPortafolio, portafolioDeActivo, portafolioPorId,
-    validarPortafolio, agruparPorPortafolio, saldoDeCaja, portafolioDeCompra,
+    validarPortafolio, agruparPorPortafolio, saldoDeCaja, portafolioDeCompra, etiquetaEnUso,
     concentracionPorSector, sectoresConcentrados,
     TIPOS_RIESGO, etiquetaTipoRiesgo, tipoDeRiesgo, concentracionPorTipo, tiposConcentrados,
     // ventas de activos

@@ -8040,6 +8040,10 @@ function setActiveCatTab(tab) {
   } else if (tab === 'params') {
     renderParamsTab();
   } else if (tab === 'portafolios') {
+    // El catálogo de etiquetas puede haber cambiado en otra solapa del mismo
+    // modal, así que el selector se rearma cada vez que se entra.
+    poblarEtiquetasPortafolio(document.getElementById('pfEtiquetaInput')
+      ? document.getElementById('pfEtiquetaInput').value : '');
     renderPortafoliosTab();
   } else if (tab === 'config') {
     // Ficha médica unifica visibilidad de secciones + vista resumen + configuración de KPIs
@@ -12082,11 +12086,54 @@ function tenenciasDePortafolio(destinos, pfId) {
     });
 }
 
-// La caja de un portafolio dentro de una cartera: lo que dejaron sus ventas y
-// todavía no volvió a un activo suyo.
+// Los aportes reservados a un portafolio: los movimientos que alimentan esta
+// cartera (RF-072) y llevan la etiqueta que el portafolio declaró.
+//
+// La reserva se apoya en las etiquetas que ya existen y no en un registro
+// aparte, por dos razones: es el mismo mecanismo con el que Jubilación se parte
+// en dos destinos, y hace imposible reservar más de lo que entró —un movimiento
+// etiquetado ES un aporte a la cartera, así que la suma de lo reservado nunca
+// puede superar lo aportado—.
+function aportesDePortafolio(destinos, pfId) {
+  const p = pfId && pfId !== '__sin__' ? portafolioPorId(portafolios(), pfId) : null;
+  const tag = p && p.etiqueta;
+  if (!tag) return [];
+  const eventos = [];
+  Object.keys(state.transactionsByYear || {}).forEach(function (y) {
+    Object.keys(state.transactionsByYear[y] || {}).forEach(function (m) {
+      (state.transactionsByYear[y][m] || []).forEach(function (t) {
+        if (!Array.isArray(t.tags) || t.tags.indexOf(tag) < 0) return;
+        if (!aporteDeDestinos(t, destinos)) return;
+        const monto = Math.abs(Number(t.monto) || 0);
+        if (monto) eventos.push({ fecha: t.fecha || '', tipo: 'aporte', monto: monto });
+      });
+    });
+  });
+  return eventos;
+}
+
+// Si un movimiento aporta a esta cartera. Mismo criterio que sumTxByDestinos,
+// que es de donde sale el líquido: si los dos no coincidieran, lo reservado
+// podría pasarse de lo aportado.
+function aporteDeDestinos(t, destinos) {
+  const cat = t.categoria;
+  if (destinos.indexOf('inversiones') >= 0 && cat === 'Inversion') return true;
+  if (destinos.indexOf('trading') >= 0 && cat === 'Trading') return true;
+  if (destinos.indexOf('reserva') >= 0 && cat === 'Reserva') return true;
+  if (cat === 'Jubilacion') {
+    const tags = Array.isArray(t.tags) ? t.tags : [];
+    if (destinos.indexOf('jubilacion_jalm') >= 0 && tags.indexOf('JALM') >= 0) return true;
+    if (destinos.indexOf('jubilacion_clm') >= 0 && tags.indexOf('CLM') >= 0) return true;
+  }
+  return false;
+}
+
+// La caja de un portafolio dentro de una cartera: lo que tiene reservado y
+// todavía no está puesto en un activo suyo.
 function cajaDePortafolio(destinos, pfId) {
   const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
-  return saldoDeCaja(eventosDeCaja(tenenciasDePortafolio(destinos, pfId), mep));
+  return saldoDeCaja(eventosDeCaja(tenenciasDePortafolio(destinos, pfId), mep)
+    .concat(aportesDePortafolio(destinos, pfId)));
 }
 
 function totalesDePortafolio(destinos, pfId, moneda) {
@@ -12580,9 +12627,12 @@ function resumenPortafolio(id) {
     // parcial se leería como el total.
     gp: todosConPrecio ? (valor - invertido) : null,
     realizado: realizado,
-    // La caja, con el mismo criterio que la cabecera de las secciones: lo que
-    // sus ventas dejaron y todavía no volvió a un activo suyo.
-    liquido: saldoDeCaja(eventosDeCaja(suyas, mep))
+    // La caja, con el mismo criterio que la cabecera de las secciones. Acá el
+    // ABM no está parado en una cartera, así que los aportes se buscan en
+    // todos los destinos donde el portafolio tenga compras.
+    liquido: saldoDeCaja(eventosDeCaja(suyas, mep).concat(
+      Object.keys(suyas.reduce(function (acc, e) { acc[e.destino] = true; return acc; }, {}))
+        .reduce(function (evs, d) { return evs.concat(aportesDePortafolio([d], id)); }, [])))
   };
 }
 
@@ -12665,6 +12715,22 @@ function renderPortafoliosTab() {
   if (window.lucide) lucide.createIcons();
 }
 
+// Las etiquetas disponibles para reservar aportes. Se ofrecen todas las del
+// catálogo: la que se elija es la que hay que ponerle al movimiento con el que
+// se manda plata a la cartera para que quede reservada a este objetivo.
+function poblarEtiquetasPortafolio(valor) {
+  const sel = document.getElementById('pfEtiquetaInput');
+  if (!sel) return;
+  const tags = state.taglabels || {};
+  sel.innerHTML = '<option value="">— sin etiqueta —</option>' +
+    Object.keys(tags).sort(function (a, b) {
+      return String((tags[a] && tags[a].label) || a).localeCompare(String((tags[b] && tags[b].label) || b), 'es');
+    }).map(function (k) {
+      return '<option value="' + escapeHtmlSafe(k) + '">' + escapeHtmlSafe((tags[k] && tags[k].label) || k) + '</option>';
+    }).join('');
+  sel.value = valor || '';
+}
+
 function limpiarFormPortafolio() {
   pfEditandoId = null;
   const n = document.getElementById('pfNombreInput');
@@ -12675,6 +12741,7 @@ function limpiarFormPortafolio() {
   if (o) o.value = '';
   if (p) p.value = '';
   if (m) m.value = '';
+  poblarEtiquetasPortafolio('');
   const lbl = document.getElementById('pfAddBtnLabel');
   if (lbl) lbl.textContent = 'CREAR PORTAFOLIO';
   const cancel = document.getElementById('pfCancelWrap');
@@ -12686,7 +12753,8 @@ function guardarPortafolioDesdeForm() {
     nombre: (document.getElementById('pfNombreInput') || {}).value || '',
     objetivo: (document.getElementById('pfObjetivoInput') || {}).value || '',
     plazo: (document.getElementById('pfPlazoInput') || {}).value || '',
-    monto: (document.getElementById('pfMontoInput') || {}).value || ''
+    monto: (document.getElementById('pfMontoInput') || {}).value || '',
+    etiqueta: (document.getElementById('pfEtiquetaInput') || {}).value || ''
   };
   const v = validarPortafolio(datos, portafolios(), pfEditandoId);
   if (!v.ok) { appAlert(v.error); return; }
@@ -12700,6 +12768,7 @@ function guardarPortafolioDesdeForm() {
       p.objetivo = datos.objetivo.trim();
       p.plazo = datos.plazo.trim();
       p.monto = monto;
+      p.etiqueta = datos.etiqueta;
     }
   } else {
     portafolios().push({
@@ -12708,6 +12777,7 @@ function guardarPortafolioDesdeForm() {
       objetivo: datos.objetivo.trim(),
       plazo: datos.plazo.trim(),
       monto: monto,
+      etiqueta: datos.etiqueta,
       createdAt: Date.now()
     });
   }
@@ -12731,6 +12801,7 @@ function editarPortafolio(id) {
   if (o) o.value = p.objetivo || '';
   if (pl) pl.value = p.plazo || '';
   if (m) m.value = p.monto ? String(p.monto) : '';
+  poblarEtiquetasPortafolio(p.etiqueta || '');
   const lbl = document.getElementById('pfAddBtnLabel');
   if (lbl) lbl.textContent = 'GUARDAR CAMBIOS';
   const cancel = document.getElementById('pfCancelWrap');
@@ -18754,6 +18825,19 @@ function liquidoDeDestino(destinos) {
   return sumTxByDestinos(destinos) - invertido + realizado;
 }
 
+// Cuánto del líquido de una cartera está reservado a algún objetivo: la suma de
+// las cajas de sus portafolios. No se descuenta del líquido —ese sigue siendo
+// lo que hay—: es un corte de la misma plata.
+//
+// Puede pasarse del líquido en un caso: un objetivo que gastó de más queda con
+// caja en cero y no compensa al que reservó. Por eso el panel lo compara y
+// avisa en vez de dar por sentado que cierra.
+function liquidoReservado(destinos) {
+  return gruposDePortafolioDeCartera(destinos).reduce(function (s, g) {
+    return s + (g.id === '__sin__' ? 0 : cajaDePortafolio(destinos, g.id));
+  }, 0);
+}
+
 // Concentración por sector de una cartera. Se valúa cada tenencia en pesos:
 // a precio actual cuando lo hay, a costo cuando no —y se informa cuáles, para
 // que el porcentaje no se lea como más preciso de lo que es—. Los dólares se
@@ -18802,8 +18886,22 @@ function concentracionDeCartera(destinos, filtroPf) {
   const liquido = (filtroPf === undefined)
     ? liquidoDeDestino(destinos)
     : cajaDePortafolio(destinos, filtroPf);
+  // En la cartera entera la Liquidez se parte en dos: lo que ya está reservado
+  // a un objetivo y lo que todavía no tiene destino. Son la misma plata pero no
+  // la misma decisión, y verlas juntas escondía cuánto queda realmente libre.
+  const reservado = (filtroPf === undefined && liquido > 0)
+    ? Math.min(liquido, liquidoReservado(destinos)) : 0;
   // En mayúsculas, como los tickers con los que comparte la barra.
-  if (liquido > 0) posiciones.push({ ticker: 'LÍQUIDO', sector: 'liquidez', valor: liquido, aCosto: false });
+  if (liquido > 0) {
+    if (reservado > 0) {
+      posiciones.push({ ticker: 'RESERVADO', sector: 'liquidez_reservada', valor: reservado, aCosto: false });
+      if (liquido - reservado > 0) {
+        posiciones.push({ ticker: 'SIN ASIGNAR', sector: 'liquidez', valor: liquido - reservado, aCosto: false });
+      }
+    } else {
+      posiciones.push({ ticker: 'LÍQUIDO', sector: 'liquidez', valor: liquido, aCosto: false });
+    }
+  }
   const c = concentracionPorSector(posiciones);
   // Las mismas posiciones, agrupadas por tipo de riesgo: la segunda columna.
   c.porTipo = concentracionPorTipo(posiciones);
@@ -18870,7 +18968,18 @@ const ORDEN_COLOR_SECTOR = [
 const COLOR_SECTOR_NEUTRO = {
   indices: 'var(--sector-neutro-1)',
   renta_fija: 'var(--sector-neutro-2)',
-  liquidez: '#E0742A'
+  liquidez: '#E0742A',
+  // La reservada, en el mismo naranja más oscuro: son la misma plata con
+  // distinto destino, y el parentesco tiene que leerse en el color.
+  //
+  // Elegido con el validador de paletas, no a ojo: los tonos intermedios
+  // —#B85518, #C2621C, #AD5A28— quedaban entre ΔE 7 y 12 del naranja pleno, por
+  // debajo del piso de 15, y no se distinguían ni con visión normal. Éste da
+  // 15,8 normal y 15,1 bajo protanopía. En tema claro pasa todos los controles;
+  // en oscuro su contraste contra el fondo es 2,94 contra el piso de 3, que es
+  // admisible porque la fila nunca depende sólo del color: el nombre de la
+  // clase va escrito al costado y el rótulo adentro de la barra.
+  liquidez_reservada: '#A34A10'
 };
 let _coloresSector = null;
 
@@ -18903,6 +19012,7 @@ const MOTIVO_SIN_CONTROL = {
   indices: 'Un índice amplio ya está diversificado: tener mucho en él no concentra el riesgo en un rubro.',
   renta_fija: 'La renta fija no es un rubro de la bolsa: no se mide contra el límite de sector.',
   liquidez: 'Es plata sin invertir: no concentra el riesgo en ningún sector.',
+  liquidez_reservada: 'Es plata sin invertir que ya tiene un objetivo asignado: no concentra el riesgo en ningún sector.',
   __sin__: 'Sin sector no se puede saber si está concentrado. Asignalo en la columna Sector de la tabla.'
 };
 
@@ -19582,10 +19692,23 @@ function buildInvestmentDetailPanel(destinos, title) {
       ? '<span class="inv-na">—</span>'
       : liqSign + prefix + ' ' + fmt(Math.abs(liquido));
     const liqClickable = (liquido !== null);
+    // Cuánto de ese líquido está reservado a un objetivo. Sólo en la fila que
+    // lo informa y sólo si hay algo reservado: en una cartera sin portafolios
+    // el desglose no dice nada.
+    const reservado = (liquido !== null && opts.destinos) ? liquidoReservado(opts.destinos) : 0;
+    const desglose = (reservado > 0)
+      ? '<span class="inv-header-cell-sub"' +
+          ' data-tip-titulo="LÍQUIDO RESERVADO"' +
+          ' data-tip-detalle="' + escapeHtmlSafe('$ ' + fmt(Math.round(reservado)) +
+            ' están reservados a un objetivo. El resto todavía no tiene destino.' +
+            (reservado > liquido ? ' Hay más reservado que líquido: algún objetivo gastó de más.' : '')) + '">' +
+          (reservado > liquido ? '⚠ ' : '') + 'reservado $ ' + fmt(Math.round(reservado)) + '</span>'
+      : '';
     const liqCell = liqClickable
       ? '<span class="inv-header-total-cell inv-header-cell-liq inv-liq-clickable" data-action="goto-mov-liquido" data-destinos="' + escapeHtmlSafe((opts.destinos || []).join(',')) + '" title="Ver movimientos en Historia clínica">' +
           '<span class="inv-header-cell-label">Líquido</span>' +
           '<span class="inv-header-cell-value ' + liqClass + '">' + liqDisp + '</span>' +
+          desglose +
         '</span>'
       : '<span class="inv-header-total-cell inv-header-cell-liq">' +
           '<span class="inv-header-cell-label">Líquido</span>' +

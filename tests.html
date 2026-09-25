@@ -1290,6 +1290,25 @@ group('Portafolios', function () {
     const evs2 = evs.concat([{ fecha: '2026-08-01', tipo: 'compra', monto: 200000 }]);
     assertEqual(saldoDeCaja(evs2), 0);   // nunca queda negativa
   });
+  test('un aporte reservado entra a la caja y la compra lo consume', function () {
+    assertEqual(saldoDeCaja([
+      { fecha: '2026-01-05', tipo: 'aporte', monto: 500000 },
+      { fecha: '2026-02-10', tipo: 'compra', monto: 300000 }
+    ]), 200000);
+    // Y si la compra es anterior al aporte, no lo consume: la plata llegó después.
+    assertEqual(saldoDeCaja([
+      { fecha: '2026-02-10', tipo: 'aporte', monto: 500000 },
+      { fecha: '2026-01-05', tipo: 'compra', monto: 300000 }
+    ]), 500000);
+  });
+  test('la etiqueta de aportes no puede estar en dos portafolios', function () {
+    const PFS2 = [{ id: 'p1', nombre: 'Viaje', etiqueta: 'VIAJE' }, { id: 'p2', nombre: 'Auto' }];
+    assertEqual(validarPortafolio({ nombre: 'Casa', etiqueta: 'VIAJE' }, PFS2).ok, false);
+    assertEqual(validarPortafolio({ nombre: 'Casa', etiqueta: 'AUTO' }, PFS2).ok, true);
+    assertEqual(validarPortafolio({ nombre: 'Casa' }, PFS2).ok, true);
+    // Al editar, la propia etiqueta no cuenta como repetida.
+    assertEqual(validarPortafolio({ nombre: 'Viaje', etiqueta: 'VIAJE' }, PFS2, 'p1').ok, true);
+  });
   test('sin ventas la caja está vacía, por muchas compras que haya', function () {
     assertEqual(saldoDeCaja([
       { fecha: '2026-01-10', tipo: 'compra', monto: 100000 },
@@ -1386,12 +1405,19 @@ group('Sector de los activos', function () {
     const ti = { 'AAPL|ARS': { sector: 'Tech' } };
     assertEqual(sectorDeActivo('AAPL', 'ARS', ti, LISTADO).origen, 'listado');
   });
-  test('liquidez se muestra pero no se asigna a un activo', function () {
+  test('las dos liquideces se muestran pero no se asignan a un activo', function () {
     assert(sectorPorClave('liquidez'), 'sigue en el catalogo para mostrarla');
-    assertEqual(sectoresSeleccionables().filter(function (s) { return s.key === 'liquidez'; }).length, 0);
-    assertEqual(sectoresSeleccionables().length, SECTORES.length - 1);
+    assert(sectorPorClave('liquidez_reservada'), 'la reservada tambien');
+    ['liquidez', 'liquidez_reservada'].forEach(function (k) {
+      assertEqual(sectoresSeleccionables().filter(function (s) { return s.key === k; }).length, 0);
+    });
+    assertEqual(sectoresSeleccionables().length, SECTORES.length - 2);
     const ti = { 'FCI|ARS': { sector: 'liquidez' } };
     assertEqual(sectorDeActivo('FCI', 'ARS', ti, LISTADO).sector, null, 'una liquidez vieja cargada a mano se ignora');
+  });
+  test('la liquidez reservada es liquidez en el grafico de riesgo', function () {
+    assertEqual(tipoDeRiesgo('liquidez_reservada'), 'liquidez');
+    assertEqual(tipoDeRiesgo('liquidez'), 'liquidez');
   });
   test('todos los CEDEARs del listado tienen un sector valido', function () {
     const inst = window.CEDEARS_BYMA.instrumentos;
