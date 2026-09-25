@@ -12369,6 +12369,85 @@ function activosDePortafolio(id) {
   return Object.keys(mapa).filter(function (k) { return mapa[k] === id; }).length;
 }
 
+// Lo que un portafolio acumuló hasta hoy, para la lista del ABM: lo que vale su
+// tenencia, lo que dejaría si se vendiera hoy y lo que ya dejó lo vendido.
+//
+// A diferencia de totalesDePortafolio(), acá no hay un destino: el ABM no está
+// parado en una cartera, y un portafolio puede agrupar activos de varias. Se
+// toman todas las tenencias cuya clave apunta a este portafolio, y todo va a
+// pesos al MEP porque el monto objetivo contra el que se compara es uno solo.
+function resumenPortafolio(id) {
+  const mapa = mapaActivoPortafolio();
+  const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+  const suyas = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
+    .filter(function (e) {
+      const mon = (e.moneda === 'USD') ? 'USD' : 'ARS';
+      return mapa[claveActivoPortafolio(e.destino, e.ticker, mon)] === id;
+    });
+  // Por destino y moneda antes de agrupar por ticker: el mismo ticker en dos
+  // carteras son dos tenencias y no pueden sumarse como una.
+  const porGrupo = {};
+  suyas.forEach(function (e) {
+    const mon = (e.moneda === 'USD') ? 'USD' : 'ARS';
+    const k = e.destino + '|' + mon;
+    (porGrupo[k] = porGrupo[k] || []).push(e);
+  });
+  let valor = 0, invertido = 0, todosConPrecio = true;
+  Object.keys(porGrupo).forEach(function (k) {
+    const mon = k.split('|')[1];
+    const factor = (mon === 'USD') ? mep : 1;
+    const groups = groupInvestmentEntriesByTicker(porGrupo[k]);
+    Object.keys(groups).forEach(function (tk) {
+      const g = groups[tk];
+      if (!(g.cantidadTotal > 0)) return;
+      const info = infoDeTicker(state.tickerInfo, tk, mon);
+      const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
+        ? Number(info.precioActual) : null;
+      invertido += g.invertidoBruto * factor;
+      if (pa === null) { todosConPrecio = false; valor += g.invertidoBruto * factor; }
+      else valor += pa * g.cantidadTotal * factor;
+    });
+  });
+  let realizado = 0;
+  ventasDelPanel(suyas).forEach(function (f) {
+    realizado += (f.moneda === 'USD') ? f.resultado * mep : f.resultado;
+  });
+  return {
+    valor: valor,
+    // Sin el precio de algún activo el potencial no se informa: un total
+    // parcial se leería como el total.
+    gp: todosConPrecio ? (valor - invertido) : null,
+    realizado: realizado
+  };
+}
+
+// El renglón "Acumulado hasta hoy" de la lista del ABM: lo que el portafolio
+// lleva ganado sin vender y lo que ya realizó, cada uno contra el monto
+// objetivo, más cuánto lleva alcanzado de ese monto. Los porcentajes sólo
+// aparecen si el portafolio se puso un objetivo: sin él no hay sobre qué
+// medirlos, y los importes se informan igual.
+function acumuladoPortafolioHtml(p) {
+  const r = resumenPortafolio(p.id);
+  const meta = Number(p.monto) > 0 ? Number(p.monto) : 0;
+  const pct = function (v) {
+    return meta ? '<span class="pf-acum-pct">' + (v / meta * 100).toFixed(2) + '% del objetivo</span>' : '';
+  };
+  const importe = function (v) {
+    const cls = v > 0 ? 'inv-gp-positive' : (v < 0 ? 'inv-gp-negative' : '');
+    return '<span class="pf-acum-monto ' + cls + '">$ ' + fmt(Math.round(Math.abs(v))) + '</span>';
+  };
+  return '<div class="pf-acum">' +
+    '<span class="pf-acum-rotulo">Acumulado hasta hoy</span>' +
+    '<span class="pf-acum-item">G/P potencial ' +
+      (r.gp === null ? '<span class="inv-na">—</span>' : importe(r.gp) + pct(r.gp)) + '</span>' +
+    '<span class="pf-acum-item">G/P liquidado ' + importe(r.realizado) + pct(r.realizado) + '</span>' +
+    (meta
+      ? '<span class="pf-acum-item">Alcanzado <span class="pf-acum-monto">' +
+          (r.valor / meta * 100).toFixed(2) + '%</span><span class="pf-acum-pct">del objetivo</span></span>'
+      : '') +
+  '</div>';
+}
+
 function renderPortafoliosTab() {
   const list = document.getElementById('pfList');
   const count = document.getElementById('pfCount');
@@ -12402,6 +12481,7 @@ function renderPortafoliosTab() {
           (p.monto > 0 ? 'meta $ ' + fmt(Math.round(p.monto)) + ' · ' : '') +
           n + ' activo' + (n === 1 ? '' : 's') +
         '</div>' +
+        acumuladoPortafolioHtml(p) +
       '</div>' +
       '<button class="travel-row-edit" data-action="edit-pf" title="Editar portafolio">' +
         '<i data-lucide="edit-2" style="width:14px;height:14px"></i>' +

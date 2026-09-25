@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.56 |
+| **Versión** | 1.57 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -290,7 +290,8 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 |---|---|
 | RF-080 | Un **portafolio** agrupa activos según para qué se tienen: de los activos de Inversiones, unos pueden ser un viaje y otros un auto. No es un destino: los destinos (RF-070) son fijos, y un portafolio agrupa activos **dentro** de ellos |
 | RF-080a | Un portafolio se compone de **nombre**, **objetivo** —texto libre que describe para qué es—, **plazo**, que es una fecha y puede no informarse, y **monto objetivo**, la cifra que el portafolio persigue. El monto también puede no informarse —no todo objetivo se mide en plata—; informado, tiene que ser un número mayor que cero |
-| RF-080b | Los portafolios se administran desde **Administración → Salud financiera**: se crean, se modifican y se eliminan. La pantalla informa, por cada uno, su objetivo, su plazo y cuántos activos tiene asignados, y señala los de plazo vencido. Se llega ahí por la **tecla S**, con el mismo criterio que las demás solapas de Administración, y desde el buscador de acciones |
+| RF-080b | Los portafolios se administran desde **Administración → Salud financiera**: se crean, se modifican y se eliminan. La pantalla informa, por cada uno, su objetivo, su plazo, su monto objetivo y cuántos activos tiene asignados, y señala los de plazo vencido. Se llega ahí por la **tecla S**, con el mismo criterio que las demás solapas de Administración, y desde el buscador de acciones |
+| RF-080b1 | Cada portafolio informa además lo que lleva **acumulado hasta hoy**, desglosado en dos: el **G/P potencial** —lo que dejaría su tenencia si se vendiera hoy— y el **G/P liquidado** —lo que ya dejó lo vendido—, cada uno con el porcentaje que representa sobre el monto objetivo, y el **porcentaje alcanzado** de ese monto. Los importes abarcan todas las carteras en las que el portafolio tenga activos y se expresan en pesos, porque el objetivo es uno solo. Los porcentajes sólo se presentan si el portafolio informó un monto objetivo; los importes, siempre. El potencial no se informa si a algún activo le falta el precio actual |
 | RF-080c | El nombre es obligatorio, admite hasta 40 caracteres y no puede repetirse. La comparación ignora mayúsculas y acentos: dos portafolios que se leen igual son el mismo |
 | RF-080d | La asignación de activos **no** se hace en Administración sino en la propia solapa Salud financiera, donde están los activos a la vista: cada activo de la tabla se puede seleccionar, y la selección se asigna a un portafolio —o se saca del que tenga— en una sola acción |
 | RF-080e | La asignación es del activo **en su destino y su moneda**: el mismo ticker tenido en dos carteras son dos tenencias distintas y pueden ir a portafolios distintos. Comprar más de un activo ya asignado no lo saca de su portafolio |
@@ -1165,9 +1166,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.53 | 24/09/2026 | La cabecera de cada portafolio pasa a una línea de campos rotulados (RF-080n1) y las alertas de concentración dejan el renglón propio para presentarse como emergente de la fila concentrada (RF-073k, RF-073t, RF-073u) | Reemplazada |
 | 1.54 | 24/09/2026 | En Liquidado la cabecera informa lo realizado y el resultado de las otras dos secciones pasa a llamarse G/P potencial (RF-080n2); cada grupo de Liquidado suma su porcentaje y la sección deja de cerrar con un total propio (RF-072b, RF-072h). El portafolio incorpora su monto objetivo (RF-080a) | Reemplazada |
 | 1.55 | 24/09/2026 | La vista Activos encabeza las tres secciones con la banda de la cartera completa (RF-080n3) y la cabecera de cada portafolio informa su avance contra el monto objetivo (RF-080n1b) | Reemplazada |
-| 1.56 | 24/09/2026 | Cambiar de vista deja de mover la pantalla: el selector no pliega su sección ni pierde el foco (RF-080k1) | **Vigente** |
+| 1.56 | 24/09/2026 | Cambiar de vista deja de mover la pantalla: el selector no pliega su sección ni pierde el foco (RF-080k1) | Reemplazada |
+| 1.57 | 24/09/2026 | El ABM de portafolios informa lo acumulado hasta hoy de cada uno, potencial y liquidado, contra su monto objetivo (RF-080b1) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Lo acumulado hasta hoy de cada portafolio, en su ABM | RF-080b1 |
+
+**Implementados en la versión 1.56**
 
 | Cambio | Requerimiento |
 |---|---|
