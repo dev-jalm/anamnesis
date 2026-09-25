@@ -6854,6 +6854,15 @@ body[data-exporting="true"] .section-card {
 .inv-pf-gp.inv-gp-positive { color: var(--green); }
 .inv-pf-gp.inv-gp-negative { color: var(--red); }
 .inv-pf-gp-pct { font-weight: 500; opacity: .85; margin-left: 4px; }
+/* Cuánto lleva alcanzado del monto objetivo. Va en la tinta del texto y no en
+   verde o rojo: es un avance, no una ganancia ni una pérdida. */
+.inv-pf-meta-pct {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: normal;
+  cursor: help;
+}
 
 /* ── La cabecera de un portafolio, en una sola línea ──────────────────────
    Rótulo, descripción, activos, total y resultado separados por barras. Todos

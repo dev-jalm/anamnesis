@@ -12017,6 +12017,8 @@ function rotuloPortafolioHtml(p, nro) {
 // dentro de una cartera. `moneda` acota a una sola —para la tabla de esa
 // moneda, en sus propias unidades—; sin ella se toman las dos y se convierten
 // a pesos al MEP, como el resto de los totales del panel.
+// `pfId` en null no filtra: son los totales de la cartera entera, que es lo que
+// informa la cabecera de la vista Activos.
 //
 // La fecha de inicio es la compra más vieja de sus activos: cuándo empezó a
 // armarse el objetivo. Cuenta aunque el activo ya esté liquidado, porque el
@@ -12025,9 +12027,13 @@ function totalesDePortafolio(destinos, pfId, moneda) {
   const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
   const entries = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
     .filter(function (e) { return destinos.indexOf(e.destino) >= 0; });
-  const monedas = moneda ? [moneda === 'USD' ? 'USD' : 'ARS'] : ['ARS', 'USD'];
   let valor = 0, invertido = 0, todosConPrecio = true, desde = '', n = 0;
-  monedas.forEach(function (mon) {
+  // El valor en pesos de las DOS monedas, se haya acotado o no a una: el avance
+  // contra el monto objetivo se mide sobre el portafolio entero, no sobre la
+  // parte que muestra la tabla de una moneda.
+  let valorPesos = 0;
+  ['ARS', 'USD'].forEach(function (mon) {
+    const deEstaTabla = !moneda || (moneda === 'USD' ? 'USD' : 'ARS') === mon;
     const groups = groupInvestmentEntriesByTicker(entries.filter(function (e) {
       return (e.moneda === 'USD' ? 'USD' : 'ARS') === mon;
     }));
@@ -12035,24 +12041,29 @@ function totalesDePortafolio(destinos, pfId, moneda) {
       const g = groups[tk];
       const id = portafolioDeActivo(state.activoPortafolio, destinos[0], tk, mon);
       const suyo = (id && portafolioPorId(portafolios(), id)) ? id : '__sin__';
-      if (suyo !== pfId) return;
-      n++;
-      (g.entries || []).forEach(function (e) {
-        if (e.fecha && (!desde || e.fecha < desde)) desde = e.fecha;
-      });
+      if (pfId !== null && suyo !== pfId) return;
+      if (deEstaTabla) {
+        n++;
+        (g.entries || []).forEach(function (e) {
+          if (e.fecha && (!desde || e.fecha < desde)) desde = e.fecha;
+        });
+      }
       if (!(g.cantidadTotal > 0)) return;
-      const factor = (!moneda && mon === 'USD') ? mep : 1;
       const info = infoDeTicker(state.tickerInfo, tk, mon);
       const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
         ? Number(info.precioActual) : null;
+      const bruto = (pa === null) ? g.invertidoBruto : pa * g.cantidadTotal;
+      valorPesos += (mon === 'USD') ? bruto * mep : bruto;
+      if (!deEstaTabla) return;
+      const factor = (!moneda && mon === 'USD') ? mep : 1;
       invertido += g.invertidoBruto * factor;
-      if (pa === null) { todosConPrecio = false; valor += g.invertidoBruto * factor; }
-      else valor += pa * g.cantidadTotal * factor;
+      if (pa === null) todosConPrecio = false;
+      valor += bruto * factor;
     });
   });
   const gp = todosConPrecio ? (valor - invertido) : null;
   return {
-    n: n, valor: valor, gp: gp, desde: desde,
+    n: n, valor: valor, gp: gp, desde: desde, valorPesos: valorPesos,
     gpPct: (gp !== null && invertido !== 0) ? (gp / Math.abs(invertido) * 100) : null,
     prefijo: (moneda === 'USD') ? 'US$' : '$',
     // Potencial porque todavía no se realizó: es lo que dejaría el portafolio si
@@ -12100,19 +12111,29 @@ function totalesLiquidados(entries) {
 // Todo al mismo cuerpo menos la descripción, que es el texto libre que
 // acompaña y no un dato de la fila.
 function contenidoCabeceraPortafolio(p, nro, tot) {
-  const excede = maxActivosPortafolio() > 0 && p && tot.n > maxActivosPortafolio();
   // La descripción, entre paréntesis y pegada al nombre: para qué es, hasta
   // cuándo y desde cuándo. El "sin portafolio" no tiene definición, así que
-  // explica qué es.
-  const plazo = p && p.plazo ? p.plazo.split('-').reverse().join('/') : '';
-  const meta = (p
-    ? [p.objetivo || '', plazo ? 'plazo ' + plazo : '']
-    : ['Activos que todavía no asignaste a ningún portafolio.'])
+  // explica qué es. La cartera entera —p es la cadena 'cartera'— no tiene más
+  // que su fecha de inicio.
+  const esCartera = (p === 'cartera');
+  const obj = esCartera ? null : p;
+  // El límite es por portafolio: la cartera entera no lo excede nunca, por
+  // muchos activos que tenga.
+  const excede = maxActivosPortafolio() > 0 && obj && tot.n > maxActivosPortafolio();
+  const plazo = obj && obj.plazo ? obj.plazo.split('-').reverse().join('/') : '';
+  const meta = (obj
+    ? [obj.objetivo || '', plazo ? 'plazo ' + plazo : '']
+    : (esCartera ? [] : ['Activos que todavía no asignaste a ningún portafolio.']))
     .concat(tot.desde ? ['desde ' + tot.desde.split('-').reverse().join('/')] : [])
     .filter(Boolean).join(' · ');
+  // Cuánto del monto objetivo lleva alcanzado. Se mide sobre el valor del
+  // portafolio entero en pesos, no sobre el de la tabla de una moneda: el
+  // objetivo es uno solo y no cambia según la tabla que se esté mirando.
+  const metaPct = (obj && obj.monto > 0 && tot.valorPesos !== undefined)
+    ? (tot.valorPesos / obj.monto * 100) : null;
   const sep = '<span class="inv-pf-sep">|</span>';
   return '<div class="inv-currency-head-inner inv-pf-cab">' +
-    rotuloPortafolioHtml(p, nro) +
+    (esCartera ? '<span class="inv-section-label">Cartera</span>' : rotuloPortafolioHtml(p, nro)) +
     // El title repite la descripción: si la línea no le da el ancho, se recorta
     // con puntos suspensivos y ahí se lee entera.
     (meta ? '<span class="inv-pf-meta" title="' + escapeHtmlSafe(meta) + '">(' +
@@ -12131,6 +12152,12 @@ function contenidoCabeceraPortafolio(p, nro, tot) {
             ? '<span class="inv-pf-gp-pct">(' + (tot.gp > 0 ? '+' : (tot.gp < 0 ? '-' : '')) +
               Math.abs(tot.gpPct).toFixed(2) + '%)</span>'
             : '')) + '</span>' +
+    // El avance contra la meta cierra la línea, y sólo aparece si el portafolio
+    // se puso una: no todo objetivo se mide en plata.
+    (metaPct !== null
+      ? sep + '<span class="inv-pf-meta-pct" title="Sobre el monto objetivo: $ ' +
+          fmt(Math.round(obj.monto)) + '">Meta: ' + metaPct.toFixed(2) + '%</span>'
+      : '') +
   '</div>';
 }
 
@@ -12143,6 +12170,15 @@ function contenidoCabeceraPortafolio(p, nro, tot) {
 function cabeceraPortafolioHtml(destinos, g, tot) {
   return '<div class="inv-currency-header-row inv-conc-pf-head">' +
     contenidoCabeceraPortafolio(g.portafolio, g.nro, tot || totalesDePortafolio(destinos, g.id, null)) +
+  '</div>';
+}
+
+// La misma banda para la cartera entera: es lo que encabeza las tres secciones
+// en la vista Activos, donde no hay grupos que encabezar. Mismos campos y mismo
+// tratamiento que la de un portafolio, con los totales sin filtrar.
+function cabeceraCarteraHtml(destinos, tot) {
+  return '<div class="inv-currency-header-row inv-conc-pf-head">' +
+    contenidoCabeceraPortafolio('cartera', 0, tot || totalesDePortafolio(destinos, null, null)) +
   '</div>';
 }
 
@@ -18689,7 +18725,11 @@ function buildSectorConcentrationBlock(destinos, nombreCartera) {
     }).filter(Boolean).join('');
     return bloques;
   }
-  return bloqueConcentracion(destinos, nombreCartera);
+  const html = bloqueConcentracion(destinos, nombreCartera);
+  if (!html) return '';
+  // Mismo envoltorio que un portafolio para que las dos vistas arranquen en la
+  // misma posición: lo único que cambia es qué encabeza la banda.
+  return '<div class="inv-conc-pf">' + cabeceraCarteraHtml(destinos) + html + '</div>';
 }
 
 // La fila que encabeza el gráfico de sectores: cuánto vale el ámbito y cómo se
@@ -18973,7 +19013,10 @@ function buildLiquidadosBlock(entries, destinos) {
     }).filter(Boolean).join('');
     return bloques;
   }
-  return bloqueLiquidado(entries);
+  const html = bloqueLiquidado(entries);
+  if (!html) return '';
+  const tot = Object.assign(totalesDePortafolio(destinos, null, null), totalesLiquidados(entries));
+  return '<div class="inv-conc-pf">' + cabeceraCarteraHtml(destinos, tot) + html + '</div>';
 }
 
 function bloqueLiquidado(entries) {
@@ -19671,7 +19714,14 @@ function buildInvestmentDetailPanel(destinos, title) {
   function cuerpoTabla(groups, tickers, prefijo, moneda) {
     const clave = (destinos[0] || '') + '|' + moneda;
     if (vistaDeTabla(clave) !== 'portafolio') {
-      return '<tbody>' + buildRows(groups, tickers, prefijo) + '</tbody>';
+      // La cartera entera se encabeza igual que un portafolio: sin grupos que
+      // separar, la banda es la que pone el total y el resultado de la tabla.
+      return '<tbody>' +
+        '<tr class="inv-currency-header-row inv-pf-head"><td colspan="13">' +
+          contenidoCabeceraPortafolio('cartera', 0, totalesDePortafolio(destinos, null, moneda)) +
+        '</td></tr>' +
+        buildRows(groups, tickers, prefijo) +
+      '</tbody>';
     }
     const gs = agruparPorPortafolio(tickers, portafolios(), state.activoPortafolio, destinos[0], moneda);
     // Los portafolios se numeran en el orden en que salen; el grupo de lo que

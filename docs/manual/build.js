@@ -219,7 +219,7 @@ window.MANUAL = {
         'Comprar más de un activo ya asignado no lo saca de su portafolio.',
         'El orden por columna sigue funcionando en la vista agrupada, pero ordena adentro de cada grupo: nunca mezcla activos de portafolios distintos.',
         'Eliminar un portafolio no toca las tenencias: sus activos vuelven al grupo sin portafolio. La app te dice cuántos son antes de confirmar.',
-        'La cabecera de cada portafolio es una línea igual en las tres secciones: número y nombre, entre paréntesis para qué es —con su plazo y su compra más vieja— y después, separados por barras, cuántos activos tiene, cuánto vale y qué dejó.',
+        'La cabecera de cada portafolio es una línea igual en las tres secciones: número y nombre, entre paréntesis para qué es, y después cuántos activos tiene, cuánto vale, qué dejó y, si le pusiste monto objetivo, cuánto llevás alcanzado. En la vista Activos la misma banda encabeza la cartera completa.',
         'En Parámetros configurás cuánto puede pesar un solo activo y cuántos activos puede agrupar un portafolio. Pasados esos números, la app los marca.'
       ]
     },
