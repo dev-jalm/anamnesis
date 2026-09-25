@@ -12054,7 +12054,39 @@ function totalesDePortafolio(destinos, pfId, moneda) {
   return {
     n: n, valor: valor, gp: gp, desde: desde,
     gpPct: (gp !== null && invertido !== 0) ? (gp / Math.abs(invertido) * 100) : null,
-    prefijo: (moneda === 'USD') ? 'US$' : '$'
+    prefijo: (moneda === 'USD') ? 'US$' : '$',
+    // Potencial porque todavía no se realizó: es lo que dejaría el portafolio si
+    // se vendiera hoy. En Liquidado, donde el resultado ya se cobró, la misma
+    // cabecera lo rotula G/P a secas.
+    rotuloGp: 'G/P potencial'
+  };
+}
+
+// Los totales de lo YA liquidado de un conjunto de tenencias: cuánto se cobró
+// en total y qué dejó, con su porcentaje sobre el costo de lo vendido. Es lo
+// que informa la cabecera de un portafolio en la sección Liquidado, donde
+// "total" no es lo que vale hoy sino lo que ya se realizó.
+function totalesLiquidados(entries) {
+  const filas = ventasDelPanel(entries);
+  // Mismo criterio de moneda que el bloque que encabeza: todo en dólares se
+  // queda en dólares, cualquier mezcla va a pesos al MEP.
+  const todasUsd = filas.length > 0 && filas.every(function (f) { return f.moneda === 'USD'; });
+  const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+  const aMoneda = function (v, m) { return (todasUsd || m !== 'USD') ? v : v * mep; };
+  let cobrado = 0, resultado = 0;
+  filas.forEach(function (f) {
+    cobrado += aMoneda(f.cobrado, f.moneda);
+    resultado += aMoneda(f.resultado, f.moneda);
+  });
+  // Lo que costó lo vendido: lo cobrado menos lo que dejó. El porcentaje se
+  // mide contra eso, igual que el G/P de una tenencia se mide contra lo
+  // invertido en ella.
+  const costo = cobrado - resultado;
+  return {
+    valor: cobrado, gp: resultado,
+    gpPct: costo !== 0 ? (resultado / Math.abs(costo) * 100) : null,
+    prefijo: todasUsd ? 'US$' : '$',
+    rotuloGp: 'G/P'
   };
 }
 
@@ -12093,7 +12125,7 @@ function contenidoCabeceraPortafolio(p, nro, tot) {
     '<span class="inv-pf-total">Total: ' + tot.prefijo + ' ' + fmt(Math.round(tot.valor)) + '</span>' +
     sep +
     '<span class="inv-pf-gp ' + (tot.gp > 0 ? 'inv-gp-positive' : (tot.gp < 0 ? 'inv-gp-negative' : '')) + '">' +
-      'G/P: ' + (tot.gp === null ? '<span class="inv-na">—</span>'
+      (tot.rotuloGp || 'G/P') + ': ' + (tot.gp === null ? '<span class="inv-na">—</span>'
         : tot.prefijo + ' ' + fmt(Math.round(Math.abs(tot.gp))) +
           (tot.gpPct !== null
             ? '<span class="inv-pf-gp-pct">(' + (tot.gp > 0 ? '+' : (tot.gp < 0 ? '-' : '')) +
@@ -12106,10 +12138,11 @@ function contenidoCabeceraPortafolio(p, nro, tot) {
 // las mismas clases que la cabecera de la tabla de Activos —.inv-currency-
 // header-row y su contenido— para que las tres secciones se lean igual; acá no
 // es una fila de tabla, así que la banda va en un div.
-function cabeceraPortafolioHtml(destinos, g) {
-  const tot = totalesDePortafolio(destinos, g.id, null);
+// `tot` llega armado desde Liquidado, que informa lo realizado y no la tenencia
+// de hoy; sin él se toman los totales de la tenencia.
+function cabeceraPortafolioHtml(destinos, g, tot) {
   return '<div class="inv-currency-header-row inv-conc-pf-head">' +
-    contenidoCabeceraPortafolio(g.portafolio, g.nro, tot) +
+    contenidoCabeceraPortafolio(g.portafolio, g.nro, tot || totalesDePortafolio(destinos, g.id, null)) +
   '</div>';
 }
 
@@ -12314,6 +12347,7 @@ function renderPortafoliosTab() {
         '</div>' +
         '<div class="travel-row-meta">' +
           (p.objetivo ? escapeHtmlSafe(p.objetivo) + ' · ' : '') +
+          (p.monto > 0 ? 'meta $ ' + fmt(Math.round(p.monto)) + ' · ' : '') +
           n + ' activo' + (n === 1 ? '' : 's') +
         '</div>' +
       '</div>' +
@@ -12333,9 +12367,11 @@ function limpiarFormPortafolio() {
   const n = document.getElementById('pfNombreInput');
   const o = document.getElementById('pfObjetivoInput');
   const p = document.getElementById('pfPlazoInput');
+  const m = document.getElementById('pfMontoInput');
   if (n) n.value = '';
   if (o) o.value = '';
   if (p) p.value = '';
+  if (m) m.value = '';
   const lbl = document.getElementById('pfAddBtnLabel');
   if (lbl) lbl.textContent = 'CREAR PORTAFOLIO';
   const cancel = document.getElementById('pfCancelWrap');
@@ -12346,16 +12382,21 @@ function guardarPortafolioDesdeForm() {
   const datos = {
     nombre: (document.getElementById('pfNombreInput') || {}).value || '',
     objetivo: (document.getElementById('pfObjetivoInput') || {}).value || '',
-    plazo: (document.getElementById('pfPlazoInput') || {}).value || ''
+    plazo: (document.getElementById('pfPlazoInput') || {}).value || '',
+    monto: (document.getElementById('pfMontoInput') || {}).value || ''
   };
   const v = validarPortafolio(datos, portafolios(), pfEditandoId);
   if (!v.ok) { appAlert(v.error); return; }
+  // Vacío se guarda como 0: el portafolio no persigue una cifra, y un 0 se
+  // distingue de "no informado" en un solo lugar en vez de en cada lector.
+  const monto = Number(String(datos.monto).trim()) || 0;
   if (pfEditandoId) {
     const p = portafolioPorId(portafolios(), pfEditandoId);
     if (p) {
       p.nombre = datos.nombre.trim();
       p.objetivo = datos.objetivo.trim();
       p.plazo = datos.plazo.trim();
+      p.monto = monto;
     }
   } else {
     portafolios().push({
@@ -12363,6 +12404,7 @@ function guardarPortafolioDesdeForm() {
       nombre: datos.nombre.trim(),
       objetivo: datos.objetivo.trim(),
       plazo: datos.plazo.trim(),
+      monto: monto,
       createdAt: Date.now()
     });
   }
@@ -12381,9 +12423,11 @@ function editarPortafolio(id) {
   const n = document.getElementById('pfNombreInput');
   const o = document.getElementById('pfObjetivoInput');
   const pl = document.getElementById('pfPlazoInput');
+  const m = document.getElementById('pfMontoInput');
   if (n) n.value = p.nombre || '';
   if (o) o.value = p.objetivo || '';
   if (pl) pl.value = p.plazo || '';
+  if (m) m.value = p.monto ? String(p.monto) : '';
   const lbl = document.getElementById('pfAddBtnLabel');
   if (lbl) lbl.textContent = 'GUARDAR CAMBIOS';
   const cancel = document.getElementById('pfCancelWrap');
@@ -12436,7 +12480,7 @@ function eliminarPortafolio(id) {
   }
   // Enter en cualquiera de los campos de texto guarda, como en el resto de los
   // formularios de alta de la app.
-  ['pfNombreInput', 'pfObjetivoInput'].forEach(function (id) {
+  ['pfNombreInput', 'pfObjetivoInput', 'pfMontoInput'].forEach(function (id) {
     const el = document.getElementById(id);
     if (el) el.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); guardarPortafolioDesdeForm(); }
@@ -18921,7 +18965,11 @@ function buildLiquidadosBlock(entries, destinos) {
       });
       const html = bloqueLiquidado(suyas);
       if (!html) return '';
-      return '<div class="inv-conc-pf">' + cabeceraPortafolioHtml(destinos, g) + html + '</div>';
+      // La cantidad de activos y la fecha de inicio son del portafolio —los
+      // mismos que informan las otras dos secciones—; el total y el resultado
+      // son de lo que ya se vendió.
+      const tot = Object.assign(totalesDePortafolio(destinos, g.id, null), totalesLiquidados(suyas));
+      return '<div class="inv-conc-pf">' + cabeceraPortafolioHtml(destinos, g, tot) + html + '</div>';
     }).filter(Boolean).join('');
     return bloques;
   }
@@ -18980,17 +19028,34 @@ function bloqueLiquidado(entries) {
     '</div>';
   };
 
+  // Lo que costó lo vendido de un grupo: lo cobrado menos lo que dejó. El
+  // porcentaje del grupo se mide contra eso, igual que el G/P de una tenencia
+  // se mide contra lo invertido en ella.
+  const costoDe = function (arr) {
+    return arr.reduce(function (s, f) {
+      const factor = (todasUsd || f.moneda !== 'USD') ? 1 : mep;
+      return s + (f.cobrado - f.resultado) * factor;
+    }, 0);
+  };
+
   const grupo = function (arr, titulo, cls, vacio) {
     const total = sumar(arr);
+    const costo = costoDe(arr);
+    const pct = costo !== 0 ? (total / Math.abs(costo) * 100) : null;
     return '<div class="inv-liq-grupo">' +
       '<div class="inv-liq-cab">' +
         // El título va pintado —verde lo ganado, rojo lo perdido—, que es el
         // criterio de toda Salud financiera.
-        '<span class="inv-liq-titulo ' + cls + '">' + titulo + '</span>' +
+        '<span class="inv-liq-titulo ' + cls + '">' + titulo + ':</span>' +
         // Sin la clase de ganancia/pérdida: el monto va en tinta normal y el
-        // color lo lleva el título que tiene al lado.
+        // color lo lleva el título que tiene al lado. El porcentaje, al lado
+        // del importe, dice cuánto rindió lo vendido sobre lo que costó.
         '<span class="inv-liq-total">' +
-          prefijoTotal + ' ' + fmt(Math.round(Math.abs(total))) + '</span>' +
+          prefijoTotal + ' ' + fmt(Math.round(Math.abs(total))) +
+          (pct !== null
+            ? '<span class="inv-liq-pct">(' + (total > 0 ? '+' : (total < 0 ? '-' : '')) +
+              Math.abs(pct).toFixed(2) + '%)</span>'
+            : '') + '</span>' +
       '</div>' +
       (arr.length
         ? '<div class="inv-liq-titulos">' +
@@ -19000,20 +19065,13 @@ function bloqueLiquidado(entries) {
     '</div>';
   };
 
-  // Cierre: lo ganado menos lo perdido. `sumar` trabaja con el resultado con
-  // su signo —las pérdidas ya vienen en negativo—, así que el neto es la suma
-  // de todas las ventas.
-  const neto = sumar(filas);
-  // Este sí va en verde o en rojo: es una ganancia o una pérdida, y ahí el
-  // criterio de Salud financiera no tiene excepciones. Los totales de cada
-  // grupo van en tinta normal porque su título ya dice de cuál se trata.
-  const clsNeto = neto > 0 ? 'inv-gp-positive' : (neto < 0 ? 'inv-gp-negative' : '');
-
   // Sin rótulo de bloque: el título de la sección que lo contiene ya dice
   // Liquidado, y repetirlo dos renglones más abajo no agregaba nada.
   // Dos columnas, como la sección de Concentración: lo ganado a la izquierda y
   // lo perdido a la derecha, con el mismo divisor entre ellas. Los dos grupos
   // arrancan a la misma altura aunque tengan distinta cantidad de filas.
+  // Tampoco va el total al pie: el neto de las dos columnas es el G/P que ya
+  // informa la cabecera del ámbito, y repetirlo abajo decía dos veces lo mismo.
   return '<div class="inv-liq">' +
     '<div class="inv-liq-grid">' +
       '<div class="inv-liq-celda">' +
@@ -19022,12 +19080,6 @@ function bloqueLiquidado(entries) {
       '<div class="inv-liq-celda inv-liq-col2">' +
         grupo(per, 'Liquidado en pérdida', 'inv-gp-negative', 'sin ventas en pérdida') +
       '</div>' +
-    '</div>' +
-    // El total cruza las dos columnas: suma lo de ambas.
-    '<div class="inv-liq-cab inv-liq-neto">' +
-      '<span class="inv-liq-titulo">Total liquidado</span>' +
-      '<span class="inv-liq-total ' + clsNeto + '">' +
-        prefijoTotal + ' ' + fmt(Math.round(Math.abs(neto))) + '</span>' +
     '</div>' +
   '</div>';
 }

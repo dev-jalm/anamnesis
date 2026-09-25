@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.53 |
+| **Versión** | 1.54 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -220,8 +220,8 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-072a | El líquido se informa en la fila ARS+USD y también en la fila ARS, con el mismo valor: los aportes son movimientos en pesos y las compras en dólares se pagan con esos pesos, de modo que el dinero sin invertir está en pesos. La fila USD no informa líquido, porque el producto no registra dólares sin invertir |
 | RF-072f | El cuerpo de cada panel de tenencias se organiza en tres secciones plegables, en este orden: **Activos**, **Concentración** y **Liquidado**. Se presentan con el mismo tratamiento que las secciones de Trading —mismo indicador de plegado y misma tipografía de título, con una bajada que se oculta al plegarlas— y arrancan cerradas: abiertas de entrada, una cartera con varios activos ocupa más de una pantalla. El indicador de plegado es **el mismo que abre y cierra el panel que las contiene**: va antes del título, apunta a la derecha con la sección cerrada y rota noventa grados al desplegarla. **El título de cada sección arranca en la misma columna que el título del panel**, y su indicador en la misma que el del panel. Las tres comparten márgenes: su contenido empieza y termina en la misma posición, de modo que las columnas de Activos se alinean con las de Concentración y Liquidado. Una sección sin contenido no se presenta. Cada sección **conserva si estaba desplegada** cuando una operación vuelve a presentar la pantalla —registrar una venta, eliminar un activo, actualizar precios—, de manera independiente de las demás y de las de los otros destinos |
 | RF-072g | Dentro de la sección Concentración, cada gráfico se rotula por su criterio —"Por sector" y "Por tipo de riesgo"— sin repetir la palabra Concentración, que ya encabeza la sección. Esos rótulos se presentan en el mismo cuerpo que los títulos de los grupos de Liquidado: rotulan bloques del mismo rango. Por la misma razón, la sección Liquidado no lleva rótulo propio dentro de sí |
-| RF-072b | La sección Liquidado presenta lo que ya se vendió en dos columnas, con el mismo tratamiento que la sección Concentración: lo que salió en ganancia a la izquierda y lo que salió en pérdida a la derecha, separadas por el mismo divisor y arrancando a la misma altura aunque una tenga más líneas. Los títulos de los grupos se presentan en verde y en rojo respectivamente, con su total a continuación y en el mismo cuerpo: son las dos mitades de un mismo dato. El total se presenta en la tinta normal del texto —el título de al lado ya dice de cuál de los dos grupos es—. Cada grupo detalla una línea por venta con la fecha, el activo con su descripción en mayúsculas, los nominales vendidos sobre los de la compra de la que salieron, los días transcurridos entre esa compra y esta venta, el importe cobrado y el resultado. Las líneas van de la venta más reciente a la más antigua. El detalle se presenta con el mismo tratamiento que la tabla de activos: igual cuerpo de texto, iguales títulos de columna, el mismo divisor entre filas y el mismo alto de fila |
-| RF-072h | La sección cierra, cruzando las dos columnas, con el **total liquidado**: lo ganado menos lo perdido. A diferencia del total de cada grupo, se presenta en verde o en rojo, porque es una ganancia o una pérdida (RF-075) |
+| RF-072b | La sección Liquidado presenta lo que ya se vendió en dos columnas, con el mismo tratamiento que la sección Concentración: lo que salió en ganancia a la izquierda y lo que salió en pérdida a la derecha, separadas por el mismo divisor y arrancando a la misma altura aunque una tenga más líneas. Los títulos de los grupos se presentan en verde y en rojo respectivamente, con su total a continuación y en el mismo cuerpo: son las dos mitades de un mismo dato. El total se presenta en la tinta normal del texto —el título de al lado ya dice de cuál de los dos grupos es— y **acompañado de su porcentaje**, que mide lo que dejó lo vendido sobre lo que había costado. Cada grupo detalla una línea por venta con la fecha, el activo con su descripción en mayúsculas, los nominales vendidos sobre los de la compra de la que salieron, los días transcurridos entre esa compra y esta venta, el importe cobrado y el resultado. Las líneas van de la venta más reciente a la más antigua. El detalle se presenta con el mismo tratamiento que la tabla de activos: igual cuerpo de texto, iguales títulos de columna, el mismo divisor entre filas y el mismo alto de fila |
+| RF-072h | La sección **no cierra con un total propio**: lo ganado menos lo perdido es el resultado que ya informa la cabecera del ámbito (RF-080n2), y presentarlo también al pie decía dos veces lo mismo |
 | RF-072e | La sección Liquidado se presenta en los cuatro destinos de tenencias y no en Trading, que no agrupa tenencias. Un grupo sin ventas lo declara, para distinguirlo de la ausencia del dato |
 | RF-072c | Las ventas parciales integran RF-072b: lo que se liquidó es lo vendido, con independencia de que la compra conserve saldo. Una venta al costo exacto se agrupa con las ganancias, donde aporta cero |
 | RF-072d | Cada línea de RF-072b se expresa en la moneda de su compra. Los totales de cada grupo se expresan en dólares cuando todas las ventas del panel lo fueron, y en pesos en cualquier otro caso, convirtiendo las ventas en dólares a la cotización MEP (RF-073i) |
@@ -289,14 +289,15 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | ID | Requerimiento |
 |---|---|
 | RF-080 | Un **portafolio** agrupa activos según para qué se tienen: de los activos de Inversiones, unos pueden ser un viaje y otros un auto. No es un destino: los destinos (RF-070) son fijos, y un portafolio agrupa activos **dentro** de ellos |
-| RF-080a | Un portafolio se compone de **nombre**, **objetivo** —texto libre que describe para qué es— y **plazo**, que es una fecha y puede no informarse |
+| RF-080a | Un portafolio se compone de **nombre**, **objetivo** —texto libre que describe para qué es—, **plazo**, que es una fecha y puede no informarse, y **monto objetivo**, la cifra que el portafolio persigue. El monto también puede no informarse —no todo objetivo se mide en plata—; informado, tiene que ser un número mayor que cero |
 | RF-080b | Los portafolios se administran desde **Administración → Salud financiera**: se crean, se modifican y se eliminan. La pantalla informa, por cada uno, su objetivo, su plazo y cuántos activos tiene asignados, y señala los de plazo vencido. Se llega ahí por la **tecla S**, con el mismo criterio que las demás solapas de Administración, y desde el buscador de acciones |
 | RF-080c | El nombre es obligatorio, admite hasta 40 caracteres y no puede repetirse. La comparación ignora mayúsculas y acentos: dos portafolios que se leen igual son el mismo |
 | RF-080d | La asignación de activos **no** se hace en Administración sino en la propia solapa Salud financiera, donde están los activos a la vista: cada activo de la tabla se puede seleccionar, y la selección se asigna a un portafolio —o se saca del que tenga— en una sola acción |
 | RF-080e | La asignación es del activo **en su destino y su moneda**: el mismo ticker tenido en dos carteras son dos tenencias distintas y pueden ir a portafolios distintos. Comprar más de un activo ya asignado no lo saca de su portafolio |
 | RF-080f | La tabla de activos de cada moneda ofrece dos vistas: **Activos**, la lista plana, y **Portafolio**, que agrupa los activos bajo el nombre de su portafolio, con su objetivo y su plazo. La cabecera de cada grupo se presenta con el mismo tratamiento que el rótulo de la tabla (RF-073y): son rótulos del mismo rango. Cada portafolio se rotula **"Portafolio n° N: nombre"**, con N el orden en que se presenta, el prefijo en el color de los rótulos de sección y el nombre en tinta plena. Las cabeceras de los grupos de Concentración y Liquidado usan el mismo tratamiento que ésta. Los portafolios sin activos en esa tabla no se presentan, y lo que no está asignado va en un grupo propio, siempre último, atenuado y sin número —no es un portafolio— |
 | RF-080n | La cabecera de cada portafolio informa, además de su nombre y su cantidad de activos, el **valor** del grupo y su **resultado** contra el precio de hoy, con su porcentaje sobre lo invertido a continuación. El resultado no se informa si a algún activo del grupo le falta el precio actual: un total parcial se leería como el total. Informa además su **fecha de inicio**: la compra más antigua de sus activos, que es cuándo empezó a armarse el objetivo —cuenta aunque el activo ya se haya liquidado, porque el portafolio arrancó igual—. La cabecera es **idéntica en las tres secciones** —Activos, Concentración y Liquidado—: mismos datos, mismo tratamiento, mismo ancho y misma posición de arranque. En la tabla de una moneda los importes van en esa moneda; en Concentración y Liquidado, que abarcan las dos, van en pesos al MEP |
-| RF-080n1 | La cabecera se presenta en **una sola línea con los campos rotulados y separados por barras**: `Portafolio n° 1: Nombre (descripción) \| Activos: n \| Total: importe \| G/P: importe (porcentaje)`. La descripción reúne el objetivo, el plazo y la fecha de inicio, entre paréntesis y a continuación del nombre. Todos los campos se presentan con el mismo cuerpo tipográfico salvo la descripción, que es texto libre y no un dato de la línea; si no entra, es ella la que se recorta —los datos no se corren ni se parten— y su texto completo queda accesible en su información emergente |
+| RF-080n1 | La cabecera se presenta en **una sola línea con los campos rotulados y separados por barras**: `Portafolio n° 1: Nombre (descripción) \| Activos: n \| Total: importe \| G/P: importe (porcentaje)`. La descripción reúne el objetivo, el plazo y la fecha de inicio, entre paréntesis y a continuación del nombre. Todos los campos se presentan con el mismo cuerpo tipográfico —el de los rótulos de los gráficos de Concentración (RF-072g), que son los rótulos del mismo rango en la pantalla— salvo la descripción, que es texto libre y no un dato de la línea; si no entra, es ella la que se recorta —los datos no se corren ni se parten— y su texto completo queda accesible en su información emergente |
+| RF-080n2 | El **significado de los dos importes depende de la sección**. En Activos y en Concentración, Total es lo que el portafolio vale hoy y el resultado se rotula **G/P potencial**, porque todavía no se realizó. En Liquidado, Total es **lo que se cobró** por lo que ya se vendió y el resultado, rotulado G/P, es lo que dejaron esas ventas, con su porcentaje sobre lo que habían costado. La cantidad de activos y la fecha de inicio son siempre las del portafolio, iguales en las tres secciones |
 | RF-080o | La tabla de activos presenta la columna **%**: cuánto pesa cada activo sobre su ámbito —la cartera entera en la vista Activos, su portafolio en la vista Portafolio—. Se valúa como en RF-073i. Un activo liquidado no tiene peso |
 | RF-080p | Un activo que supera el **umbral de concentración por activo** (RF-195) se señala en esa columna. Un portafolio que supera el **máximo de activos** (RF-196) lo señala en su cantidad. Los dos avisos informan el umbral configurado |
 | RF-080m | Cada gráfico de concentración se encabeza con una fila de resumen —**Cartera completa** o **Portafolio completo** según la vista— que informa qué parte de la cartera ocupa el ámbito, su importe y, en lugar de una barra simple, la composición apilada de sus tramos. Cada tramo presenta la información emergente de RF-073r. Las dos columnas la llevan, para arrancar con la misma fila |
@@ -606,6 +607,7 @@ Compartida por todas las compras del mismo símbolo.
 | `nombre` | Texto (hasta 40) | Sí |
 | `objetivo` | Texto (hasta 120) | No |
 | `plazo` | Fecha | No |
+| `monto` | Importe mayor que cero | No |
 | `createdAt` | Marca temporal | Sí |
 
 Qué activo pertenece a qué portafolio se registra aparte, en un índice cuya clave es **destino + ticker + moneda** (RF-080e) y cuyo valor es el identificador del portafolio. Va separado de la compra porque el portafolio es de la tenencia y no de la tanda: incorporar una compra más del mismo activo no lo saca de su portafolio.
@@ -1157,9 +1159,18 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.50 | 24/09/2026 | Las secciones plegables llevan antes del título el mismo indicador de plegado que abre y cierra el panel (RF-072f, RF-078b) | Reemplazada |
 | 1.51 | 24/09/2026 | El título de cada sección plegable arranca en la misma columna que el título de su panel (RF-072f, RF-078b) | Reemplazada |
 | 1.52 | 24/09/2026 | La tecla S abre Administración en la solapa Salud financiera (RF-080b) | Reemplazada |
-| 1.53 | 24/09/2026 | La cabecera de cada portafolio pasa a una línea de campos rotulados (RF-080n1) y las alertas de concentración dejan el renglón propio para presentarse como emergente de la fila concentrada (RF-073k, RF-073t, RF-073u) | **Vigente** |
+| 1.53 | 24/09/2026 | La cabecera de cada portafolio pasa a una línea de campos rotulados (RF-080n1) y las alertas de concentración dejan el renglón propio para presentarse como emergente de la fila concentrada (RF-073k, RF-073t, RF-073u) | Reemplazada |
+| 1.54 | 24/09/2026 | En Liquidado la cabecera informa lo realizado y el resultado de las otras dos secciones pasa a llamarse G/P potencial (RF-080n2); cada grupo de Liquidado suma su porcentaje y la sección deja de cerrar con un total propio (RF-072b, RF-072h). El portafolio incorpora su monto objetivo (RF-080a) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Lo realizado en la cabecera de Liquidado y G/P potencial en las otras dos | RF-080n2 |
+| Porcentaje en cada grupo de Liquidado, y sin total al pie | RF-072b, RF-072h |
+| Monto objetivo del portafolio | RF-080a |
+
+**Implementados en la versión 1.53**
 
 | Cambio | Requerimiento |
 |---|---|
@@ -1249,7 +1260,7 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 
 | Cambio | Requerimiento |
 |---|---|
-| Total liquidado al cierre de la sección | RF-072h |
+| Resultado de lo liquidado en la cabecera del ámbito, sin total al pie | RF-072h, RF-080n2 |
 
 **Implementados en la versión 1.39**
 

@@ -588,10 +588,10 @@ function buildDemoSnapshot(mesesAtras) {
   const portafolios = [
     { id: 'pf_demo_viaje', nombre: 'Viaje a Marruecos',
       objetivo: 'Dos semanas, pasajes y estadía para dos personas.',
-      plazo: plazoDemo(14), createdAt: Date.now() },
+      plazo: plazoDemo(14), monto: 4000000, createdAt: Date.now() },
     { id: 'pf_demo_auto', nombre: 'Auto',
       objetivo: 'Cambiar el usado por uno más nuevo, sin tomar prenda.',
-      plazo: plazoDemo(30), createdAt: Date.now() }
+      plazo: plazoDemo(30), monto: 12000000, createdAt: Date.now() }
   ];
   const activoPortafolio = {
     'inversiones|SPY|ARS': 'pf_demo_viaje',

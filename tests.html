@@ -1264,6 +1264,15 @@ group('Portafolios', function () {
     assertEqual(validarPortafolio({ nombre: 'X', plazo: '' }, PFS).ok, true);
     assertEqual(validarPortafolio({ nombre: 'X', plazo: '2027-01-05' }, PFS).ok, true);
   });
+  test('el monto objetivo es opcional pero tiene que ser positivo', function () {
+    assertEqual(validarPortafolio({ nombre: 'X' }, PFS).ok, true);
+    assertEqual(validarPortafolio({ nombre: 'X', monto: '' }, PFS).ok, true);
+    assertEqual(validarPortafolio({ nombre: 'X', monto: '4000000' }, PFS).ok, true);
+    assertEqual(validarPortafolio({ nombre: 'X', monto: 4000000 }, PFS).ok, true);
+    assertEqual(validarPortafolio({ nombre: 'X', monto: '0' }, PFS).ok, false);
+    assertEqual(validarPortafolio({ nombre: 'X', monto: '-5' }, PFS).ok, false);
+    assertEqual(validarPortafolio({ nombre: 'X', monto: 'mucho' }, PFS).ok, false);
+  });
   test('agrupa en el orden de los portafolios y deja lo sin asignar al final', function () {
     const mapa = { 'inversiones|SPY|ARS': 'p2', 'inversiones|AAPL|ARS': 'p1' };
     const gs = agruparPorPortafolio(['AAPL', 'SPY', 'MELI'], PFS, mapa, 'inversiones', 'ARS');

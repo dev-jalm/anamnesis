@@ -6862,10 +6862,13 @@ body[data-exporting="true"] .section-card {
    El :not() no es cosmético: el rótulo lo fija .inv-currency-header-row
    .inv-section-label en 12px, y `.inv-pf-cab > *` pesa menos —el universal no
    suma— así que no lo tocaba. Con el :not() la regla empata en especificidad y
-   gana por estar declarada después, y de paso deja afuera la descripción. */
+   gana por estar declarada después, y de paso deja afuera la descripción.
+   El cuerpo es el de los títulos de Concentración —Por sector, Por tipo de
+   riesgo—, que son los rótulos del mismo rango en la pantalla. */
 .inv-pf-cab { gap: 6px; }
 .inv-pf-cab > *:not(.inv-pf-meta),
-.inv-pf-cab .inv-pf-gp-pct { font-size: 11px; }
+.inv-pf-cab .inv-pf-gp-pct { font-size: 12px; }
+.inv-pf-cab .inv-pf-meta { font-size: 11px; }
 /* Si la descripción no entra, es ella la que cede: los datos de la línea no se
    corren ni se parten. El texto completo queda en el título del elemento. */
 .inv-pf-cab > *:not(.inv-pf-meta) { flex-shrink: 0; }
@@ -7124,11 +7127,11 @@ body[data-exporting="true"] .section-card {
 .inv-liq-titulo.inv-gp-negative { color: var(--red); }
 /* El monto va en tinta normal y no en verde o rojo: el título de al lado ya
    dice de cuál de los dos grupos es, y repetirlo en el color del importe le
-   sacaba peso al número, que es el dato. La excepción es el neto de abajo,
-   que sí es una ganancia o una pérdida. */
+   sacaba peso al número, que es el dato. */
 .inv-liq-total { font-size: 12px; font-weight: 600; color: var(--ink); }
-.inv-liq-total.inv-gp-positive { color: var(--green); }
-.inv-liq-total.inv-gp-negative { color: var(--red); }
+/* El porcentaje al lado del importe: cuánto rindió lo vendido sobre lo que
+   costó. Mismo tratamiento que el del resultado en la cabecera. */
+.inv-liq-pct { font-weight: 500; opacity: .85; margin-left: 4px; }
 /* Dos columnas, el mismo tratamiento que la sección de Concentración: lo
    ganado a la izquierda y lo perdido a la derecha, separadas por el mismo
    divisor. Con minmax(0,1fr) las dos miden igual y arrancan a la misma altura
@@ -7143,17 +7146,8 @@ body[data-exporting="true"] .section-card {
   padding-left: 14px;
   padding-right: 0;
 }
-/* La última fila de cada grupo no lleva divisor: abajo está el del total, y
-   los dos juntos se veían como dos líneas a 10px. */
-.inv-liq-grupo .inv-liq-fila:last-child { border-bottom: none; }
-/* El cierre del bloque: se separa de los dos grupos con el mismo divisor que
-   usan las filas, como la última línea de una tabla. */
-.inv-liq-neto {
-  border-top: 1px solid var(--border);
-  padding-top: 10px;
-  margin-bottom: 0;
-}
-.inv-liq-neto .inv-liq-titulo { color: var(--ink); }
+/* La última fila de cada grupo cierra con su divisor, como la última línea de
+   una tabla. */
 /* Filas con el mismo alto y el mismo divisor que las de la tabla de activos.
    Los 40px están medidos sobre ellas: sus celdas llevan campos editables y por
    eso son más altas que una línea de texto. align-items pasa a center porque

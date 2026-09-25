@@ -1567,6 +1567,16 @@ function validarPortafolio(datos, portafolios, id) {
   if (plazo && !/^\d{4}-\d{2}-\d{2}$/.test(plazo)) {
     return { ok: false, error: 'El plazo tiene que ser una fecha válida.' };
   }
+  // El monto objetivo es opcional: no todo portafolio persigue una cifra. Si se
+  // informa tiene que ser un número positivo — un objetivo de cero o negativo
+  // no es una meta.
+  const monto = String((datos && datos.monto) !== undefined && datos.monto !== null ? datos.monto : '').trim();
+  if (monto) {
+    const n = Number(monto);
+    if (!isFinite(n) || n <= 0) {
+      return { ok: false, error: 'El monto objetivo tiene que ser un número mayor que cero.' };
+    }
+  }
   return { ok: true, error: '' };
 }
 

@@ -209,17 +209,17 @@ window.MANUAL = {
       imgCap: 'La tabla de activos en vista por portafolio: cada grupo con su objetivo y su plazo, y al final lo que todavía no asignaste.',
       p: [
         'Una cartera no siempre es una sola cosa. De los diez CEDEARs que tenés en Inversiones, tres pueden ser el viaje del año que viene, dos el auto y el resto no tener destino todavía. Un portafolio es eso: un agrupamiento de activos según para qué son. No es una cartera nueva —las carteras siguen siendo Reserva, Inversiones, las Jubilaciones y Trading— sino un corte adentro de ellas.',
-        'Los portafolios se crean en Administración → Salud financiera, con tres datos: el nombre, el objetivo —para qué es, en texto libre— y el plazo, que es una fecha y podés dejar vacía. Ahí mismo los editás y los eliminás, y cada uno muestra cuántos activos tiene asignados.',
+        'Los portafolios se crean en Administración → Salud financiera con cuatro datos: nombre, objetivo —para qué es, en texto libre—, plazo y monto objetivo, la cifra que perseguís. Los dos últimos podés dejarlos vacíos. Ahí mismo los editás y los eliminás, y cada uno muestra su meta y sus activos.',
         'Decir qué activos lo componen se hace en la solapa Salud financiera, que es donde los tenés a la vista: tildás los que quieras, elegís el portafolio y los asignás de una. La misma lista sirve para sacarlos, con la opción de quitar del portafolio.',
-        'La tabla ofrece dos vistas. Activos es la lista de siempre, y ahí sólo se pueden tildar los que todavía no tienen portafolio: es la vista para agrupar lo suelto. Portafolio los reparte en grupos —cada uno encabezado por su número, su nombre, su objetivo y su plazo, y al final lo que no asignaste— y ahí se puede tildar cualquiera, que es donde se los mueve de grupo o se los saca.',
-        'El mismo selector está en Concentración y en Liquidado. En vista Portafolio esas secciones se repiten una vez por cada uno: vas a ver la concentración de cada objetivo por separado —que es donde aparece un portafolio concentrado aunque la cartera entera no lo esté— y qué te dejó lo que vendiste de cada uno. La Liquidez no entra en la concentración de un portafolio: la plata sin invertir es de la cartera, no de un objetivo, y sumarla a cada uno la contaría varias veces.'
+        'La tabla ofrece dos vistas. Activos es la lista de siempre, y ahí sólo se pueden tildar los que todavía no tienen portafolio: es la vista para agrupar lo suelto. Portafolio los reparte en grupos —y al final lo que no asignaste— y ahí se puede tildar cualquiera, que es donde se los mueve de grupo o se los saca.',
+        'El mismo selector está en Concentración y en Liquidado. En vista Portafolio esas secciones se repiten una vez por cada uno: vas a ver la concentración de cada objetivo por separado —que es donde aparece un portafolio concentrado aunque la cartera entera no lo esté— y qué te dejó lo que vendiste de cada uno. La Liquidez no entra ahí: la plata sin invertir es de la cartera y sumarla a cada objetivo la contaría varias veces.'
       ],
       lista: [
         'La asignación es del activo en SU cartera: el mismo ticker en Inversiones y en Jubilación son dos tenencias y pueden ir a portafolios distintos.',
         'Comprar más de un activo ya asignado no lo saca de su portafolio.',
         'El orden por columna sigue funcionando en la vista agrupada, pero ordena adentro de cada grupo: nunca mezcla activos de portafolios distintos.',
         'Eliminar un portafolio no toca las tenencias: sus activos vuelven al grupo sin portafolio. La app te dice cuántos son antes de confirmar.',
-        'La cabecera de cada portafolio es una línea igual en las tres secciones: número y nombre, entre paréntesis para qué es —con su plazo y desde cuándo, que es su compra más vieja— y después, separados por barras, cuántos activos tiene, cuánto vale y qué dejó, en plata y en porcentaje.',
+        'La cabecera de cada portafolio es una línea igual en las tres secciones: número y nombre, entre paréntesis para qué es —con su plazo y su compra más vieja— y después, separados por barras, cuántos activos tiene, cuánto vale y qué dejó.',
         'En Parámetros configurás cuánto puede pesar un solo activo y cuántos activos puede agrupar un portafolio. Pasados esos números, la app los marca.'
       ]
     },
@@ -247,11 +247,11 @@ window.MANUAL = {
       h: 'Lo liquidado',
       sub: '¿Cuánto me dejó lo que vendí?',
       img: '21-liquidado',
-      imgCap: 'Las dos columnas de Liquidado y, cruzándolas, el total: lo ganado menos lo perdido.',
+      imgCap: 'Las dos columnas de Liquidado, cada una con lo que dejó y cuánto rindió.',
       p: [
         'La tabla de activos mide lo que todavía tenés contra el precio de hoy. Lo que ya vendiste no se valúa: se cobró, y su resultado es definitivo. Eso vive en su propia sección del panel, Liquidado, y se lee en dos columnas: a la izquierda lo que salió en ganancia y a la derecha lo que salió en pérdida.',
         'Cada línea es una venta, no un activo: una compra se puede vender en tandas, y cada tanda tiene su fecha y su resultado propio. La línea dice cuándo vendiste, qué activo, cuántos nominales sobre los de la compra de la que salieron —15 / 35 dice que liquidaste una parte—, cuántos días lo tuviste hasta esa venta, cuánto cobraste y qué te dejó.',
-        'Abajo, cruzando las dos columnas, el total liquidado: lo ganado menos lo perdido. Es el único número del bloque que va en verde o en rojo, porque es el que dice si el conjunto de tus ventas te dejó a favor o en contra.'
+        'Cada columna encabeza con su total y, al lado, cuánto rindió: el porcentaje mide lo que dejaron esas ventas sobre lo que habían costado. El neto de las dos no se repite abajo, porque ya está arriba: en la vista Portafolio la cabecera de cada grupo informa acá lo que cobró y lo que le dejó, mientras que en Activos y en Concentración las mismas casillas dicen lo que vale hoy y su G/P potencial, que todavía no cobraste.'
       ],
       lista: [
         'Las ventas parciales cuentan: lo liquidado es lo vendido, tengas o no saldo en esa compra.',
