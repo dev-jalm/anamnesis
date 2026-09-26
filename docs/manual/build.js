@@ -210,7 +210,7 @@ window.MANUAL = {
       p: [
         'Una cartera no siempre es una sola cosa. De los diez CEDEARs que tenés en Inversiones, tres pueden ser el viaje del año que viene, dos el auto y el resto no tener destino todavía. Un portafolio es eso: un agrupamiento de activos según para qué son. No es una cartera nueva —las carteras siguen siendo Reserva, Inversiones, las Jubilaciones y Trading— sino un corte adentro de ellas.',
         'Los portafolios se crean en Administración → Portafolios con nombre, objetivo, plazo, monto objetivo y una etiqueta. Ahí mismo los editás, los eliminás y ves lo que cada uno acumuló: lo ganado sin vender, lo ya realizado y cuánto llevás del objetivo.',
-        'La etiqueta sirve para reservarle plata. Cuando mandás dinero a una cartera, si el movimiento lleva esa etiqueta queda reservado a ese objetivo en vez de sumarse al líquido suelto: es el mismo mecanismo con el que las dos jubilaciones se reparten sus aportes. Como el movimiento ES el aporte, nunca podés reservar más de lo que entró. El líquido del panel muestra debajo cuánto está reservado, y en Concentración la Liquidez se parte en dos renglones: la reservada y la que todavía no tiene destino.',
+        'La etiqueta sirve para reservarle plata, y se escribe: si no existe se crea sola con un color libre, igual que al crear un viaje. Cuando mandás dinero a una cartera, si el movimiento lleva esa etiqueta queda reservado a ese objetivo en vez de sumarse al líquido suelto: es el mismo mecanismo con el que las dos jubilaciones se reparten sus aportes. Como el movimiento ES el aporte, nunca podés reservar más de lo que entró. El líquido del panel muestra debajo cuánto está reservado, y en Concentración la Liquidez se parte en dos renglones: la reservada y la que todavía no tiene destino.',
         'Lo que va a cada objetivo es cada COMPRA, no el ticker: podés comprar el mismo activo tres veces y mandar cada tanda a un objetivo distinto. Se elige al cargarla y se cambia después en el detalle del activo. Para repartir lo que ya tenías, en la solapa tildás los activos, elegís el portafolio y los asignás de una.',
         'La tabla ofrece dos vistas. Activos es la lista de siempre, con el total de cada ticker, y ahí se tilda lo que todavía no está en ningún objetivo. Portafolio reparte en grupos —y al final lo que no asignaste—: un activo repartido sale una vez en cada uno, con lo que le toca.',
         'El mismo selector está en Concentración y en Liquidado. En vista Portafolio esas secciones se repiten una vez por cada uno: vas a ver la concentración de cada objetivo por separado —que es donde aparece un portafolio concentrado aunque la cartera entera no lo esté— y qué te dejó lo que vendiste de cada uno. La Liquidez que ves ahí es la caja del objetivo, no la de la cartera.'
@@ -332,12 +332,12 @@ window.MANUAL = {
       ]
     },
     {
-      h: 'Administración: Configuración de vistas y KPIs',
+      h: 'Administración: vistas y KPIs',
       img: '12-admin-ficha',
-      imgCap: 'Qué secciones se ven en cada modo de vista. Las tarjetas se configuran en la solapa KPIs.',
+      imgCap: 'Qué secciones se ven en cada modo de vista. Las tarjetas se configuran en la solapa de al lado.',
       p: [
         'Configuración de vistas controla qué secciones aparecen en Ficha médica. Cada fila tiene dos interruptores: uno para el modo Completa y otro para el modo Resumen. Así se arma una vista breve con lo esencial y otra con todo el detalle.',
-        'KPIs, en su propia solapa, configura las tarjetas de indicadores: activarlas, cambiarles el nombre, el icono o el color, definir qué operación calculan y reordenarlas.'
+        'Configuración de KPIs, en su propia solapa, maneja las tarjetas de indicadores: prenderlas o apagarlas, cambiarles el rótulo, el icono, el color y la ayuda, definir la operación con la que se calculan —la suma de una categoría, un saldo, un promedio o la relación entre dos— y reordenarlas.'
       ]
     },
     {
@@ -366,7 +366,7 @@ window.MANUAL = {
       ],
       lista: [
         'Del 1 al 5, las cinco solapas principales en el orden en que están: Historia clínica, Ficha médica, Diagnóstico, Salud financiera y Evolución.',
-        'A abre Administración. Adentro, V va a Configuración de vistas, K a KPIs, P a Portafolios y M a Parámetros.',
+        'A abre Administración. Adentro, V va a Configuración de vistas, K a Configuración de KPIs, P a Portafolios y M a Parámetros.',
         'C, E, R y J abren Administración en la solapa que corresponde y dejan el cursor en el nombre: categoría, etiqueta, regla y viaje.',
         'D abre el diagnóstico del archivo y T cambia entre tema claro y oscuro.',
         'Ctrl+K —Cmd+K en Mac— abre el buscador de acciones, que llega a todo lo anterior escribiendo. Ctrl+S fuerza el guardado y Esc cierra lo que esté abierto.',

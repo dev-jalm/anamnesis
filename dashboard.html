@@ -1432,7 +1432,7 @@
       </div>
       <div class="shortcut-row">
         <div class="shortcut-keys"><kbd>K</kbd></div>
-        <div class="shortcut-label">KPIs</div>
+        <div class="shortcut-label">Configuración de KPIs</div>
       </div>
       <div class="shortcut-row">
         <div class="shortcut-keys"><kbd>P</kbd></div>
@@ -2468,7 +2468,7 @@
       </button>
       <button class="cat-tab" data-tab="kpis">
         <i data-lucide="layout-grid" style="width:13px;height:13px"></i>
-        KPIs
+        Configuración de KPIs
       </button>
       <button class="cat-tab" data-tab="portafolios">
         <i data-lucide="target" style="width:13px;height:13px"></i>
@@ -2775,7 +2775,8 @@
           </div>
           <div class="travel-field" style="min-width:150px">
             <span class="travel-field-label">Etiqueta de aportes</span>
-            <select id="pfEtiquetaInput" class="period-select"></select>
+            <input type="text" id="pfEtiquetaInput" class="period-select" maxlength="40"
+                   placeholder="ej: viaje" title="Con esta etiqueta marcás los aportes que quedan reservados a este objetivo. Si no existe, se crea sola.">
           </div>
           <div class="travel-field" style="align-self:flex-end">
             <button class="upload-btn" id="pfAddBtn">
@@ -3112,13 +3113,13 @@
          secciones se ven y qué mide cada tarjeta— y juntas obligaban a
          scrollear para llegar a la segunda. -->
     <div class="cat-tab-panel hidden" id="catTabKpis" style="overflow-y:auto">
-      <p class="travel-intro" style="margin-bottom:18px">Las tarjetas que aparecen arriba de la solapa <strong>Ficha médica</strong>.</p>
+      <p class="travel-intro" style="margin-bottom:18px">Las tarjetas de indicadores que encabezan la solapa <strong>Ficha médica</strong>: los números que querés ver de un vistazo cada vez que abrís el período.</p>
       <div class="fm-section">
         <div class="fm-section-head">
           <div class="fm-section-icon"><i data-lucide="layout-grid" style="width:14px;height:14px"></i></div>
-          <div class="fm-section-title">KPIs</div>
+          <div class="fm-section-title">Configuración de KPIs</div>
         </div>
-        <p class="fm-section-desc">Podés activarlas y desactivarlas, cambiarles el nombre, el icono o la ayuda, definir la operación con la que se calculan y reordenarlas con las flechas.</p>
+        <p class="fm-section-desc">Cada tarjeta se prende o se apaga con su interruptor, y con el lápiz se edita: el rótulo, el icono, el color, la ayuda que aparece al pasar el mouse y —lo importante— <strong>la operación con la que se calcula</strong>, que puede ser la suma de una categoría, un saldo, un promedio o la relación entre dos de ellas. Las flechas cambian el orden en que se presentan. <strong>AGREGAR TARJETA</strong> crea una nueva y <strong>RESTABLECER DEFAULTS</strong> vuelve a las ocho originales, descartando lo que hayas cambiado.</p>
         <div class="kpi-cfg-header" style="padding-left:38px">
           <button class="upload-btn" id="addKpiBtn">
             <i data-lucide="plus" style="width:14px;height:14px"></i>

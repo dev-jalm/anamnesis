@@ -8040,10 +8040,6 @@ function setActiveCatTab(tab) {
   } else if (tab === 'params') {
     renderParamsTab();
   } else if (tab === 'portafolios') {
-    // El catálogo de etiquetas puede haber cambiado en otra solapa del mismo
-    // modal, así que el selector se rearma cada vez que se entra.
-    poblarEtiquetasPortafolio(document.getElementById('pfEtiquetaInput')
-      ? document.getElementById('pfEtiquetaInput').value : '');
     renderPortafoliosTab();
   } else if (tab === 'config') {
     // Configuración de vistas: qué secciones de Ficha médica se muestran y en
@@ -12719,20 +12715,60 @@ function renderPortafoliosTab() {
   if (window.lucide) lucide.createIcons();
 }
 
-// Las etiquetas disponibles para reservar aportes. Se ofrecen todas las del
-// catálogo: la que se elija es la que hay que ponerle al movimiento con el que
-// se manda plata a la cartera para que quede reservada a este objetivo.
-function poblarEtiquetasPortafolio(valor) {
-  const sel = document.getElementById('pfEtiquetaInput');
-  if (!sel) return;
-  const tags = state.taglabels || {};
-  sel.innerHTML = '<option value="">— sin etiqueta —</option>' +
-    Object.keys(tags).sort(function (a, b) {
-      return String((tags[a] && tags[a].label) || a).localeCompare(String((tags[b] && tags[b].label) || b), 'es');
-    }).map(function (k) {
-      return '<option value="' + escapeHtmlSafe(k) + '">' + escapeHtmlSafe((tags[k] && tags[k].label) || k) + '</option>';
-    }).join('');
-  sel.value = valor || '';
+// La etiqueta se escribe, no se elige de una lista: igual que en Modo viaje,
+// si no existe se crea sola. Obligar a crearla antes en otra solapa era pedirle
+// al usuario que supiera de antemano que la iba a necesitar.
+// El formulario muestra el nombre; lo que se guarda en el portafolio es la
+// clave de la etiqueta.
+function setEtiquetaPortafolioInput(clave) {
+  const inp = document.getElementById('pfEtiquetaInput');
+  if (!inp) return;
+  const t = clave && state.taglabels ? state.taglabels[clave] : null;
+  inp.value = t ? (t.label || clave) : (clave || '');
+}
+
+// Un color de la paleta que ninguna etiqueta esté usando. Si ya se usaron
+// todos, se reparte por cantidad, que es lo que hace Modo viaje.
+function colorLibreDeEtiqueta() {
+  const usados = {};
+  Object.keys(state.taglabels || {}).forEach(function (k) {
+    const c = state.taglabels[k] && state.taglabels[k].color;
+    if (c) usados[String(c).toUpperCase()] = true;
+  });
+  for (let i = 0; i < TRAVEL_TAG_COLORS.length; i++) {
+    if (!usados[TRAVEL_TAG_COLORS[i].toUpperCase()]) return TRAVEL_TAG_COLORS[i];
+  }
+  return TRAVEL_TAG_COLORS[Object.keys(state.taglabels || {}).length % TRAVEL_TAG_COLORS.length];
+}
+
+// Del texto escrito a la clave de etiqueta. Vacío devuelve ''. Si ya existe una
+// etiqueta con ese nombre —sin distinguir mayúsculas ni acentos— se reutiliza:
+// dos etiquetas que se leen igual serían indistinguibles al etiquetar un
+// movimiento. Si el portafolio ya tenía una etiqueta propia y sólo le cambió el
+// nombre, se renombra en vez de crear otra, como hace Modo viaje.
+// `crear` en false sólo consulta: devuelve la clave si la etiqueta ya existe y
+// vacío si habría que crearla, sin tocar nada. Sirve para validar antes de
+// escribir, así un alta rechazada —por nombre repetido, por ejemplo— no deja
+// una etiqueta huérfana en el catálogo.
+function resolverEtiquetaPortafolio(texto, claveActual, crear) {
+  const nombre = String(texto || '').trim();
+  if (!nombre) return '';
+  if (!state.taglabels) state.taglabels = {};
+  const tags = state.taglabels;
+  const existente = Object.keys(tags).filter(function (k) {
+    return norm((tags[k] && tags[k].label) || k) === norm(nombre);
+  })[0];
+  if (existente) return existente;
+  if (!crear) return '';
+  // Renombrar la propia, si la había creado este portafolio.
+  if (claveActual && tags[claveActual] && /^PF_/.test(claveActual)) {
+    tags[claveActual].label = nombre;
+    return claveActual;
+  }
+  const slug = norm(nombre).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24) || 'objetivo';
+  const clave = 'PF_' + slug.toUpperCase() + '_' + Math.random().toString(36).slice(2, 5).toUpperCase();
+  tags[clave] = { label: nombre, color: colorLibreDeEtiqueta() };
+  return clave;
 }
 
 function limpiarFormPortafolio() {
@@ -12745,7 +12781,7 @@ function limpiarFormPortafolio() {
   if (o) o.value = '';
   if (p) p.value = '';
   if (m) m.value = '';
-  poblarEtiquetasPortafolio('');
+  setEtiquetaPortafolioInput('');
   const lbl = document.getElementById('pfAddBtnLabel');
   if (lbl) lbl.textContent = 'CREAR PORTAFOLIO';
   const cancel = document.getElementById('pfCancelWrap');
@@ -12757,11 +12793,18 @@ function guardarPortafolioDesdeForm() {
     nombre: (document.getElementById('pfNombreInput') || {}).value || '',
     objetivo: (document.getElementById('pfObjetivoInput') || {}).value || '',
     plazo: (document.getElementById('pfPlazoInput') || {}).value || '',
-    monto: (document.getElementById('pfMontoInput') || {}).value || '',
-    etiqueta: (document.getElementById('pfEtiquetaInput') || {}).value || ''
+    monto: (document.getElementById('pfMontoInput') || {}).value || ''
   };
+  // Lo que se compara contra los otros portafolios es la clave de la etiqueta,
+  // no el texto escrito, así que primero se consulta sin crear nada. Recién
+  // después de que la validación pase se crea o se renombra.
+  const pActual = pfEditandoId ? portafolioPorId(portafolios(), pfEditandoId) : null;
+  const claveActual = pActual && pActual.etiqueta;
+  const textoEtiqueta = (document.getElementById('pfEtiquetaInput') || {}).value || '';
+  datos.etiqueta = resolverEtiquetaPortafolio(textoEtiqueta, claveActual, false);
   const v = validarPortafolio(datos, portafolios(), pfEditandoId);
   if (!v.ok) { appAlert(v.error); return; }
+  datos.etiqueta = resolverEtiquetaPortafolio(textoEtiqueta, claveActual, true);
   // Vacío se guarda como 0: el portafolio no persigue una cifra, y un 0 se
   // distingue de "no informado" en un solo lugar en vez de en cada lector.
   const monto = Number(String(datos.monto).trim()) || 0;
@@ -12805,7 +12848,7 @@ function editarPortafolio(id) {
   if (o) o.value = p.objetivo || '';
   if (pl) pl.value = p.plazo || '';
   if (m) m.value = p.monto ? String(p.monto) : '';
-  poblarEtiquetasPortafolio(p.etiqueta || '');
+  setEtiquetaPortafolioInput(p.etiqueta || '');
   const lbl = document.getElementById('pfAddBtnLabel');
   if (lbl) lbl.textContent = 'GUARDAR CAMBIOS';
   const cancel = document.getElementById('pfCancelWrap');
@@ -12857,7 +12900,7 @@ function eliminarPortafolio(id) {
   }
   // Enter en cualquiera de los campos de texto guarda, como en el resto de los
   // formularios de alta de la app.
-  ['pfNombreInput', 'pfObjetivoInput', 'pfMontoInput'].forEach(function (id) {
+  ['pfNombreInput', 'pfObjetivoInput', 'pfMontoInput', 'pfEtiquetaInput'].forEach(function (id) {
     const el = document.getElementById(id);
     if (el) el.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); guardarPortafolioDesdeForm(); }
@@ -23877,7 +23920,7 @@ function buildCommandPaletteCatalog() {
       rules: 'Administración → Reglas',
       travel: 'Administración → Modo viaje',
       config: 'Administración → Configuración de vistas',
-      kpis: 'Administración → KPIs',
+      kpis: 'Administración → Configuración de KPIs',
       params: 'Administración → Parámetros',
       portafolios: 'Administración → Portafolios'
     };

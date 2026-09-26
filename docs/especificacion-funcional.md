@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.63 |
+| **Versión** | 1.64 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -303,6 +303,7 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | RF-080n1 | La cabecera se presenta en **una sola línea con los campos rotulados y separados por barras**: `Portafolio n° 1: Nombre (descripción) \| Activos: n \| Total: importe \| G/P: importe (porcentaje)`. La descripción reúne el objetivo, el plazo y la fecha de inicio, entre paréntesis y a continuación del nombre. Todos los campos se presentan con el mismo cuerpo tipográfico —el de los rótulos de los gráficos de Concentración (RF-072g), que son los rótulos del mismo rango en la pantalla— salvo la descripción, que es texto libre y no un dato de la línea; si no entra, es ella la que se recorta —los datos no se corren ni se parten— y su texto completo queda accesible en su información emergente |
 | RF-080n1b | La cabecera cierra con el **avance contra el monto objetivo**. Sólo se presenta si el portafolio informó un monto y se mide siempre en pesos sobre el portafolio completo, no sobre la tabla de una moneda, porque el objetivo es uno solo. **Lo que se mide depende de la sección**, con el mismo criterio de RF-080n2: en Activos y Concentración, lo que la tenencia vale hoy **más la caja del portafolio** (RF-080q); en Liquidado, lo que ya dejó lo vendido. Su información emergente informa contra qué se midió, cuánto de eso es caja y cuál es el objetivo |
 | RF-080r | Un portafolio puede declarar una **etiqueta de aportes**. Los movimientos que alimentan la cartera (RF-072) y llevan esa etiqueta quedan **reservados a ese objetivo**: entran a su caja en vez de sumarse al líquido suelto. Es el mismo mecanismo con el que Jubilación se parte en dos destinos. Una etiqueta no puede estar en dos portafolios: un movimiento etiquetado tiene que poder decir a cuál aporta |
+| RF-080r2 | La etiqueta **se escribe, no se elige de una lista**: si no existe se crea sola, con un color todavía libre de la paleta, igual que al crear un viaje (RF-171). Escribir el nombre de una etiqueta existente la reutiliza —dos etiquetas que se leen igual serían indistinguibles al etiquetar un movimiento—, y cambiarle el nombre a una que creó el propio portafolio la renombra en vez de crear otra. Un alta rechazada no deja etiquetas creadas |
 | RF-080r1 | Reservar por etiqueta hace **imposible reservar más de lo que entró**: un movimiento etiquetado es, por definición, un aporte a esa cartera. La única forma de que lo reservado supere al líquido es que un objetivo haya gastado de más —su caja queda en cero y no compensa al otro—, y en ese caso el sistema lo advierte (RF-072i) |
 | RF-080q | Un portafolio tiene una **caja**: la plata que tiene reservada y todavía no está puesta en un activo suyo. Entra por dos lados: los **aportes etiquetados** (RF-080r) y lo que dejaron sus ventas. Existe porque el portafolio agrupa activos y no plata: al liquidar uno, lo cobrado pasa al líquido de la cartera y el objetivo parecería retroceder aunque la venta haya sido con ganancia. La caja se reconstruye recorriendo las compras y las ventas del portafolio en orden de fecha —las ventas antes que las compras del mismo día—: cada venta la aumenta por lo cobrado y cada compra la consume antes de recurrir a plata de afuera. Nunca es negativa |
 | RF-080q1 | La caja **puede quedar corta pero nunca larga**: si después de vender se compra con plata nueva, la compra igual la consume y el objetivo declara menos avance del que tiene. Se prefiere ese error al inverso, que sería contar dos veces la misma plata cuando se reinvierte dentro del mismo portafolio. Por la misma razón la caja **no se descuenta** del líquido de la cartera, que es del destino: el sistema no puede saber si esa plata se retiró |
@@ -533,7 +534,7 @@ Cinco pantallas.
 | RF-193 | El umbral de concentración por sector (RF-073k) es configurable entre 0 y 100%. El valor inicial es 30%; en 0 las alertas quedan desactivadas y el gráfico se presenta sin línea de umbral |
 | RF-195 | El umbral de concentración **por activo** (RF-080p) es configurable entre 0 y 100%. El valor inicial es 15%: más bajo que el de sector porque un sector lo forman varios activos, y que uno solo pese como un rubro entero es otra cosa. En 0 se desactiva |
 | RF-196 | El **máximo de activos por portafolio** (RF-080p) es configurable. El valor inicial es 12: pasado ese número, un portafolio deja de ser un objetivo con sus activos y se parece a otra cartera, que es lo que los destinos ya resuelven. En 0 se desactiva |
-| RF-197 | Administración se organiza en siete solapas: **Categorías y etiquetas**, **Reglas**, **Modo viaje**, **Configuración de vistas** —qué secciones de Ficha médica se presentan y en cuál de sus dos vistas—, **KPIs** —las tarjetas de esa misma solapa—, **Portafolios** y **Parámetros**. Las vistas y los KPIs van separados porque son dos decisiones distintas y juntos obligaban a desplazarse para llegar a la segunda. Cada una tiene su tecla de acceso: V, K, P y M respectivamente, y J abre Modo viaje |
+| RF-197 | Administración se organiza en siete solapas: **Categorías y etiquetas**, **Reglas**, **Modo viaje**, **Configuración de vistas** —qué secciones de Ficha médica se presentan y en cuál de sus dos vistas—, **Configuración de KPIs** —las tarjetas de esa misma solapa—, **Portafolios** y **Parámetros**. Las vistas y los KPIs van separados porque son dos decisiones distintas y juntos obligaban a desplazarse para llegar a la segunda. Cada una tiene su tecla de acceso: V, K, P y M respectivamente, y J abre Modo viaje |
 | RF-194 | El umbral de concentración por tipo de riesgo (RF-073t) es configurable entre 0 y 100%, por separado del de sector. El valor inicial es 70%: una cartera de acciones es enteramente renta variable, y con el umbral de sector alertaría siempre. En 0 las alertas quedan desactivadas |
 
 ---
@@ -1183,9 +1184,17 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.60 | 25/09/2026 | La caja del portafolio entra como Liquidez en sus dos gráficos de concentración (RF-080l) | Reemplazada |
 | 1.61 | 25/09/2026 | La asignación a un portafolio pasa a ser **de cada compra** y no del ticker: un mismo activo puede comprarse para objetivos distintos (RF-080e, RF-080e1, RF-080e2) | Reemplazada |
 | 1.62 | 25/09/2026 | Se puede **reservar plata** a un objetivo etiquetando el aporte, y el líquido de la cartera se desglosa en reservado y sin asignar (RF-080r, RF-080r1, RF-072i) | Reemplazada |
-| 1.63 | 25/09/2026 | Administración reordena sus solapas: **Portafolios** (antes Salud financiera), **Configuración de vistas** (antes Ficha médica) y **KPIs**, que se separa en una solapa propia. Sus teclas pasan a P, V y K (RF-197) | **Vigente** |
+| 1.63 | 25/09/2026 | Administración reordena sus solapas: **Portafolios** (antes Salud financiera), **Configuración de vistas** (antes Ficha médica) y **KPIs**, que se separa en una solapa propia. Sus teclas pasan a P, V y K (RF-197) | Reemplazada |
+| 1.64 | 25/09/2026 | La etiqueta de aportes de un portafolio se escribe y se crea sola (RF-080r2), y la solapa de KPIs pasa a llamarse **Configuración de KPIs** (RF-197) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| La etiqueta del portafolio se escribe y se crea sola | RF-080r2 |
+| Configuración de KPIs | RF-197 |
+
+**Implementados en la versión 1.63**
 
 | Cambio | Requerimiento |
 |---|---|
