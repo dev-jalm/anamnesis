@@ -8012,8 +8012,8 @@ function setActiveCatTab(tab) {
   if (pfTab) pfTab.classList.toggle('hidden', tab !== 'portafolios');
   const configTab = document.getElementById('catTabConfig');
   if (configTab) configTab.classList.toggle('hidden', tab !== 'config');
-  // Compat con state guardado que apunte a 'kpis' (tab eliminada): redirigir a 'config'
-  if (tab === 'kpis') tab = 'config';
+  const kpisTab = document.getElementById('catTabKpis');
+  if (kpisTab) kpisTab.classList.toggle('hidden', tab !== 'kpis');
   // Sincronizar la marca visual de los botones de la barra de tabs (línea debajo del nombre).
   // Importante: solo tocamos los .cat-tab con data-tab definido (los que corresponden a este
   // modal) para no afectar otros sets de tabs como `.cat-tab[data-budget-tab]`.
@@ -8046,9 +8046,11 @@ function setActiveCatTab(tab) {
       ? document.getElementById('pfEtiquetaInput').value : '');
     renderPortafoliosTab();
   } else if (tab === 'config') {
-    // Ficha médica unifica visibilidad de secciones + vista resumen + configuración de KPIs
+    // Configuración de vistas: qué secciones de Ficha médica se muestran y en
+    // cuál de las dos vistas.
     renderConfigTab();
     renderSummaryViewTab();
+  } else if (tab === 'kpis') {
     renderKpiConfigTab();
   }
   updateCatModalStatus();
@@ -12485,7 +12487,7 @@ function asignarPortafolioASeleccion(tabla, valor) {
       if (!tabla || !sel) return;
       if (!sel.value) { appAlert('Elegí a qué portafolio van los activos seleccionados.'); return; }
       if (sel.value !== '__quitar__' && !portafolioPorId(portafolios(), sel.value)) {
-        appAlert('Ese portafolio ya no existe. Crealo en Administración → Salud financiera.');
+        appAlert('Ese portafolio ya no existe. Crealo en Administración → Portafolios.');
         return;
       }
       const n = asignarPortafolioASeleccion(tabla, sel.value);
@@ -12817,7 +12819,7 @@ function eliminarPortafolio(id) {
   const n = activosDePortafolio(id);
   appConfirm({
     title: 'Eliminar portafolio',
-    eyebrow: 'Salud financiera',
+    eyebrow: 'Portafolios',
     danger: true,
     icon: 'trash-2',
     message: n > 0
@@ -23868,23 +23870,32 @@ function buildCommandPaletteCatalog() {
     action: function () { openShortcutsHelp(); } });
 
   // --- ATAJOS A SUB-SECCIONES DE ADMINISTRACIÓN ---
-  ['manage', 'labels', 'rules', 'travel', 'config', 'params', 'portafolios'].forEach(function (tab) {
+  ['manage', 'labels', 'rules', 'travel', 'config', 'kpis', 'params', 'portafolios'].forEach(function (tab) {
     const labels = {
       manage: 'Administración → Categorías',
       labels: 'Administración → Etiquetas',
       rules: 'Administración → Reglas',
       travel: 'Administración → Modo viaje',
-      config: 'Administración → Ficha médica',
+      config: 'Administración → Configuración de vistas',
+      kpis: 'Administración → KPIs',
       params: 'Administración → Parámetros',
-      portafolios: 'Administración → Salud financiera'
+      portafolios: 'Administración → Portafolios'
     };
-    const icons = { manage: 'tag', labels: 'bookmark', rules: 'zap', travel: 'plane', config: 'activity', params: 'sliders-horizontal', portafolios: 'target' };
+    const icons = { manage: 'tag', labels: 'bookmark', rules: 'zap', travel: 'plane', config: 'eye', kpis: 'layout-grid', params: 'sliders-horizontal', portafolios: 'target' };
+    // Las palabras con las que uno la busca, que no siempre son el nombre de
+    // la solapa: a las vistas se llega escribiendo "ficha médica", que es la
+    // pantalla que configuran.
+    const claves = {
+      config: ['vistas', 'ficha medica', 'secciones', 'visualizacion'],
+      kpis: ['kpi', 'tarjetas', 'indicadores', 'ficha medica'],
+      portafolios: ['portafolios', 'objetivos', 'salud financiera']
+    };
     cmds.push({
       id: 'admin.' + tab,
       label: labels[tab],
       group: 'Administración',
       icon: icons[tab],
-      keywords: [tab],
+      keywords: claves[tab] || [tab],
       action: function () {
         if (typeof openCategoriesModal === 'function') openCategoriesModal();
         setTimeout(function () {
@@ -24236,33 +24247,42 @@ document.addEventListener('keydown', function (e) {
     focusAfter('rulePatternInput', 250);
     return;
   }
-  if (e.key === 'v' || e.key === 'V') {
+  // j → Nuevo viaje. La V pasó a Configuración de vistas, así que el viaje se
+  // queda con la otra letra de su nombre.
+  if (e.key === 'j' || e.key === 'J') {
     e.preventDefault();
     if (typeof openCategoriesModal === 'function') openCategoriesModal();
     setTimeout(function () { if (typeof setActiveCatTab === 'function') setActiveCatTab('travel'); }, 60);
     focusAfter('travelNameInput', 250);
     return;
   }
-  // k → Administración en sub-solapa Ficha médica (donde vive el editor de KPIs)
-  if (e.key === 'k' || e.key === 'K') {
+  // v → Administración en Configuración de vistas
+  if (e.key === 'v' || e.key === 'V') {
     e.preventDefault();
     if (typeof openCategoriesModal === 'function') openCategoriesModal();
     setTimeout(function () { if (typeof setActiveCatTab === 'function') setActiveCatTab('config'); }, 60);
     return;
   }
-  // p → Administración en sub-solapa Parámetros
+  // k → Administración en KPIs
+  if (e.key === 'k' || e.key === 'K') {
+    e.preventDefault();
+    if (typeof openCategoriesModal === 'function') openCategoriesModal();
+    setTimeout(function () { if (typeof setActiveCatTab === 'function') setActiveCatTab('kpis'); }, 60);
+    return;
+  }
+  // p → Administración en Portafolios
   if (e.key === 'p' || e.key === 'P') {
     e.preventDefault();
     if (typeof openCategoriesModal === 'function') openCategoriesModal();
-    setTimeout(function () { if (typeof setActiveCatTab === 'function') setActiveCatTab('params'); }, 60);
+    setTimeout(function () { if (typeof setActiveCatTab === 'function') setActiveCatTab('portafolios'); }, 60);
     return;
   }
-  // s → Administración en sub-solapa Salud financiera (los portafolios).
-  // La S sola no choca con el guardado: ese pide Cmd/Ctrl y se atiende arriba.
-  if (e.key === 's' || e.key === 'S') {
+  // m → Administración en Parámetros. La P se la llevó Portafolios, así que
+  // queda la M de paráMetros.
+  if (e.key === 'm' || e.key === 'M') {
     e.preventDefault();
     if (typeof openCategoriesModal === 'function') openCategoriesModal();
-    setTimeout(function () { if (typeof setActiveCatTab === 'function') setActiveCatTab('portafolios'); }, 60);
+    setTimeout(function () { if (typeof setActiveCatTab === 'function') setActiveCatTab('params'); }, 60);
     return;
   }
 });

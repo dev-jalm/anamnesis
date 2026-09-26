@@ -1427,16 +1427,20 @@
         <div class="shortcut-label">Abrir Administración</div>
       </div>
       <div class="shortcut-row">
+        <div class="shortcut-keys"><kbd>V</kbd></div>
+        <div class="shortcut-label">Configuración de vistas</div>
+      </div>
+      <div class="shortcut-row">
         <div class="shortcut-keys"><kbd>K</kbd></div>
-        <div class="shortcut-label">Editar tarjetas de KPIs</div>
+        <div class="shortcut-label">KPIs</div>
       </div>
       <div class="shortcut-row">
         <div class="shortcut-keys"><kbd>P</kbd></div>
-        <div class="shortcut-label">Parámetros</div>
+        <div class="shortcut-label">Portafolios</div>
       </div>
       <div class="shortcut-row">
-        <div class="shortcut-keys"><kbd>S</kbd></div>
-        <div class="shortcut-label">Salud financiera: los portafolios</div>
+        <div class="shortcut-keys"><kbd>M</kbd></div>
+        <div class="shortcut-label">Parámetros</div>
       </div>
       <div class="shortcut-row">
         <div class="shortcut-keys"><kbd>T</kbd></div>
@@ -1463,7 +1467,7 @@
         <div class="shortcut-label">Nueva regla</div>
       </div>
       <div class="shortcut-row">
-        <div class="shortcut-keys"><kbd>V</kbd></div>
+        <div class="shortcut-keys"><kbd>J</kbd></div>
         <div class="shortcut-label">Nuevo viaje / evento</div>
       </div>
     </div>
@@ -2459,12 +2463,16 @@
         Modo viaje
       </button>
       <button class="cat-tab" data-tab="config">
-        <i data-lucide="activity" style="width:13px;height:13px"></i>
-        Ficha médica
+        <i data-lucide="eye" style="width:13px;height:13px"></i>
+        Configuración de vistas
+      </button>
+      <button class="cat-tab" data-tab="kpis">
+        <i data-lucide="layout-grid" style="width:13px;height:13px"></i>
+        KPIs
       </button>
       <button class="cat-tab" data-tab="portafolios">
         <i data-lucide="target" style="width:13px;height:13px"></i>
-        Salud financiera
+        Portafolios
       </button>
       <button class="cat-tab" data-tab="params">
         <i data-lucide="sliders-horizontal" style="width:13px;height:13px"></i>
@@ -3087,9 +3095,8 @@
          Sección 1: visibilidad de las secciones que se muestran
          Sección 2: configuración de las tarjetas KPI -->
     <div class="cat-tab-panel hidden" id="catTabConfig" style="overflow-y:auto">
-      <p class="travel-intro" style="margin-bottom:18px">Acá administrás todo lo relativo a la solapa <strong>Ficha médica</strong> de la pantalla principal: qué secciones se muestran y cómo se configuran las tarjetas KPI que aparecen arriba.</p>
+      <p class="travel-intro" style="margin-bottom:18px">Qué secciones de la solapa <strong>Ficha médica</strong> se muestran y en qué vista. Las tarjetas KPI que van arriba de esa solapa se configuran en <strong>KPIs</strong>.</p>
 
-      <!-- SECCIÓN 1: VISUALIZACIÓN — grilla con dos toggles por fila (Completa / Resumen) -->
       <div class="fm-section">
         <div class="fm-section-head">
           <div class="fm-section-icon"><i data-lucide="eye-off" style="width:14px;height:14px"></i></div>
@@ -3098,14 +3105,20 @@
         <p class="fm-section-desc">Cada fila es una sección de la solapa <strong>Ficha médica</strong>. Marcala en la columna <strong>Completa</strong> para que aparezca en el modo "Vista: Completa", y en la columna <strong>Resumen</strong> para que aparezca también cuando el usuario activa "Vista: Resumen" (lo esencial sin scroll). Algunas secciones aplican solo a un modo de vista (mensual, trimestral o anual): eso se indica al lado del nombre.</p>
         <div class="visualization-grid" id="visualizationGrid"></div>
       </div>
+    </div>
 
-      <!-- SECCIÓN 2: KPIs -->
+    <!-- Tab KPIs — las tarjetas de la cabecera de Ficha médica. Vivía adentro
+         de "Configuración de vistas" y se separó: son dos cosas distintas —qué
+         secciones se ven y qué mide cada tarjeta— y juntas obligaban a
+         scrollear para llegar a la segunda. -->
+    <div class="cat-tab-panel hidden" id="catTabKpis" style="overflow-y:auto">
+      <p class="travel-intro" style="margin-bottom:18px">Las tarjetas que aparecen arriba de la solapa <strong>Ficha médica</strong>.</p>
       <div class="fm-section">
         <div class="fm-section-head">
           <div class="fm-section-icon"><i data-lucide="layout-grid" style="width:14px;height:14px"></i></div>
           <div class="fm-section-title">KPIs</div>
         </div>
-        <p class="fm-section-desc">Configurá las tarjetas que aparecen en la sección KPIs de Ficha médica. Podés activarlas/desactivarlas, cambiar nombre, icono o hint, definir la operación de cálculo y reordenarlas con las flechas. Las operaciones que antes estaban hardcoded ahora viven acá.</p>
+        <p class="fm-section-desc">Podés activarlas y desactivarlas, cambiarles el nombre, el icono o la ayuda, definir la operación con la que se calculan y reordenarlas con las flechas.</p>
         <div class="kpi-cfg-header" style="padding-left:38px">
           <button class="upload-btn" id="addKpiBtn">
             <i data-lucide="plus" style="width:14px;height:14px"></i>

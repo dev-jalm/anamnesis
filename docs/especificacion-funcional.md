@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.62 |
+| **Versión** | 1.63 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -190,7 +190,7 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 
 | ID | Requerimiento |
 |---|---|
-| RF-057 | Presenta únicamente las secciones que el usuario definió como relevantes en Administración → Ficha médica → Visualización |
+| RF-057 | Presenta únicamente las secciones que el usuario definió como relevantes en Administración → Configuración de vistas |
 | RF-058 | La selección de secciones visibles en esta vista es configurable y persiste |
 | RF-059 | Una sección de distribución que el usuario abrió explícitamente se presenta aunque no forme parte de la selección, mientras dure esa intención |
 
@@ -291,7 +291,7 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 |---|---|
 | RF-080 | Un **portafolio** agrupa activos según para qué se tienen: de los activos de Inversiones, unos pueden ser un viaje y otros un auto. No es un destino: los destinos (RF-070) son fijos, y un portafolio agrupa activos **dentro** de ellos |
 | RF-080a | Un portafolio se compone de **nombre**, **objetivo** —texto libre que describe para qué es—, **plazo**, que es una fecha y puede no informarse, **monto objetivo**, la cifra que el portafolio persigue, y **etiqueta de aportes** (RF-080r). El monto también puede no informarse —no todo objetivo se mide en plata—; informado, tiene que ser un número mayor que cero |
-| RF-080b | Los portafolios se administran desde **Administración → Salud financiera**: se crean, se modifican y se eliminan. La pantalla informa, por cada uno, su objetivo, su plazo, su monto objetivo y cuántos activos tiene asignados, y señala los de plazo vencido. Se llega ahí por la **tecla S**, con el mismo criterio que las demás solapas de Administración, y desde el buscador de acciones |
+| RF-080b | Los portafolios se administran desde **Administración → Portafolios**: se crean, se modifican y se eliminan. La pantalla informa, por cada uno, su objetivo, su plazo, su monto objetivo y cuántos activos tiene asignados, y señala los de plazo vencido. Se llega ahí por la **tecla P**, con el mismo criterio que las demás solapas de Administración, y desde el buscador de acciones |
 | RF-080b1 | Cada portafolio informa además lo que lleva **acumulado hasta hoy**, desglosado en dos: el **G/P potencial** —lo que dejaría su tenencia si se vendiera hoy— y el **G/P liquidado** —lo que ya dejó lo vendido—, cada uno con el porcentaje que representa sobre el monto objetivo, y el **porcentaje alcanzado** de ese monto, que se mide igual que en las secciones (RF-080n1b). Si el portafolio tiene caja (RF-080q) también la informa, y sin la tinta de ganancia: no es un resultado sino plata esperando. Los importes abarcan todas las carteras en las que el portafolio tenga activos y se expresan en pesos, porque el objetivo es uno solo. Los porcentajes sólo se presentan si el portafolio informó un monto objetivo; los importes, siempre. El potencial no se informa si a algún activo le falta el precio actual |
 | RF-080c | El nombre es obligatorio, admite hasta 40 caracteres y no puede repetirse. La comparación ignora mayúsculas y acentos: dos portafolios que se leen igual son el mismo |
 | RF-080d | La asignación de activos **no** se hace en Administración sino en la propia solapa Salud financiera, donde están los activos a la vista: cada activo de la tabla se puede seleccionar, y la selección se asigna a un portafolio —o se saca del que tenga— en una sola acción |
@@ -533,6 +533,7 @@ Cinco pantallas.
 | RF-193 | El umbral de concentración por sector (RF-073k) es configurable entre 0 y 100%. El valor inicial es 30%; en 0 las alertas quedan desactivadas y el gráfico se presenta sin línea de umbral |
 | RF-195 | El umbral de concentración **por activo** (RF-080p) es configurable entre 0 y 100%. El valor inicial es 15%: más bajo que el de sector porque un sector lo forman varios activos, y que uno solo pese como un rubro entero es otra cosa. En 0 se desactiva |
 | RF-196 | El **máximo de activos por portafolio** (RF-080p) es configurable. El valor inicial es 12: pasado ese número, un portafolio deja de ser un objetivo con sus activos y se parece a otra cartera, que es lo que los destinos ya resuelven. En 0 se desactiva |
+| RF-197 | Administración se organiza en siete solapas: **Categorías y etiquetas**, **Reglas**, **Modo viaje**, **Configuración de vistas** —qué secciones de Ficha médica se presentan y en cuál de sus dos vistas—, **KPIs** —las tarjetas de esa misma solapa—, **Portafolios** y **Parámetros**. Las vistas y los KPIs van separados porque son dos decisiones distintas y juntos obligaban a desplazarse para llegar a la segunda. Cada una tiene su tecla de acceso: V, K, P y M respectivamente, y J abre Modo viaje |
 | RF-194 | El umbral de concentración por tipo de riesgo (RF-073t) es configurable entre 0 y 100%, por separado del de sector. El valor inicial es 70%: una cartera de acciones es enteramente renta variable, y con el umbral de sector alertaría siempre. En 0 las alertas quedan desactivadas |
 
 ---
@@ -710,7 +711,7 @@ Qué compra pertenece a qué portafolio se registra **en la compra misma** (RF-0
 | Nombre de categoría, subcategoría y etiqueta | **30** | Administración → Categorías y etiquetas |
 | Nombre de viaje o evento | **30** | Administración → Modo viaje |
 | Nombre de entidad emisora | **30** | Formatos de importación |
-| Rótulo de tarjeta de indicador | **30** | Administración → Ficha médica |
+| Rótulo de tarjeta de indicador | **30** | Administración → KPIs |
 | Texto de las jubilaciones | 14 | Administración → Parámetros |
 
 | ID | Requerimiento |
@@ -1181,9 +1182,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.59 | 25/09/2026 | El portafolio incorpora su **caja**: lo que dejaron sus ventas y todavía no se reinvirtió deja de desaparecer del avance hacia el objetivo (RF-080q, RF-080q1, RF-080n1b, RF-080b1) | Reemplazada |
 | 1.60 | 25/09/2026 | La caja del portafolio entra como Liquidez en sus dos gráficos de concentración (RF-080l) | Reemplazada |
 | 1.61 | 25/09/2026 | La asignación a un portafolio pasa a ser **de cada compra** y no del ticker: un mismo activo puede comprarse para objetivos distintos (RF-080e, RF-080e1, RF-080e2) | Reemplazada |
-| 1.62 | 25/09/2026 | Se puede **reservar plata** a un objetivo etiquetando el aporte, y el líquido de la cartera se desglosa en reservado y sin asignar (RF-080r, RF-080r1, RF-072i) | **Vigente** |
+| 1.62 | 25/09/2026 | Se puede **reservar plata** a un objetivo etiquetando el aporte, y el líquido de la cartera se desglosa en reservado y sin asignar (RF-080r, RF-080r1, RF-072i) | Reemplazada |
+| 1.63 | 25/09/2026 | Administración reordena sus solapas: **Portafolios** (antes Salud financiera), **Configuración de vistas** (antes Ficha médica) y **KPIs**, que se separa en una solapa propia. Sus teclas pasan a P, V y K (RF-197) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| KPIs en su propia solapa, y los nombres y teclas de Administración | RF-197 |
+
+**Implementados en la versión 1.62**
 
 | Cambio | Requerimiento |
 |---|---|

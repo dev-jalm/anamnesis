@@ -148,7 +148,7 @@ window.MANUAL = {
       ],
       lista: [
         'El interruptor ARS / USD convierte todos los montos usando la cotización MEP configurada.',
-        'RESUMEN / COMPLETA alterna entre lo esencial sin scroll y el detalle entero. Qué entra en cada modo se define en Administración → Ficha médica.',
+        'RESUMEN / COMPLETA alterna entre lo esencial sin scroll y el detalle entero. Qué entra en cada modo se define en Administración → Configuración de vistas.',
         'Al hacer click en el monto de una tarjeta, la app salta a Historia clínica ya filtrada por esos movimientos.',
         'Y el ícono de la tarjeta abre su editor: ahí se le cambia el nombre, el color del borde, el ícono, la posición y si va en la grilla o en la columna del score. Abajo del todo se define qué suma y qué resta —categoría, subcategoría y periodicidad de cada operando—, así que la tarjeta mide lo que vos quieras y no una cuenta fija.'
       ]
@@ -209,7 +209,7 @@ window.MANUAL = {
       imgCap: 'Vista por portafolio: NVDA está repartido en los dos objetivos, cada uno con sus nominales y su resultado. Al final, lo que todavía no asignaste.',
       p: [
         'Una cartera no siempre es una sola cosa. De los diez CEDEARs que tenés en Inversiones, tres pueden ser el viaje del año que viene, dos el auto y el resto no tener destino todavía. Un portafolio es eso: un agrupamiento de activos según para qué son. No es una cartera nueva —las carteras siguen siendo Reserva, Inversiones, las Jubilaciones y Trading— sino un corte adentro de ellas.',
-        'Los portafolios se crean en Administración → Salud financiera con nombre, objetivo, plazo, monto objetivo y una etiqueta. Ahí mismo los editás, los eliminás y ves lo que cada uno acumuló: lo ganado sin vender, lo ya realizado y cuánto llevás del objetivo.',
+        'Los portafolios se crean en Administración → Portafolios con nombre, objetivo, plazo, monto objetivo y una etiqueta. Ahí mismo los editás, los eliminás y ves lo que cada uno acumuló: lo ganado sin vender, lo ya realizado y cuánto llevás del objetivo.',
         'La etiqueta sirve para reservarle plata. Cuando mandás dinero a una cartera, si el movimiento lleva esa etiqueta queda reservado a ese objetivo en vez de sumarse al líquido suelto: es el mismo mecanismo con el que las dos jubilaciones se reparten sus aportes. Como el movimiento ES el aporte, nunca podés reservar más de lo que entró. El líquido del panel muestra debajo cuánto está reservado, y en Concentración la Liquidez se parte en dos renglones: la reservada y la que todavía no tiene destino.',
         'Lo que va a cada objetivo es cada COMPRA, no el ticker: podés comprar el mismo activo tres veces y mandar cada tanda a un objetivo distinto. Se elige al cargarla y se cambia después en el detalle del activo. Para repartir lo que ya tenías, en la solapa tildás los activos, elegís el portafolio y los asignás de una.',
         'La tabla ofrece dos vistas. Activos es la lista de siempre, con el total de cada ticker, y ahí se tilda lo que todavía no está en ningún objetivo. Portafolio reparte en grupos —y al final lo que no asignaste—: un activo repartido sale una vez en cada uno, con lo que le toca.',
@@ -332,12 +332,12 @@ window.MANUAL = {
       ]
     },
     {
-      h: 'Administración: Ficha médica',
+      h: 'Administración: Configuración de vistas y KPIs',
       img: '12-admin-ficha',
-      imgCap: 'Qué secciones se ven en cada modo de vista y configuración de las tarjetas.',
+      imgCap: 'Qué secciones se ven en cada modo de vista. Las tarjetas se configuran en la solapa KPIs.',
       p: [
-        'La primera parte controla qué secciones aparecen en Ficha médica. Cada fila tiene dos interruptores: uno para el modo Completa y otro para el modo Resumen. Así se arma una vista breve con lo esencial y otra con todo el detalle.',
-        'La segunda parte configura las tarjetas de indicadores: activarlas, cambiarles el nombre, el icono o el color, definir qué operación calculan y reordenarlas.'
+        'Configuración de vistas controla qué secciones aparecen en Ficha médica. Cada fila tiene dos interruptores: uno para el modo Completa y otro para el modo Resumen. Así se arma una vista breve con lo esencial y otra con todo el detalle.',
+        'KPIs, en su propia solapa, configura las tarjetas de indicadores: activarlas, cambiarles el nombre, el icono o el color, definir qué operación calculan y reordenarlas.'
       ]
     },
     {
@@ -366,8 +366,8 @@ window.MANUAL = {
       ],
       lista: [
         'Del 1 al 5, las cinco solapas principales en el orden en que están: Historia clínica, Ficha médica, Diagnóstico, Salud financiera y Evolución.',
-        'A abre Administración. Adentro, K va a Ficha médica, P a Parámetros y S a Salud financiera, que es donde se administran los portafolios.',
-        'C, E, R y V abren Administración en la solapa que corresponde y dejan el cursor en el nombre: categoría, etiqueta, regla y viaje.',
+        'A abre Administración. Adentro, V va a Configuración de vistas, K a KPIs, P a Portafolios y M a Parámetros.',
+        'C, E, R y J abren Administración en la solapa que corresponde y dejan el cursor en el nombre: categoría, etiqueta, regla y viaje.',
         'D abre el diagnóstico del archivo y T cambia entre tema claro y oscuro.',
         'Ctrl+K —Cmd+K en Mac— abre el buscador de acciones, que llega a todo lo anterior escribiendo. Ctrl+S fuerza el guardado y Esc cierra lo que esté abierto.',
         '? muestra esta misma lista dentro de la app.'
