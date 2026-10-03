@@ -11561,39 +11561,10 @@ function renderParamsTab() {
   // Reserva
   renderReservaParam();
 
-  // Cotización MEP — número decimal con separador de miles "." y coma decimal.
-  // Bind once (mismo patrón que diasBajo): aplica pendingParamChanges al editar.
-  const mepInput = document.getElementById('paramCotizacionMepInput');
-  if (mepInput) {
-    const curMep = catModalState.pendingParamChanges.cotizacionMep !== undefined
-      ? catModalState.pendingParamChanges.cotizacionMep
-      : (state.params.cotizacionMep !== undefined ? state.params.cotizacionMep : 1000);
-    mepInput.value = formatInputAR(curMep);
-    mepInput.classList.toggle('modified', catModalState.pendingParamChanges.cotizacionMep !== undefined && catModalState.pendingParamChanges.cotizacionMep !== state.params.cotizacionMep);
-    if (!mepInput._bound) {
-      mepInput.addEventListener('input', function (e) {
-        const cleaned = e.target.value.replace(/[^\d.,]/g, '');
-        if (cleaned !== e.target.value) e.target.value = cleaned;
-        const val = parseInputAR(cleaned) || 0;
-        const baseline = state.params.cotizacionMep !== undefined ? state.params.cotizacionMep : 1000;
-        if (val === baseline) {
-          delete catModalState.pendingParamChanges.cotizacionMep;
-        } else {
-          catModalState.pendingParamChanges.cotizacionMep = val;
-        }
-        mepInput.classList.toggle('modified', catModalState.pendingParamChanges.cotizacionMep !== undefined);
-        updateCatModalStatus();
-      });
-      mepInput.addEventListener('blur', function () {
-        const v = parseInputAR(mepInput.value);
-        mepInput.value = formatInputAR(v || 0);
-      });
-      mepInput._bound = true;
-    }
-  }
-  // Última actualización + botón de refresh
-  renderMepLastUpdate();
-  bindMepFetchButton();
+  // La cotización MEP no vive acá: se muestra y se actualiza en la fila de
+  // solapas de Salud financiera, que es donde se usa. Tenerla en los dos lados
+  // obligaba a sincronizar un input con un valor que ya se ve al lado del
+  // número que convierte.
 
   // Toggle de modo oscuro automático
   renderThemeAutoParam();
@@ -11603,113 +11574,6 @@ function renderParamsTab() {
   // state.params.healthScore + default. La función bindea todos los inputs en
   // un solo loop.
   renderHealthScoreParams();
-}
-
-// ============================================================
-// COTIZACIÓN MEP — actualización automática desde dolarapi.com
-// ============================================================
-// dolarapi.com es una API pública mantenida por la comunidad
-// (https://dolarapi.com/docs) que expone múltiples cotizaciones
-// con CORS habilitado, así que podemos llamarla directamente desde
-// el browser sin proxy. El endpoint /v1/dolares/mep devuelve:
-//   { moneda, casa, nombre, compra, venta, fechaActualizacion }
-// Usamos `venta` que es lo que normalmente paga el comprador.
-
-function renderMepLastUpdate() {
-  const el = document.getElementById('cotizacionMepLastUpdate');
-  if (!el) return;
-  const ts = state.params && state.params.cotizacionMepUpdatedAt;
-  if (!ts) {
-    el.textContent = 'Sin actualizar';
-    return;
-  }
-  const d = new Date(ts);
-  const fechaStr = d.toLocaleString('es-AR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  });
-  const src = (state.params && state.params.cotizacionMepSource) || 'manual';
-  el.textContent = 'Última actualización: ' + fechaStr + (src === 'dolarapi' ? ' · dolarapi.com' : ' · manual');
-}
-
-function bindMepFetchButton() {
-  const btn = document.getElementById('paramCotizacionMepFetchBtn');
-  if (!btn || btn._bound) return;
-  btn._bound = true;
-  btn.addEventListener('click', function () {
-    fetchCotizacionMep();
-  });
-}
-
-function fetchCotizacionMep() {
-  const btn = document.getElementById('paramCotizacionMepFetchBtn');
-  const input = document.getElementById('paramCotizacionMepInput');
-  const lastUpdateEl = document.getElementById('cotizacionMepLastUpdate');
-  if (!btn || !input) return;
-
-  // Indicador visual: ícono girando + botón disabled.
-  // La animación CSS .spin la definimos en dashboard.css.
-  btn.classList.add('loading');
-  btn.disabled = true;
-  if (lastUpdateEl) lastUpdateEl.textContent = 'Consultando dolarapi.com…';
-
-  // Timeout manual: si la red tarda más de 8s, abortamos con un error claro
-  // en vez de dejar al usuario esperando indefinidamente.
-  const controller = new AbortController();
-  const timeoutId = setTimeout(function () { controller.abort(); }, 8000);
-
-  // En dolarapi.com el MEP se llama 'bolsa' (Dólar Bolsa = MEP). El endpoint
-  // /v1/dolares/bolsa devuelve { compra, venta, casa, nombre, moneda, fechaActualizacion }
-  fetch('https://dolarapi.com/v1/dolares/bolsa', { signal: controller.signal })
-    .then(function (resp) {
-      clearTimeout(timeoutId);
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      return resp.json();
-    })
-    .then(function (data) {
-      // Esperamos un objeto con `venta` (number). dolarapi a veces devuelve
-      // strings, así que normalizamos.
-      const venta = Number(data && data.venta);
-      if (!isFinite(venta) || venta <= 0) {
-        throw new Error('Cotización inválida en la respuesta');
-      }
-      // Actualizar el input visualmente
-      input.value = formatInputAR(venta);
-      // Marcar como cambio pendiente (igual que si el usuario lo hubiera
-      // tipeado), para que se guarde al apretar GUARDAR del modal.
-      const baseline = state.params.cotizacionMep !== undefined ? state.params.cotizacionMep : 1000;
-      if (venta !== baseline) {
-        catModalState.pendingParamChanges.cotizacionMep = venta;
-      } else {
-        delete catModalState.pendingParamChanges.cotizacionMep;
-      }
-      input.classList.toggle('modified', catModalState.pendingParamChanges.cotizacionMep !== undefined);
-      // Guardar también timestamp y fuente — estos se aplican inmediatamente
-      // (no esperan al GUARDAR del modal) porque son meta-info que no cambia
-      // ningún cálculo. Así el "última actualización" refleja el fetch.
-      state.params.cotizacionMepUpdatedAt = Date.now();
-      state.params.cotizacionMepSource = 'dolarapi';
-      scheduleSave();
-      renderMepLastUpdate();
-      updateCatModalStatus();
-    })
-    .catch(function (err) {
-      clearTimeout(timeoutId);
-      // Mostrar error pero no romper la UI — el usuario puede editar a mano
-      const msg = (err && err.name === 'AbortError')
-        ? 'Tiempo de espera agotado al consultar dolarapi.com'
-        : 'No se pudo obtener la cotización: ' + (err && err.message ? err.message : 'error desconocido');
-      if (lastUpdateEl) {
-        lastUpdateEl.innerHTML = '<span style="color:var(--red)">⚠ ' + escapeHtmlSafe(msg) + '</span>';
-      } else {
-        appAlert(msg);
-      }
-    })
-    .then(function () {
-      // .finally() — Limpieza del estado loading independientemente del resultado
-      btn.classList.remove('loading');
-      btn.disabled = false;
-    });
 }
 
 function renderThemeAutoParam() {
@@ -12634,38 +12498,45 @@ function resumenPortafolio(id) {
   };
 }
 
-// El renglón "Acumulado hasta hoy" de la lista del ABM: lo que el portafolio
-// lleva ganado sin vender y lo que ya realizó, cada uno contra el monto
-// objetivo, más cuánto lleva alcanzado de ese monto. Los porcentajes sólo
-// aparecen si el portafolio se puso un objetivo: sin él no hay sobre qué
-// medirlos, y los importes se informan igual.
+// El "Acumulado hasta hoy" de la lista del ABM: lo que el portafolio lleva
+// ganado sin vender y lo que ya realizó, cada uno contra el monto objetivo, más
+// cuánto lleva alcanzado de ese monto. Los porcentajes sólo aparecen si el
+// portafolio se puso un objetivo: sin él no hay sobre qué medirlos, y los
+// importes se informan igual.
+// Cada importe va en el mismo bloque que usa Modo viaje para lo gastado en el
+// viaje (`.travel-row-total`): rótulo chico arriba, número en mono abajo. Son
+// dos listas del mismo modal mostrando el total de cada fila, así que se ven
+// igual.
 function acumuladoPortafolioHtml(p) {
   const r = resumenPortafolio(p.id);
   const meta = Number(p.monto) > 0 ? Number(p.monto) : 0;
   const pct = function (v) {
     return meta ? '<span class="pf-acum-pct">' + (v / meta * 100).toFixed(2) + '% del objetivo</span>' : '';
   };
+  const bloque = function (rotulo, valor) {
+    return '<div class="travel-row-total">' +
+      '<span class="total-label">' + rotulo + '</span>' + valor + '</div>';
+  };
   const importe = function (v) {
     const cls = v > 0 ? 'inv-gp-positive' : (v < 0 ? 'inv-gp-negative' : '');
-    return '<span class="pf-acum-monto ' + cls + '">$ ' + fmt(Math.round(Math.abs(v))) + '</span>';
+    return '<span class="' + cls + '">$ ' + fmt(Math.round(Math.abs(v))) + '</span>';
   };
   return '<div class="pf-acum">' +
     '<span class="pf-acum-rotulo">Acumulado hasta hoy</span>' +
-    '<span class="pf-acum-item">G/P potencial ' +
-      (r.gp === null ? '<span class="inv-na">—</span>' : importe(r.gp) + pct(r.gp)) + '</span>' +
-    '<span class="pf-acum-item">G/P liquidado ' + importe(r.realizado) + pct(r.realizado) + '</span>' +
-    // La caja del objetivo sólo aparece si hay algo adentro: un "líquido $ 0"
-    // en cada portafolio es ruido. No dice "sin reinvertir" porque parte de esa
-    // plata puede no haber estado nunca invertida: es lo que se le reservó al
-    // objetivo y todavía no se puso en un activo.
-    // Sin la tinta de ganancia: la caja no es un resultado, es plata esperando.
-    (r.liquido > 0
-      ? '<span class="pf-acum-item">Líquido reservado <span class="pf-acum-monto">$ ' +
-          fmt(Math.round(r.liquido)) + '</span></span>' : '') +
-    (meta
-      ? '<span class="pf-acum-item">Alcanzado <span class="pf-acum-monto">' +
-          ((r.valor + r.liquido) / meta * 100).toFixed(2) + '%</span><span class="pf-acum-pct">del objetivo</span></span>'
-      : '') +
+    '<div class="pf-acum-items">' +
+      bloque('G/P potencial', r.gp === null
+        ? '<span class="inv-na">—</span>'
+        : importe(r.gp) + pct(r.gp)) +
+      bloque('G/P liquidado', importe(r.realizado) + pct(r.realizado)) +
+      // La caja del objetivo sólo aparece si hay algo adentro: un "líquido $ 0"
+      // en cada portafolio es ruido. No dice "sin reinvertir" porque parte de esa
+      // plata puede no haber estado nunca invertida: es lo que se le reservó al
+      // objetivo y todavía no se puso en un activo.
+      // Sin la tinta de ganancia: la caja no es un resultado, es plata esperando.
+      (r.liquido > 0 ? bloque('Líquido reservado', '$ ' + fmt(Math.round(r.liquido))) : '') +
+      (meta ? bloque('Alcanzado', ((r.valor + r.liquido) / meta * 100).toFixed(2) + '%' +
+        '<span class="pf-acum-pct">del objetivo</span>') : '') +
+    '</div>' +
   '</div>';
 }
 
@@ -12691,10 +12562,19 @@ function renderPortafoliosTab() {
     const plazoTxt = p.plazo
       ? (p.plazo.split('-').reverse().join('/') + (vencido ? ' · vencido' : ''))
       : 'sin plazo';
+    // La etiqueta de aportes, con el mismo chip que Modo viaje le pone a la
+    // suya: es el rótulo con el que después se marca un movimiento, así que
+    // tiene que verse acá y no sólo adentro del formulario.
+    const tagInfo = p.etiqueta && state.taglabels ? state.taglabels[p.etiqueta] : null;
+    const tagChip = p.etiqueta
+      ? '<span class="travel-tag-chip" style="background:' + ((tagInfo && tagInfo.color) || '#8B7355') + '">' +
+          escapeHtmlSafe((tagInfo && tagInfo.label) || p.etiqueta) + '</span>'
+      : '';
     return '<div class="travel-row" data-pf-id="' + escapeHtmlSafe(p.id) + '">' +
       '<div class="travel-row-info">' +
         '<div class="travel-row-name">' +
           '<span>' + escapeHtmlSafe(p.nombre) + '</span>' +
+          tagChip +
           '<span class="travel-status ' + (vencido ? 'finished' : 'future') + '">' + escapeHtmlSafe(plazoTxt) + '</span>' +
         '</div>' +
         '<div class="travel-row-meta">' +
@@ -12702,8 +12582,8 @@ function renderPortafoliosTab() {
           (p.monto > 0 ? 'meta $ ' + fmt(Math.round(p.monto)) + ' · ' : '') +
           n + ' activo' + (n === 1 ? '' : 's') +
         '</div>' +
-        acumuladoPortafolioHtml(p) +
       '</div>' +
+      acumuladoPortafolioHtml(p) +
       '<button class="travel-row-edit" data-action="edit-pf" title="Editar portafolio">' +
         '<i data-lucide="edit-2" style="width:14px;height:14px"></i>' +
       '</button>' +
@@ -12771,6 +12651,37 @@ function resolverEtiquetaPortafolio(texto, claveActual, crear) {
   return clave;
 }
 
+// El monto objetivo se escribe con los miles separados, como se lee: "1.200.000"
+// y no "1200000". El input sólo admite dígitos —el punto lo pone esta función
+// y los centavos no existen en una meta—, así que el texto se limpia y se
+// vuelve a formatear en cada tecla. El cursor se repone después del mismo
+// dígito que tenía a la izquierda: sin eso, escribir en el medio del número
+// manda el cursor al final en cada tecla.
+function formatearMontoPortafolioInput() {
+  const inp = document.getElementById('pfMontoInput');
+  if (!inp) return;
+  const corte = inp.selectionStart === null ? inp.value.length : inp.selectionStart;
+  const digitosAIzquierda = inp.value.slice(0, corte).replace(/\D/g, '').length;
+  const digitos = inp.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 12);
+  const texto = digitos ? formatNumberAr(Number(digitos)) : '';
+  if (texto === inp.value) return;
+  inp.value = texto;
+  let i = 0, vistos = 0;
+  while (i < texto.length && vistos < digitosAIzquierda) {
+    if (texto.charCodeAt(i) >= 48 && texto.charCodeAt(i) <= 57) vistos++;
+    i++;
+  }
+  try { inp.setSelectionRange(i, i); } catch (e) { /* input sin selección, no importa */ }
+}
+
+// Lo tipeado en el monto objetivo, como número. El input muestra los miles
+// separados con puntos, así que el texto crudo no se puede leer con Number.
+function montoObjetivoDelForm() {
+  const inp = document.getElementById('pfMontoInput');
+  const digitos = String((inp && inp.value) || '').replace(/\D/g, '');
+  return digitos ? Number(digitos) : '';
+}
+
 function limpiarFormPortafolio() {
   pfEditandoId = null;
   const n = document.getElementById('pfNombreInput');
@@ -12793,7 +12704,7 @@ function guardarPortafolioDesdeForm() {
     nombre: (document.getElementById('pfNombreInput') || {}).value || '',
     objetivo: (document.getElementById('pfObjetivoInput') || {}).value || '',
     plazo: (document.getElementById('pfPlazoInput') || {}).value || '',
-    monto: (document.getElementById('pfMontoInput') || {}).value || ''
+    monto: montoObjetivoDelForm()
   };
   // Lo que se compara contra los otros portafolios es la clave de la etiqueta,
   // no el texto escrito, así que primero se consulta sin crear nada. Recién
@@ -12847,7 +12758,7 @@ function editarPortafolio(id) {
   if (n) n.value = p.nombre || '';
   if (o) o.value = p.objetivo || '';
   if (pl) pl.value = p.plazo || '';
-  if (m) m.value = p.monto ? String(p.monto) : '';
+  if (m) m.value = p.monto ? formatNumberAr(Math.round(p.monto)) : '';
   setEtiquetaPortafolioInput(p.etiqueta || '');
   const lbl = document.getElementById('pfAddBtnLabel');
   if (lbl) lbl.textContent = 'GUARDAR CAMBIOS';
@@ -12898,6 +12809,9 @@ function eliminarPortafolio(id) {
       else if (e.target.closest('[data-action="delete-pf"]')) eliminarPortafolio(id);
     });
   }
+  // El monto objetivo se formatea mientras se escribe.
+  const monto = document.getElementById('pfMontoInput');
+  if (monto) monto.addEventListener('input', formatearMontoPortafolioInput);
   // Enter en cualquiera de los campos de texto guarda, como en el resto de los
   // formularios de alta de la app.
   ['pfNombreInput', 'pfObjetivoInput', 'pfMontoInput', 'pfEtiquetaInput'].forEach(function (id) {
@@ -14606,9 +14520,6 @@ function applyCategoryChanges() {
       card.hint.text = 'Aporte mensual ' + nuevo;
     }
   });
-  if (catModalState.pendingParamChanges.cotizacionMep !== undefined) {
-    state.params.cotizacionMep = catModalState.pendingParamChanges.cotizacionMep;
-  }
   // Toggle de modo oscuro automático: si cambió, aplicamos inmediatamente (no
   // esperamos al siguiente render para evitar que el usuario tenga que recargar).
   if (catModalState.pendingParamChanges.themeAuto !== undefined) {
@@ -20607,6 +20518,17 @@ function autoFetchSaludFinancieraIfStale() {
   });
 }
 
+// ============================================================
+// COTIZACIÓN MEP — actualización desde dolarapi.com
+// ============================================================
+// dolarapi.com es una API pública mantenida por la comunidad
+// (https://dolarapi.com/docs) que expone múltiples cotizaciones
+// con CORS habilitado, así que podemos llamarla directamente desde
+// el browser sin proxy. El MEP ahí se llama 'bolsa' (Dólar Bolsa = MEP) y el
+// endpoint devuelve { moneda, casa, nombre, compra, venta, fechaActualizacion }.
+// Usamos `venta`, que es lo que normalmente paga el comprador.
+// Es el único lugar desde donde se actualiza: el botón ↻ de la fila de solapas
+// de Salud financiera, al lado del valor que se está usando.
 function fetchCotizacionMepInline(btnEl) {
   if (btnEl) {
     btnEl.classList.add('loading');
@@ -20635,13 +20557,6 @@ function fetchCotizacionMepInline(btnEl) {
       scheduleSave();
       // Re-render del panel para que las conversiones USD→ARS reflejen el nuevo MEP
       if (typeof renderMainAssets === 'function') renderMainAssets();
-      // Si el modal de Administración está abierto en este momento, actualizamos
-      // su input también para que no quede desincronizado.
-      const adminInput = document.getElementById('paramCotizacionMepInput');
-      if (adminInput && typeof formatInputAR === 'function') {
-        adminInput.value = formatInputAR(venta);
-      }
-      if (typeof renderMepLastUpdate === 'function') renderMepLastUpdate();
     })
     .catch(function (err) {
       const msg = (err && err.name === 'AbortError')
@@ -23788,19 +23703,22 @@ function buildCommandPaletteCatalog() {
   const cmds = [];
 
   // --- NAVEGACIÓN entre solapas principales ---
-  cmds.push({ id: 'nav.movements', label: 'Ir a Historia clínica', group: 'Navegación', icon: 'clipboard-list',
+  // En el mismo orden en que están las solapas en pantalla, y con su tecla de
+  // acceso rápido entre paréntesis: el buscador es la otra puerta a lo mismo,
+  // así que no conviene que proponga un orden propio ni que esconda el atajo.
+  cmds.push({ id: 'nav.movements', label: 'Ir a Historia clínica (1)', group: 'Navegación', icon: 'clipboard-list',
     keywords: ['movimientos', 'tx', 'transacciones', 'historia'],
     action: function () { setMainTab('movements'); } });
-  cmds.push({ id: 'nav.medical', label: 'Ir a Ficha médica', group: 'Navegación', icon: 'activity',
+  cmds.push({ id: 'nav.medical', label: 'Ir a Ficha médica (2)', group: 'Navegación', icon: 'activity',
     keywords: ['ficha', 'kpis', 'medica'],
     action: function () { setMainTab('medical'); } });
-  cmds.push({ id: 'nav.diagnosis', label: 'Ir a Diagnóstico', group: 'Navegación', icon: 'stethoscope',
+  cmds.push({ id: 'nav.diagnosis', label: 'Ir a Diagnóstico (3)', group: 'Navegación', icon: 'stethoscope',
     keywords: ['diagnostico', 'insights', 'recomendaciones', 'recurrentes'],
     action: function () { setMainTab('diagnosis'); } });
-  cmds.push({ id: 'nav.assets', label: 'Ir a Salud financiera', group: 'Navegación', icon: 'heart-pulse',
+  cmds.push({ id: 'nav.assets', label: 'Ir a Salud financiera (4)', group: 'Navegación', icon: 'heart-pulse',
     keywords: ['activos', 'salud', 'patrimonio', 'reserva', 'jubilacion'],
     action: function () { setMainTab('assets'); } });
-  cmds.push({ id: 'nav.budget', label: 'Ir a Evolución', group: 'Navegación', icon: 'line-chart',
+  cmds.push({ id: 'nav.budget', label: 'Ir a Evolución (5)', group: 'Navegación', icon: 'line-chart',
     keywords: ['evolucion', 'seguimiento', 'presupuesto', 'budget'],
     action: function () { setMainTab('budget'); } });
 
@@ -23883,10 +23801,10 @@ function buildCommandPaletteCatalog() {
   });
 
   // --- ACCIONES GLOBALES ---
-  cmds.push({ id: 'action.admin', label: 'Abrir Administración', group: 'Acción', icon: 'settings',
+  cmds.push({ id: 'action.admin', label: 'Abrir Administración (A)', group: 'Acción', icon: 'settings',
     keywords: ['categorias', 'etiquetas', 'reglas', 'parametros', 'kpis', 'modo viaje'],
     action: function () { if (typeof openCategoriesModal === 'function') openCategoriesModal(); } });
-  cmds.push({ id: 'action.validation', label: 'Diagnóstico del archivo', group: 'Acción', icon: 'stethoscope',
+  cmds.push({ id: 'action.validation', label: 'Diagnóstico del archivo (D)', group: 'Acción', icon: 'stethoscope',
     keywords: ['validar', 'inconsistencias', 'errores', 'doctor'],
     action: function () { if (typeof openValidationReport === 'function') openValidationReport(null); } });
   cmds.push({ id: 'action.reapplyRules', label: 'Re-aplicar reglas a tx existentes', group: 'Acción', icon: 'refresh-cw',
@@ -23901,48 +23819,50 @@ function buildCommandPaletteCatalog() {
         }, 200);
       }, 100);
     } });
-  cmds.push({ id: 'action.theme', label: 'Cambiar tema (claro / oscuro)', group: 'Acción', icon: 'palette',
+  cmds.push({ id: 'action.theme', label: 'Cambiar tema claro / oscuro (T)', group: 'Acción', icon: 'palette',
     keywords: ['dark', 'light', 'oscuro', 'claro', 'tema'],
     action: function () { if (typeof toggleTheme === 'function') toggleTheme(); } });
-  cmds.push({ id: 'action.save', label: 'Forzar guardado', group: 'Acción', icon: 'save',
+  cmds.push({ id: 'action.save', label: 'Forzar guardado (Ctrl+S)', group: 'Acción', icon: 'save',
     keywords: ['save', 'guardar', 'persistir', 'drive'],
     // No tenemos un saveNow() síncrono; scheduleSave() encola el guardado con un debounce mínimo.
     action: function () { if (typeof scheduleSave === 'function') scheduleSave(); } });
-  cmds.push({ id: 'action.shortcuts', label: 'Ver atajos de teclado', group: 'Acción', icon: 'keyboard',
+  cmds.push({ id: 'action.shortcuts', label: 'Ver atajos de teclado (?)', group: 'Acción', icon: 'keyboard',
     keywords: ['atajos', 'teclado', 'shortcuts', 'help', 'ayuda'],
     action: function () { openShortcutsHelp(); } });
 
   // --- ATAJOS A SUB-SECCIONES DE ADMINISTRACIÓN ---
-  ['manage', 'labels', 'rules', 'travel', 'config', 'kpis', 'params', 'portafolios'].forEach(function (tab) {
-    const labels = {
-      manage: 'Administración → Categorías',
-      labels: 'Administración → Etiquetas',
-      rules: 'Administración → Reglas',
-      travel: 'Administración → Modo viaje',
-      config: 'Administración → Configuración de vistas',
-      kpis: 'Administración → Configuración de KPIs',
-      params: 'Administración → Parámetros',
-      portafolios: 'Administración → Portafolios'
-    };
-    const icons = { manage: 'tag', labels: 'bookmark', rules: 'zap', travel: 'plane', config: 'eye', kpis: 'layout-grid', params: 'sliders-horizontal', portafolios: 'target' };
+  // En el mismo orden en que están las solapas dentro del modal, con su tecla
+  // entre paréntesis. Categorías y etiquetas es una sola solapa y va una sola
+  // vez: sus dos teclas abren el mismo formulario con el tipo ya elegido.
+  [
+    { tab: 'manage', label: 'Categorías y etiquetas', tecla: 'C / E', icon: 'tag',
+      claves: ['categorias', 'etiquetas', 'tags', 'subcategorias'] },
+    { tab: 'rules', label: 'Reglas', tecla: 'R', icon: 'zap',
+      claves: ['reglas', 'importacion', 'patrones'] },
+    { tab: 'travel', label: 'Modo viaje', tecla: 'J', icon: 'plane',
+      claves: ['viaje', 'evento', 'modo viaje'] },
     // Las palabras con las que uno la busca, que no siempre son el nombre de
     // la solapa: a las vistas se llega escribiendo "ficha médica", que es la
     // pantalla que configuran.
-    const claves = {
-      config: ['vistas', 'ficha medica', 'secciones', 'visualizacion'],
-      kpis: ['kpi', 'tarjetas', 'indicadores', 'ficha medica'],
-      portafolios: ['portafolios', 'objetivos', 'salud financiera']
-    };
+    { tab: 'config', label: 'Configuración de vistas', tecla: 'V', icon: 'eye',
+      claves: ['vistas', 'ficha medica', 'secciones', 'visualizacion'] },
+    { tab: 'kpis', label: 'Configuración de KPIs', tecla: 'K', icon: 'layout-grid',
+      claves: ['kpi', 'tarjetas', 'indicadores', 'ficha medica'] },
+    { tab: 'portafolios', label: 'Portafolios', tecla: 'P', icon: 'target',
+      claves: ['portafolios', 'objetivos', 'salud financiera'] },
+    { tab: 'params', label: 'Parámetros', tecla: 'M', icon: 'sliders-horizontal',
+      claves: ['parametros', 'umbrales', 'score', 'reserva'] }
+  ].forEach(function (s) {
     cmds.push({
-      id: 'admin.' + tab,
-      label: labels[tab],
+      id: 'admin.' + s.tab,
+      label: 'Administración → ' + s.label + ' (' + s.tecla + ')',
       group: 'Administración',
-      icon: icons[tab],
-      keywords: claves[tab] || [tab],
+      icon: s.icon,
+      keywords: s.claves,
       action: function () {
         if (typeof openCategoriesModal === 'function') openCategoriesModal();
         setTimeout(function () {
-          if (typeof setActiveCatTab === 'function') setActiveCatTab(tab);
+          if (typeof setActiveCatTab === 'function') setActiveCatTab(s.tab);
         }, 80);
       }
     });

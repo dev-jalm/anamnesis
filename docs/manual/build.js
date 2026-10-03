@@ -209,7 +209,7 @@ window.MANUAL = {
       imgCap: 'Vista por portafolio: NVDA está repartido en los dos objetivos, cada uno con sus nominales y su resultado. Al final, lo que todavía no asignaste.',
       p: [
         'Una cartera no siempre es una sola cosa. De los diez CEDEARs que tenés en Inversiones, tres pueden ser el viaje del año que viene, dos el auto y el resto no tener destino todavía. Un portafolio es eso: un agrupamiento de activos según para qué son. No es una cartera nueva —las carteras siguen siendo Reserva, Inversiones, las Jubilaciones y Trading— sino un corte adentro de ellas.',
-        'Los portafolios se crean en Administración → Portafolios con nombre, objetivo, plazo, monto objetivo y una etiqueta. Ahí mismo los editás, los eliminás y ves lo que cada uno acumuló: lo ganado sin vender, lo ya realizado y cuánto llevás del objetivo.',
+        'Los portafolios se crean en Administración → Portafolios con nombre, objetivo, monto objetivo, plazo y una etiqueta. Ahí mismo los editás, los eliminás y ves lo que cada uno acumuló: lo ganado sin vender, lo ya realizado y cuánto llevás del objetivo.',
         'La etiqueta sirve para reservarle plata, y se escribe: si no existe se crea sola con un color libre, igual que al crear un viaje. Cuando mandás dinero a una cartera, si el movimiento lleva esa etiqueta queda reservado a ese objetivo en vez de sumarse al líquido suelto: es el mismo mecanismo con el que las dos jubilaciones se reparten sus aportes. Como el movimiento ES el aporte, nunca podés reservar más de lo que entró. El líquido del panel muestra debajo cuánto está reservado, y en Concentración la Liquidez se parte en dos renglones: la reservada y la que todavía no tiene destino.',
         'Lo que va a cada objetivo es cada COMPRA, no el ticker: podés comprar el mismo activo tres veces y mandar cada tanda a un objetivo distinto. Se elige al cargarla y se cambia después en el detalle del activo. Para repartir lo que ya tenías, en la solapa tildás los activos, elegís el portafolio y los asignás de una.',
         'La tabla ofrece dos vistas. Activos es la lista de siempre, con el total de cada ticker, y ahí se tilda lo que todavía no está en ningún objetivo. Portafolio reparte en grupos —y al final lo que no asignaste—: un activo repartido sale una vez en cada uno, con lo que le toca.',
@@ -351,8 +351,7 @@ window.MANUAL = {
         'Meses para aprender reglas: cuánto historial mira el botón APRENDER REGLAS.',
         'Nombres de las jubilaciones: qué texto se muestra después de la palabra Jubilación en toda la app. Cambia sólo el texto; los movimientos y los activos ya cargados no se tocan.',
         'Días bajo $: el umbral para contar cuántos días el saldo estuvo por debajo.',
-        'Cotización MEP: se usa para convertir entre pesos y dólares. El botón de refresco la trae de dolarapi.com.',
-        'Alertas de concentración: el porcentaje de una cartera a partir del cual un mismo sector (30% de entrada) o un mismo tipo de riesgo (70%) dispara la alerta. En 0 se apagan. Más abajo, cuánto puede pesar un solo activo y cuántos puede agrupar un portafolio.',
+        'Portafolios y activos, en una sola sección: a partir de qué porcentaje de una cartera dispara la alerta un mismo sector (30% de entrada), un mismo tipo de riesgo (70%) o un solo activo (15%), y cuántos activos puede agrupar un portafolio. Cualquiera en 0 se apaga.',
         'Más abajo, el peso y los umbrales de cada dimensión del score, y el plan de la reserva (cuántos meses de gastos querés cubrir y en qué plazo).'
       ]
     },
@@ -369,7 +368,7 @@ window.MANUAL = {
         'A abre Administración. Adentro, V va a Configuración de vistas, K a Configuración de KPIs, P a Portafolios y M a Parámetros.',
         'C, E, R y J abren Administración en la solapa que corresponde y dejan el cursor en el nombre: categoría, etiqueta, regla y viaje.',
         'D abre el diagnóstico del archivo y T cambia entre tema claro y oscuro.',
-        'Ctrl+K —Cmd+K en Mac— abre el buscador de acciones, que llega a todo lo anterior escribiendo. Ctrl+S fuerza el guardado y Esc cierra lo que esté abierto.',
+        'Ctrl+K —Cmd+K en Mac— abre el buscador de acciones, que llega a todo lo anterior escribiendo. Lista las opciones en el mismo orden en que están las solapas, con la tecla de cada una entre paréntesis. Ctrl+S fuerza el guardado y Esc cierra lo que esté abierto.',
         '? muestra esta misma lista dentro de la app.'
       ]
     },

@@ -2765,13 +2765,16 @@
             <span class="travel-field-label">Objetivo</span>
             <input type="text" id="pfObjetivoInput" class="period-select" maxlength="120" placeholder="para qué es esta plata">
           </div>
+          <div class="travel-field" style="min-width:130px">
+            <span class="travel-field-label">Monto objetivo</span>
+            <!-- Sólo dígitos: el punto de miles lo pone la app y los centavos no
+                 existen en una meta. Por eso texto y no number, que además
+                 agrega flechitas que nadie usa para escribir un monto. -->
+            <input type="text" inputmode="numeric" id="pfMontoInput" class="period-select" maxlength="15" placeholder="opcional">
+          </div>
           <div class="travel-field">
             <span class="travel-field-label">Plazo</span>
             <input type="date" id="pfPlazoInput" class="period-select">
-          </div>
-          <div class="travel-field" style="min-width:130px">
-            <span class="travel-field-label">Monto objetivo</span>
-            <input type="number" id="pfMontoInput" class="period-select" min="0" step="1000" placeholder="opcional">
           </div>
           <div class="travel-field" style="min-width:150px">
             <span class="travel-field-label">Etiqueta de aportes</span>
@@ -2833,21 +2836,6 @@
 
         <div class="param-row">
           <div class="param-info">
-            <div class="param-label">Cotización MEP (USD → ARS)</div>
-            <div class="param-desc">Cotización actual del dólar MEP. Se usa para convertir los tickers cargados en USD a su equivalente en pesos y mostrar el total combinado en <strong>Salud financiera</strong>. Click en <strong>↻</strong> para traer la cotización actual desde <strong>dolarapi.com</strong>, o editala manualmente.</div>
-            <div class="param-meta" id="cotizacionMepLastUpdate" style="margin-top:4px;font-size:11px;color:var(--muted)"></div>
-          </div>
-          <div class="param-input-wrap mep-input-wrap">
-            <span class="param-prefix">$</span>
-            <input type="text" inputmode="decimal" id="paramCotizacionMepInput" value="1000">
-            <button type="button" id="paramCotizacionMepFetchBtn" class="param-fetch-btn" title="Actualizar cotización desde dolarapi.com">
-              <i data-lucide="refresh-cw" style="width:14px;height:14px"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="param-row">
-          <div class="param-info">
             <div class="param-label">Alerta de fuga de gastos</div>
             <div class="param-desc">Si los gastos <strong>variables, esporádicos o imprevistos</strong> superan este porcentaje respecto a los <strong>gastos básicos</strong> del período, aparece una recomendación en Diagnóstico para revisarlos. Los gastos fijos quedan afuera porque suelen ser obligaciones contractuales. El objetivo es detectar fuga de dinero que se podría redirigir a reserva, inversiones o jubilación.</div>
           </div>
@@ -2857,47 +2845,53 @@
           </div>
         </div>
 
-        <div class="param-row">
+        <!-- Portafolios y activos: los cuatro umbrales con los que la app avisa
+             que una cartera quedó concentrada, en un solo bloque. Separados en
+             cuatro filas se leían como parámetros sin relación entre sí, y son
+             el mismo criterio medido a cuatro alturas distintas. -->
+        <div class="param-row param-row-vertical">
           <div class="param-info">
-            <div class="param-label">Alerta de concentración por sector</div>
-            <div class="param-desc">Si un mismo sector supera este porcentaje del valor de una cartera —Inversiones, Jubilación o Reserva—, aparece una alerta en su panel de <strong>Salud financiera</strong> y en los avisos de <strong>Diagnóstico</strong>. No alertan los indices y ETF, la renta fija ni la liquidez, que no concentran riesgo de un sector. En 0 se desactiva.</div>
+            <div class="param-label">Portafolios y activos</div>
+            <div class="param-desc">Hasta dónde puede pesar una sola cosa dentro de una cartera —un sector, un tipo de riesgo, un activo— antes de que la app te lo señale, y cuántos activos puede agrupar un portafolio. Los tres primeros son porcentajes; el último, una cantidad. Cualquiera en <strong>0</strong> se desactiva.</div>
           </div>
-          <div class="param-input-wrap">
-            <input type="text" inputmode="numeric" id="paramConcSectorInput" value="30">
-            <span class="param-suffix">%</span>
-          </div>
-        </div>
+          <details class="param-config-panel">
+            <summary>Configurar umbrales de concentración</summary>
+            <div class="param-config-grid">
 
-        <div class="param-row">
-          <div class="param-info">
-            <div class="param-label">Alerta de concentración por tipo de riesgo</div>
-            <div class="param-desc">Si un mismo tipo de riesgo —renta variable, renta fija o cripto— supera este porcentaje del valor de una cartera, aparece una alerta en su panel de <strong>Salud financiera</strong> y en <strong>Diagnóstico</strong>. Es más alto que el de sector porque una cartera de acciones es toda renta variable. La liquidez no alerta. En 0 se desactiva.</div>
-          </div>
-          <div class="param-input-wrap">
-            <input type="text" inputmode="numeric" id="paramConcTipoInput" value="70">
-            <span class="param-suffix">%</span>
-          </div>
-        </div>
+              <div class="param-config-block">
+                <div class="param-config-title">Concentración por sector <span class="param-config-sub">(alerta al superar)</span></div>
+                <div class="param-config-hint">Si un mismo sector supera este porcentaje del valor de una cartera —Inversiones, Jubilación o Reserva—, aparece una alerta en su panel de <strong>Salud financiera</strong> y en los avisos de <strong>Diagnóstico</strong>. No alertan los índices y ETF, la renta fija ni la liquidez, que no concentran riesgo de un sector.</div>
+                <div class="param-config-fields">
+                  <label>Alerta ≥ <input type="text" inputmode="numeric" id="paramConcSectorInput" value="30">%</label>
+                </div>
+              </div>
 
-        <div class="param-row">
-          <div class="param-info">
-            <div class="param-label">Alerta de concentración por activo</div>
-            <div class="param-desc">Si un solo activo supera este porcentaje, su fila lo señala en la columna <strong>%</strong> de la tabla de activos. Se mide sobre la cartera entera en la vista Activos y sobre su portafolio en la vista Portafolio. Es más bajo que el de sector: un sector lo forman varios activos, y que uno solo pese como un rubro entero es otra cosa. En 0 se desactiva.</div>
-          </div>
-          <div class="param-input-wrap">
-            <input type="text" inputmode="numeric" id="paramConcActivoInput" value="15">
-            <span class="param-suffix">%</span>
-          </div>
-        </div>
+              <div class="param-config-block">
+                <div class="param-config-title">Concentración por tipo de riesgo <span class="param-config-sub">(alerta al superar)</span></div>
+                <div class="param-config-hint">Si un mismo tipo de riesgo —renta variable, renta fija o cripto— supera este porcentaje del valor de una cartera, aparece una alerta en su panel de <strong>Salud financiera</strong> y en <strong>Diagnóstico</strong>. Es más alto que el de sector porque una cartera de acciones es toda renta variable. La liquidez no alerta.</div>
+                <div class="param-config-fields">
+                  <label>Alerta ≥ <input type="text" inputmode="numeric" id="paramConcTipoInput" value="70">%</label>
+                </div>
+              </div>
 
-        <div class="param-row">
-          <div class="param-info">
-            <div class="param-label">Activos totales por portafolio</div>
-            <div class="param-desc">Cuántos activos puede agrupar un portafolio antes de que la app lo señale. Pasado ese número, un portafolio deja de ser un objetivo con sus activos y se parece más a otra cartera, que es lo que los destinos ya resuelven. En 0 se desactiva.</div>
-          </div>
-          <div class="param-input-wrap">
-            <input type="text" inputmode="numeric" id="paramActivosPfInput" value="12">
-          </div>
+              <div class="param-config-block">
+                <div class="param-config-title">Concentración por activo <span class="param-config-sub">(alerta al superar)</span></div>
+                <div class="param-config-hint">Si un solo activo supera este porcentaje, su fila lo señala en la columna <strong>%</strong> de la tabla de activos. Se mide sobre la cartera entera en la vista Activos y sobre su portafolio en la vista Portafolio. Es más bajo que el de sector: un sector lo forman varios activos, y que uno solo pese como un rubro entero es otra cosa.</div>
+                <div class="param-config-fields">
+                  <label>Alerta ≥ <input type="text" inputmode="numeric" id="paramConcActivoInput" value="15">%</label>
+                </div>
+              </div>
+
+              <div class="param-config-block">
+                <div class="param-config-title">Activos por portafolio <span class="param-config-sub">(cantidad)</span></div>
+                <div class="param-config-hint">Cuántos activos puede agrupar un portafolio antes de que la app lo señale. Pasado ese número, un portafolio deja de ser un objetivo con sus activos y se parece más a otra cartera, que es lo que los destinos ya resuelven.</div>
+                <div class="param-config-fields">
+                  <label>Aviso &gt; <input type="text" inputmode="numeric" id="paramActivosPfInput" value="12"></label>
+                </div>
+              </div>
+
+            </div>
+          </details>
         </div>
 
         <div class="param-row param-row-vertical">

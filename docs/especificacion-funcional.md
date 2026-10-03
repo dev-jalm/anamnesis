@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.64 |
+| **Versión** | 1.65 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -234,7 +234,7 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-074e | Las compras del detalle de un activo se presentan de la más antigua a la más reciente: el detalle se lee como la historia de la posición, y en ese orden los días en tenencia (RF-074a) quedan decrecientes |
 | RF-074c | La tabla de activos se ordena por cualquier columna haciendo clic en su título; un segundo clic invierte el sentido. Cada activo se mueve junto con sus compras, y los que estaban desplegados siguen desplegados. Los activos sin el dato —sin precio, liquidados— van al final en ambos sentidos. El orden elegido se conserva al volver a presentar la pantalla |
 | RF-074d | La columna Broker/Exchange presenta el nombre como texto, con la misma tipografía que el ticker, sin fondo de color |
-| RF-074b | La cotización MEP con la que se convierten los dólares se informa una sola vez, en la fila de las solapas principales, a la derecha, y sólo mientras Salud financiera es la solapa activa. Se acompaña del acceso para actualizarla desde el servicio de cotizaciones, y ambos van en un marco con el mismo tratamiento que los selectores de vista de las otras solapas. La cotización se presenta como la opción seleccionada de esos selectores |
+| RF-074b | La cotización MEP con la que se convierten los dólares se informa una sola vez, en la fila de las solapas principales, a la derecha, y sólo mientras Salud financiera es la solapa activa. Se acompaña del acceso para actualizarla desde el servicio de cotizaciones, y ambos van en un marco con el mismo tratamiento que los selectores de vista de las otras solapas. La cotización se presenta como la opción seleccionada de esos selectores. **Es el único lugar donde se presenta y se actualiza**: tenerla además en Parámetros obligaba a sostener dos controles del mismo valor, y el de Parámetros estaba lejos de los números que convierte |
 | RF-075 | Ganancia se representa en verde y pérdida en rojo, sin excepción, en todas las secciones de la pantalla |
 | RF-076 | Si un activo no tiene precio actual cargado, sus columnas de resultado muestran un guión, no un cero |
 | RF-076a | El precio se registra **por ticker y por moneda**. Un mismo símbolo tenido en pesos y en dólares son dos precios distintos —el CEDEAR y la acción— y ninguno sustituye al otro |
@@ -290,9 +290,10 @@ Una tenencia no se liquida necesariamente de una vez: se va vendiendo. El modelo
 | ID | Requerimiento |
 |---|---|
 | RF-080 | Un **portafolio** agrupa activos según para qué se tienen: de los activos de Inversiones, unos pueden ser un viaje y otros un auto. No es un destino: los destinos (RF-070) son fijos, y un portafolio agrupa activos **dentro** de ellos |
-| RF-080a | Un portafolio se compone de **nombre**, **objetivo** —texto libre que describe para qué es—, **plazo**, que es una fecha y puede no informarse, **monto objetivo**, la cifra que el portafolio persigue, y **etiqueta de aportes** (RF-080r). El monto también puede no informarse —no todo objetivo se mide en plata—; informado, tiene que ser un número mayor que cero |
-| RF-080b | Los portafolios se administran desde **Administración → Portafolios**: se crean, se modifican y se eliminan. La pantalla informa, por cada uno, su objetivo, su plazo, su monto objetivo y cuántos activos tiene asignados, y señala los de plazo vencido. Se llega ahí por la **tecla P**, con el mismo criterio que las demás solapas de Administración, y desde el buscador de acciones |
-| RF-080b1 | Cada portafolio informa además lo que lleva **acumulado hasta hoy**, desglosado en dos: el **G/P potencial** —lo que dejaría su tenencia si se vendiera hoy— y el **G/P liquidado** —lo que ya dejó lo vendido—, cada uno con el porcentaje que representa sobre el monto objetivo, y el **porcentaje alcanzado** de ese monto, que se mide igual que en las secciones (RF-080n1b). Si el portafolio tiene caja (RF-080q) también la informa, y sin la tinta de ganancia: no es un resultado sino plata esperando. Los importes abarcan todas las carteras en las que el portafolio tenga activos y se expresan en pesos, porque el objetivo es uno solo. Los porcentajes sólo se presentan si el portafolio informó un monto objetivo; los importes, siempre. El potencial no se informa si a algún activo le falta el precio actual |
+| RF-080a | Un portafolio se compone de **nombre**, **objetivo** —texto libre que describe para qué es—, **monto objetivo**, la cifra que el portafolio persigue, **plazo**, que es una fecha y puede no informarse, y **etiqueta de aportes** (RF-080r). Los campos se piden en ese orden: qué es, cuánto y para cuándo, y al final cómo se le reserva plata. El monto también puede no informarse —no todo objetivo se mide en plata—; informado, tiene que ser un número mayor que cero |
+| RF-080a1 | El monto objetivo **sólo admite dígitos** y se presenta con los miles separados a medida que se escribe, sin decimales: una meta no se persigue en centavos. El campo no ofrece incrementos ni flechas —nadie llega a una cifra de siete dígitos apretando una flecha—, y al editar un portafolio se presenta con el mismo formato con el que se escribió |
+| RF-080b | Los portafolios se administran desde **Administración → Portafolios**: se crean, se modifican y se eliminan. La pantalla informa, por cada uno, su objetivo, su plazo, su monto objetivo y cuántos activos tiene asignados, y señala los de plazo vencido. Informa también su **etiqueta de aportes**, con la misma marca de color con la que Modo viaje presenta la suya (RF-171): es el rótulo con el que después se marca un movimiento, así que tiene que verse en la lista y no sólo dentro del formulario. Se llega ahí por la **tecla P**, con el mismo criterio que las demás solapas de Administración, y desde el buscador de acciones |
+| RF-080b1 | Cada portafolio informa además lo que lleva **acumulado hasta hoy**, desglosado en dos: el **G/P potencial** —lo que dejaría su tenencia si se vendiera hoy— y el **G/P liquidado** —lo que ya dejó lo vendido—, cada uno con el porcentaje que representa sobre el monto objetivo, y el **porcentaje alcanzado** de ese monto, que se mide igual que en las secciones (RF-080n1b). Si el portafolio tiene caja (RF-080q) también la informa, y sin la tinta de ganancia: no es un resultado sino plata esperando. Los importes abarcan todas las carteras en las que el portafolio tenga activos y se expresan en pesos, porque el objetivo es uno solo. Los porcentajes sólo se presentan si el portafolio informó un monto objetivo; los importes, siempre. El potencial no se informa si a algún activo le falta el precio actual. Cada importe se presenta con el **mismo bloque con el que Modo viaje informa lo gastado en un viaje** —rótulo chico arriba, número abajo—: son dos listas del mismo diálogo informando el total de cada fila |
 | RF-080c | El nombre es obligatorio, admite hasta 40 caracteres y no puede repetirse. La comparación ignora mayúsculas y acentos: dos portafolios que se leen igual son el mismo |
 | RF-080d | La asignación de activos **no** se hace en Administración sino en la propia solapa Salud financiera, donde están los activos a la vista: cada activo de la tabla se puede seleccionar, y la selección se asigna a un portafolio —o se saca del que tenga— en una sola acción |
 | RF-080e | La asignación es **de cada compra**. Un mismo activo puede comprarse para objetivos distintos —tres tandas de un ETF repartidas en tres portafolios— y cada tanda lleva el suyo, con su fecha, su precio y sus propias ventas. Por lo mismo, el activo tenido en dos carteras son dos tenencias y pueden ir a portafolios distintos |
@@ -536,6 +537,16 @@ Cinco pantallas.
 | RF-196 | El **máximo de activos por portafolio** (RF-080p) es configurable. El valor inicial es 12: pasado ese número, un portafolio deja de ser un objetivo con sus activos y se parece a otra cartera, que es lo que los destinos ya resuelven. En 0 se desactiva |
 | RF-197 | Administración se organiza en siete solapas: **Categorías y etiquetas**, **Reglas**, **Modo viaje**, **Configuración de vistas** —qué secciones de Ficha médica se presentan y en cuál de sus dos vistas—, **Configuración de KPIs** —las tarjetas de esa misma solapa—, **Portafolios** y **Parámetros**. Las vistas y los KPIs van separados porque son dos decisiones distintas y juntos obligaban a desplazarse para llegar a la segunda. Cada una tiene su tecla de acceso: V, K, P y M respectivamente, y J abre Modo viaje |
 | RF-194 | El umbral de concentración por tipo de riesgo (RF-073t) es configurable entre 0 y 100%, por separado del de sector. El valor inicial es 70%: una cartera de acciones es enteramente renta variable, y con el umbral de sector alertaría siempre. En 0 las alertas quedan desactivadas |
+| RF-198 | Los cuatro parámetros de **portafolios y activos** —los tres umbrales de concentración (RF-193, RF-194, RF-195) y el máximo de activos por portafolio (RF-196)— se presentan juntos en **una sola sección plegable**, con el mismo tratamiento que la configuración del score (RF-191): un bloque por parámetro, con su título, su explicación y su campo. Repartidos en cuatro filas sueltas se leían como parámetros sin relación entre sí, y son el mismo criterio —cuánto puede pesar una sola cosa— medido a cuatro alturas distintas |
+
+---
+
+### 4.12 Buscador de acciones
+
+| ID | Requerimiento |
+|---|---|
+| RF-199 | El **buscador de acciones** se abre con Ctrl/Cmd+K desde cualquier pantalla y lleva, escribiendo, a cualquier solapa, período o acción. Agrupa sus opciones en Navegación, Período, Acción y Administración |
+| RF-199a | Dentro de cada grupo las opciones siguen **el mismo orden que las solapas en la pantalla**: el buscador es la otra puerta a lo mismo y no conviene que proponga un orden propio. Cada opción que tenga tecla de acceso rápido la informa **entre paréntesis** al final de su nombre, para que usarlo enseñe a no necesitarlo |
 
 ---
 
@@ -1185,9 +1196,20 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.61 | 25/09/2026 | La asignación a un portafolio pasa a ser **de cada compra** y no del ticker: un mismo activo puede comprarse para objetivos distintos (RF-080e, RF-080e1, RF-080e2) | Reemplazada |
 | 1.62 | 25/09/2026 | Se puede **reservar plata** a un objetivo etiquetando el aporte, y el líquido de la cartera se desglosa en reservado y sin asignar (RF-080r, RF-080r1, RF-072i) | Reemplazada |
 | 1.63 | 25/09/2026 | Administración reordena sus solapas: **Portafolios** (antes Salud financiera), **Configuración de vistas** (antes Ficha médica) y **KPIs**, que se separa en una solapa propia. Sus teclas pasan a P, V y K (RF-197) | Reemplazada |
-| 1.64 | 25/09/2026 | La etiqueta de aportes de un portafolio se escribe y se crea sola (RF-080r2), y la solapa de KPIs pasa a llamarse **Configuración de KPIs** (RF-197) | **Vigente** |
+| 1.64 | 25/09/2026 | La etiqueta de aportes de un portafolio se escribe y se crea sola (RF-080r2), y la solapa de KPIs pasa a llamarse **Configuración de KPIs** (RF-197) | Reemplazada |
+| 1.65 | 02/10/2026 | El ABM de portafolios ordena sus campos y presenta la etiqueta y los importes como Modo viaje (RF-080a, RF-080a1, RF-080b, RF-080b1). La cotización MEP sale de Parámetros (RF-074b), los umbrales de portafolios y activos se agrupan en una sección (RF-198) y el buscador de acciones ordena sus opciones como las solapas, con sus teclas (RF-199, RF-199a) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Orden de los campos del portafolio y monto objetivo con miles | RF-080a, RF-080a1 |
+| La etiqueta y los importes del portafolio, con el tratamiento de Modo viaje | RF-080b, RF-080b1 |
+| La cotización MEP, sólo en Salud financiera | RF-074b |
+| Los umbrales de portafolios y activos, en una sección | RF-198 |
+| El buscador ordenado como las solapas, con las teclas a la vista | RF-199, RF-199a |
+
+**Implementados en la versión 1.64**
 
 | Cambio | Requerimiento |
 |---|---|
