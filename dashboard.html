@@ -1676,7 +1676,11 @@
       icon: 'trash-2'                 // opcional, icono lucide en el botón confirmar
     }, function (ok) { if (ok) ... });
 -->
-<div class="modal-overlay hidden" id="appConfirmOverlay" style="z-index:250">
+<!-- El aviso/pregunta genérico va por encima de TODO, incluido el bloqueo de
+     conexión (10000) y sus diálogos (10001): es el único que puede saltar
+     desde adentro de cualquier otro, y pintado debajo sería un diálogo
+     invisible con la app esperando una respuesta que no se puede dar. -->
+<div class="modal-overlay hidden" id="appConfirmOverlay" style="z-index:10002">
   <div class="modal-card" style="max-width:480px">
     <div class="modal-header">
       <div>
@@ -3143,7 +3147,10 @@
 </div>
 
 <!-- MODAL: confirmación de import (reusable para reglas/categorías/etiquetas/full) -->
-<div class="modal-overlay hidden" id="importConfirmOverlay">
+<!-- Se abre desde Administración, así que va en la capa de los diálogos que
+     salen de otro diálogo (200), como los editores: con el z-index base la
+     tecla Escape cerraba Administración, que estaba abajo. -->
+<div class="modal-overlay hidden" id="importConfirmOverlay" style="z-index:200">
   <div class="modal-card" style="max-width:560px">
     <div class="modal-header">
       <div>
@@ -3190,7 +3197,8 @@
 </div>
 
 <!-- MODAL: selector de secciones para exportar/importar config completa -->
-<div class="modal-overlay hidden" id="fullConfigOverlay">
+<!-- Misma capa que el modal de confirmación de import, por el mismo motivo. -->
+<div class="modal-overlay hidden" id="fullConfigOverlay" style="z-index:200">
   <div class="modal-card" style="max-width:520px">
     <div class="modal-header">
       <div>

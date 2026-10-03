@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.68 |
+| **Versión** | 1.69 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -969,8 +969,10 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-11 | Todo diálogo respeta la estructura: encabezado (antetítulo, título y cierre), cuerpo de mensaje, bloque informativo opcional y acciones |
 | RNF-12 | Las acciones destructivas se presentan en tratamiento de advertencia, y el botón de confirmación describe la consecuencia con la cantidad real involucrada, en lugar de una leyenda genérica |
 | RNF-13 | Un diálogo cuyo contenido exceda la pantalla se organiza en secciones colapsables |
-| RNF-14 | Las capas de superposición están definidas: diálogo base 100, editor de indicadores 200, confirmación 250 |
+| RNF-14 | Las capas de superposición están definidas: diálogo base 100 · diálogo abierto desde otro 200 · 250 · selector de iconos 300 · buscador y atajos 350 · bloqueo de conexión 10000 y sus diálogos 10001 · aviso y confirmación genéricos 10002 |
+| RNF-14a | **Un diálogo que se abre desde otro va en una capa más alta que el que lo abrió.** En la misma capa, el que se ve arriba depende del orden del documento y no de cuál se abrió último, y la tecla Escape cerraba el de abajo. El aviso y la confirmación genéricos van por encima de todo: son los únicos que pueden saltar desde adentro de cualquier otro, y pintados debajo serían un diálogo invisible con la aplicación esperando una respuesta que no se puede dar |
 | RNF-15 | Todo diálogo se cierra por cuatro vías equivalentes: el cierre del encabezado, el botón de cierre de las acciones, la tecla Escape y un clic fuera del cuadro |
+| RNF-15a | La tecla Escape **cierra un solo diálogo por vez: el que está arriba**, que es el que el usuario ve. Lo resuelve un único lugar, común a todos; un diálogo con su propia escucha de Escape cerraba dos a la vez cuando había dos abiertos. Cerrar significa lo que cada diálogo define —cancelar, soltar el archivo que tenía en memoria, descargar el visor—, no sólo ocultarlo |
 | RNF-16 | Un diálogo cuyo contenido tiene altura propia —el manual— ocupa el alto disponible de la ventana y ajusta el contenido a lo que sobra, en lugar de forzar desplazamiento en dos ejes |
 
 ### 9.3 Compatibilidad
@@ -1209,9 +1211,17 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.65 | 02/10/2026 | El ABM de portafolios ordena sus campos y presenta la etiqueta y los importes como Modo viaje (RF-080a, RF-080a1, RF-080b, RF-080b1). La cotización MEP sale de Parámetros y pasa a escribirse en la fila de solapas (RF-074b, RF-074b1), los umbrales de portafolios y activos se agrupan en una sección (RF-198) y el buscador de acciones ordena sus opciones como las solapas, con sus teclas (RF-199, RF-199a) | Reemplazada |
 | 1.66 | 02/10/2026 | Parámetros gana densidad: el plan de reserva entra en un renglón (RF-198a) y revisar el archivo y respaldarlo pasan a una sola sección (RF-198b) | Reemplazada |
 | 1.67 | 03/10/2026 | Los portafolios pasan a ser **de Inversiones** y de ninguna otra cartera: en Reserva, las Jubilaciones y Trading no se presenta nada de ellos (RF-080z, RF-080z1) | Reemplazada |
-| 1.68 | 03/10/2026 | El export de configuración se pone al día con los parámetros vigentes y el import aplica las cinco secciones que ofrece, no tres (RF-210a, RF-210b, RF-210c, DOC-09) | **Vigente** |
+| 1.68 | 03/10/2026 | El export de configuración se pone al día con los parámetros vigentes y el import aplica las cinco secciones que ofrece, no tres (RF-210a, RF-210b, RF-210c, DOC-09) | Reemplazada |
+| 1.69 | 03/10/2026 | Escape cierra el diálogo que está arriba y uno solo, las capas quedan definidas para los diálogos que se abren desde otro, y los últimos avisos nativos pasan al diálogo propio (RNF-10, RNF-14, RNF-14a, RNF-15a) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Escape cierra el de arriba, y uno solo | RNF-14a, RNF-15a |
+| Catorce avisos que todavía usaban el diálogo del navegador | RNF-10 |
+
+**Implementados en la versión 1.68**
 
 | Cambio | Requerimiento |
 |---|---|

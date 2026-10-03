@@ -1735,12 +1735,11 @@ function renderInsights(curIng, total, agg, activeMonths) {
 // el overlay tiene z-index 250 para quedar siempre encima.
 let _appConfirmCallback = null;
 
-// Alias simple para mostrar avisos al usuario. Usa el alert nativo del navegador.
-// Existe principalmente para que el código sea más legible que `alert(...)` y
-// para permitir cambiar la implementación más adelante (ej. a un modal estilizado)
-// sin tocar los 14 callsites.
-// Notificación simple, un solo botón "Aceptar", estilo consistente con el
-// resto de la app. Usa el mismo modal que appConfirm pero sin botón de cancelar.
+// Notificación simple, un solo botón "Aceptar", con el dibujo del resto de la
+// app: es el mismo modal que appConfirm, sin botón de cancelar. Ningún aviso
+// usa el alert() del navegador — son dos diálogos distintos apareciendo en la
+// misma pantalla, y el nativo además bloquea la página y no se puede cerrar
+// con la X ni leer como parte de la app.
 // Acepta:
 //   - string  → mensaje
 //   - object  → { title, message, danger, eyebrow, icon }
@@ -1861,12 +1860,10 @@ function _closeAppConfirm(result) {
   if (overlay) overlay.addEventListener('click', function (e) {
     if (e.target === overlay) _closeAppConfirm(false);
   });
-  // ESC = cancelar
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && overlay && !overlay.classList.contains('hidden')) {
-      _closeAppConfirm(false);
-    }
-  });
+  // El Escape NO se maneja acá: lo maneja el handler global, que cierra el
+  // diálogo que está arriba y sabe que para éste cerrar significa cancelar
+  // (MODAL_CLOSE_FNS). Tener un listener propio además del global hacía que una
+  // sola tecla cerrara dos diálogos cuando había dos abiertos.
 })();
 
 
@@ -7860,7 +7857,7 @@ function runSelectiveExport() {
     // Si el CSV sólo tiene encabezado (sin filas), avisar y no descargar
     const lineCount = csv.split('\n').length;
     if (lineCount <= 1 || (lineCount === 2 && !csv.split('\n')[1])) {
-      alert('El export está vacío con esos filtros. Probá ampliar el período o cambiar la categoría.');
+      appAlert('El export está vacío con esos filtros. Probá ampliar el período o cambiar la categoría.');
       return;
     }
     // Sufijo descriptivo: período · categoría · formato (en ese orden, separados por '_')
@@ -7884,7 +7881,7 @@ function runSelectiveExport() {
     closeExportModal();
   } catch (e) {
     console.error('[export] ERROR:', e);
-    alert('Error generando el CSV: ' + (e && e.message ? e.message : String(e)));
+    appAlert('Error generando el CSV: ' + (e && e.message ? e.message : String(e)));
   }
 }
 
@@ -10200,13 +10197,9 @@ function applyIconSelection(iconName) {
       renderIconPickerGrid();
     });
   }
-  // ESC para cerrar el picker (sin afectar al editor de KPI)
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && overlay && !overlay.classList.contains('hidden')) {
-      closeIconPicker();
-      e.stopPropagation();
-    }
-  });
+  // El Escape lo maneja el handler global: el picker está en una capa más alta
+  // que el editor de KPI, así que cerrar "el de arriba" ya es cerrar el picker
+  // sin tocar al editor. Un listener propio acá cerraba los dos de una tecla.
 })();
 
 function openKpiEditor(id) {
@@ -12950,9 +12943,9 @@ function addTravelFromForm() {
   const name = (nameInput.value || '').trim();
   const start = (startInput.value || '').trim();
   const end = (endInput.value || '').trim();
-  if (!name) { alert('Ponele un nombre al viaje.'); return; }
-  if (!start || !end) { alert('Completá las dos fechas (inicio y fin).'); return; }
-  if (start > end) { alert('La fecha de fin no puede ser anterior a la de inicio.'); return; }
+  if (!name) { appAlert('Ponele un nombre al viaje.'); return; }
+  if (!start || !end) { appAlert('Completá las dos fechas (inicio y fin).'); return; }
+  if (start > end) { appAlert('La fecha de fin no puede ser anterior a la de inicio.'); return; }
   if (!Array.isArray(state.travels)) state.travels = [];
   // Crear tag automático
   const tagKey = generateTravelTagKey(name);
@@ -13025,9 +13018,9 @@ function saveTravelEdit() {
   const name = (document.getElementById('travelEditNameInput').value || '').trim();
   const start = (document.getElementById('travelEditStartInput').value || '').trim();
   const end = (document.getElementById('travelEditEndInput').value || '').trim();
-  if (!name) { alert('Ponele un nombre al viaje.'); return; }
-  if (!start || !end) { alert('Completá las dos fechas (inicio y fin).'); return; }
-  if (start > end) { alert('La fecha de fin no puede ser anterior a la de inicio.'); return; }
+  if (!name) { appAlert('Ponele un nombre al viaje.'); return; }
+  if (!start || !end) { appAlert('Completá las dos fechas (inicio y fin).'); return; }
+  if (start > end) { appAlert('La fecha de fin no puede ser anterior a la de inicio.'); return; }
 
   // Detectar si cambian fechas (para retag de tx)
   const datesChanged = (start !== tv.dateStart) || (end !== tv.dateEnd);
@@ -15924,7 +15917,7 @@ function openDriveModal() {
     return;
   }
   if (!('showOpenFilePicker' in window) || !('showSaveFilePicker' in window)) {
-    alert('Tu navegador no soporta el File System Access API. Probá con Chrome o Edge.');
+    appAlert('Tu navegador no soporta el File System Access API. Probá con Chrome o Edge.');
     return;
   }
   driveModalState.mode = 'open';
@@ -16228,9 +16221,9 @@ document.getElementById('driveBtn').addEventListener('click', function () {
   overlay.addEventListener('click', function (e) {
     if (e.target === overlay) cerrar();
   });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && !overlay.classList.contains('hidden')) cerrar();
-  });
+  // El Escape lo maneja el handler global, que necesita esta función para
+  // cerrar bien —si sólo escondiera el overlay, el PDF seguiría cargado—.
+  window.cerrarManualVisor = cerrar;
 })();
 
 // Hook: cada vez que se importa data, schedule save
@@ -16309,11 +16302,11 @@ Array.from(document.querySelectorAll('#deleteScopeBtns .source-btn')).forEach(fu
 function performDelete() {
   const scope = deleteModalState.scope;
   if (scope === 'month' && !state.selMonth) {
-    alert('Seleccioná un mes específico antes de borrar.');
+    appAlert('Seleccioná un mes específico antes de borrar.');
     return;
   }
   if (scope === 'quarter' && (!state.selQuarter || state.selQuarter === 'TODOS')) {
-    alert('Seleccioná un trimestre específico antes de borrar.');
+    appAlert('Seleccioná un trimestre específico antes de borrar.');
     return;
   }
   // Abrir modal estilizado de confirmación final
@@ -17172,7 +17165,7 @@ if (copyPrevBudgetBtn) copyPrevBudgetBtn.addEventListener('click', function () {
   const allMonths = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const idx = allMonths.indexOf(budgetModalState.selectedMonth);
   if (idx <= 0) {
-    alert('No hay mes anterior para copiar.');
+    appAlert('No hay mes anterior para copiar.');
     return;
   }
   const prevMonth = allMonths[idx - 1];
@@ -17198,7 +17191,7 @@ if (useRealAsBudgetBtn) useRealAsBudgetBtn.addEventListener('click', function ()
   const y = budgetModalState.selectedYear;
   const m = budgetModalState.selectedMonth;
   if (!hasMonthRealData(y, m)) {
-    alert('No hay datos reales cargados para este mes.');
+    appAlert('No hay datos reales cargados para este mes.');
     return;
   }
   cats.forEach(function (c) {
@@ -22844,7 +22837,7 @@ function openIncludeInBudgetModal(txId) {
   const cat = ch.categoria !== undefined ? ch.categoria : origTx.categoria;
   // Si la categoría es '__sin__' (sin categoría), no podemos asignar al presupuesto
   if (!cat || cat === '__sin__') {
-    alert('Asigná una categoría al movimiento antes de incluirlo en presupuesto.');
+    appAlert('Asigná una categoría al movimiento antes de incluirlo en presupuesto.');
     return;
   }
   includeBudgetState.txId = txId;
@@ -24159,6 +24152,17 @@ const MODAL_CLOSE_FNS = {
   kpiEditorOverlay: function () { closeKpiEditor(); },
   validationReportOverlay: function () { closeValidationReport(); },
   catRedirectOverlay: function () { closeCatRedirectPicker(); },
+  // Los dos de exportar/importar configuración: el de confirmación además
+  // suelta el archivo que tenía en memoria, así que cerrarlo con Escape tiene
+  // que pasar por su función y no por el .hidden genérico.
+  fullConfigOverlay: function () { closeFullConfigModal(); },
+  importConfirmOverlay: function () { closeImportConfirmModal(); },
+  // El picker de iconos y el visor del manual: los dos tenían su propio
+  // listener de Escape y ahora entran por acá, como todos.
+  kpiIconPickerOverlay: function () { closeIconPicker(); },
+  manualOverlay: function () {
+    if (typeof window.cerrarManualVisor === 'function') window.cerrarManualVisor();
+  },
   // appConfirm: el Esc se trata como "cancelar" para que el callback se invoque
   // con false (no como cierre silencioso que rompe flujos asíncronos).
   appConfirmOverlay: function () { _closeAppConfirm(false); }
@@ -24195,10 +24199,15 @@ document.addEventListener('keydown', function (e) {
     const overlays = Array.from(document.querySelectorAll('.modal-overlay'))
       .filter(function (el) { return !el.classList.contains('hidden'); });
     if (overlays.length === 0) return;
+    // El de más arriba es el que el navegador dibuja encima: primero el
+    // z-index, y a igual z-index el que esté después en el documento, que es
+    // el que se ve. Sin ese desempate, Escape cerraba el primero del HTML
+    // —Administración— en vez del diálogo que se había abierto sobre él.
     overlays.sort(function (a, b) {
       const za = parseInt(window.getComputedStyle(a).zIndex, 10) || 0;
       const zb = parseInt(window.getComputedStyle(b).zIndex, 10) || 0;
-      return zb - za;
+      if (za !== zb) return zb - za;
+      return (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) ? 1 : -1;
     });
     const top = overlays[0];
     const id = top.id;

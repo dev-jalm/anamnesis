@@ -92,10 +92,24 @@ que va a pasar con el número real ("Re-aplicar y borrar 2"), no un "Aceptar"
 genérico. Una cosa es avisar "esto puede pisar categorías" y otra "esto elimina
 47 movimientos".
 
-**Capas de z-index**, ya calibradas: modal base 100 · editor de KPI 200 ·
-overlay de `appConfirm` 250. **No subir el z-index del `.modal-overlay` genérico**
-— rompe los otros modales. Si un modal nuevo tiene que ir encima, se le da su
-propia clase.
+**Capas de z-index**, ya calibradas: modal base 100 · diálogo abierto desde
+otro diálogo 200 (editores, exportar/importar configuración) · 250 (redirección
+de categorías, reporte de diagnóstico) · picker de iconos 300 · buscador y
+atajos 350 · bloqueo de conexión 10000 y sus diálogos 10001 · `appConfirm`
+10002, por encima de todo, porque puede saltar desde adentro de cualquiera y
+pintado debajo sería un diálogo invisible con la app esperando respuesta.
+**No subir el z-index del `.modal-overlay` genérico** — rompe los otros
+modales. Si un modal nuevo tiene que ir encima, se le da su propio id/clase.
+
+**Un diálogo que se abre desde otro va en una capa más alta.** Con el mismo
+z-index, Escape cerraba el primero del HTML y no el que estaba arriba: pasó con
+exportar configuración, que cerraba Administración.
+
+**El Escape lo maneja un solo lugar**, el handler global: cierra el diálogo que
+está más arriba y usa `MODAL_CLOSE_FNS` cuando cerrar significa algo más que
+esconder el overlay. Un modal con su propio listener de Escape cierra dos de una
+tecla cuando hay dos abiertos — ya pasó con `appConfirm`, el picker de iconos y
+el visor del manual.
 
 Modal largo que no entra en pantalla → secciones colapsables con `<details>`, no
 scroll infinito.
