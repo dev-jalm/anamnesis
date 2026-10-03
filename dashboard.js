@@ -20527,8 +20527,60 @@ function autoFetchSaludFinancieraIfStale() {
 // el browser sin proxy. El MEP ahí se llama 'bolsa' (Dólar Bolsa = MEP) y el
 // endpoint devuelve { moneda, casa, nombre, compra, venta, fechaActualizacion }.
 // Usamos `venta`, que es lo que normalmente paga el comprador.
-// Es el único lugar desde donde se actualiza: el botón ↻ de la fila de solapas
-// de Salud financiera, al lado del valor que se está usando.
+// Es el único lugar desde donde se mantiene: el botón ↻ de la fila de solapas
+// de Salud financiera y el propio valor de al lado, que se puede escribir.
+
+// El valor que se está usando, en su campo. No se toca mientras se lo está
+// escribiendo: cualquier render del panel —y hay muchos— le borraría lo tipeado
+// a mitad de camino. El ancho sigue al contenido porque un ancho fijo deja un
+// hueco entre el número y el "/ USD".
+function renderCotizacionMepInput(forzar) {
+  const inp = document.getElementById('mainTabsMepInput');
+  if (!inp || (document.activeElement === inp && !forzar)) return;
+  const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+  inp.value = formatInputAR(mep);
+  inp.style.width = Math.max(5, inp.value.length) + 'ch';
+}
+
+// Lo escrito a mano pasa al estado con la misma ceremonia que el fetch: queda
+// en el historial, se marca cuándo y de dónde salió, y el panel se rehace para
+// que las conversiones usen el valor nuevo. Un valor que no sea mayor que cero
+// —o el campo vacío— no se guarda: se repone el anterior.
+function escribirCotizacionMep(texto) {
+  const v = parseInputAR(texto);
+  const actual = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+  // Se repone a la fuerza: acá el usuario ya terminó de escribir —esto corre al
+  // salir del campo o con Enter—, así que el campo tiene que volver a decir lo
+  // que la app está usando aunque todavía tenga el foco.
+  if (!v || !isFinite(v) || v <= 0 || v === actual) { renderCotizacionMepInput(true); return; }
+  if (!state.params) state.params = {};
+  state.params.cotizacionMep = v;
+  persistMepInHistorial(v);
+  state.params.cotizacionMepUpdatedAt = Date.now();
+  state.params.cotizacionMepSource = 'manual';
+  scheduleSave();
+  if (typeof renderMainAssets === 'function') renderMainAssets();
+}
+
+(function bindCotizacionMepInput() {
+  const inp = document.getElementById('mainTabsMepInput');
+  if (!inp) return;
+  // Dígitos, puntos de miles y la coma decimal: el resto no es una cotización.
+  inp.addEventListener('input', function () {
+    const limpio = inp.value.replace(/[^\d.,]/g, '');
+    if (limpio !== inp.value) inp.value = limpio;
+  });
+  inp.addEventListener('change', function () { escribirCotizacionMep(inp.value); });
+  inp.addEventListener('blur', function () { escribirCotizacionMep(inp.value); });
+  inp.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+    // Escape descarta lo tipeado y deja el valor vigente, sin tocar el estado.
+    // Se repone antes de salir del campo: si no, el blur guardaría lo que el
+    // Escape viene a descartar.
+    if (e.key === 'Escape') { renderCotizacionMepInput(true); inp.blur(); }
+  });
+})();
+
 function fetchCotizacionMepInline(btnEl) {
   if (btnEl) {
     btnEl.classList.add('loading');
@@ -21311,12 +21363,8 @@ function renderMainAssets() {
   _coloresSector = null;
 
   // Cotización MEP en la fila de las solapas. Se escribe en cada render de la
-  // solapa: el botón ↻ y el guardado de Parámetros terminan re-renderizándola.
-  const mepValor = document.getElementById('mainTabsMepValor');
-  if (mepValor) {
-    const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
-    mepValor.textContent = '$ ' + fmt(mep) + ' / USD';
-  }
+  // solapa: el botón ↻ y la edición a mano terminan re-renderizándola.
+  renderCotizacionMepInput();
 
   // Reserva: misma estructura que las demás secciones. El panel colapsable
   // (buildInvestmentDetailPanel) muestra título, totales agregados y, además,

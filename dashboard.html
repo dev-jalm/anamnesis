@@ -273,7 +273,14 @@
         <!-- Con el estilo de la opción seleccionada de un toggle (misma clase). -->
         <span class="view-mode-btn active main-tabs-mep-dato">
           <span class="inv-header-cotizacion-label">Cotización MEP usada:</span>
-          <span class="inv-header-cotizacion-value" id="mainTabsMepValor">—</span>
+          <!-- El valor se puede escribir: el ↻ la trae de dolarapi, pero también
+               vale corregirla con la que uno pagó. El $ y el / USD quedan afuera
+               del campo, que sólo lleva el número. -->
+          <span class="inv-header-cotizacion-value">$
+            <input type="text" inputmode="decimal" id="mainTabsMepInput" class="inv-mep-input"
+                   maxlength="12" spellcheck="false"
+                   title="Editala a mano y confirmá con Enter, o traela de dolarapi.com con el botón de al lado">
+            / USD</span>
         </span>
         <button type="button" class="inv-mep-refresh-btn" data-action="refresh-mep" title="Actualizar cotización MEP desde dolarapi.com">
           <i data-lucide="refresh-cw" style="width:10px;height:10px"></i>

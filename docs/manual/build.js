@@ -177,7 +177,7 @@ window.MANUAL = {
       lista: [
         'Un clic en el título de una columna ordena los activos por ese dato; otro clic, al revés.',
         'El botón de refresco al lado de ARS actualiza precios y descripciones desde data912.com.',
-        'La cotización MEP está arriba a la derecha, junto a las solapas; su botón la actualiza desde dolarapi.com.',
+        'La cotización MEP está arriba a la derecha, junto a las solapas; su botón la actualiza desde dolarapi.com y el valor se puede escribir a mano, confirmando con Enter.',
         'Los tickers en dólares se derivan del CEDEAR en pesos, con su ratio y la cotización MEP.',
         'Sin precio actual, el rendimiento muestra un guión, no un cero: no hay con qué comparar.'
       ]

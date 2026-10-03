@@ -234,7 +234,8 @@ Al igual que Historia clínica, **tiene dos visualizaciones alternativas**, con 
 | RF-074e | Las compras del detalle de un activo se presentan de la más antigua a la más reciente: el detalle se lee como la historia de la posición, y en ese orden los días en tenencia (RF-074a) quedan decrecientes |
 | RF-074c | La tabla de activos se ordena por cualquier columna haciendo clic en su título; un segundo clic invierte el sentido. Cada activo se mueve junto con sus compras, y los que estaban desplegados siguen desplegados. Los activos sin el dato —sin precio, liquidados— van al final en ambos sentidos. El orden elegido se conserva al volver a presentar la pantalla |
 | RF-074d | La columna Broker/Exchange presenta el nombre como texto, con la misma tipografía que el ticker, sin fondo de color |
-| RF-074b | La cotización MEP con la que se convierten los dólares se informa una sola vez, en la fila de las solapas principales, a la derecha, y sólo mientras Salud financiera es la solapa activa. Se acompaña del acceso para actualizarla desde el servicio de cotizaciones, y ambos van en un marco con el mismo tratamiento que los selectores de vista de las otras solapas. La cotización se presenta como la opción seleccionada de esos selectores. **Es el único lugar donde se presenta y se actualiza**: tenerla además en Parámetros obligaba a sostener dos controles del mismo valor, y el de Parámetros estaba lejos de los números que convierte |
+| RF-074b | La cotización MEP con la que se convierten los dólares se informa una sola vez, en la fila de las solapas principales, a la derecha, y sólo mientras Salud financiera es la solapa activa. Se acompaña del acceso para actualizarla desde el servicio de cotizaciones, y ambos van en un marco con el mismo tratamiento que los selectores de vista de las otras solapas. La cotización se presenta como la opción seleccionada de esos selectores. **Es el único lugar donde se presenta y se mantiene**: tenerla además en Parámetros obligaba a sostener dos controles del mismo valor, y el de Parámetros estaba lejos de los números que convierte |
+| RF-074b1 | La cotización **se puede escribir a mano** ahí mismo, además de traerla del servicio: no siempre se opera al valor de la pantalla. El campo lleva el tratamiento de los valores editables de la tabla de activos —sin borde hasta que se lo apunta— y se confirma al salir de él o con Enter; Escape descarta lo escrito. Un valor que no sea mayor que cero no se guarda: se repone el vigente. Lo escrito queda registrado igual que lo traído del servicio —en el historial de cotizaciones, con su fecha y su origen— y el panel se recalcula en el momento |
 | RF-075 | Ganancia se representa en verde y pérdida en rojo, sin excepción, en todas las secciones de la pantalla |
 | RF-076 | Si un activo no tiene precio actual cargado, sus columnas de resultado muestran un guión, no un cero |
 | RF-076a | El precio se registra **por ticker y por moneda**. Un mismo símbolo tenido en pesos y en dólares son dos precios distintos —el CEDEAR y la acción— y ninguno sustituye al otro |
@@ -1197,7 +1198,7 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.62 | 25/09/2026 | Se puede **reservar plata** a un objetivo etiquetando el aporte, y el líquido de la cartera se desglosa en reservado y sin asignar (RF-080r, RF-080r1, RF-072i) | Reemplazada |
 | 1.63 | 25/09/2026 | Administración reordena sus solapas: **Portafolios** (antes Salud financiera), **Configuración de vistas** (antes Ficha médica) y **KPIs**, que se separa en una solapa propia. Sus teclas pasan a P, V y K (RF-197) | Reemplazada |
 | 1.64 | 25/09/2026 | La etiqueta de aportes de un portafolio se escribe y se crea sola (RF-080r2), y la solapa de KPIs pasa a llamarse **Configuración de KPIs** (RF-197) | Reemplazada |
-| 1.65 | 02/10/2026 | El ABM de portafolios ordena sus campos y presenta la etiqueta y los importes como Modo viaje (RF-080a, RF-080a1, RF-080b, RF-080b1). La cotización MEP sale de Parámetros (RF-074b), los umbrales de portafolios y activos se agrupan en una sección (RF-198) y el buscador de acciones ordena sus opciones como las solapas, con sus teclas (RF-199, RF-199a) | **Vigente** |
+| 1.65 | 02/10/2026 | El ABM de portafolios ordena sus campos y presenta la etiqueta y los importes como Modo viaje (RF-080a, RF-080a1, RF-080b, RF-080b1). La cotización MEP sale de Parámetros y pasa a escribirse en la fila de solapas (RF-074b, RF-074b1), los umbrales de portafolios y activos se agrupan en una sección (RF-198) y el buscador de acciones ordena sus opciones como las solapas, con sus teclas (RF-199, RF-199a) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 
@@ -1205,7 +1206,7 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 |---|---|
 | Orden de los campos del portafolio y monto objetivo con miles | RF-080a, RF-080a1 |
 | La etiqueta y los importes del portafolio, con el tratamiento de Modo viaje | RF-080b, RF-080b1 |
-| La cotización MEP, sólo en Salud financiera | RF-074b |
+| La cotización MEP, sólo en Salud financiera y editable ahí | RF-074b, RF-074b1 |
 | Los umbrales de portafolios y activos, en una sección | RF-198 |
 | El buscador ordenado como las solapas, con las teclas a la vista | RF-199, RF-199a |
 

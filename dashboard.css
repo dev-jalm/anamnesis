@@ -6210,7 +6210,8 @@ body[data-exporting="true"] .section-card {
 .investment-detail-grouped .inv-toggle-btn:hover { color: var(--accent); }
 
 .inv-desc-input,
-.inv-price-input {
+.inv-price-input,
+.inv-mep-input {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -6234,11 +6235,13 @@ body[data-exporting="true"] .section-card {
   text-transform: uppercase;
 }
 .inv-desc-input:hover,
-.inv-price-input:hover {
+.inv-price-input:hover,
+.inv-mep-input:hover {
   border-color: var(--border);
 }
 .inv-desc-input:focus,
-.inv-price-input:focus {
+.inv-price-input:focus,
+.inv-mep-input:focus {
   border-color: var(--accent);
   background: var(--bg-1);
 }
@@ -7297,6 +7300,36 @@ body[data-exporting="true"] .section-card {
   color: var(--ink);
   font-family: 'JetBrains Mono', monospace;
   font-weight: 600;
+}
+/* La cotización se escribe. Lleva el mismo tratamiento que los valores
+   editables de la tabla de activos —sin borde hasta que se pasa el mouse— y de
+   ahí hereda todo salvo tres cosas: va en la tinta de la banda y no en acento,
+   se ajusta a lo que dice en vez de ocupar su celda, y el padding es más chico
+   para no estirar la fila de solapas. El ancho lo pone el render en `ch`.
+   El alto es fijo y chico a propósito: la banda mide 27px para empatar con los
+   toggles de las otras solapas, y un campo con el padding de la tabla la
+   estiraba a 30. */
+.inv-mep-input {
+  color: inherit;
+  /* El ancho que pone el render cuenta caracteres, así que acá tiene que valer
+     por el contenido y no por la caja: con border-box el padding se comía el
+     último dígito. */
+  box-sizing: content-box;
+  width: auto;
+  height: 13px;
+  line-height: 13px;
+  padding: 0 4px;
+  text-align: right;
+}
+/* Hover y foco tampoco pueden salir de la tabla: ahí el campo se hunde en
+   var(--bg-1) con borde de acento, y acá la banda YA es acento y la tinta es
+   la oscura que va encima. En oscuro eso daba texto casi negro sobre fondo
+   casi negro —medido: #2A2520 sobre #1A1714—. Sobre el ámbar el realce es un
+   velo y un borde de la propia tinta, que sirve igual en los dos temas. */
+.inv-mep-input:hover { border-color: rgba(0, 0, 0, 0.25); }
+.inv-mep-input:focus {
+  background: rgba(0, 0, 0, 0.10);
+  border-color: currentColor;
 }
 
 .inv-sparkline {
