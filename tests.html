@@ -1273,6 +1273,22 @@ group('Portafolios', function () {
     assertEqual(validarPortafolio({ nombre: 'X', monto: '-5' }, PFS).ok, false);
     assertEqual(validarPortafolio({ nombre: 'X', monto: 'mucho' }, PFS).ok, false);
   });
+  test('los portafolios son de Inversiones y de ninguna otra cartera', function () {
+    assertEqual(admitePortafolios('inversiones'), true);
+    assertEqual(admitePortafolios('reserva'), false);
+    assertEqual(admitePortafolios('jubilacion_jalm'), false);
+    assertEqual(admitePortafolios('jubilacion_clm'), false);
+    assertEqual(admitePortafolios('trading'), false);
+    assertEqual(admitePortafolios(''), false);
+    assertEqual(admitePortafolios(undefined), false);
+    assertEqual(DESTINO_PORTAFOLIOS, 'inversiones');
+  });
+  test('un panel admite portafolios si alguno de sus destinos los admite', function () {
+    assertEqual(admitePortafolios(['inversiones']), true);
+    assertEqual(admitePortafolios(['reserva']), false);
+    assertEqual(admitePortafolios(['jubilacion_jalm', 'jubilacion_clm']), false);
+    assertEqual(admitePortafolios([]), false);
+  });
   test('la caja del portafolio guarda lo que dejó una venta sin reinvertir', function () {
     const evs = [
       { fecha: '2026-01-10', tipo: 'compra', monto: 100000 },

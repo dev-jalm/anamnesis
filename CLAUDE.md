@@ -173,6 +173,12 @@ Antes de dar por buena una regla nueva: leer el estilo computado, no asumir.
   que entrar en el snapshot de la demo *y* resetearse en `applyStateSnapshot`
   cuando el snapshot no lo trae. Si no, los datos reales sobreviven al modo demo
   y se arrastran al abrir otro archivo.
+- **No hay datos que migrar.** El producto se está construyendo: no hay nadie
+  con un archivo viejo que preservar. Un cambio de modelo se hace derecho —el
+  campo nuevo, el viejo afuera— sin código de compatibilidad, sin paso de
+  migración y sin diseñar la solución alrededor de lo que ya está guardado. Si
+  algo del dataset demo deja de encajar, se regenera. Tampoco se frena a
+  preguntar por la migración ni se la ofrece como costo: no existe.
 
 ---
 

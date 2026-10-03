@@ -6050,6 +6050,15 @@ function addInvestmentRow() {
   renderInvestmentList();
 }
 
+// Qué dice el selector de portafolio de una fila de carga. Cuando la fila no va
+// a Inversiones el selector queda apagado, y el título es el que explica por
+// qué: es un control, así que la explicación va en su title nativo.
+function tituloPortafolioFila(destino) {
+  return admitePortafolios(destino)
+    ? 'Para qué objetivo es esta compra. Se puede dejar vacío y asignarla después.'
+    : 'Los portafolios agrupan activos de Inversiones: en las demás carteras no aplican.';
+}
+
 function renderInvestmentList() {
   const list = document.getElementById('investmentRowsList');
   const counter = document.getElementById('investmentRowsCount');
@@ -6110,8 +6119,14 @@ function renderInvestmentList() {
       '</select>' +
       // Portafolio de ESTA compra. Sin portafolios creados no se ofrece: sería
       // un selector con una sola opción vacía.
+      // Si el destino de la fila no es Inversiones el selector se deshabilita
+      // en lugar de desaparecer: la fila es una grilla de columnas fijas, y un
+      // control que se va corre todo lo demás. Deshabilitado además explica por
+      // qué no aplica, que es información que el hueco no da.
       (portafolios().length
-        ? '<select data-field="portafolio" class="inv-row-portafolio" title="Para qué objetivo es esta compra. Se puede dejar vacío y asignarla después.">' +
+        ? '<select data-field="portafolio" class="inv-row-portafolio"' +
+            (admitePortafolios(r.destino) ? '' : ' disabled') +
+            ' title="' + tituloPortafolioFila(r.destino) + '">' +
             '<option value=""' + (r.portafolio ? '' : ' selected') + '>— sin portafolio —</option>' +
             portafolios().slice().sort(function (a, b) {
               return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es');
@@ -6167,6 +6182,18 @@ function renderInvestmentList() {
               input.classList.remove('broker-bg-' + b.key);
             });
             input.classList.add('broker-bg-' + val);
+          }
+          // El portafolio es de Inversiones: si la fila se manda a otra cartera
+          // el selector se apaga y suelta lo que tuviera elegido, para no
+          // guardar una asignación que nadie va a poder ver ni deshacer.
+          if (field === 'destino') {
+            const pfSel = rowEl.querySelector('[data-field="portafolio"]');
+            if (pfSel) {
+              const aplica = admitePortafolios(val);
+              pfSel.disabled = !aplica;
+              pfSel.title = tituloPortafolioFila(val);
+              if (!aplica) { row.portafolio = ''; pfSel.value = ''; }
+            }
           }
         }
         input.classList.remove('invalid');
@@ -6313,8 +6340,9 @@ function validateAndSaveInvestmentRows() {
       destino: r.destino,
       moneda: (r.moneda === 'USD') ? 'USD' : 'ARS',
       // El portafolio es de esta compra: dos tandas del mismo ticker pueden
-      // ir a objetivos distintos. Vacío queda sin asignar.
-      portafolio: r.portafolio || undefined,
+      // ir a objetivos distintos. Vacío queda sin asignar, y fuera de
+      // Inversiones no se guarda ninguno: el concepto es de esa cartera.
+      portafolio: (admitePortafolios(r.destino) && r.portafolio) ? r.portafolio : undefined,
       createdAt: now
     });
     // El sector es del ticker, no de la compra: va a tickerInfo, donde lo lee
@@ -11871,12 +11899,20 @@ function applyTravelTagsToNewTx(tx) {
 const vistaActivos = {};
 
 function vistaDeTabla(clave) {
+  // La vista Portafolio existe sólo en Inversiones (ver admitePortafolios). El
+  // corte va acá, en el único lector de la vista: así ninguna sección puede
+  // terminar agrupando por objetivo en una cartera donde el concepto no aplica,
+  // por más que algo le haya dejado la clave puesta.
+  if (!admitePortafolios(String(clave || '').split('|')[0])) return 'listado';
   return vistaActivos[clave] === 'portafolio' ? 'portafolio' : 'listado';
 }
 
 // El selector de vista. Usa las clases de los otros selectores de la app
 // —el de Resumen/Completa, el de Evolución— porque es el mismo control.
 function vistaActivosToggle(clave) {
+  // Sólo donde los portafolios existen: en el resto de las carteras no hay una
+  // segunda vista que elegir, y el selector prometería una que saldría vacía.
+  if (!admitePortafolios(String(clave || '').split('|')[0])) return '';
   const v = vistaDeTabla(clave);
   return '<span class="view-mode-toggle inv-vista-toggle" data-vista-tabla="' + escapeHtmlSafe(clave) + '">' +
     '<button type="button" class="view-mode-btn' + (v === 'listado' ? ' active' : '') + '" data-vista="listado">Activos</button>' +
@@ -11933,7 +11969,14 @@ function eventosDeCaja(entries, mep) {
 // El portafolio al que pertenece una compra, o el centinela de las que no
 // tienen ninguno. Una compra asignada a un portafolio que ya no existe cuenta
 // como sin asignar: borrar un portafolio no puede esconder activos.
+//
+// Una compra fuera de Inversiones tampoco tiene portafolio, aunque traiga el
+// campo escrito: el concepto es de esa cartera. Es la única compuerta que hace
+// falta para que todo lo que se calcula a partir de la asignación —los grupos,
+// la caja, lo reservado, la concentración— quede acotado sin repetir el chequeo
+// en cada cuenta.
 function pfDeCompra(e) {
+  if (!admitePortafolios(e && e.destino)) return '__sin__';
   const id = portafolioDeCompra(e);
   return (id && portafolioPorId(portafolios(), id)) ? id : '__sin__';
 }
@@ -12220,6 +12263,8 @@ function gruposDePortafolioDeCartera(destinos) {
 // En la vista Portafolio la fila ya es la porción de un grupo, y el tilde toma
 // esas compras: es donde se las mueve o se las saca.
 function celdaSeleccionActivo(destino, ticker, moneda, entries, enPortafolio) {
+  // Fuera de Inversiones no hay a qué agrupar: la fila no lleva tilde.
+  if (!admitePortafolios(destino)) return '';
   const todas = Array.isArray(entries) ? entries : [];
   const libres = todas.filter(function (e) { return pfDeCompra(e) === '__sin__'; });
   const elegibles = enPortafolio ? todas : libres;
@@ -12250,7 +12295,7 @@ function celdaSeleccionActivo(destino, ticker, moneda, entries, enPortafolio) {
 // Es el lugar donde se reparte un mismo activo entre objetivos: la fila del
 // ticker suma todas sus tandas y no puede decir a cuál va cada una.
 function celdaPortafolioCompra(e) {
-  if (!portafolios().length) return '<td></td>';
+  if (!admitePortafolios(e && e.destino) || !portafolios().length) return '<td></td>';
   const actual = portafolioDeCompra(e);
   return '<td class="inv-sector-cell">' +
     '<select class="inv-pf-compra-sel" data-inv-id="' + escapeHtmlSafe(e.id) + '" ' +
@@ -12289,6 +12334,7 @@ function opcionesPortafolio() {
 // La barra de agrupar. Se dibuja siempre pero arranca oculta: aparece cuando
 // hay algo tildado, así la cabecera no lleva controles que no aplican.
 function barraAgruparHtml(clave) {
+  if (!admitePortafolios(String(clave || '').split('|')[0])) return '';
   return '<span class="inv-agrupar hidden" data-agrupar="' + escapeHtmlSafe(clave) + '">' +
     '<span class="inv-agrupar-n">0</span>' +
     '<select class="inv-agrupar-sel">' + opcionesPortafolio() + '</select>' +
@@ -12430,7 +12476,7 @@ function migrarAsignacionPorCompra() {
 // Las compras asignadas a un portafolio, en todas las carteras.
 function comprasDePortafolio(id) {
   return (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
-    .filter(function (e) { return portafolioDeCompra(e) === id; });
+    .filter(function (e) { return pfDeCompra(e) === id; });
 }
 
 // Cuántos activos tiene un portafolio: tickers distintos en su cartera y su
@@ -12448,10 +12494,11 @@ function activosDePortafolio(id) {
 // Lo que un portafolio acumuló hasta hoy, para la lista del ABM: lo que vale su
 // tenencia, lo que dejaría si se vendiera hoy y lo que ya dejó lo vendido.
 //
-// A diferencia de totalesDePortafolio(), acá no hay un destino: el ABM no está
-// parado en una cartera, y un portafolio puede agrupar activos de varias. Se
-// toman todas las tenencias cuya clave apunta a este portafolio, y todo va a
-// pesos al MEP porque el monto objetivo contra el que se compara es uno solo.
+// A diferencia de totalesDePortafolio(), acá no se parte de un panel: el ABM no
+// está parado en una cartera. Se toman todas las compras asignadas —que por
+// definición son de Inversiones— y todo va a pesos al MEP, porque el monto
+// objetivo contra el que se compara es uno solo y puede haber tenencias en las
+// dos monedas.
 function resumenPortafolio(id) {
   const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
   const suyas = comprasDePortafolio(id);
@@ -12785,8 +12832,11 @@ function eliminarPortafolio(id) {
     if (!ok) return;
     state.portafolios = portafolios().filter(function (x) { return x.id !== id; });
     // Se limpian las asignaciones: dejarlas apuntando a un portafolio que ya no
-    // existe deja basura que crece con cada borrado.
-    comprasDePortafolio(id).forEach(function (e) { delete e.portafolio; });
+    // existe deja basura que crece con cada borrado. Acá se mira el campo crudo
+    // y no comprasDePortafolio(), que ya descarta lo que no es de Inversiones:
+    // lo que no se lee también hay que barrerlo.
+    (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
+      .forEach(function (e) { if (portafolioDeCompra(e) === id) delete e.portafolio; });
     if (pfEditandoId === id) limpiarFormPortafolio();
     scheduleSave();
     renderPortafoliosTab();
@@ -20198,7 +20248,11 @@ function buildInvestmentDetailPanel(destinos, title) {
           thOrden('ticker', 'Ticker') +
           thOrden('descripcion', 'Descripción') +
           thOrden('sector', 'Sector', 'Del listado de BYMA cuando el ticker está ahí; si no, elegilo de la lista') +
-          thOrden('peso', '%', 'Cuánto pesa el activo: sobre la cartera en la vista Activos, sobre su portafolio en la vista Portafolio', true) +
+          // Donde no hay vista Portafolio tampoco hay dos formas de pesar: el
+          // título no promete una vista que esa cartera no ofrece.
+          thOrden('peso', '%', admitePortafolios(destinos)
+            ? 'Cuánto pesa el activo: sobre la cartera en la vista Activos, sobre su portafolio en la vista Portafolio'
+            : 'Cuánto pesa el activo sobre la cartera', true) +
           thOrden('nominales', 'Nominales', '', true) +
           thOrden('ppc', 'PPC', 'Precio Promedio de Compra ponderado', true) +
           thOrden('invertido', 'Total invertido', 'Nominales × PPC', true) +

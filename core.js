@@ -1639,6 +1639,26 @@ function saldoDeCaja(eventos) {
   return saldo;
 }
 
+// Los portafolios son un concepto de Inversiones y de ninguna otra cartera.
+//
+// El destino ya dice para cuándo es la plata y con qué regla se usa, así que un
+// objetivo que lo cruce obliga a romper esa regla: la Reserva está para lo
+// imprevisto —reservarle una parte a un viaje la vuelve no disponible, que es
+// lo contrario de lo que la define—, la Jubilación tiene un horizonte propio y
+// es ella entera el objetivo, y Trading no acumula tenencias sino operaciones.
+// En Inversiones, en cambio, todos los activos comparten la regla de uso y lo
+// único que varía entre ellos es para qué son: ahí agrupar por objetivo agrega
+// información que el destino no da.
+//
+// Por eso el portafolio no declara su destino: no le hace falta.
+const DESTINO_PORTAFOLIOS = 'inversiones';
+
+// Admite un destino o una lista de ellos —un panel puede abarcar varios—.
+function admitePortafolios(destino) {
+  if (Array.isArray(destino)) return destino.some(admitePortafolios);
+  return destino === DESTINO_PORTAFOLIOS;
+}
+
 // El portafolio de UNA compra. La asignación es de la compra y no del ticker:
 // el mismo activo puede comprarse para dos objetivos distintos —tres tandas de
 // IBIT repartidas en tres portafolios— y con una clave por ticker eso era
@@ -3031,6 +3051,7 @@ if (typeof module !== 'undefined' && module.exports) {
     // portafolios: agrupar activos por objetivo adentro de cada cartera
     MAX_LEN_PORTAFOLIO, claveActivoPortafolio, portafolioDeActivo, portafolioPorId,
     validarPortafolio, agruparPorPortafolio, saldoDeCaja, portafolioDeCompra, etiquetaEnUso,
+    DESTINO_PORTAFOLIOS, admitePortafolios,
     concentracionPorSector, sectoresConcentrados,
     TIPOS_RIESGO, etiquetaTipoRiesgo, tipoDeRiesgo, concentracionPorTipo, tiposConcentrados,
     // ventas de activos
