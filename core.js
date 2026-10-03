@@ -1230,6 +1230,38 @@ function deserializeTags(parsed, currentTags, mode) {
 }
 
 // ----- BLOB MAESTRO (full config) -----
+// Qué parámetros viajan en un export de configuración: los que el usuario
+// eligió, no los que la app averiguó. Queda afuera la cotización MEP —con sus
+// marcas de cuándo y de dónde salió—, que es el dato del día y no una
+// preferencia: importarla vieja haría valuar la cartera a un dólar que ya no
+// existe. El resto entra entero, incluido el score, que es la configuración más
+// trabajosa de rehacer a mano.
+const PARAMS_CONFIG_KEYS = [
+  'diasBajo',
+  'periFugaPct',
+  // Umbrales de concentración y tamaño de un portafolio.
+  'concentracionSectorPct',
+  'concentracionTipoPct',
+  'concentracionActivoPct',
+  'activosPorPortafolioMax',
+  'learnRulesMonths',
+  'themeAuto',
+  // Los nombres que acompañan a las dos jubilaciones: texto del usuario.
+  'jubilacion1Label',
+  'jubilacion2Label',
+  // Pesos, umbrales y rangos del score de salud financiera. Es un objeto y
+  // viaja entero: importar medio score no deja un score.
+  'healthScore',
+  // Plan de Reserva (todos los campos del plan, no incluye estado de
+  // ejecución que se calcula a partir de las tx)
+  'reservaMode',
+  'reservaMeses',
+  'reservaValorMensual',
+  'reservaAmount',
+  'reservaMonths',
+  'reservaStart'
+];
+
 // Combina todo en un solo archivo con flags por sección.
 function serializeFullConfig(stateLike, sections) {
   // sections = { rules, categories, tags, params, fichaMedica }
@@ -1258,31 +1290,19 @@ function serializeFullConfig(stateLike, sections) {
     out.sections.tags = true;
     out.data.tags = stateLike.tags || {};
   }
-  // Parámetros: solo los campos de configuración del usuario (umbrales,
-  // plan de Reserva, tema). Excluimos cotización MEP y timestamps de
-  // auto-fetch porque son datos volátiles que cambian a diario — importarlos
-  // desactualizados confundiría al usuario.
+  // Parámetros: los campos que el usuario configura. La lista vive en
+  // PARAMS_CONFIG_KEYS, una sola vez: tenerla escrita acá y repetida en el
+  // contador del diálogo ya hizo que se desincronizaran.
   if (sections.params) {
     const p = stateLike.params || {};
     out.sections.params = true;
-    out.data.params = {
-      diasBajo: p.diasBajo,
-      periFugaPct: p.periFugaPct,
-      concentracionSectorPct: p.concentracionSectorPct,
-      concentracionTipoPct: p.concentracionTipoPct,
-      concentracionActivoPct: p.concentracionActivoPct,
-      activosPorPortafolioMax: p.activosPorPortafolioMax,
-      learnRulesMonths: p.learnRulesMonths,
-      themeAuto: p.themeAuto,
-      // Plan de Reserva (todos los campos del plan, no incluye estado de
-      // ejecución que se calcula a partir de las tx)
-      reservaMode: p.reservaMode,
-      reservaMeses: p.reservaMeses,
-      reservaValorMensual: p.reservaValorMensual,
-      reservaAmount: p.reservaAmount,
-      reservaMonths: p.reservaMonths,
-      reservaStart: p.reservaStart
-    };
+    out.data.params = {};
+    // Los que el usuario nunca tocó no se escriben: un campo vacío en el
+    // archivo no dice nada que su ausencia no diga, y al importar se distingue
+    // "no vino" de "vino vacío".
+    PARAMS_CONFIG_KEYS.forEach(function (k) {
+      if (p[k] !== undefined) out.data.params[k] = p[k];
+    });
   }
   // Ficha médica: configuración de la solapa Ficha médica — tarjetas KPI
   // (orden, colores, qué muestra cada una), preferencias de visibilidad de
@@ -1369,7 +1389,18 @@ function previewImport(parsed, currentStateLike, mode) {
       const curCount = Object.keys(curParams).filter(function (k) {
         return curParams[k] !== undefined && curParams[k] !== null;
       }).length;
-      out.params = { current: curCount, incoming: incomingCount, willHave: incomingCount };
+      // Post-import quedan los del archivo MÁS los que el archivo no trae y el
+      // usuario ya tenía —la cotización MEP, por ejemplo—: el import pisa campo
+      // a campo, no reemplaza el bloque. Decir que van a quedar sólo los del
+      // archivo anunciaba una pérdida que no pasa.
+      const union = {};
+      Object.keys(curParams).forEach(function (k) {
+        if (curParams[k] !== undefined && curParams[k] !== null) union[k] = true;
+      });
+      Object.keys(incoming).forEach(function (k) {
+        if (incoming[k] !== undefined && incoming[k] !== null) union[k] = true;
+      });
+      out.params = { current: curCount, incoming: incomingCount, willHave: Object.keys(union).length };
     }
     if (parsed.sections.fichaMedica) {
       // Preview: número de tarjetas KPI (la métrica más visible).
@@ -3090,7 +3121,7 @@ if (typeof module !== 'undefined' && module.exports) {
     serializeRules, deserializeRules,
     serializeCategories, deserializeCategories,
     serializeTags, deserializeTags,
-    serializeFullConfig, previewImport,
+    serializeFullConfig, previewImport, PARAMS_CONFIG_KEYS,
     // reserva
     getReservaParams, getReservaAcumulado,
     // health score

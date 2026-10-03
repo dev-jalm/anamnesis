@@ -24591,6 +24591,15 @@ function applyImportConfirm() {
     if (typeof renderAll === 'function') renderAll();
     if (typeof renderCategoriesAdmin === 'function') renderCategoriesAdmin();
     if (typeof renderRulesList === 'function') renderRulesList();
+    // Los parámetros no se ven solos: el modo oscuro automático se aplica, los
+    // campos del diálogo —que está abierto justo detrás— tienen que mostrar lo
+    // importado, y los umbrales de concentración cambian lo que alerta en
+    // Salud financiera.
+    if (parsed.sections && parsed.sections.params) {
+      if (typeof applyThemeAutoSetting === 'function') applyThemeAutoSetting();
+      if (typeof renderParamsTab === 'function') renderParamsTab();
+      if (typeof renderMainAssets === 'function') renderMainAssets();
+    }
     closeImportConfirmModal();
     appAlert('Importación aplicada correctamente.');
   } catch (e) {
@@ -24610,13 +24619,13 @@ function openFullConfigModal(mode) {
   const rCount = (state.categoryRules || []).length;
   const cCount = Object.keys(state.categoryLabels || {}).length;
   const tCount = Object.keys(state.taglabels || {}).length;
-  // Parámetros: contamos los campos NO vacíos del bloque params que efectivamente
-  // exportamos (umbrales + plan de reserva + tema). Esto da al usuario una idea
-  // de cuánto configuró sin tener que listar campo a campo.
-  const PARAMS_KEYS = ['diasBajo','periFugaPct','concentracionSectorPct','concentracionTipoPct','concentracionActivoPct','activosPorPortafolioMax','learnRulesMonths','themeAuto','reservaMode','reservaMeses','reservaValorMensual','reservaAmount','reservaMonths','reservaStart'];
-  const pCount = PARAMS_KEYS.filter(function (k) {
+  // Parámetros: cuántos campos van a viajar de verdad. La lista es la misma que
+  // usa el serializador (PARAMS_CONFIG_KEYS), no una copia: repetirla fue lo que
+  // hizo que el contador quedara contando parámetros viejos.
+  // Un 0 cuenta: desactivar un umbral es haberlo configurado.
+  const pCount = PARAMS_CONFIG_KEYS.filter(function (k) {
     const v = state.params && state.params[k];
-    return v !== undefined && v !== null && v !== '' && v !== 0;
+    return v !== undefined && v !== null && v !== '';
   }).length;
   // Ficha médica: el dato más visible son las tarjetas KPI.
   const fmCount = (state.kpiCardsConfig || []).length;
@@ -24697,6 +24706,18 @@ function doFullConfigConfirm() {
       if (sections.tags && parsed.sections && parsed.sections.tags) {
         filteredParsed.sections.tags = true;
         filteredParsed.data.tags = parsed.data.tags;
+      }
+      // Parámetros y Ficha médica se ofrecen en el diálogo y se saben aplicar
+      // (ver applyImportConfirm), pero quedaban afuera de este filtro: el
+      // usuario marcaba las cinco secciones y entraban tres. El tilde tiene que
+      // poder cumplir lo que promete.
+      if (sections.params && parsed.sections && parsed.sections.params) {
+        filteredParsed.sections.params = true;
+        filteredParsed.data.params = parsed.data.params;
+      }
+      if (sections.fichaMedica && parsed.sections && parsed.sections.fichaMedica) {
+        filteredParsed.sections.fichaMedica = true;
+        filteredParsed.data.fichaMedica = parsed.data.fichaMedica;
       }
       importConfirmState.parsed = filteredParsed;
       importConfirmState.kind = 'full';

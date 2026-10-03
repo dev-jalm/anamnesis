@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.67 |
+| **Versión** | 1.68 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -893,12 +893,16 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | DOC-06 | Exportación de categorías | JSON | `anamnesis-categorias-aaaa-mm-dd.json` | Administración |
 | DOC-07 | Exportación de etiquetas | JSON | `anamnesis-etiquetas-aaaa-mm-dd.json` | Administración |
 | DOC-08 | Manual de usuario | PDF | `manual-de-usuario.pdf` | Compilación desde capturas y texto fuente |
+| DOC-09 | Exportación de configuración completa | JSON | `anamnesis-config-aaaa-mm-dd.json` | Administración → Parámetros |
 
 **Requerimientos de las salidas**
 
 | ID | Requerimiento |
 |---|---|
 | RF-210 | Las exportaciones de reglas, categorías y etiquetas son reimportables, y la reimportación solicita confirmación |
+| RF-210a | La **configuración completa** viaja en un solo archivo con cinco secciones, y el usuario elige cuáles incluir: **reglas**, **categorías**, **etiquetas**, **parámetros** y **Ficha médica** (tarjetas KPI, visibilidad de secciones, viajes y presupuestos anuales). Al importar se eligen de nuevo: el archivo puede traer más de las que se quieran aplicar, y **las cinco secciones marcadas se aplican** |
+| RF-210b | De los **parámetros** viajan los que el usuario configura: los umbrales de fuga y de concentración, el máximo de activos por portafolio, los meses para aprender reglas, el modo oscuro automático, los nombres de las jubilaciones, los pesos y umbrales del score y el plan de reserva. Un umbral en **0** viaja igual: desactivarlo es haberlo configurado. No viaja la **cotización MEP** ni sus marcas de cuándo y de dónde salió: es el dato del día y no una preferencia, e importarla vieja valuaría la cartera a un dólar que ya no existe |
+| RF-210c | El import de parámetros **pisa campo a campo**: lo que el archivo no trae se conserva tal como estaba. El resumen previo lo dice en esos términos —cuántos campos hay, cuántos trae el archivo y con cuántos se queda— y los cambios se aplican a la vista en el momento, sin recargar |
 | RF-211 | El manual de usuario incorpora índice con número de página y enlace interno a cada tema |
 | RF-212 | Cada tema del manual comienza en página nueva |
 | RF-213 | El manual utiliza la identidad visual del producto: mismo logotipo y mismas tipografías |
@@ -1204,9 +1208,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.64 | 25/09/2026 | La etiqueta de aportes de un portafolio se escribe y se crea sola (RF-080r2), y la solapa de KPIs pasa a llamarse **Configuración de KPIs** (RF-197) | Reemplazada |
 | 1.65 | 02/10/2026 | El ABM de portafolios ordena sus campos y presenta la etiqueta y los importes como Modo viaje (RF-080a, RF-080a1, RF-080b, RF-080b1). La cotización MEP sale de Parámetros y pasa a escribirse en la fila de solapas (RF-074b, RF-074b1), los umbrales de portafolios y activos se agrupan en una sección (RF-198) y el buscador de acciones ordena sus opciones como las solapas, con sus teclas (RF-199, RF-199a) | Reemplazada |
 | 1.66 | 02/10/2026 | Parámetros gana densidad: el plan de reserva entra en un renglón (RF-198a) y revisar el archivo y respaldarlo pasan a una sola sección (RF-198b) | Reemplazada |
-| 1.67 | 03/10/2026 | Los portafolios pasan a ser **de Inversiones** y de ninguna otra cartera: en Reserva, las Jubilaciones y Trading no se presenta nada de ellos (RF-080z, RF-080z1) | **Vigente** |
+| 1.67 | 03/10/2026 | Los portafolios pasan a ser **de Inversiones** y de ninguna otra cartera: en Reserva, las Jubilaciones y Trading no se presenta nada de ellos (RF-080z, RF-080z1) | Reemplazada |
+| 1.68 | 03/10/2026 | El export de configuración se pone al día con los parámetros vigentes y el import aplica las cinco secciones que ofrece, no tres (RF-210a, RF-210b, RF-210c, DOC-09) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| La configuración completa, con los parámetros al día en los dos sentidos | RF-210a, RF-210b, RF-210c |
+
+**Implementados en la versión 1.67**
 
 | Cambio | Requerimiento |
 |---|---|

@@ -354,7 +354,7 @@ window.MANUAL = {
         'Días bajo $: el umbral para contar cuántos días el saldo estuvo por debajo.',
         'Portafolios y activos, en una sola sección: a partir de qué porcentaje de una cartera dispara la alerta un mismo sector (30% de entrada), un mismo tipo de riesgo (70%) o un solo activo (15%), y cuántos activos puede agrupar un portafolio. Cualquiera en 0 se apaga.',
         'Más abajo, el peso y los umbrales de cada dimensión del score, y el plan de la reserva (cuántos meses de gastos querés cubrir y en qué plazo), con sus seis campos en un renglón.',
-        'Al final, revisión y respaldo del archivo: REVISAR ARCHIVO AHORA busca inconsistencias en tus datos, y EXPORTAR / IMPORTAR CONFIGURACIÓN mueven reglas, categorías y etiquetas en un solo archivo.'
+        'Al final, revisión y respaldo del archivo: REVISAR ARCHIVO AHORA busca inconsistencias en tus datos, y EXPORTAR / IMPORTAR CONFIGURACIÓN mueven en un solo archivo las reglas, las categorías, las etiquetas, estos parámetros y lo de Ficha médica. Elegís qué secciones incluir en los dos sentidos. La cotización MEP no viaja: es el dato del día, no una preferencia, y al importar se conserva la tuya.'
       ]
     },
     {

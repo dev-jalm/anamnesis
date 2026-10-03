@@ -2331,6 +2331,53 @@ group('Export / Import de configuración', function () {
     assert(blob.data.tags.JALM);
   });
 
+  test('serializeFullConfig — los parámetros que viajan son los que el usuario configura', function () {
+    const stateLike = {
+      params: {
+        diasBajo: 50000,
+        concentracionSectorPct: 0,          // desactivado a mano: es una decisión y viaja
+        concentracionActivoPct: 15,
+        activosPorPortafolioMax: 12,
+        jubilacion1Label: 'JALM',
+        jubilacion2Label: 'CLM',
+        healthScore: { pesos: { margen: 30 } },
+        reservaMeses: 6,
+        // Lo que NO es preferencia sino dato del día.
+        cotizacionMep: 1551.9,
+        cotizacionMepUpdatedAt: 1759000000000,
+        cotizacionMepSource: 'dolarapi'
+      }
+    };
+    const blob = serializeFullConfig(stateLike, { params: true });
+    assert(blob.sections.params === true);
+    assertEqual(blob.data.params.diasBajo, 50000);
+    assertEqual(blob.data.params.concentracionSectorPct, 0);
+    assertEqual(blob.data.params.activosPorPortafolioMax, 12);
+    assertEqual(blob.data.params.jubilacion1Label, 'JALM');
+    assertEqual(blob.data.params.jubilacion2Label, 'CLM');
+    assertEqual(blob.data.params.healthScore.pesos.margen, 30);
+    assertEqual(blob.data.params.reservaMeses, 6);
+    assert(blob.data.params.cotizacionMep === undefined, 'la cotización MEP no viaja');
+    assert(blob.data.params.cotizacionMepUpdatedAt === undefined);
+    assert(blob.data.params.cotizacionMepSource === undefined);
+    // Nada que no esté en la lista, y nada que el usuario no haya tocado.
+    assertEqual(Object.keys(blob.data.params).length, 8);
+    Object.keys(blob.data.params).forEach(function (k) {
+      assert(PARAMS_CONFIG_KEYS.indexOf(k) >= 0, 'se coló un parámetro fuera de la lista: ' + k);
+    });
+  });
+
+  test('previewImport — los parámetros que el archivo no trae no se pierden', function () {
+    const blob = serializeFullConfig({ params: { diasBajo: 70000, periFugaPct: 50 } }, { params: true });
+    // El usuario tiene un campo que el archivo no trae: queda igual, así que
+    // después del import tiene la unión de los dos y no sólo los del archivo.
+    const existing = { params: { diasBajo: 50000, cotizacionMep: 1551.9 } };
+    const p = previewImport(blob, existing, 'replace_byid');
+    assertEqual(p.params.current, 2);   // diasBajo y cotizacionMep
+    assertEqual(p.params.incoming, 2);  // diasBajo y periFugaPct
+    assertEqual(p.params.willHave, 3);  // los dos del archivo + la cotización, que se conserva
+  });
+
   test('previewImport — devuelve current/incoming/willHave por sección', function () {
     const blob = serializeRules([{ pattern: 'a' }, { pattern: 'b' }, { pattern: 'c' }]);
     const existing = { categoryRules: [{ pattern: 'a' }, { pattern: 'old' }] };
