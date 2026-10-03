@@ -3060,25 +3060,19 @@
           </details>
         </div>
 
+        <!-- Revisar el archivo y respaldarlo eran dos filas con un botón cada
+             una. Las dos son mantenimiento del mismo archivo y se hacen en el
+             mismo momento —se revisa antes de exportar—, así que van juntas. -->
         <div class="param-row param-row-vertical">
           <div class="param-info">
-            <div class="param-label">Diagnóstico del archivo</div>
-            <div class="param-desc">Analiza si hay inconsistencias en tus datos: transacciones con fechas inválidas, categorías o subcategorías que ya no existen, reglas rotas, KPIs mal configurados, etc. El diagnóstico se ejecuta automáticamente al cargar el archivo, pero podés volver a correrlo cuando quieras desde acá.</div>
+            <div class="param-label">Revisión y respaldo del archivo</div>
+            <div class="param-desc"><strong>Revisar</strong> analiza si hay inconsistencias en tus datos: transacciones con fechas inválidas, categorías o subcategorías que ya no existen, reglas rotas, KPIs mal configurados. Corre solo al cargar el archivo, y desde acá cuando quieras. <strong>Exportar</strong> e <strong>importar</strong> mueven tu configuración completa —reglas, categorías y etiquetas— en un solo archivo: sirve de backup, para migrar a otra computadora o para compartir tu setup, y en los dos sentidos elegís qué secciones incluir.</div>
           </div>
-          <div style="margin-top:10px">
+          <div class="param-acciones">
             <button class="upload-btn" id="openValidationReportBtn">
               <i data-lucide="stethoscope" style="width:14px;height:14px"></i>
               REVISAR ARCHIVO AHORA
             </button>
-          </div>
-        </div>
-
-        <div class="param-row param-row-vertical">
-          <div class="param-info">
-            <div class="param-label">Backup completo de configuración</div>
-            <div class="param-desc">Exportá o importá tu configuración completa (reglas + categorías + etiquetas) en un solo archivo. Útil para backup, migrar a otra computadora o compartir tu setup. Al exportar/importar podés elegir qué secciones incluir.</div>
-          </div>
-          <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
             <button class="upload-btn" id="exportFullConfigBtn">
               <i data-lucide="download" style="width:14px;height:14px"></i>
               EXPORTAR CONFIGURACIÓN

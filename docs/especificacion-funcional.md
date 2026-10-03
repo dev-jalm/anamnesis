@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.65 |
+| **Versión** | 1.66 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -539,6 +539,8 @@ Cinco pantallas.
 | RF-197 | Administración se organiza en siete solapas: **Categorías y etiquetas**, **Reglas**, **Modo viaje**, **Configuración de vistas** —qué secciones de Ficha médica se presentan y en cuál de sus dos vistas—, **Configuración de KPIs** —las tarjetas de esa misma solapa—, **Portafolios** y **Parámetros**. Las vistas y los KPIs van separados porque son dos decisiones distintas y juntos obligaban a desplazarse para llegar a la segunda. Cada una tiene su tecla de acceso: V, K, P y M respectivamente, y J abre Modo viaje |
 | RF-194 | El umbral de concentración por tipo de riesgo (RF-073t) es configurable entre 0 y 100%, por separado del de sector. El valor inicial es 70%: una cartera de acciones es enteramente renta variable, y con el umbral de sector alertaría siempre. En 0 las alertas quedan desactivadas |
 | RF-198 | Los cuatro parámetros de **portafolios y activos** —los tres umbrales de concentración (RF-193, RF-194, RF-195) y el máximo de activos por portafolio (RF-196)— se presentan juntos en **una sola sección plegable**, con el mismo tratamiento que la configuración del score (RF-191): un bloque por parámetro, con su título, su explicación y su campo. Repartidos en cuatro filas sueltas se leían como parámetros sin relación entre sí, y son el mismo criterio —cuánto puede pesar una sola cosa— medido a cuatro alturas distintas |
+| RF-198a | El **plan de reserva** presenta sus seis campos —meses, valor mensual, monto a alcanzar, plazo, aporte mensual e inicio— en **un solo renglón**. Son las seis partes de una misma cuenta: los meses por el valor mensual dan el monto, y el monto en el plazo da el aporte; partidos en dos filas la cuenta se leía en dos tiempos. Sus campos toman el alto único de los controles del diálogo. En una ventana angosta la grilla vuelve a partirse sola |
+| RF-198b | **Revisar el archivo** y **exportar o importar la configuración** se presentan en una sola sección. Las dos son mantenimiento del mismo archivo y se hacen en el mismo momento —se revisa antes de respaldar—, y como cada una se opera con botones y no con un valor, separadas ocupaban dos filas para tres botones |
 
 ---
 
@@ -1198,9 +1200,17 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.62 | 25/09/2026 | Se puede **reservar plata** a un objetivo etiquetando el aporte, y el líquido de la cartera se desglosa en reservado y sin asignar (RF-080r, RF-080r1, RF-072i) | Reemplazada |
 | 1.63 | 25/09/2026 | Administración reordena sus solapas: **Portafolios** (antes Salud financiera), **Configuración de vistas** (antes Ficha médica) y **KPIs**, que se separa en una solapa propia. Sus teclas pasan a P, V y K (RF-197) | Reemplazada |
 | 1.64 | 25/09/2026 | La etiqueta de aportes de un portafolio se escribe y se crea sola (RF-080r2), y la solapa de KPIs pasa a llamarse **Configuración de KPIs** (RF-197) | Reemplazada |
-| 1.65 | 02/10/2026 | El ABM de portafolios ordena sus campos y presenta la etiqueta y los importes como Modo viaje (RF-080a, RF-080a1, RF-080b, RF-080b1). La cotización MEP sale de Parámetros y pasa a escribirse en la fila de solapas (RF-074b, RF-074b1), los umbrales de portafolios y activos se agrupan en una sección (RF-198) y el buscador de acciones ordena sus opciones como las solapas, con sus teclas (RF-199, RF-199a) | **Vigente** |
+| 1.65 | 02/10/2026 | El ABM de portafolios ordena sus campos y presenta la etiqueta y los importes como Modo viaje (RF-080a, RF-080a1, RF-080b, RF-080b1). La cotización MEP sale de Parámetros y pasa a escribirse en la fila de solapas (RF-074b, RF-074b1), los umbrales de portafolios y activos se agrupan en una sección (RF-198) y el buscador de acciones ordena sus opciones como las solapas, con sus teclas (RF-199, RF-199a) | Reemplazada |
+| 1.66 | 02/10/2026 | Parámetros gana densidad: el plan de reserva entra en un renglón (RF-198a) y revisar el archivo y respaldarlo pasan a una sola sección (RF-198b) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| El plan de reserva, en un solo renglón | RF-198a |
+| Revisión y respaldo del archivo, en una sección | RF-198b |
+
+**Implementados en la versión 1.65**
 
 | Cambio | Requerimiento |
 |---|---|

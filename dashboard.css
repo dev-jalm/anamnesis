@@ -629,9 +629,17 @@ footer .eyebrow-sources {
   align-items: stretch;
 }
 .param-row-vertical .param-info { width: 100%; }
+/* La fila de botones de un parámetro que se opera con acciones y no con un
+   valor —revisar el archivo, exportarlo, importarlo—. */
+.param-acciones {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 .reserva-controls {
-  display: flex; flex-direction: column; gap: 12px;
-  margin-top: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  margin-top: 12px;
   width: 100%;
 }
 .reserva-mode-toggle {
@@ -643,8 +651,8 @@ footer .eyebrow-sources {
 }
 .reserva-mode-btn {
   background: transparent; border: none;
-  padding: 7px 14px; border-radius: 6px;
-  font-size: 12px; font-family: 'Inter', sans-serif;
+  padding: 5px 12px; border-radius: 6px;
+  font-size: 11px; font-family: 'Inter', sans-serif;
   color: var(--ink); cursor: pointer;
   transition: all 0.15s;
 }
@@ -659,26 +667,36 @@ footer .eyebrow-sources {
   background: linear-gradient(135deg, var(--blue) 0%, #2F4659 100%);
   color: #F5F1E8;
 }
+/* Los seis campos del plan de reserva entran en un renglón: son las seis
+   partes de una misma cuenta —meses por valor da el monto, y el monto en el
+   plazo da el aporte—, y partidos en dos filas había que leer la cuenta en dos
+   tiempos. Con 130px de mínimo entran los seis desde una ventana de ~1030px,
+   y ninguno recorta su contenido: medido, el más exigente —la fecha, con su
+   ícono de calendario— y el monto de ocho dígitos entran en 118px. En una
+   ventana más angosta la grilla vuelve a partirse sola. */
 .reserva-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px 10px;
 }
-.reserva-field { display: flex; flex-direction: column; gap: 6px; }
+.reserva-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .reserva-field-label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px; letter-spacing: 1.2px;
+  font-size: 9px; letter-spacing: 1px;
   color: var(--muted); text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .reserva-field input,
 .reserva-field input[readonly] {
   background: var(--card);
   border: 1px solid var(--grid);
-  border-radius: 8px;
-  padding: 9px 12px;
+  border-radius: 6px;
+  padding: 4px 9px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px; color: var(--ink);
+  font-size: 12px; color: var(--ink);
   outline: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 .reserva-field input:focus {
   border-color: var(--accent);
@@ -2955,7 +2973,8 @@ footer .eyebrow-sources {
 .cat-modal-card .cat-add-unified .period-select,
 .cat-modal-card .rules-add-form .upload-btn,
 .cat-modal-card .travel-add-form .upload-btn,
-.cat-modal-card .cat-add-unified .upload-btn {
+.cat-modal-card .cat-add-unified .upload-btn,
+.cat-modal-card .reserva-field input {
   height: var(--admin-ctrl-h);
 }
 /* Los botones cuadrados de icono conservan su proporción. */
