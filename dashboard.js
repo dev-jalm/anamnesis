@@ -12290,8 +12290,11 @@ function celdaSeleccionActivo(destino, ticker, moneda, entries, enPortafolio) {
 function celdaPortafolioCompra(e) {
   if (!admitePortafolios(e && e.destino) || !portafolios().length) return '<td></td>';
   const actual = portafolioDeCompra(e);
+  // Sin asignar va atenuado y en bastardilla, el mismo tratamiento que el
+  // selector de sector le da a lo que todavía no tiene valor.
   return '<td class="inv-sector-cell">' +
-    '<select class="inv-pf-compra-sel" data-inv-id="' + escapeHtmlSafe(e.id) + '" ' +
+    '<select class="inv-pf-compra-sel' + (actual ? '' : ' inv-sector-vacio') + '" ' +
+      'data-inv-id="' + escapeHtmlSafe(e.id) + '" ' +
       'title="Portafolio de esta compra">' +
       '<option value=""' + (actual ? '' : ' selected') + '>— sin portafolio —</option>' +
       portafolios().slice().sort(function (a, b) {

@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.69 |
+| **Versión** | 1.70 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -959,6 +959,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-06 | El ancho máximo de contenido es de 1800 px, con margen lateral de 40 px |
 | RNF-07 | Las columnas de encabezado y de detalle comparten definición de anchos. No se alinean por relleno |
 | RNF-18 | Un campo nuevo adopta la tipografía —familia, tamaño y peso— de los campos vecinos de la misma fila o formulario. No se elige por separado |
+| RNF-18a | **Un control nuevo no se presenta con el aspecto que le da el navegador.** Si existe un control gemelo —el mismo tipo de control, en la misma columna o en el mismo formulario— adopta su presentación completa: tipografía, fondo, borde, altos y estados de apuntado y foco, incluido cómo se ve cuando todavía no tiene valor. Un control sin presentación propia no se ve neutro: se ve ajeno, y la diferencia es la más visible de todas —fondo claro, control nativo— al lado de los que sí la tienen |
 | RNF-19 | **Toda información emergente que explique un dato** —un umbral superado, un porcentaje, un texto recortado— se presenta con el componente propio del producto, de título y detalle, y no con el emergente nativo del navegador. Éste queda reservado para los controles de acción. Dos emergentes de dibujo y tiempo distintos no conviven en la misma línea |
 
 ### 9.2 Diálogos
@@ -1212,9 +1213,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.66 | 02/10/2026 | Parámetros gana densidad: el plan de reserva entra en un renglón (RF-198a) y revisar el archivo y respaldarlo pasan a una sola sección (RF-198b) | Reemplazada |
 | 1.67 | 03/10/2026 | Los portafolios pasan a ser **de Inversiones** y de ninguna otra cartera: en Reserva, las Jubilaciones y Trading no se presenta nada de ellos (RF-080z, RF-080z1) | Reemplazada |
 | 1.68 | 03/10/2026 | El export de configuración se pone al día con los parámetros vigentes y el import aplica las cinco secciones que ofrece, no tres (RF-210a, RF-210b, RF-210c, DOC-09) | Reemplazada |
-| 1.69 | 03/10/2026 | Escape cierra el diálogo que está arriba y uno solo, las capas quedan definidas para los diálogos que se abren desde otro, y los últimos avisos nativos pasan al diálogo propio (RNF-10, RNF-14, RNF-14a, RNF-15a) | **Vigente** |
+| 1.69 | 03/10/2026 | Escape cierra el diálogo que está arriba y uno solo, las capas quedan definidas para los diálogos que se abren desde otro, y los últimos avisos nativos pasan al diálogo propio (RNF-10, RNF-14, RNF-14a, RNF-15a) | Reemplazada |
+| 1.70 | 12/10/2026 | El selector de portafolio del detalle de compras toma la presentación de su gemelo de la misma columna, y queda escrito que un control nuevo nunca se presenta con el aspecto del navegador (RNF-18a) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| El selector de portafolio, con la presentación de su gemelo | RNF-18a |
+
+**Implementados en la versión 1.69**
 
 | Cambio | Requerimiento |
 |---|---|

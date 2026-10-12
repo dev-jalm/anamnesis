@@ -121,6 +121,24 @@ scroll infinito.
 Son **siempre los mismos** en toda la app. Es la regla que más veces se tuvo que
 repetir.
 
+> **Todo lo que se agrega se hace manteniendo los estilos actuales. Este
+> comentario no se hace dos veces.** Antes de dar por cerrado un control nuevo
+> —un select, un input, un botón—: buscar el gemelo que ya existe y **agregar la
+> clase nueva a la declaración del gemelo**, no escribir un bloque paralelo ni
+> dejarlo sin CSS. Si no hay gemelo, el estilo se toma de los campos vecinos.
+>
+> **Un control sin CSS propio no se ve "neutro": se ve con el estilo del
+> navegador**, que es la diferencia más visible que puede haber —fondo blanco,
+> flechita nativa, Arial— al lado de controles en JetBrains Mono sobre fondo
+> transparente. Pasó con el selector de portafolio del detalle de compras, que
+> salió sin una sola línea de CSS mientras su gemelo de la misma columna, el de
+> sector, tenía la suya.
+>
+> Cómo se verifica en treinta segundos, antes de decir que está listo: leer el
+> estilo computado del control nuevo y el del vecino y comparar `fontFamily`,
+> `fontSize`, `fontWeight`, `backgroundColor`, `borderColor` y alto. Si alguno
+> difiere sin un motivo que se pueda escribir en un comentario, está mal.
+
 - **Controles gemelos comparten clase.** Nada de estilo inline caso por caso. Si
   dos botones hacen lo mismo en pantallas distintas, se ven igual.
 - **Un solo emergente para los datos.** Lo que explica un dato —un umbral

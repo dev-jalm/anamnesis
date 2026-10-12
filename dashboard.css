@@ -6271,7 +6271,11 @@ body[data-exporting="true"] .section-card {
 /* Sector de la fila de un ticker. Mismo tratamiento que la descripción —sin
    borde hasta que se pasa el mouse— porque es el mismo tipo de dato: editable,
    pero la mayoría de las veces llega solo y no hay que tocarlo. */
-.inv-sector-sel {
+/* El selector de sector de la fila del ticker y el de portafolio de cada compra
+   son el mismo control en la misma columna, uno en la fila y otro en su
+   detalle: comparten declaración para que no puedan separarse. */
+.inv-sector-sel,
+.inv-pf-compra-sel {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -6288,14 +6292,21 @@ body[data-exporting="true"] .section-card {
   box-sizing: border-box;
   cursor: pointer;
 }
-.inv-sector-sel:hover { border-color: var(--border); }
-.inv-sector-sel:focus { border-color: var(--accent); background: var(--bg-1); }
+.inv-sector-sel:hover,
+.inv-pf-compra-sel:hover { border-color: var(--border); }
+.inv-sector-sel:focus,
+.inv-pf-compra-sel:focus { border-color: var(--accent); background: var(--bg-1); }
 .inv-sector-sel.modified { color: var(--accent); font-weight: 600; }
-.inv-sector-sel.inv-sector-vacio { color: var(--muted); font-style: italic; }
-.inv-sector-sel option { color: var(--ink); background: var(--card); font-style: normal; }
+.inv-sector-sel.inv-sector-vacio,
+.inv-pf-compra-sel.inv-sector-vacio { color: var(--muted); font-style: italic; }
+.inv-sector-sel option,
+.inv-pf-compra-sel option { color: var(--ink); background: var(--card); font-style: normal; }
 /* En mayúsculas, como la descripción de al lado —que también se muestra así
    por CSS—: el dato no cambia, sólo cómo se ve. Las opciones también, para que
-   la lista desplegada coincida con lo que queda elegido. */
+   la lista desplegada coincida con lo que queda elegido.
+   El de portafolio queda afuera a propósito: lo que muestra es un nombre que
+   puso el usuario —"Viaje a Marruecos"—, no una etiqueta de catálogo, y se
+   escribe como él lo escribió, igual que en la cabecera de su grupo. */
 .inv-sector-sel,
 .inv-sector-sel option,
 .inv-row-sector,
