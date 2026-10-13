@@ -19728,15 +19728,21 @@ function tarjetasRendimiento(r) {
     : '');
 }
 
-const MES_INICIAL = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+const MESES_ORDEN = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+// El mes de una clave 'aaaa-mm', abreviado a tres letras. Sale de MONTH_SHORT,
+// que es lo que ya rotula los meses en los demás gráficos de la app: una sola
+// forma de escribir un mes en toda la pantalla.
+function mesAbrev(clave) {
+  const m = parseInt(String(clave).slice(5, 7), 10);
+  return MONTH_SHORT[MESES_ORDEN[m - 1]] || String(clave).slice(5, 7);
+}
 
 // '2026-04' → 'Abr 2026'. Las claves de mes son internas; a la vista va el mes
 // escrito como en el resto de la app.
 function rotuloMes(clave) {
-  const orden = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-  const m = parseInt(String(clave).slice(5, 7), 10);
-  return (MONTH_SHORT[orden[m - 1]] || String(clave).slice(5, 7)) + ' ' + String(clave).slice(0, 4);
+  return mesAbrev(clave) + ' ' + String(clave).slice(0, 4);
 }
 
 // Los dos gráficos se dibujan en PÍXELES REALES: el SVG mide lo mismo que su
@@ -19756,6 +19762,11 @@ const PERF_ANCHO_BASE = 420;
 // neutro y no un segundo color: el índice es la referencia, no otra categoría.
 const COLOR_INDICE = 'var(--muted)';
 
+// Lo que mide "Sep" a 9px en JetBrains Mono, más el aire para que dos
+// etiquetas vecinas no se toquen. Es el paso mínimo para poder rotular todos
+// los meses; por debajo, los gráficos saltean etiquetas.
+const ANCHO_MES_ABREV = 26;
+
 // Barras de la rentabilidad mes a mes. Verde y rojo, como en toda la pantalla.
 function graficoMensual(meses, ancho) {
   if (!meses.length) return '';
@@ -19769,16 +19780,25 @@ function graficoMensual(meses, ancho) {
   const paso = Math.max(util / meses.length, 14);
   const anchoBarra = Math.min(30, Math.max(6, paso - 8));
   const w = Math.max(ancho || PERF_ANCHO_BASE, izq + der + paso * meses.length);
+  // Con el mes en tres letras la etiqueta ya no entra en cualquier paso: se
+  // escribe una sí y otra no —o una de cada tres— antes que dejar que se
+  // pisen. El emergente de cada barra sigue diciendo el mes completo.
+  const cadaCuantos = Math.max(1, Math.ceil(ANCHO_MES_ABREV / paso));
   const barras = meses.map(function (m, i) {
     const x = izq + i * paso + (paso - anchoBarra) / 2;
     const h = Math.max(2, Math.abs(m.retorno) / tope * 62);
     const y = m.retorno >= 0 ? cero - h : cero;
     const color = m.retorno >= 0 ? 'var(--green)' : 'var(--red)';
+    // Se rotula desde el final hacia atrás: el mes más reciente siempre lleva
+    // nombre, que es el que se busca primero.
+    const rotula = ((meses.length - 1 - i) % cadaCuantos) === 0;
     return '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + anchoBarra.toFixed(1) +
       '" height="' + h.toFixed(1) + '" rx="3" fill="' + color + '"' +
       tipAttrs(rotuloMes(m.clave), pctRend(m.retorno, 2) + ' en ' + m.ruedas + ' rueda' + (m.ruedas === 1 ? '' : 's')) + '></rect>' +
-      '<text x="' + (x + anchoBarra / 2).toFixed(1) + '" y="' + (alto - 8) + '" text-anchor="middle" font-size="9" fill="var(--muted-2)">' +
-        MES_INICIAL[parseInt(m.clave.slice(5, 7), 10) - 1] + '</text>' +
+      (rotula
+        ? '<text x="' + (x + anchoBarra / 2).toFixed(1) + '" y="' + (alto - 8) + '" text-anchor="middle" font-size="9" fill="var(--muted-2)">' +
+            mesAbrev(m.clave) + '</text>'
+        : '') +
       (m.clave.slice(5, 7) === '01' || i === 0
         ? '<text x="' + (x + anchoBarra / 2).toFixed(1) + '" y="' + (alto - 20) + '" text-anchor="middle" font-size="8" fill="var(--muted)">' + m.clave.slice(0, 4) + '</text>'
         : '');
@@ -19902,11 +19922,11 @@ function graficoCrecimiento(datos, ancho) {
     const cl = datos.f[i].slice(0, corte);
     if (cl === prev) continue;
     prev = cl;
-    marcas.push({ i: i, txt: unAnio ? MES_INICIAL[parseInt(cl.slice(5, 7), 10) - 1] : cl });
+    marcas.push({ i: i, txt: unAnio ? mesAbrev(cl + '-01') : cl });
   }
   let ultX = -1e9;
   const ejeX = marcas.filter(function (m) {
-    if (x(m.i) - ultX < (unAnio ? 16 : 34)) return false;
+    if (x(m.i) - ultX < (unAnio ? ANCHO_MES_ABREV : 34)) return false;
     ultX = x(m.i); return true;
   }).map(function (m) {
     return '<text x="' + x(m.i).toFixed(1) + '" y="' + (alto - 8) + '" text-anchor="middle" ' +
@@ -20022,9 +20042,9 @@ function graficoSubmarina(datos, ancho) {
     const cl = f[i].slice(0, corte);
     if (cl === prev) continue;
     prev = cl;
-    marcas.push({ i: i, txt: unAnio ? MES_INICIAL[parseInt(cl.slice(5, 7), 10) - 1] : cl });
+    marcas.push({ i: i, txt: unAnio ? mesAbrev(cl + '-01') : cl });
   }
-  const minSep = unAnio ? 16 : 34;
+  const minSep = unAnio ? ANCHO_MES_ABREV : 34;
   let ultX = -1e9;
   const ejeX = marcas.filter(function (m) {
     if (x(m.i) - ultX < minSep) return false;
