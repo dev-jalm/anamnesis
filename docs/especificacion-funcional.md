@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.70 |
+| **Versión** | 1.71 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -894,6 +894,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | DOC-07 | Exportación de etiquetas | JSON | `anamnesis-etiquetas-aaaa-mm-dd.json` | Administración |
 | DOC-08 | Manual de usuario | PDF | `manual-de-usuario.pdf` | Compilación desde capturas y texto fuente |
 | DOC-09 | Exportación de configuración completa | JSON | `anamnesis-config-aaaa-mm-dd.json` | Administración → Parámetros |
+| DOC-10 | Series de precios diarios | JS | `series-precios.js` | Carga única desde CSV, con `docs/generar-series-precios.js` |
 
 **Requerimientos de las salidas**
 
@@ -902,6 +903,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-210 | Las exportaciones de reglas, categorías y etiquetas son reimportables, y la reimportación solicita confirmación |
 | RF-210a | La **configuración completa** viaja en un solo archivo con cinco secciones, y el usuario elige cuáles incluir: **reglas**, **categorías**, **etiquetas**, **parámetros** y **Ficha médica** (tarjetas KPI, visibilidad de secciones, viajes y presupuestos anuales). Al importar se eligen de nuevo: el archivo puede traer más de las que se quieran aplicar, y **las cinco secciones marcadas se aplican** |
 | RF-210b | De los **parámetros** viajan los que el usuario configura: los umbrales de fuga y de concentración, el máximo de activos por portafolio, los meses para aprender reglas, el modo oscuro automático, los nombres de las jubilaciones, los pesos y umbrales del score y el plan de reserva. Un umbral en **0** viaja igual: desactivarlo es haberlo configurado. No viaja la **cotización MEP** ni sus marcas de cuándo y de dónde salió: es el dato del día y no una preferencia, e importarla vieja valuaría la cartera a un dólar que ya no existe |
+| RF-211a | El producto incorpora **series de precios diarios** —cierre ajustado por dividendos y splits, en dólares— para poder medir el comportamiento de la cartera en el tiempo: con un solo precio por activo no hay volatilidad, ni caída máxima, ni beta, ni correlación. Ninguna fuente de histórico accesible desde el navegador las sirve, así que se cargan una vez desde archivos y se versionan con el producto, igual que el listado de CEDEARs: son un dato de mercado, idéntico para cualquiera que mire el mismo instrumento. Todas comparten un único calendario y cada una declara en qué rueda empieza —las que arrancan tarde es porque el instrumento no existía antes—, de modo que la alineación entre series queda garantizada por construcción |
 | RF-210c | El import de parámetros **pisa campo a campo**: lo que el archivo no trae se conserva tal como estaba. El resumen previo lo dice en esos términos —cuántos campos hay, cuántos trae el archivo y con cuántos se queda— y los cambios se aplican a la vista en el momento, sin recargar |
 | RF-211 | El manual de usuario incorpora índice con número de página y enlace interno a cada tema |
 | RF-212 | Cada tema del manual comienza en página nueva |
@@ -1214,9 +1216,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.67 | 03/10/2026 | Los portafolios pasan a ser **de Inversiones** y de ninguna otra cartera: en Reserva, las Jubilaciones y Trading no se presenta nada de ellos (RF-080z, RF-080z1) | Reemplazada |
 | 1.68 | 03/10/2026 | El export de configuración se pone al día con los parámetros vigentes y el import aplica las cinco secciones que ofrece, no tres (RF-210a, RF-210b, RF-210c, DOC-09) | Reemplazada |
 | 1.69 | 03/10/2026 | Escape cierra el diálogo que está arriba y uno solo, las capas quedan definidas para los diálogos que se abren desde otro, y los últimos avisos nativos pasan al diálogo propio (RNF-10, RNF-14, RNF-14a, RNF-15a) | Reemplazada |
-| 1.70 | 12/10/2026 | El selector de portafolio del detalle de compras toma la presentación de su gemelo de la misma columna, y queda escrito que un control nuevo nunca se presenta con el aspecto del navegador (RNF-18a) | **Vigente** |
+| 1.70 | 12/10/2026 | El selector de portafolio del detalle de compras toma la presentación de su gemelo de la misma columna, y queda escrito que un control nuevo nunca se presenta con el aspecto del navegador (RNF-18a) | Reemplazada |
+| 1.71 | 13/10/2026 | Se incorporan las series de precios diarios de los doce instrumentos —dos índices de referencia y diez activos—, primer paso para medir el comportamiento de la cartera en el tiempo (RF-211a, DOC-10) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Series de precios diarios, cargadas desde archivo | RF-211a, DOC-10 |
+
+**Implementados en la versión 1.70**
 
 | Cambio | Requerimiento |
 |---|---|
