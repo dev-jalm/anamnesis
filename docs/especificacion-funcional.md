@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.73 |
+| **Versión** | 1.74 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -909,7 +909,11 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-211d | La medición se hace **en dólares y sobre el precio del activo**: un CEDEAR se traduce a su subyacente por nominales ÷ ratio. Así no hace falta una serie de tipo de cambio —que sería una segunda fuente histórica, con su propio error— y el resultado responde "cómo se comportó lo que compré". La contracara se declara en la pantalla: el premio o descuento del CEDEAR contra su valor teórico queda afuera de la medición |
 | RF-211e | La cobertura parcial **se dice, no se disimula**. Los activos sin serie de precios se nombran y se informa qué porcentaje del valor de hoy quedó efectivamente medido. Un porcentaje de rendimiento calculado sobre un tercio de la cartera presentado como si fuera de toda la cartera es peor que no mostrarlo |
 | RF-211f | La comparación contra el **índice de referencia** se calcula sobre exactamente la misma ventana de tiempo que la cartera: desde la primera rueda con tenencia hasta la última disponible. Comparar contra el rendimiento del índice en otro período no es una comparación |
-| RF-211g | La sección presenta dos gráficos: **rentabilidad mes a mes** —verde la ganancia, rojo la pérdida, como en toda la pantalla— y **retorno por período contra el índice**, por año y con el total al final, que es la pregunta que uno hace después de mirar los años |
+| RF-211g | La sección presenta tres gráficos: **rentabilidad mes a mes** —verde la ganancia, rojo la pérdida, como en toda la pantalla—, **retorno por período contra el índice**, por año y con el total al final, y la **curva submarina**, a ancho completo porque lo que hay que leer en ella es el ancho de cada caída y no sólo su profundidad |
+| RF-211h | El resumen se presenta en **dos filas de cuatro**: arriba lo que rindió, abajo lo que costó en riesgo. Separarlas es lo que permite leer un retorno al lado de la caída que hubo que aguantar para tenerlo; en una sola fila de ocho, las cifras quedan más chicas que sus rótulos |
+| RF-211i | La **caída máxima** informa las cuatro cosas que la definen: cuánto se cayó, desde qué fecha, hasta cuál, y si ya se recuperó o sigue abierta. El tiempo bajo el agua se dice en ruedas, porque es el dato que se subestima: no duele sólo cuánto cae, duele cuánto tarda. Cuando la cartera está hoy por debajo de su mejor momento, la sección lo dice en una línea |
+| RF-211j | La **volatilidad anualizada** se informa sin signo —no es ganancia ni pérdida, es cuánto se mueve— y sólo cuando hay ruedas suficientes para que el cálculo signifique algo; por debajo de ese mínimo no se muestra en gris: no se muestra |
+| RF-211k | Todo lo que mide riesgo —la curva submarina, la caída máxima, la volatilidad— se calcula sobre el **retorno encadenado** y nunca sobre el valor en pesos de la cartera. Un aporte sube el valor sin ser ganancia: sobre el valor, la curva submarina diría que el usuario se recuperó de una caída cuando lo único que pasó es que puso plata nueva |
 | RF-210c | El import de parámetros **pisa campo a campo**: lo que el archivo no trae se conserva tal como estaba. El resumen previo lo dice en esos términos —cuántos campos hay, cuántos trae el archivo y con cuántos se queda— y los cambios se aplican a la vista en el momento, sin recargar |
 | RF-211 | El manual de usuario incorpora índice con número de página y enlace interno a cada tema |
 | RF-212 | Cada tema del manual comienza en página nueva |
@@ -1012,7 +1016,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 469 pruebas en 56 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 485 pruebas en 60 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 
 **Fundamento de RNF-40.** Requerimiento explícito del cliente: una herramienta personal destinada a seguir operativa dentro de cinco años no puede depender de una cadena de compilación cuyas dependencias se degradan en meses.
@@ -1227,9 +1231,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.70 | 12/10/2026 | El selector de portafolio del detalle de compras toma la presentación de su gemelo de la misma columna, y queda escrito que un control nuevo nunca se presenta con el aspecto del navegador (RNF-18a) | Reemplazada |
 | 1.71 | 13/10/2026 | Se incorporan las series de precios diarios de los doce instrumentos —dos índices de referencia y diez activos—, primer paso para medir el comportamiento de la cartera en el tiempo (RF-211a, DOC-10) | Reemplazada |
 | 1.72 | 13/10/2026 | Inversiones suma la sección **Rendimiento**: retorno acumulado y TIR anualizada, mes a mes y por período, contra el índice de referencia y diciendo qué parte de la cartera quedó medida (RF-211b a RF-211g, RNF-18b) | Reemplazada |
-| 1.73 | 13/10/2026 | Rendimiento se presenta como sus hermanas: la misma banda de encabezado y la misma sangría, de modo que las cuatro secciones del panel arrancan en una sola columna (RF-211b, RNF-18c) | **Vigente** |
+| 1.73 | 13/10/2026 | Rendimiento se presenta como sus hermanas: la misma banda de encabezado y la misma sangría, de modo que las cuatro secciones del panel arrancan en una sola columna (RF-211b, RNF-18c) | Reemplazada |
+| 1.74 | 13/10/2026 | Rendimiento informa el **riesgo**: curva submarina, caída máxima con su tiempo de recuperación y volatilidad anualizada, en una segunda fila de tarjetas (RF-211g a RF-211k) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| La curva submarina, la caída máxima y la volatilidad | RF-211g, RF-211h, RF-211i, RF-211j, RF-211k |
+
+**Implementados en la versión 1.73**
 
 | Cambio | Requerimiento |
 |---|---|

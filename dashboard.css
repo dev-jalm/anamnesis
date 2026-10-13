@@ -4304,16 +4304,18 @@ footer .eyebrow-sources {
    cabecera del panel: rótulo chico en mono arriba, número abajo. Los gráficos
    van en la misma grilla de dos columnas que Concentración, para que las dos
    secciones se lean igual. */
+/* Dos filas de cuatro: arriba lo que rindió, abajo lo que costó en riesgo. En
+   una sola fila de ocho las cifras quedaban más chicas que los rótulos. */
 .inv-perf-tiles {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
 }
 /* El aire entre bloques lo pone el gap de .inv-perf, el mismo de Liquidado: la
    nota no agrega el suyo encima. */
 .inv-perf > .inv-sector-nota { margin-top: 0; }
 @media (max-width: 1100px) {
-  .inv-perf-tiles { grid-template-columns: repeat(3, 1fr); }
+  .inv-perf-tiles { grid-template-columns: repeat(2, 1fr); }
 }
 .inv-perf-tile {
   background: var(--card);
@@ -4354,6 +4356,9 @@ footer .eyebrow-sources {
 @media (max-width: 1100px) {
   .inv-perf-grid { grid-template-columns: 1fr; }
 }
+/* La curva submarina toma las dos columnas: es una serie de tiempo larga y lo
+   que hay que leer es el ancho de cada caída, no sólo su profundidad. */
+.inv-perf-ancho { grid-column: 1 / -1; }
 .inv-perf-chart {
   background: var(--card);
   border: 1px solid var(--border);

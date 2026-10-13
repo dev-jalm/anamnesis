@@ -3866,6 +3866,110 @@ group('Rendimiento — TIR anualizada', function () {
   });
 });
 
+group('RIESGO — El índice de riqueza', function () {
+  test('un peso puesto al principio, día por día', function () {
+    const ix = indiceDeRiqueza([null, 0.1, 0.1]);
+    assertEqual(ix[0], 1);
+    assert(Math.abs(ix[1] - 1.1) < 1e-12);
+    assert(Math.abs(ix[2] - 1.21) < 1e-12, 'encadena, no suma: dio ' + ix[2]);
+  });
+  test('las ruedas sin retorno quedan sin índice', function () {
+    const ix = indiceDeRiqueza([null, null, 0.1]);
+    assertEqual(ix[0], null);
+    assertEqual(ix[1], 1);
+    assert(Math.abs(ix[2] - 1.1) < 1e-12);
+  });
+  test('una serie vacía no rompe', function () {
+    assertEqual(indiceDeRiqueza([]).length, 0);
+    assertEqual(indiceDeRiqueza(null).length, 0);
+  });
+  test('descuenta los aportes: poner plata no es ganar', function () {
+    // Día 2 entran 100 y el precio no se movió: el valor sube pero la riqueza no.
+    const r = retornosDiarios([100, 200, 200], [0, 100, 0]);
+    const ix = indiceDeRiqueza(r);
+    assert(Math.abs(ix[ix.length - 1] - 1) < 1e-12,
+      'un aporte no puede mover el índice de riqueza, dio ' + ix[ix.length - 1]);
+  });
+});
+
+group('RIESGO — La curva submarina', function () {
+  test('en un máximo nuevo la curva toca cero', function () {
+    const s = curvaSubmarina([1, 1.1, 1.2]);
+    assertEqual(s[0], 0); assertEqual(s[1], 0); assertEqual(s[2], 0);
+  });
+  test('mide contra el mejor momento, no contra el arranque', function () {
+    // Sube a 1,20 y cae a 1,08: son 10% abajo del pico, no 8% arriba del inicio.
+    const s = curvaSubmarina([1, 1.2, 1.08]);
+    assert(Math.abs(s[2] + 0.1) < 1e-12, 'dio ' + s[2]);
+  });
+  test('nunca es positiva', function () {
+    const s = curvaSubmarina([1, 0.9, 1.5, 1.2, 2]);
+    s.forEach(function (d) { assert(d <= 0, 'la curva submarina no puede subir sobre cero: ' + d); });
+  });
+  test('los huecos se saltean sin mover el pico', function () {
+    const s = curvaSubmarina([1, null, 0.8]);
+    assertEqual(s[1], null);
+    assert(Math.abs(s[2] + 0.2) < 1e-12);
+  });
+});
+
+group('RIESGO — La caída máxima', function () {
+  const F = ['2026-01-01', '2026-01-02', '2026-01-03', '2026-01-04', '2026-01-05'];
+  test('cuánto, desde cuándo y hasta cuándo', function () {
+    //        pico            piso            recuperación
+    const s = [0, -0.05, -0.20, -0.10, 0];
+    const c = caidaMaxima(F, s);
+    assert(Math.abs(c.caida + 0.20) < 1e-12);
+    assertEqual(c.desde, '2026-01-01');
+    assertEqual(c.piso, '2026-01-03');
+    assertEqual(c.recuperado, true);
+    assertEqual(c.hasta, '2026-01-05');
+    assertEqual(c.ruedasBajoAgua, 4);
+  });
+  test('sin recuperar, cuenta hasta la última rueda medida', function () {
+    const c = caidaMaxima(F, [0, -0.05, -0.20, -0.10, -0.08]);
+    assertEqual(c.recuperado, false);
+    assertEqual(c.hasta, null);
+    assertEqual(c.ruedasBajoAgua, 4);
+  });
+  test('el pico es el último máximo antes del piso, no el primero', function () {
+    // Cae un poco, se recupera, y recién después viene la caída grande.
+    const c = caidaMaxima(F, [0, -0.03, 0, -0.30, -0.10]);
+    assertEqual(c.desde, '2026-01-03', 'tiene que tomar el máximo más cercano al piso');
+    assertEqual(c.piso, '2026-01-04');
+  });
+  test('una serie que nunca bajó no tiene caída', function () {
+    assertEqual(caidaMaxima(F, [0, 0, 0]), null);
+    assertEqual(caidaMaxima(F, [null, null]), null);
+  });
+});
+
+group('RIESGO — La volatilidad anualizada', function () {
+  test('una serie quieta no tiene volatilidad', function () {
+    const r = new Array(60).fill(0.001);
+    assert(Math.abs(volatilidadAnual(r)) < 1e-12);
+  });
+  test('escala por la raíz de las ruedas del año', function () {
+    // Alterna +1% y −1%: el desvío muestral es conocido y se puede verificar.
+    const r = []; for (let i = 0; i < 100; i++) r.push(i % 2 ? 0.01 : -0.01);
+    const media = 0; // 50 y 50
+    const varianza = r.reduce(function (a, b) { return a + (b - media) * (b - media); }, 0) / (r.length - 1);
+    const esperado = Math.sqrt(varianza) * Math.sqrt(RUEDAS_POR_ANIO);
+    assert(Math.abs(volatilidadAnual(r) - esperado) < 1e-12);
+  });
+  test('con pocas ruedas no se informa', function () {
+    assertEqual(volatilidadAnual([0.01, -0.01, 0.02]), null);
+    assertEqual(volatilidadAnual([]), null);
+    assertEqual(volatilidadAnual(null), null);
+  });
+  test('los huecos no cuentan como ruedas quietas', function () {
+    const conHuecos = []; const sinHuecos = [];
+    for (let i = 0; i < 40; i++) { const v = i % 2 ? 0.01 : -0.01; conHuecos.push(v, null); sinHuecos.push(v); }
+    assert(Math.abs(volatilidadAnual(conHuecos) - volatilidadAnual(sinHuecos)) < 1e-12,
+      'un null tiene que desaparecer, no valer cero');
+  });
+});
+
 group('INTEGRACIÓN — Edge cases que probablemente rompan algo en el futuro', function () {
   test('state sin transactionsByYear: nada explota', function () {
     const prev = globalThis.state;

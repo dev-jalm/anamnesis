@@ -19604,10 +19604,19 @@ function rendimientoDeCartera(destinos, pfId) {
   const valorHoy = valorDeTenencias(destinos, pfId);
   const medido = serie.valor[ultima];
 
+  // El riesgo sale del índice de riqueza y no del valor en pesos: un aporte
+  // sube el valor sin ser ganancia, y sobre el valor la curva submarina diría
+  // que te recuperaste de una caída cuando sólo pusiste plata nueva.
+  const indice = indiceDeRiqueza(retornos);
+  const submarina = curvaSubmarina(indice);
+
   return {
     serie: serie, retornos: retornos, meses: meses, anios: anios, bench: bench,
     acumulado: acumularRetornos(meses),
     tir: tirAnual(flujosTir),
+    indice: indice, submarina: submarina,
+    caida: caidaMaxima(SP.fechas, submarina),
+    volatilidad: volatilidadAnual(retornos),
     desdeFecha: SP.fechas[serie.desde],
     hastaFecha: SP.fechas[ultima],
     sinSerie: serie.sinSerie,
@@ -19637,7 +19646,20 @@ function valorDeTenencias(destinos, pfId) {
 function pctRend(v, decimales) {
   if (v === null || v === undefined || !isFinite(v)) return '—';
   const d = (decimales === undefined) ? 1 : decimales;
-  return (v >= 0 ? '+' : '−') + Math.abs(v * 100).toLocaleString('es-AR',
+  const abs = Math.abs(v * 100);
+  // Un valor que al redondear da cero va sin signo: "−0,0%" se lee como una
+  // pérdida que no existe.
+  const signo = (abs < 0.5 / Math.pow(10, d)) ? '' : (v >= 0 ? '+' : '−');
+  return signo + abs.toLocaleString('es-AR',
+    { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
+}
+
+// Para las magnitudes que no son un resultado —una volatilidad, una distancia
+// al máximo—: el signo las haría leer como ganancia o pérdida.
+function pctSinSigno(v, decimales) {
+  if (v === null || v === undefined || !isFinite(v)) return '—';
+  const d = (decimales === undefined) ? 1 : decimales;
+  return Math.abs(v * 100).toLocaleString('es-AR',
     { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
 }
 
@@ -19646,9 +19668,12 @@ function claseRend(v) {
   return v > 0 ? 'inv-gp-positive' : 'inv-gp-negative';
 }
 
-// Las tarjetas del resumen. Sólo lo que hoy se puede calcular de verdad: la
-// volatilidad, el Sharpe y la beta llegan cuando la sección tenga la serie
-// diaria completa, y hasta entonces no se muestran en gris: no se muestran.
+// El resumen, en dos filas de cuatro: arriba lo que rindió, abajo lo que costó
+// en riesgo. Separarlas es lo que permite leer un retorno al lado de la caída
+// que hubo que aguantar para tenerlo, en vez de una fila de ocho cifras.
+//
+// El Sharpe y la beta llegan cuando esté resuelto contra qué tasa libre de
+// riesgo medir; hasta entonces no se muestran en gris: no se muestran.
 function tarjetasRendimiento(r) {
   const mejor = r.meses.reduce(function (a, m) { return (!a || m.retorno > a.retorno) ? m : a; }, null);
   const peor = r.meses.reduce(function (a, m) { return (!a || m.retorno < a.retorno) ? m : a; }, null);
@@ -19660,15 +19685,37 @@ function tarjetasRendimiento(r) {
       '<span class="inv-perf-tile-val ' + (cls || '') + '">' + valor + '</span>' +
       '<span class="inv-perf-tile-sub">' + escapeHtmlSafe(sub) + '</span></div>';
   };
+  const dm = function (f) { return f ? f.split('-').reverse().join('/') : ''; };
+
+  // Fila de riesgo. La caída máxima dice cuánto y cuánto tardó: lo segundo es
+  // lo que la gente subestima.
+  const c = r.caida;
+  const subCaida = !c ? 'nunca bajó del máximo'
+    : (dm(c.desde) + (c.recuperado
+        ? ' · recuperada en ' + c.ruedasBajoAgua + ' rueda' + (c.ruedasBajoAgua === 1 ? '' : 's')
+        : ' · ' + c.ruedasBajoAgua + ' rueda' + (c.ruedasBajoAgua === 1 ? '' : 's') + ' sin recuperar'));
+  const hoyBajoAgua = r.submarina[r.submarina.length - 1];
+
   return '<div class="inv-perf-tiles">' +
     tile('TIR anualizada', pctRend(r.tir), 'contando cuándo aportaste', claseRend(r.tir)) +
-    tile('Retorno acumulado', pctRend(r.acumulado), 'desde ' + r.desdeFecha.split('-').reverse().join('/'), claseRend(r.acumulado)) +
+    tile('Retorno acumulado', pctRend(r.acumulado), 'desde ' + dm(r.desdeFecha), claseRend(r.acumulado)) +
     tile('Contra el S&P 500', (spy === null ? '—' : pctRend(r.acumulado - spy)),
       (spy === null ? 'sin índice' : 'el índice hizo ' + pctRend(spy)), claseRend(spy === null ? null : r.acumulado - spy)) +
+    tile('Meses en verde', r.meses.length ? (positivos + ' de ' + r.meses.length) : '—', 'de los medidos') +
+  '</div>' +
+  '<div class="inv-perf-tiles">' +
+    tile('Caída máxima', c ? pctRend(c.caida) : '—', subCaida, c ? 'inv-gp-negative' : '') +
+    // Sin signo: una volatilidad no es ni ganancia ni pérdida, es cuánto se
+    // mueve. Un "+18,6%" se leería como un rendimiento.
+    tile('Volatilidad anual', r.volatilidad === null ? '—' : pctSinSigno(r.volatilidad),
+      r.volatilidad === null ? 'hacen falta más ruedas' : 'cuánto se mueve en un año') +
     tile('Mejor mes', mejor ? pctRend(mejor.retorno) : '—', mejor ? rotuloMes(mejor.clave) : '', mejor ? claseRend(mejor.retorno) : '') +
     tile('Peor mes', peor ? pctRend(peor.retorno) : '—', peor ? rotuloMes(peor.clave) : '', peor ? claseRend(peor.retorno) : '') +
-    tile('Meses en verde', r.meses.length ? (positivos + ' de ' + r.meses.length) : '—', 'de los medidos') +
-  '</div>';
+  '</div>' +
+  (hoyBajoAgua !== null && hoyBajoAgua < -0.0001
+    ? '<div class="inv-sector-nota">Hoy estás ' + pctSinSigno(hoyBajoAgua) +
+      ' por debajo de tu mejor momento.</div>'
+    : '');
 }
 
 const MES_INICIAL = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
@@ -19780,12 +19827,99 @@ function graficoPorPeriodo(datos, ancho) {
   '</svg>';
 }
 
+// Los puntos de la curva submarina, compactados para viajar en el atributo de
+// la tarjeta: dos arreglos paralelos en vez de un objeto por rueda.
+function puntosSubmarina(r) {
+  const SP = window.SERIES_PRECIOS;
+  const f = [], d = [];
+  for (let i = 0; i < r.submarina.length; i++) {
+    if (r.submarina[i] === null || r.submarina[i] === undefined) continue;
+    f.push(SP.fechas[i]);
+    d.push(Math.round(r.submarina[i] * 1e5) / 1e5);
+  }
+  if (!d.length) return null;
+  return { f: f, d: d, caida: r.caida };
+}
+
+// La curva submarina: cuánto está la cartera por debajo de su mejor momento,
+// rueda por rueda. Siempre bajo cero, así que el eje arranca arriba y el área
+// cuelga. Lo que se lee no es sólo la profundidad: es el ancho de las manchas,
+// o sea cuánto tiempo se estuvo abajo.
+function graficoSubmarina(datos, ancho) {
+  if (!datos || !datos.d.length) return '';
+  const d = datos.d, f = datos.f;
+  const alto = 160, cero = 22, piso = 126, izq = 44, der = 10;
+  const w = Math.max(ancho || PERF_ANCHO_BASE, 240);
+  const util = w - izq - der;
+  const hondo = Math.min.apply(null, d);
+  // Con una caída chiquita, estirar el eje hasta ella haría ver un desastre
+  // donde hubo un tropezón: el eje no baja de 5%.
+  const tope = Math.max(Math.abs(hondo), 0.05);
+  const x = function (i) { return izq + (d.length === 1 ? util / 2 : util * i / (d.length - 1)); };
+  const y = function (v) { return cero + (piso - cero) * (Math.abs(v) / tope); };
+
+  let linea = '';
+  for (let i = 0; i < d.length; i++) linea += (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(d[i]).toFixed(1);
+  const area = linea + 'L' + x(d.length - 1).toFixed(1) + ' ' + cero + 'L' + x(0).toFixed(1) + ' ' + cero + 'Z';
+
+  // Marcas del eje de tiempo: el primer punto de cada año, y si todo cae en un
+  // año, el de cada mes. Sólo donde entran sin pisarse.
+  const unAnio = f[0].slice(0, 4) === f[f.length - 1].slice(0, 4);
+  const corte = unAnio ? 7 : 4;
+  const marcas = [];
+  let prev = null;
+  for (let i = 0; i < f.length; i++) {
+    const cl = f[i].slice(0, corte);
+    if (cl === prev) continue;
+    prev = cl;
+    marcas.push({ i: i, txt: unAnio ? MES_INICIAL[parseInt(cl.slice(5, 7), 10) - 1] : cl });
+  }
+  const minSep = unAnio ? 16 : 34;
+  let ultX = -1e9;
+  const ejeX = marcas.filter(function (m) {
+    if (x(m.i) - ultX < minSep) return false;
+    ultX = x(m.i); return true;
+  }).map(function (m) {
+    return '<text x="' + x(m.i).toFixed(1) + '" y="' + (alto - 8) + '" text-anchor="middle" ' +
+      'font-size="9" fill="var(--muted-2)">' + escapeHtmlSafe(m.txt) + '</text>';
+  }).join('');
+
+  // El piso, señalado: es la cifra que la tarjeta de al lado informa.
+  const c = datos.caida;
+  let marcaPiso = '';
+  if (c) {
+    const iPiso = f.indexOf(c.piso);
+    if (iPiso >= 0) {
+      const px = x(iPiso), py = y(d[iPiso]);
+      marcaPiso =
+        '<line x1="' + px.toFixed(1) + '" y1="' + cero + '" x2="' + px.toFixed(1) + '" y2="' + py.toFixed(1) +
+          '" stroke="var(--red)" stroke-width="1" stroke-dasharray="2 3" opacity=".7"/>' +
+        '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="4" fill="var(--red)"' +
+          tipAttrs('Caída máxima', pctRend(c.caida, 2) + ' · del ' +
+            c.desde.split('-').reverse().join('/') + ' al ' + c.piso.split('-').reverse().join('/') +
+            (c.recuperado ? ', recuperada' : ', todavía sin recuperar')) + '></circle>';
+    }
+  }
+
+  return '<svg viewBox="0 0 ' + w.toFixed(0) + ' ' + alto + '" width="' + w.toFixed(0) + '" height="' + alto + '" role="img" ' +
+      'aria-label="Cuánto estuvo la cartera por debajo de su mejor momento">' +
+    '<line x1="38" y1="' + cero + '" x2="' + (w - der).toFixed(0) + '" y2="' + cero + '" stroke="var(--grid)"/>' +
+    '<text x="34" y="' + (cero + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">0</text>' +
+    '<text x="34" y="' + (piso + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + pctRend(-tope, 0) + '</text>' +
+    '<path d="' + area + '" fill="var(--red)" opacity=".18"/>' +
+    '<path d="' + linea + '" fill="none" stroke="var(--red)" stroke-width="1.5" ' +
+      'stroke-linejoin="round" stroke-linecap="round"/>' +
+    marcaPiso + ejeX +
+  '</svg>';
+}
+
 // La tarjeta guarda sus propios datos: así el redibujado por ancho no depende
 // de volver a calcular toda la cartera ni de un estado paralelo que se
 // desincronice con el DOM.
-function tarjetaGrafico(tipo, datos, titulo, extra) {
+function tarjetaGrafico(tipo, datos, titulo, extra, clase) {
   if (!dibujoGrafico(tipo, datos, PERF_ANCHO_BASE)) return '';
-  return '<div class="inv-perf-chart" data-perf="' + tipo + '" data-perf-datos="' +
+  return '<div class="inv-perf-chart' + (clase ? ' ' + clase : '') +
+      '" data-perf="' + tipo + '" data-perf-datos="' +
       escapeHtmlSafe(JSON.stringify(datos)) + '">' +
     '<div class="inv-sector-head"><span class="inv-section-label">' + escapeHtmlSafe(titulo) + '</span></div>' +
     dibujoGrafico(tipo, datos, PERF_ANCHO_BASE) +
@@ -19794,7 +19928,9 @@ function tarjetaGrafico(tipo, datos, titulo, extra) {
 }
 
 function dibujoGrafico(tipo, datos, ancho) {
-  return (tipo === 'mensual') ? graficoMensual(datos, ancho) : graficoPorPeriodo(datos, ancho);
+  if (tipo === 'mensual') return graficoMensual(datos, ancho);
+  if (tipo === 'submarina') return graficoSubmarina(datos, ancho);
+  return graficoPorPeriodo(datos, ancho);
 }
 
 // Con la tarjeta ya en pantalla se conoce su ancho y se rehace el dibujo a esa
@@ -19870,6 +20006,10 @@ function bloqueRendimiento(destinos, titulo) {
             '<span><i class="inv-perf-swatch" style="background:var(--muted-2)"></i>' +
               escapeHtmlSafe((r.bench.SPY && r.bench.SPY.nombre) || 'Índice') + '</span>' +
           '</div>') +
+        // A ancho completo: es una serie de tiempo larga y lo que hay que leer
+        // es el ancho de cada caída, no sólo su profundidad.
+        tarjetaGrafico('submarina', puntosSubmarina(r), 'Por debajo del mejor momento',
+          '', 'inv-perf-ancho') +
       '</div>' +
       notaCobertura(r));
   });

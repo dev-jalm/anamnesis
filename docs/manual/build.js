@@ -265,19 +265,34 @@ window.MANUAL = {
       h: 'Cómo rindió la cartera',
       sub: '¿Me fue bien, o sólo subió todo?',
       img: '23-rendimiento',
-      imgCap: 'La sección Rendimiento, encabezada por la misma banda que las otras: las seis cifras del resumen, el mes a mes y la comparación contra el índice. Abajo, qué parte de la cartera se pudo medir.',
+      imgCap: 'La sección Rendimiento: arriba lo que rindió, abajo lo que costó en riesgo, y la curva submarina a todo lo ancho. Al pie, qué parte de la cartera se pudo medir.',
       p: [
         'Las otras tres secciones del panel contestan cuánto tenés, cómo está repartido y qué te dejó lo que vendiste. Las tres son una foto de hoy. Rendimiento es la que falta: cómo te fue en el camino. Es la cuarta sección de Inversiones y, como las demás, se mira por activos o por portafolio.',
         'La pantalla da dos números de rendimiento y no son lo mismo, porque contestan preguntas distintas. El retorno acumulado mide cómo se comportaron los activos, sin importar cuánta plata tenías puesta en cada momento: es el número que se puede comparar contra un índice. La TIR anualizada sí cuenta el cuándo —cuánto pusiste y en qué momento—, y es lo que efectivamente te rindió a vos. Si la TIR es más alta que el retorno acumulado, tus aportes cayeron en buen momento. Si es más baja, entraste justo antes de las bajas.',
         'El tercer recuadro es el que contesta la pregunta del título. Subir un 19% suena bien hasta que ves que el S&P 500 subió 15% en el mismo período: lo tuyo no fue el mercado entero, fueron cuatro puntos sobre el mercado. La comparación se hace siempre sobre la misma ventana de tiempo que tu cartera —desde tu primera tenencia hasta la última rueda disponible—, porque comparar contra el índice en otro período no es comparar.',
-        'Los dos gráficos bajan eso al detalle. El de la izquierda es mes a mes, en verde y rojo como el resto de la pantalla, y sirve para ver si el resultado vino parejo o salió de un solo mes bueno. El de la derecha pone cada año al lado del índice, con el total al final, que es la pregunta que uno hace después de mirar los años.'
+        'Los dos gráficos de arriba bajan eso al detalle. El de la izquierda es mes a mes, en verde y rojo como el resto de la pantalla, y sirve para ver si el resultado vino parejo o salió de un solo mes bueno. El de la derecha pone cada año al lado del índice, con el total al final, que es la pregunta que uno hace después de mirar los años.'
       ],
       lista: [
         'Todo se mide en dólares y sobre el precio del activo: un CEDEAR se traduce a su subyacente por nominales dividido ratio. Por eso el premio o descuento del CEDEAR contra su valor teórico queda afuera, y la pantalla lo aclara.',
-        'La app trae las series de precios de doce instrumentos. Un activo que no esté entre ellos no se puede medir, y en vez de ignorarlo en silencio la pantalla lo nombra y dice qué porcentaje de lo que tenés hoy quedó efectivamente medido. Un rendimiento calculado sobre un tercio de la cartera, presentado como si fuera de toda, engaña más que no mostrar nada.',
-        'Mejor mes y peor mes no son adornos: la distancia entre los dos es la que te dice cuánto tenés que estar dispuesto a aguantar.',
+        'La app trae las series de precios de doce instrumentos. Un activo que no esté entre ellos no se puede medir, y en vez de ignorarlo en silencio la pantalla lo nombra y dice qué porcentaje de lo que tenés hoy quedó efectivamente medido. Un rendimiento calculado sobre un tercio de la cartera, presentado como si fuera de toda, confunde más que no mostrar nada.',
         'Los meses en verde se cuentan sobre los medidos, no sobre los que llevás invirtiendo. Si empezaste a mitad de mes, ese mes cuenta desde la primera rueda con tenencia.',
         'Pasando el mouse por cualquier barra se ve el período, el porcentaje con dos decimales y sobre cuántas ruedas se calculó.'
+      ]
+    },
+    {
+      // Continuación sin título propio: es el mismo tema del panel, pero el
+      // riesgo necesita su propio aire y la figura de arriba ya ocupó la hoja.
+      nuevaPagina: true,
+      p: [
+        'La segunda fila de recuadros contesta la otra mitad de la pregunta: qué costó ese rendimiento. La caída máxima es el peor golpe del período —cuánto, desde cuándo, y si ya lo recuperaste o seguís abajo—, y la volatilidad anual dice cuánto se mueve la cartera en un año normal. Un 20% ganado con una caída del 10% en el medio y un 20% ganado con una del 40% no son el mismo resultado, aunque la cifra de arriba sea idéntica: en el segundo hubo un momento en que vender parecía lo sensato.',
+        'La caída máxima informa también cuánto tardaste en volver al máximo anterior, contado en ruedas. Ése es el dato que se subestima: no duele sólo cuánto cae, duele cuánto tarda. Si todavía no volviste, la sección lo dice y agrega en una línea cuánto estás hoy por debajo de tu mejor momento.',
+        'La curva submarina, abajo y a todo lo ancho, es eso mismo día por día. Toca el techo cada vez que hacés un máximo nuevo y cuelga cuando no. Lo que hay que mirar no es sólo cuán hondo baja sino cuán ancha es cada mancha: una caída del 15% que se recupera en tres semanas es un susto, y una del 15% que dura dos años es otra cosa. El punto rojo marca el fondo de la peor.'
+      ],
+      lista: [
+        'Todo lo que mide riesgo se calcula sobre el retorno, nunca sobre el valor en pesos de la cartera. Si se dibujara sobre el valor, un aporte aparecería como una recuperación: habrías "salido" de la caída por haber puesto plata nueva, que no es salir de nada.',
+        'La volatilidad se informa sin signo, porque no es ganancia ni pérdida: es cuánto se mueve.',
+        'Aparece recién cuando hay ruedas suficientes para que signifique algo. Con cuatro datos un desvío no mide nada, así que en vez de mostrarlo en gris no se muestra.',
+        'Mejor mes y peor mes no son adornos: la distancia entre los dos es la que te dice cuánto tenés que estar dispuesto a aguantar.'
       ]
     },
     {

@@ -3208,6 +3208,108 @@ function acumularRetornos(periodos) {
   return (periodos || []).reduce(function (f, p) { return f * (1 + p.retorno); }, 1) - 1;
 }
 
+/* ---------------------------------------------------------------------------
+   EL RIESGO DE LA CARTERA
+
+   Todo lo de acá se calcula sobre el ÍNDICE DE RIQUEZA —el encadenado de los
+   retornos diarios— y nunca sobre el valor en pesos de la cartera. La
+   diferencia no es un detalle: un aporte sube el valor sin ser ganancia, así
+   que una curva submarina dibujada sobre el valor diría que te recuperaste de
+   una caída cuando lo único que pasó es que pusiste plata nueva. El índice de
+   riqueza ya tiene los aportes descontados, rueda por rueda.
+   ------------------------------------------------------------------------- */
+
+// Cuánto valdría un peso puesto en la primera rueda medida, día por día.
+// Arranca en 1 en la rueda anterior al primer retorno, para que la primera
+// variación se vea. Las ruedas sin retorno —cartera vacía— no mueven el índice
+// y quedan en null: no hay riqueza que seguir ahí.
+function indiceDeRiqueza(retornos) {
+  const out = new Array((retornos || []).length).fill(null);
+  let f = null;
+  for (let i = 0; i < out.length; i++) {
+    const r = retornos[i];
+    if (r === null || r === undefined) continue;
+    if (f === null) { f = 1; if (i > 0) out[i - 1] = 1; }
+    f *= (1 + r);
+    out[i] = f;
+  }
+  return out;
+}
+
+// Cuánto está cada rueda por debajo del mejor momento alcanzado hasta ahí.
+// Siempre ≤ 0: en un máximo nuevo da 0. Es la curva submarina.
+function curvaSubmarina(indice) {
+  const out = new Array((indice || []).length).fill(null);
+  let pico = null;
+  for (let i = 0; i < out.length; i++) {
+    const v = indice[i];
+    if (v === null || v === undefined || !(v > 0)) continue;
+    if (pico === null || v > pico) pico = v;
+    out[i] = v / pico - 1;
+  }
+  return out;
+}
+
+// El peor golpe de la serie: cuánto se cayó, desde qué rueda, hasta cuál, y si
+// se recuperó. `diasBajoAgua` cuenta ruedas desde el pico hasta volver a él, o
+// hasta la última medida si todavía no volvió — que es el dato que la gente
+// subestima: no duele sólo cuánto cae, duele cuánto tarda.
+//
+// Devuelve null si no hay nada medido.
+function caidaMaxima(fechas, submarina) {
+  let peor = 0, iPiso = -1;
+  for (let i = 0; i < submarina.length; i++) {
+    const d = submarina[i];
+    if (d === null || d === undefined) continue;
+    if (d < peor) { peor = d; iPiso = i; }
+  }
+  if (iPiso < 0) return null; // nunca bajó del máximo: no hubo caída
+  // El pico es la última rueda en 0 antes del piso.
+  let iPico = iPiso;
+  for (let i = iPiso; i >= 0; i--) {
+    const d = submarina[i];
+    if (d === null || d === undefined) continue;
+    if (d === 0) { iPico = i; break; }
+  }
+  // La recuperación es la primera rueda en 0 después del piso.
+  let iRec = -1;
+  for (let i = iPiso + 1; i < submarina.length; i++) {
+    const d = submarina[i];
+    if (d === null || d === undefined) continue;
+    if (d === 0) { iRec = i; break; }
+  }
+  let ruedas = 0;
+  const hasta = (iRec >= 0) ? iRec : submarina.length - 1;
+  for (let i = iPico + 1; i <= hasta; i++) {
+    const d = submarina[i];
+    if (d !== null && d !== undefined) ruedas++;
+  }
+  return {
+    caida: peor,
+    desde: fechas[iPico], piso: fechas[iPiso],
+    recuperado: iRec >= 0,
+    hasta: iRec >= 0 ? fechas[iRec] : null,
+    ruedasBajoAgua: ruedas
+  };
+}
+
+// Desvío estándar de los retornos diarios, llevado a escala anual.
+//
+// 252 es la cantidad habitual de ruedas de un año en los mercados americanos,
+// que es de donde salen las series. Se usa el desvío MUESTRAL (n−1): los
+// retornos observados son una muestra, no la población de todos los que la
+// cartera podría haber tenido. Con menos de 20 ruedas devuelve null: un desvío
+// sobre cuatro datos no es una medida de nada.
+const RUEDAS_POR_ANIO = 252;
+const MIN_RUEDAS_VOL = 20;
+function volatilidadAnual(retornos) {
+  const r = (retornos || []).filter(function (x) { return x !== null && x !== undefined && isFinite(x); });
+  if (r.length < MIN_RUEDAS_VOL) return null;
+  const media = r.reduce(function (a, b) { return a + b; }, 0) / r.length;
+  const varianza = r.reduce(function (a, b) { return a + (b - media) * (b - media); }, 0) / (r.length - 1);
+  return Math.sqrt(varianza) * Math.sqrt(RUEDAS_POR_ANIO);
+}
+
 // Tasa interna de retorno anualizada de una serie de flujos fechados (XIRR).
 //
 // `flujos`: [{ fecha: 'aaaa-mm-dd', monto }], negativo lo que se puso y positivo
@@ -3260,6 +3362,9 @@ if (typeof module !== 'undefined' && module.exports) {
     // rendimiento de la cartera en el tiempo
     ruedaEnOAntes, precioEnRueda, serieDeCartera, retornosDiarios,
     retornosPorPeriodo, acumularRetornos, tirAnual,
+    // el riesgo de la cartera
+    indiceDeRiqueza, curvaSubmarina, caidaMaxima, volatilidadAnual,
+    RUEDAS_POR_ANIO,
     // parsers de resúmenes
     parseCsv, detectarSeparadorCsv, fechaResumenAIso,
     esMovimientoInternoMp, parseMercadoPagoCsv, parseGaliciaRows,
