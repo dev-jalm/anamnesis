@@ -19583,7 +19583,7 @@ function rendimientoDeCartera(destinos, pfId) {
   // El índice, sobre exactamente la misma ventana de ruedas: comparar contra un
   // tramo distinto sería comparar otra cosa.
   const bench = {};
-  ['SPY', 'QQQ'].forEach(function (tk) {
+  BENCH_TICKERS.forEach(function (tk) {
     const s = SP.series && SP.series[tk];
     if (!s) return;
     const r = new Array(SP.fechas.length).fill(null);
@@ -19754,13 +19754,30 @@ function rotuloMes(clave) {
 // con las barras de concentración.
 const PERF_ANCHO_BASE = 420;
 
-// El color del índice de referencia, en un solo lugar para los cuatro gráficos
-// y las leyendas. Es `--muted` y no `--muted-2` por una medición: contra el
-// acento de la cartera, en tema oscuro el par acento/muted-2 queda en ΔE 10,7
-// —por debajo del piso de 15, o sea indistinguible aun con visión de color
-// normal— mientras que acento/muted da 19,6 en oscuro y 18,4 en claro. Un gris
-// neutro y no un segundo color: el índice es la referencia, no otra categoría.
+// El color de las referencias, en un solo lugar para los cuatro gráficos y las
+// leyendas. Es `--muted` y no `--muted-2` por una medición: contra el acento de
+// la cartera, en tema oscuro el par acento/muted-2 queda en ΔE 10,7 —por debajo
+// del piso de 15, o sea indistinguible aun con visión de color normal— mientras
+// que acento/muted da 19,6 en oscuro y 18,4 en claro. Un gris neutro y no un
+// segundo color: una referencia es contexto, no otra categoría.
 const COLOR_INDICE = 'var(--muted)';
+
+/* Las referencias del gráfico de crecimiento.
+   POR QUÉ SE DISTINGUEN POR TRAZO Y NO POR COLOR. Se probaron las 330
+   combinaciones de cinco colores que la paleta de la app permite: ninguna pasa
+   la separación mínima en los dos temas —la mejor llega a ΔE 13,2 contra un
+   piso de 15, y encima usando el rojo y el verde, que acá significan pérdida y
+   ganancia—. La paleta es cálida y de baja saturación a propósito, y no da
+   para cinco series categóricas. Entonces: un solo color para el dato (la
+   cartera) y un solo neutro para todas las referencias, que se distinguen
+   entre sí por el patrón del trazo y por su nombre escrito al final de la
+   curva. Es la solución clásica de un gráfico financiero y no depende de que
+   el lector distinga cinco tonos cercanos. */
+const BENCH_TICKERS = ['SPY', 'QQQ', 'IBIT', 'GLD'];
+const BENCH_TRAZO = { SPY: '', QQQ: '6 3', IBIT: '2 3', GLD: '8 3 2 3' };
+
+// Lo que valdría hoy la misma plata puesta en cada cosa el primer día.
+const BASE_CRECIMIENTO = 1000;
 
 // Lo que mide "Sep" a 9px en JetBrains Mono, más el aire para que dos
 // etiquetas vecinas no se toquen. Es el paso mínimo para poder rotular todos
@@ -19870,36 +19887,45 @@ function graficoPorPeriodo(datos, ancho) {
 // es cómo se comportó cada uno, no cuánto dinero había en cada lado.
 function puntosCrecimiento(r) {
   const SP = window.SERIES_PRECIOS;
-  const spy = r.bench.SPY;
-  if (!spy || !spy.indice) return null;
-  const f = [], c = [], b = [];
+  const refs = BENCH_TICKERS.filter(function (tk) { return r.bench[tk] && r.bench[tk].indice; });
+  if (!refs.length) return null;
+  const f = [], c = [];
+  const series = refs.map(function (tk) {
+    return { tk: tk, nombre: r.bench[tk].nombre, trazo: BENCH_TRAZO[tk] || '', v: [] };
+  });
   for (let i = 0; i < r.indice.length; i++) {
     if (r.indice[i] === null || r.indice[i] === undefined) continue;
     f.push(SP.fechas[i]);
-    c.push(Math.round(r.indice[i] * 1e4) / 1e2);
-    const v = spy.indice[i];
-    b.push((v === null || v === undefined) ? null : Math.round(v * 1e4) / 1e2);
+    c.push(Math.round(r.indice[i] * BASE_CRECIMIENTO * 100) / 100);
+    series.forEach(function (s) {
+      const v = r.bench[s.tk].indice[i];
+      s.v.push((v === null || v === undefined) ? null : Math.round(v * BASE_CRECIMIENTO * 100) / 100);
+    });
   }
   if (!c.length) return null;
-  return { f: f, c: c, b: b, nombre: spy.nombre };
+  return { f: f, c: c, series: series };
 }
 
-// Las dos curvas juntas. Es la narrativa de la sección: todo lo demás son
-// cortes de esto.
+// Todas las curvas juntas. Es la narrativa de la sección: lo demás son cortes
+// de esto.
 function graficoCrecimiento(datos, ancho) {
   if (!datos || !datos.c.length) return '';
-  // El margen derecho aloja la etiqueta del valor final de cada curva. Van
-  // escritas y no sólo en el emergente: el ámbar de la cartera queda en 2,15:1
-  // contra el fondo claro, y un trazo de ese contraste necesita que el dato
-  // esté también en texto.
-  const alto = 180, arriba = 20, abajo = 128, izq = 46, der = 52;
-  const w = Math.max(ancho || PERF_ANCHO_BASE, 240);
+  // El margen derecho aloja el nombre y el valor final de cada curva. Van
+  // escritos y no sólo en el emergente: es lo que distingue una referencia de
+  // otra, porque todas comparten el mismo neutro.
+  // `der` tiene que alojar el nombre más largo con su valor —"Nasdaq 100
+  // 12.345"— sin que lo corte el borde de la tarjeta.
+  const alto = 196, arriba = 20, abajo = 140, izq = 50, der = 120;
+  const w = Math.max(ancho || PERF_ANCHO_BASE, 320);
   const util = w - izq - der;
-  const todos = datos.c.concat(datos.b.filter(function (v) { return v !== null; }));
+  let todos = datos.c.slice();
+  datos.series.forEach(function (s) {
+    todos = todos.concat(s.v.filter(function (v) { return v !== null; }));
+  });
   let hi = Math.max.apply(null, todos), lo = Math.min.apply(null, todos);
-  // Siempre con el 100 adentro: sin esa referencia, dos curvas que suben se ven
+  // La base siempre adentro: sin esa referencia, dos curvas que suben se ven
   // igual que dos que bajan.
-  hi = Math.max(hi, 100); lo = Math.min(lo, 100);
+  hi = Math.max(hi, BASE_CRECIMIENTO); lo = Math.min(lo, BASE_CRECIMIENTO);
   if (hi - lo < 1) { hi += 0.5; lo -= 0.5; }
   const x = function (i) { return izq + (datos.c.length === 1 ? util / 2 : util * i / (datos.c.length - 1)); };
   const y = function (v) { return abajo - (abajo - arriba) * (v - lo) / (hi - lo); };
@@ -19934,45 +19960,86 @@ function graficoCrecimiento(datos, ancho) {
   }).join('');
 
   const fin = datos.c.length - 1;
-  const finB = (function () { for (let i = fin; i >= 0; i--) if (datos.b[i] !== null) return i; return -1; })();
-  const num = function (v) { return v.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }); };
+  const num = function (v) { return Math.round(v).toLocaleString('es-AR'); };
+  const base = num(BASE_CRECIMIENTO);
+
+  // Cada curva termina con su nombre y su valor. Como las referencias comparten
+  // el neutro, la etiqueta es lo que las identifica, así que no puede faltar
+  // ninguna: cuando dos terminan a la misma altura se las separa en vertical,
+  // en vez de dejar que una tape a la otra.
+  const etiquetas = [];
+  datos.series.forEach(function (s) {
+    let i = -1;
+    for (let k = s.v.length - 1; k >= 0; k--) if (s.v[k] !== null) { i = k; break; }
+    if (i < 0) return;
+    etiquetas.push({ i: i, y: y(s.v[i]), v: s.v[i], nombre: s.nombre, trazo: s.trazo, cartera: false });
+  });
+  etiquetas.push({ i: fin, y: y(datos.c[fin]), v: datos.c[fin], nombre: 'Cartera', trazo: '', cartera: true });
+  etiquetas.sort(function (a, b) { return a.y - b.y; });
+  const ALTO_ETIQ = 13;
+  for (let k = 1; k < etiquetas.length; k++) {
+    if (etiquetas[k].y - etiquetas[k - 1].y < ALTO_ETIQ) etiquetas[k].y = etiquetas[k - 1].y + ALTO_ETIQ;
+  }
+  // Si el corrimiento se pasó del borde, se empuja todo el bloque para arriba.
+  const exceso = etiquetas[etiquetas.length - 1].y - (alto - 22);
+  if (exceso > 0) etiquetas.forEach(function (e) { e.y -= exceso; });
+
+  const curvas = datos.series.map(function (s) {
+    return '<path d="' + trazo(s.v) + '" fill="none" stroke="' + COLOR_INDICE + '" stroke-width="1.3" ' +
+      (s.trazo ? 'stroke-dasharray="' + s.trazo + '" ' : '') + 'stroke-linejoin="round"/>';
+  }).join('');
+
+  const rotulos = etiquetas.map(function (e) {
+    const px = x(e.i), py = y(e.v);
+    return '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="' + (e.cartera ? 4 : 3) + '" ' +
+        'fill="' + (e.cartera ? 'var(--accent)' : COLOR_INDICE) + '"' +
+        tipAttrs(e.nombre, 'Terminó en ' + num(e.v) + ' sobre una base de ' + base) + '></circle>' +
+      // Guía hasta la etiqueta cuando hubo que correrla de su altura real.
+      (Math.abs(e.y - py) > 1.5
+        ? '<line x1="' + (px + 4).toFixed(1) + '" y1="' + py.toFixed(1) + '" x2="' + (px + 9).toFixed(1) +
+          '" y2="' + e.y.toFixed(1) + '" stroke="var(--grid)" stroke-width="1"/>'
+        : '') +
+      '<text x="' + (px + 11).toFixed(1) + '" y="' + (e.y + 3.5).toFixed(1) + '" font-size="9" ' +
+        (e.cartera ? 'font-weight="600" fill="var(--ink)"' : 'fill="var(--muted)"') + '>' +
+        escapeHtmlSafe(e.nombre) + ' ' + num(e.v) + '</text>';
+  }).join('');
 
   return '<svg viewBox="0 0 ' + w.toFixed(0) + ' ' + alto + '" width="' + w.toFixed(0) + '" height="' + alto + '" role="img" ' +
-      'aria-label="Crecimiento de la cartera y del índice desde la misma base">' +
-    // La línea del 100: de ahí arrancaron los dos.
-    '<line x1="40" y1="' + y(100).toFixed(1) + '" x2="' + (w - der).toFixed(0) + '" y2="' + y(100).toFixed(1) +
+      'aria-label="Crecimiento de la cartera y de las referencias desde la misma base">' +
+    // La línea de la base: de ahí arrancaron todas.
+    '<line x1="44" y1="' + y(BASE_CRECIMIENTO).toFixed(1) + '" x2="' + (w - der).toFixed(0) + '" y2="' + y(BASE_CRECIMIENTO).toFixed(1) +
       '" stroke="var(--grid)" stroke-dasharray="3 3"/>' +
-    '<text x="36" y="' + (y(100) + 4).toFixed(1) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">100</text>' +
-    '<text x="36" y="' + (arriba + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + num(hi) + '</text>' +
-    (lo < 99.5 ? '<text x="36" y="' + (abajo + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + num(lo) + '</text>' : '') +
-    '<path d="' + trazo(datos.b) + '" fill="none" stroke="' + COLOR_INDICE + '" stroke-width="1.5" stroke-linejoin="round"/>' +
+    '<text x="40" y="' + (y(BASE_CRECIMIENTO) + 4).toFixed(1) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + base + '</text>' +
+    '<text x="40" y="' + (arriba + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + num(hi) + '</text>' +
+    (lo < BASE_CRECIMIENTO * 0.995
+      ? '<text x="40" y="' + (abajo + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + num(lo) + '</text>' : '') +
+    curvas +
     '<path d="' + trazo(datos.c) + '" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>' +
-    (finB >= 0
-      ? '<circle cx="' + x(finB).toFixed(1) + '" cy="' + y(datos.b[finB]).toFixed(1) + '" r="3.5" fill="' + COLOR_INDICE + '"' +
-        tipAttrs(datos.nombre, 'Terminó en ' + num(datos.b[finB]) + ' sobre una base de 100') + '></circle>' +
-        // El número en tinta de texto; la identidad la lleva el punto de color
-        // que tiene al lado, no el color de la cifra.
-        '<text x="' + (x(finB) + 7).toFixed(1) + '" y="' + (y(datos.b[finB]) + 3.5).toFixed(1) + '" ' +
-          'font-size="10" fill="var(--muted)">' + num(datos.b[finB]) + '</text>'
-      : '') +
-    '<circle cx="' + x(fin).toFixed(1) + '" cy="' + y(datos.c[fin]).toFixed(1) + '" r="4" fill="var(--accent)"' +
-      tipAttrs('Cartera', 'Terminó en ' + num(datos.c[fin]) + ' sobre una base de 100') + '></circle>' +
-    '<text x="' + (x(fin) + 8).toFixed(1) + '" y="' + (y(datos.c[fin]) + 3.5).toFixed(1) + '" ' +
-      'font-size="10" font-weight="600" fill="var(--ink)">' + num(datos.c[fin]) + '</text>' +
-    ejeX +
+    rotulos + ejeX +
   '</svg>';
 }
 
-// Beta, alfa y R² al pie de la curva, que es donde tienen contexto: las tres
-// hablan de la misma comparación que el gráfico dibuja.
+// La muestra de cada serie en la leyenda. La de la cartera es un trazo lleno
+// de su color; las referencias comparten el neutro y se distinguen por el
+// mismo patrón con el que están dibujadas en el gráfico.
+function muestraSerie(color, dash) {
+  return '<svg class="inv-perf-swatch" viewBox="0 0 16 4" width="16" height="4" aria-hidden="true">' +
+    '<line x1="0" y1="2" x2="16" y2="2" stroke="' + color + '" stroke-width="2.4"' +
+      (dash ? ' stroke-dasharray="' + dash + '"' : '') + '/></svg>';
+}
+
+// La leyenda y, al pie de la curva, beta/alfa/R², que es donde tienen
+// contexto: hablan de la misma comparación que el gráfico dibuja.
 function pieContraIndice(r) {
   const spy = r.bench.SPY;
   const g = spy && spy.regresion;
+  const leyenda = '<span>' + muestraSerie('var(--accent)', '') + 'Cartera</span>' +
+    BENCH_TICKERS.filter(function (tk) { return r.bench[tk]; }).map(function (tk) {
+      return '<span>' + muestraSerie(COLOR_INDICE, BENCH_TRAZO[tk] || '') +
+        escapeHtmlSafe(r.bench[tk].nombre) + '</span>';
+    }).join('');
   if (!g) {
-    return '<div class="inv-perf-leyenda">' +
-      '<span><i class="inv-perf-swatch" style="background:var(--accent)"></i>Cartera</span>' +
-      (spy ? '<span><i class="inv-perf-swatch" style="background:' + COLOR_INDICE + '"></i>' +
-        escapeHtmlSafe(spy.nombre) + '</span>' : '') +
+    return '<div class="inv-perf-leyenda">' + leyenda +
       '<span class="inv-perf-sinbeta">Hacen falta ' + MIN_RUEDAS_BETA +
         ' ruedas para medir beta y alfa</span></div>';
   }
@@ -19981,19 +20048,21 @@ function pieContraIndice(r) {
   };
   const b = g.beta.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const r2 = (g.r2 === null) ? '—' : pctSinSigno(g.r2, 0);
-  return '<div class="inv-perf-leyenda">' +
-    '<span><i class="inv-perf-swatch" style="background:var(--accent)"></i>Cartera</span>' +
-    '<span><i class="inv-perf-swatch" style="background:' + COLOR_INDICE + '"></i>' + escapeHtmlSafe(spy.nombre) + '</span>' +
+  // Las tres son contra el S&P 500 y no contra las cuatro referencias: con más
+  // de una en pantalla hay que decir cuál, o el número no se sabe de qué habla.
+  const contra = ' Contra ' + spy.nombre + '.';
+  return '<div class="inv-perf-leyenda">' + leyenda +
+    '<span class="inv-perf-sep">contra ' + escapeHtmlSafe(spy.nombre) + ':</span>' +
     dato('Beta', b, 'Beta',
       'Cuánto se mueve la cartera cuando el índice se mueve 1%. En 1,00 lo sigue; ' +
-      'arriba lo exagera y abajo lo amortigua. Sobre ' + g.ruedas + ' ruedas.') +
+      'arriba lo exagera y abajo lo amortigua. Sobre ' + g.ruedas + ' ruedas.' + contra) +
     dato('Alfa', pctRend(g.alfa), 'Alfa anualizada',
       'Lo que rindió por encima de lo que explica el mercado, descontando la beta: ' +
       'ganarle al índice apalancado no es alfa. Calculada con la tasa libre de riesgo en cero, ' +
-      'lo que la corre tanto como se aleje la beta de 1,00.') +
+      'lo que la corre tanto como se aleje la beta de 1,00.' + contra) +
     dato('R²', r2, 'R cuadrado',
       'Qué parte del movimiento de la cartera explica el índice. Con un R² bajo, la beta ' +
-      'describe mal la relación y la alfa es más ruido que habilidad.') +
+      'describe mal la relación y la alfa es más ruido que habilidad.' + contra) +
   '</div>';
 }
 
@@ -20170,16 +20239,16 @@ function bloqueRendimiento(destinos, titulo) {
     return envolver(
       tarjetasRendimiento(r) +
       '<div class="inv-perf-grid">' +
-        // Primero la narrativa —las dos curvas desde la misma base— y después
+        // Primero la narrativa —todas las curvas desde la misma base— y después
         // sus cortes. Las dos de ancho completo son series de tiempo largas:
         // lo que hay que leer en ellas es tanto el ancho como la altura.
-        tarjetaGrafico('crecimiento', puntosCrecimiento(r), 'Cien pesos en cada uno',
+        tarjetaGrafico('crecimiento', puntosCrecimiento(r), 'Mil pesos en cada uno',
           pieContraIndice(r), 'inv-perf-ancho') +
         tarjetaGrafico('mensual', r.meses, 'Rentabilidad mensual') +
         tarjetaGrafico('periodo', filasPorPeriodo(r), 'Por período, contra el índice',
           '<div class="inv-perf-leyenda">' +
-            '<span><i class="inv-perf-swatch" style="background:var(--accent)"></i>Cartera</span>' +
-            '<span><i class="inv-perf-swatch" style="background:' + COLOR_INDICE + '"></i>' +
+            '<span>' + muestraSerie('var(--accent)', '') + 'Cartera</span>' +
+            '<span>' + muestraSerie(COLOR_INDICE, '') +
               escapeHtmlSafe((r.bench.SPY && r.bench.SPY.nombre) || 'Índice') + '</span>' +
           '</div>') +
         tarjetaGrafico('submarina', puntosSubmarina(r), 'Por debajo del mejor momento',

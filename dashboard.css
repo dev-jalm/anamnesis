@@ -4387,7 +4387,10 @@ footer .eyebrow-sources {
 .inv-perf-leyenda span[data-tip-titulo] { cursor: help; }
 .inv-perf-leyenda b { color: var(--ink); font-weight: 600; }
 .inv-perf-sinbeta { font-style: italic; }
-.inv-perf-swatch { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+/* La muestra es un trazo SVG y no un bloque de color: las referencias comparten
+   el mismo neutro y lo que las distingue es el patrón de la línea. */
+.inv-perf-swatch { width: 16px; height: 4px; display: inline-block; flex-shrink: 0; overflow: visible; }
+.inv-perf-sep { color: var(--muted-2); }
 
 /* ===== SPARKLINES en tarjetas KPI ===== */
 /* Sparkline va en una fila adicional al pie de la tarjeta, junto al hint. La
