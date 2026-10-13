@@ -19316,12 +19316,13 @@ function tintaSobre(rgb) {
     if (!t || !t.classList || !t.open) return;
     if (t.classList.contains('investment-detail-panel') || t.classList.contains('inv-fold')) {
       ajustarEtiquetasSector(t);
+      ajustarGraficosRendimiento(t);
     }
   }, true);
   let t = null;
   window.addEventListener('resize', function () {
     clearTimeout(t);
-    t = setTimeout(function () { ajustarEtiquetasSector(); }, 150);
+    t = setTimeout(function () { ajustarEtiquetasSector(); ajustarGraficosRendimiento(); }, 150);
   });
 })();
 
@@ -19517,6 +19518,358 @@ function bloqueLiquidado(entries) {
 // .mesa con márgenes negativos y acá el contenedor no tiene ese padding—.
 // Sin contenido no se dibuja la sección: un título que se despliega en nada
 // se lee como algo roto.
+/* ==========================================================================
+   RENDIMIENTO — cómo se comportó la cartera en el tiempo
+
+   La matemática vive en core.js (serieDeCartera, retornosDiarios, tirAnual…).
+   Acá se arma lo que esa matemática necesita a partir del estado, y se dibuja.
+
+   Se mide en dólares: una cartera argentina medida en pesos mezcla rendimiento,
+   devaluación e inflación, y así no se puede comparar contra un índice. No hace
+   falta cotización histórica —ver el comentario de core.js—.
+   ========================================================================== */
+
+// Cuántas acciones de afuera representa un nominal. Un CEDEAR es una fracción
+// —el ratio sale del listado de BYMA—; un ticker comprado directamente en
+// dólares ya es la acción.
+function ratioDeTenencia(e) {
+  if (e && e.moneda === 'USD') return 1;
+  const c = cedearDeByma(e && e.ticker);
+  return (c && Number(c.r) > 0) ? Number(c.r) : 1;
+}
+
+// Las compras de un ámbito, en la forma que espera serieDeCartera.
+function posicionesDeRendimiento(destinos, pfId) {
+  return tenenciasDePortafolio(destinos, pfId === undefined ? null : pfId).map(function (e) {
+    return {
+      ticker: String(e.ticker || '').toUpperCase(),
+      ratio: ratioDeTenencia(e),
+      fecha: e.fecha || '',
+      nominales: Number(e.cantidad) || 0,
+      ventas: ventasDeEntrada(e).map(function (v) {
+        return { fecha: v.fecha || '', nominales: Number(v.cantidad) || 0 };
+      })
+    };
+  });
+}
+
+// Todo lo que la sección necesita de un ámbito, calculado una sola vez.
+// Devuelve null si no hay con qué: sin serie de precios no hay rendimiento que
+// mostrar, y es mejor decirlo que dibujar un gráfico vacío.
+function rendimientoDeCartera(destinos, pfId) {
+  const SP = window.SERIES_PRECIOS;
+  if (!SP || !SP.fechas || !SP.fechas.length) return null;
+  const posiciones = posicionesDeRendimiento(destinos, pfId);
+  if (!posiciones.length) return null;
+
+  const serie = serieDeCartera(posiciones, SP);
+  if (serie.desde < 0) {
+    return { vacio: true, sinSerie: serie.sinSerie, posiciones: posiciones.length };
+  }
+  const retornos = retornosDiarios(serie.valor, serie.flujo);
+  const meses = retornosPorPeriodo(SP.fechas, retornos, 'mes');
+  const anios = retornosPorPeriodo(SP.fechas, retornos, 'anio');
+
+  // La TIR sale de los mismos flujos: lo que entró a la cartera es plata que
+  // salió del bolsillo, y al final se agrega lo que hoy vale lo que queda.
+  const ultima = SP.fechas.length - 1;
+  const flujosTir = [];
+  for (let i = serie.desde; i <= ultima; i++) {
+    if (serie.flujo[i]) flujosTir.push({ fecha: SP.fechas[i], monto: -serie.flujo[i] });
+  }
+  if (serie.valor[ultima] > 0) flujosTir.push({ fecha: SP.fechas[ultima], monto: serie.valor[ultima] });
+
+  // El índice, sobre exactamente la misma ventana de ruedas: comparar contra un
+  // tramo distinto sería comparar otra cosa.
+  const bench = {};
+  ['SPY', 'QQQ'].forEach(function (tk) {
+    const s = SP.series && SP.series[tk];
+    if (!s) return;
+    const r = new Array(SP.fechas.length).fill(null);
+    for (let i = Math.max(serie.desde, s.desde) + 1; i <= ultima; i++) {
+      const hoy = precioEnRueda(SP, tk, i), ayer = precioEnRueda(SP, tk, i - 1);
+      if (hoy !== null && ayer !== null && retornos[i] !== null) r[i] = hoy / ayer - 1;
+    }
+    bench[tk] = {
+      nombre: s.nombre,
+      meses: retornosPorPeriodo(SP.fechas, r, 'mes'),
+      anios: retornosPorPeriodo(SP.fechas, r, 'anio')
+    };
+  });
+
+  // Cuánto de lo que hay hoy en la cartera está medido: los tickers sin serie
+  // no participan, y hay que decir cuánto pesan para que nadie lea el número
+  // como si fuera de toda la cartera.
+  const valorHoy = valorDeTenencias(destinos, pfId);
+  const medido = serie.valor[ultima];
+
+  return {
+    serie: serie, retornos: retornos, meses: meses, anios: anios, bench: bench,
+    acumulado: acumularRetornos(meses),
+    tir: tirAnual(flujosTir),
+    desdeFecha: SP.fechas[serie.desde],
+    hastaFecha: SP.fechas[ultima],
+    sinSerie: serie.sinSerie,
+    cobertura: (valorHoy > 0) ? (medido / valorHoy) : null,
+    valorMedido: medido
+  };
+}
+
+// Valor de hoy de las tenencias de un ámbito, en dólares, con el mismo criterio
+// que el resto de la app: precio actual por nominales, los pesos al MEP. Sirve
+// para decir qué parte de la cartera quedó medida.
+function valorDeTenencias(destinos, pfId) {
+  const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+  return tenenciasDePortafolio(destinos, pfId === undefined ? null : pfId)
+    .reduce(function (s, e) {
+      const resto = cantidadRestante(e);
+      if (!(resto > 0)) return s;
+      const info = infoDeTicker(state.tickerInfo, e.ticker, e.moneda);
+      const px = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
+        ? Number(info.precioActual) : null;
+      if (px === null) return s;
+      const enPesos = resto * px;
+      return s + ((e.moneda === 'USD') ? enPesos : enPesos / mep);
+    }, 0);
+}
+
+function pctRend(v, decimales) {
+  if (v === null || v === undefined || !isFinite(v)) return '—';
+  const d = (decimales === undefined) ? 1 : decimales;
+  return (v >= 0 ? '+' : '−') + Math.abs(v * 100).toLocaleString('es-AR',
+    { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
+}
+
+function claseRend(v) {
+  if (v === null || v === undefined || !isFinite(v) || v === 0) return '';
+  return v > 0 ? 'inv-gp-positive' : 'inv-gp-negative';
+}
+
+// Las tarjetas del resumen. Sólo lo que hoy se puede calcular de verdad: la
+// volatilidad, el Sharpe y la beta llegan cuando la sección tenga la serie
+// diaria completa, y hasta entonces no se muestran en gris: no se muestran.
+function tarjetasRendimiento(r) {
+  const mejor = r.meses.reduce(function (a, m) { return (!a || m.retorno > a.retorno) ? m : a; }, null);
+  const peor = r.meses.reduce(function (a, m) { return (!a || m.retorno < a.retorno) ? m : a; }, null);
+  const positivos = r.meses.filter(function (m) { return m.retorno > 0; }).length;
+  const spy = r.bench.SPY ? acumularRetornos(r.bench.SPY.meses) : null;
+  const tile = function (rotulo, valor, sub, cls) {
+    return '<div class="inv-perf-tile">' +
+      '<span class="inv-perf-tile-lbl">' + escapeHtmlSafe(rotulo) + '</span>' +
+      '<span class="inv-perf-tile-val ' + (cls || '') + '">' + valor + '</span>' +
+      '<span class="inv-perf-tile-sub">' + escapeHtmlSafe(sub) + '</span></div>';
+  };
+  return '<div class="inv-perf-tiles">' +
+    tile('TIR anualizada', pctRend(r.tir), 'contando cuándo aportaste', claseRend(r.tir)) +
+    tile('Retorno acumulado', pctRend(r.acumulado), 'desde ' + r.desdeFecha.split('-').reverse().join('/'), claseRend(r.acumulado)) +
+    tile('Contra el S&P 500', (spy === null ? '—' : pctRend(r.acumulado - spy)),
+      (spy === null ? 'sin índice' : 'el índice hizo ' + pctRend(spy)), claseRend(spy === null ? null : r.acumulado - spy)) +
+    tile('Mejor mes', mejor ? pctRend(mejor.retorno) : '—', mejor ? rotuloMes(mejor.clave) : '', mejor ? claseRend(mejor.retorno) : '') +
+    tile('Peor mes', peor ? pctRend(peor.retorno) : '—', peor ? rotuloMes(peor.clave) : '', peor ? claseRend(peor.retorno) : '') +
+    tile('Meses en verde', r.meses.length ? (positivos + ' de ' + r.meses.length) : '—', 'de los medidos') +
+  '</div>';
+}
+
+const MES_INICIAL = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+
+// '2026-04' → 'Abr 2026'. Las claves de mes son internas; a la vista va el mes
+// escrito como en el resto de la app.
+function rotuloMes(clave) {
+  const orden = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const m = parseInt(String(clave).slice(5, 7), 10);
+  return (MONTH_SHORT[orden[m - 1]] || String(clave).slice(5, 7)) + ' ' + String(clave).slice(0, 4);
+}
+
+// Los dos gráficos se dibujan en PÍXELES REALES: el SVG mide lo mismo que su
+// caja, así que el cuerpo de la letra y el grosor del trazo son los de la
+// pantalla y no se escalan con la tarjeta. Con un viewBox fijo y width:100% el
+// navegador encajaba el dibujo centrado y la mitad de la tarjeta quedaba vacía.
+// Como el ancho depende de la grilla, el dibujo se rehace cuando se conoce la
+// medida (ajustarGraficosRendimiento), igual que ajustarEtiquetasSector hace
+// con las barras de concentración.
+const PERF_ANCHO_BASE = 420;
+
+// Barras de la rentabilidad mes a mes. Verde y rojo, como en toda la pantalla.
+function graficoMensual(meses, ancho) {
+  if (!meses.length) return '';
+  const tope = Math.max.apply(null, meses.map(function (m) { return Math.abs(m.retorno); })) || 0.01;
+  const alto = 150, cero = 80, izq = 40, der = 6;
+  // Los meses se reparten todo el ancho; lo que tiene techo es la barra, que
+  // engorda hasta 30px y de ahí el sobrante se va al aire entre barras. Hacia
+  // abajo hay un piso: pasado eso el gráfico se desplaza —para eso la tarjeta
+  // tiene overflow-x— en vez de volverse ilegible.
+  const util = Math.max(ancho || PERF_ANCHO_BASE, 240) - izq - der;
+  const paso = Math.max(util / meses.length, 14);
+  const anchoBarra = Math.min(30, Math.max(6, paso - 8));
+  const w = Math.max(ancho || PERF_ANCHO_BASE, izq + der + paso * meses.length);
+  const barras = meses.map(function (m, i) {
+    const x = izq + i * paso + (paso - anchoBarra) / 2;
+    const h = Math.max(2, Math.abs(m.retorno) / tope * 62);
+    const y = m.retorno >= 0 ? cero - h : cero;
+    const color = m.retorno >= 0 ? 'var(--green)' : 'var(--red)';
+    return '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + anchoBarra.toFixed(1) +
+      '" height="' + h.toFixed(1) + '" rx="3" fill="' + color + '"' +
+      tipAttrs(rotuloMes(m.clave), pctRend(m.retorno, 2) + ' en ' + m.ruedas + ' rueda' + (m.ruedas === 1 ? '' : 's')) + '></rect>' +
+      '<text x="' + (x + anchoBarra / 2).toFixed(1) + '" y="' + (alto - 8) + '" text-anchor="middle" font-size="9" fill="var(--muted-2)">' +
+        MES_INICIAL[parseInt(m.clave.slice(5, 7), 10) - 1] + '</text>' +
+      (m.clave.slice(5, 7) === '01' || i === 0
+        ? '<text x="' + (x + anchoBarra / 2).toFixed(1) + '" y="' + (alto - 20) + '" text-anchor="middle" font-size="8" fill="var(--muted)">' + m.clave.slice(0, 4) + '</text>'
+        : '');
+  }).join('');
+  return '<svg viewBox="0 0 ' + w.toFixed(0) + ' ' + alto + '" width="' + w.toFixed(0) + '" height="' + alto + '" role="img" ' +
+      'aria-label="Rentabilidad mes a mes de la cartera">' +
+    '<line x1="34" y1="' + cero + '" x2="' + (w - 6).toFixed(0) + '" y2="' + cero + '" stroke="var(--grid)"/>' +
+    '<text x="30" y="' + (cero - 58) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + pctRend(tope, 0) + '</text>' +
+    '<text x="30" y="' + (cero + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">0</text>' +
+    '<text x="30" y="' + (cero + 66) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + pctRend(-tope, 0) + '</text>' +
+    barras +
+  '</svg>';
+}
+
+// Las filas del gráfico por período: cada año y, al final, el total — que es la
+// pregunta que uno hace después de mirar los años.
+function filasPorPeriodo(r) {
+  const spy = r.bench.SPY;
+  const filas = r.anios.map(function (a) {
+    const b = spy ? spy.anios.filter(function (x) { return x.clave === a.clave; })[0] : null;
+    return { clave: a.clave, cartera: a.retorno, indice: b ? b.retorno : null };
+  });
+  if (!filas.length) return null;
+  filas.push({
+    clave: 'Total', cartera: r.acumulado,
+    indice: spy ? acumularRetornos(spy.meses) : null, destacado: true
+  });
+  return { filas: filas, indice: (spy && spy.nombre) || 'Índice' };
+}
+
+// Barras agrupadas por año: la cartera contra el índice.
+function graficoPorPeriodo(datos, ancho) {
+  if (!datos || !datos.filas.length) return '';
+  const filas = datos.filas;
+  const vals = [];
+  filas.forEach(function (f) { vals.push(Math.abs(f.cartera)); if (f.indice !== null) vals.push(Math.abs(f.indice)); });
+  const tope = Math.max.apply(null, vals) || 0.01;
+  const alto = 170, cero = 118, izq = 44, der = 6;
+  const util = Math.max(ancho || PERF_ANCHO_BASE, 240) - izq - der;
+  const grupo = Math.max(util / filas.length, 60);
+  const bw = Math.min(34, (grupo - 14) / 2);
+  const w = Math.max(ancho || PERF_ANCHO_BASE, izq + der + grupo * filas.length);
+  const cuerpo = filas.map(function (f, i) {
+    const x = izq + i * grupo + (grupo - (bw * 2 + 4)) / 2;
+    const barra = function (v, dx, color, nombre) {
+      if (v === null) return '';
+      const h = Math.max(2, Math.abs(v) / tope * 92);
+      const y = v >= 0 ? cero - h : cero;
+      return '<rect x="' + (x + dx).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) +
+        '" height="' + h.toFixed(1) + '" rx="3" fill="' + color + '"' +
+        tipAttrs(nombre + ' · ' + f.clave, pctRend(v, 2)) + '></rect>';
+    };
+    return barra(f.cartera, 0, 'var(--accent)', 'Cartera') +
+      barra(f.indice, bw + 4, 'var(--muted-2)', datos.indice) +
+      '<text x="' + (x + bw + 2).toFixed(1) + '" y="' + (alto - 8) + '" text-anchor="middle" font-size="9" ' +
+        'fill="' + (f.destacado ? 'var(--ink)' : 'var(--muted-2)') + '">' + escapeHtmlSafe(f.clave) + '</text>';
+  }).join('');
+  return '<svg viewBox="0 0 ' + w.toFixed(0) + ' ' + alto + '" width="' + w.toFixed(0) + '" height="' + alto + '" role="img" ' +
+      'aria-label="Retorno por año de la cartera contra el índice">' +
+    '<line x1="38" y1="' + cero + '" x2="' + (w - 6).toFixed(0) + '" y2="' + cero + '" stroke="var(--grid)"/>' +
+    '<text x="34" y="' + (cero - 88) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + pctRend(tope, 0) + '</text>' +
+    '<text x="34" y="' + (cero + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">0</text>' +
+    cuerpo +
+  '</svg>';
+}
+
+// La tarjeta guarda sus propios datos: así el redibujado por ancho no depende
+// de volver a calcular toda la cartera ni de un estado paralelo que se
+// desincronice con el DOM.
+function tarjetaGrafico(tipo, datos, titulo, extra) {
+  if (!dibujoGrafico(tipo, datos, PERF_ANCHO_BASE)) return '';
+  return '<div class="inv-perf-chart" data-perf="' + tipo + '" data-perf-datos="' +
+      escapeHtmlSafe(JSON.stringify(datos)) + '">' +
+    '<div class="inv-sector-head"><span class="inv-section-label">' + escapeHtmlSafe(titulo) + '</span></div>' +
+    dibujoGrafico(tipo, datos, PERF_ANCHO_BASE) +
+    (extra || '') +
+  '</div>';
+}
+
+function dibujoGrafico(tipo, datos, ancho) {
+  return (tipo === 'mensual') ? graficoMensual(datos, ancho) : graficoPorPeriodo(datos, ancho);
+}
+
+// Con la tarjeta ya en pantalla se conoce su ancho y se rehace el dibujo a esa
+// medida. Un panel cerrado mide 0: se saltea y se reintenta al abrirlo.
+function ajustarGraficosRendimiento(root) {
+  const ambito = root || document;
+  ambito.querySelectorAll('.inv-perf-chart[data-perf]').forEach(function (caja) {
+    const svg = caja.querySelector('svg');
+    if (!svg) return;
+    const est = getComputedStyle(caja);
+    // Hacia abajo: un dibujo medio píxel más ancho que su caja le saca la barra
+    // de desplazamiento a una tarjeta que entra justo.
+    const ancho = Math.floor(caja.clientWidth - parseFloat(est.paddingLeft) - parseFloat(est.paddingRight));
+    if (!(ancho > 0) || Math.abs(ancho - (+caja.dataset.perfAncho || 0)) < 1) return;
+    let datos;
+    try { datos = JSON.parse(caja.getAttribute('data-perf-datos')); } catch (err) { return; }
+    caja.dataset.perfAncho = String(Math.round(ancho));
+    svg.outerHTML = dibujoGrafico(caja.getAttribute('data-perf'), datos, ancho);
+  });
+}
+
+// Los atributos del emergente propio de la app (RNF-19).
+function tipAttrs(titulo, detalle) {
+  return ' data-tip-titulo="' + escapeHtmlSafe(String(titulo).toLocaleUpperCase('es-AR')) + '"' +
+    ' data-tip-detalle="' + escapeHtmlSafe(detalle) + '"';
+}
+
+// Lo que falta medir, dicho en una línea. Sin esto, los porcentajes se leerían
+// como si fueran de toda la cartera.
+function notaCobertura(r) {
+  const partes = [];
+  if (r.sinSerie.length) {
+    partes.push('Sin serie de precios: ' + r.sinSerie.join(', ') +
+      (r.cobertura !== null ? ' — lo medido es el ' + (r.cobertura * 100).toFixed(0) + '% de lo que hay hoy' : ''));
+  }
+  partes.push('Medido en dólares, sobre el precio del activo: el premio del CEDEAR queda afuera.');
+  return '<div class="inv-sector-nota">' + escapeHtmlSafe(partes.join(' · ')) + '</div>';
+}
+
+function bloqueRendimiento(destinos, titulo) {
+  const grupos = (vistaDeTabla((destinos[0] || '') + '|rend') === 'portafolio')
+    ? gruposDePortafolioDeCartera(destinos)
+    : [{ id: null, portafolio: null, nro: 0 }];
+
+  const partes = grupos.map(function (g) {
+    const r = rendimientoDeCartera(destinos, g.id === null ? undefined : g.id);
+    const cab = (g.id === null)
+      ? ''
+      : '<div class="inv-currency-head-inner inv-pf-cab">' +
+          (g.portafolio ? rotuloPortafolioHtml(g.portafolio, g.nro)
+                        : '<span class="inv-section-label es-sin">Sin portafolio</span>') + '</div>';
+    if (!r) {
+      return cab + '<div class="inv-sector-nota">Todavía no hay compras que medir en este ámbito.</div>';
+    }
+    if (r.vacio) {
+      return cab + '<div class="inv-sector-nota">' + escapeHtmlSafe(
+        'No hay serie de precios para ' + (r.sinSerie.length ? r.sinSerie.join(', ') : 'estos activos') +
+        ', así que no se puede medir su comportamiento todavía.') + '</div>';
+    }
+    return cab +
+      tarjetasRendimiento(r) +
+      '<div class="inv-perf-grid">' +
+        tarjetaGrafico('mensual', r.meses, 'Rentabilidad mensual') +
+        tarjetaGrafico('periodo', filasPorPeriodo(r), 'Por período, contra el índice',
+          '<div class="inv-perf-leyenda">' +
+            '<span><i class="inv-perf-swatch" style="background:var(--accent)"></i>Cartera</span>' +
+            '<span><i class="inv-perf-swatch" style="background:var(--muted-2)"></i>' +
+              escapeHtmlSafe((r.bench.SPY && r.bench.SPY.nombre) || 'Índice') + '</span>' +
+          '</div>') +
+      '</div>' +
+      notaCobertura(r);
+  });
+
+  return partes.join('');
+}
+
 function bloquePlegableInv(titulo, bajada, contenido, clase, extraTitulo) {
   if (!contenido) return '';
   // data-fold identifica la sección entre re-renders, para poder devolverla
@@ -20295,7 +20648,16 @@ function buildInvestmentDetailPanel(destinos, title) {
           vistaSeccionToggle((destinos[0] || '') + '|conc')) +
         bloquePlegableInv('Liquidado', 'Lo que ya se vendió, separado en ganancias y pérdidas.',
           liquidadoHtml, '',
-          vistaSeccionToggle((destinos[0] || '') + '|liq'))) +
+          vistaSeccionToggle((destinos[0] || '') + '|liq')) +
+        // Rendimiento va último: las tres de arriba cuentan cómo está la
+        // cartera hoy, y ésta cómo llegó hasta acá. Sólo en Inversiones, con el
+        // mismo criterio que los portafolios (RF-080z).
+        (admitePortafolios(destinos)
+          ? bloquePlegableInv('Rendimiento',
+              'Cómo se comportó en el tiempo: cuánto rindió y contra qué se compara.',
+              bloqueRendimiento(destinos, title), '',
+              vistaSeccionToggle((destinos[0] || '') + '|rend'))
+          : '')) +
     '</div>' +
   '</details>';
 }
@@ -21493,8 +21855,10 @@ function renderMainAssets() {
     const fold = pan.querySelector('.inv-fold[data-fold="' + partes[1].replace(/"/g, '') + '"]');
     if (fold) fold.setAttribute('open', '');
   });
-  // Con los paneles ya reabiertos, las barras tienen medida: se ubica el texto.
+  // Con los paneles ya reabiertos, las barras tienen medida: se ubica el texto
+  // y los gráficos de rendimiento se redibujan al ancho real de su tarjeta.
   ajustarEtiquetasSector();
+  ajustarGraficosRendimiento();
   // Y el orden de las tablas que el usuario haya elegido con un clic.
   reaplicarOrdenActivos();
 

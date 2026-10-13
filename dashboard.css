@@ -4299,6 +4299,83 @@ footer .eyebrow-sources {
 .health-score-config-weight-status.error { color: #C8553D; font-weight: 600; }
 .health-score-config-weight-status.ok { color: #6B8E4E; }
 
+/* ===== SECCIÓN RENDIMIENTO (Inversiones) =====
+   Las tarjetas del resumen usan el mismo tratamiento que las celdas de la
+   cabecera del panel: rótulo chico en mono arriba, número abajo. Los gráficos
+   van en la misma grilla de dos columnas que Concentración, para que las dos
+   secciones se lean igual. */
+.inv-perf-tiles {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+@media (max-width: 1100px) {
+  .inv-perf-tiles { grid-template-columns: repeat(3, 1fr); }
+}
+.inv-perf-tile {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+.inv-perf-tile-lbl {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  margin-bottom: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.inv-perf-tile-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.inv-perf-tile-sub {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted-2);
+  margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.inv-perf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 22px;
+}
+@media (max-width: 1100px) {
+  .inv-perf-grid { grid-template-columns: 1fr; }
+}
+.inv-perf-chart {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  min-width: 0;
+  /* Los meses crecen con el tiempo: la barra se desplaza en vez de apretarse. */
+  overflow-x: auto;
+}
+.inv-perf-chart .inv-sector-head { margin-bottom: 8px; }
+.inv-perf-chart svg text { font-family: 'JetBrains Mono', monospace; }
+.inv-perf-chart rect[data-tip-titulo] { cursor: help; }
+.inv-perf-leyenda {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted-2);
+}
+.inv-perf-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+.inv-perf-swatch { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+
 /* ===== SPARKLINES en tarjetas KPI ===== */
 /* Sparkline va en una fila adicional al pie de la tarjeta, junto al hint. La
    hint queda a la izquierda y la sparkline a la derecha. Layout flex con gap

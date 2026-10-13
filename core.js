@@ -3059,10 +3059,207 @@ function agruparTransaccionesPorMes(transactions) {
 }
 
 // ============================================================
+// RENDIMIENTO DE LA CARTERA EN EL TIEMPO
+// ============================================================
+// Todo esto se mide en dólares, y no por gusto: una cartera argentina medida en
+// pesos mezcla tres cosas —lo que rindió el activo, la devaluación y la
+// inflación— y comparar eso contra un índice no dice nada.
+//
+// La conversión no necesita cotización del dólar. Un CEDEAR es una fracción de
+// la acción de afuera: `nominales ÷ ratio` acciones, y la serie de precios ya
+// está en dólares. Así que el valor en dólares sale de los dos datos que la app
+// ya tiene —nominales y ratio— sin depender de ninguna cotización histórica.
+//
+// Lo que esto mide es **el rendimiento del activo**, no el de los pesos que se
+// pusieron: el premio o descuento con el que cotiza el CEDEAR contra su paridad
+// queda afuera. Son dos preguntas distintas, y ésta es la que se compara contra
+// el mercado.
+
+// La rueda del calendario que corresponde a una fecha: la misma si es día
+// hábil, o la anterior más cercana si cayó fin de semana o feriado. -1 si la
+// fecha es anterior a toda la serie. Búsqueda binaria.
+function ruedaEnOAntes(fechas, fecha) {
+  if (!Array.isArray(fechas) || !fechas.length || !fecha) return -1;
+  let lo = 0, hi = fechas.length - 1, res = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (fechas[mid] <= fecha) { res = mid; lo = mid + 1; } else { hi = mid - 1; }
+  }
+  return res;
+}
+
+// Precio de un ticker en una rueda, o null si su serie todavía no empezaba.
+function precioEnRueda(seriesPrecios, ticker, i) {
+  const s = seriesPrecios && seriesPrecios.series && seriesPrecios.series[ticker];
+  if (!s) return null;
+  const k = i - s.desde;
+  if (k < 0 || k >= s.cierres.length) return null;
+  const v = s.cierres[k];
+  return (typeof v === 'number' && isFinite(v) && v > 0) ? v : null;
+}
+
+// Valor de la cartera en dólares, rueda por rueda, y el flujo que entró o salió
+// en cada una.
+//
+// `posiciones`: [{ ticker, ratio, fecha, nominales, ventas: [{ fecha, nominales }] }]
+// Una posición es una COMPRA, no un ticker: es la unidad que el producto maneja
+// (RF-080e), con su fecha y sus ventas colgando.
+//
+// El flujo de una rueda es lo que se agregó o se sacó ese día, valuado al precio
+// de ese día. Hace falta para separar lo que la cartera rindió de lo que creció
+// porque se le puso más plata: sin eso, un aporte se lee como una ganancia.
+//
+// Los tickers sin serie quedan afuera y se informan: valuarlos en cero los haría
+// aparecer como una pérdida, y suponerles un precio sería inventarlo.
+function serieDeCartera(posiciones, seriesPrecios) {
+  const fechas = (seriesPrecios && seriesPrecios.fechas) || [];
+  const n = fechas.length;
+  const valor = new Array(n).fill(0);
+  const flujo = new Array(n).fill(0);
+  const sinSerie = {};
+  let primera = -1;
+
+  (Array.isArray(posiciones) ? posiciones : []).forEach(function (p) {
+    const ratio = Number(p && p.ratio) || 1;
+    const cant = Number(p && p.nominales) || 0;
+    if (!p || !p.ticker || cant <= 0) return;
+    if (!seriesPrecios || !seriesPrecios.series || !seriesPrecios.series[p.ticker]) {
+      sinSerie[p.ticker] = true;
+      return;
+    }
+    const desde = ruedaEnOAntes(fechas, p.fecha);
+    if (desde < 0) return;   // comprada antes de que arranque el calendario
+    if (primera < 0 || desde < primera) primera = desde;
+
+    // Cuántos nominales quedan vivos en cada rueda: arranca con los comprados y
+    // baja con cada venta, desde la rueda de la venta en adelante.
+    const bajas = (Array.isArray(p.ventas) ? p.ventas : []).map(function (v) {
+      return { i: ruedaEnOAntes(fechas, v.fecha), n: Number(v.nominales) || 0 };
+    }).filter(function (v) { return v.i >= 0 && v.n > 0; }).sort(function (a, b) { return a.i - b.i; });
+
+    let vivos = cant, sig = 0;
+    for (let i = desde; i < n; i++) {
+      let vendidosHoy = 0;
+      while (sig < bajas.length && bajas[sig].i === i) { vendidosHoy += bajas[sig].n; sig++; }
+      vivos -= vendidosHoy;
+      if (vivos < 0) vivos = 0;
+      const px = precioEnRueda(seriesPrecios, p.ticker, i);
+      if (px !== null) {
+        const unit = px / ratio;
+        valor[i] += vivos * unit;
+        if (i === desde) flujo[i] += cant * unit;
+        if (vendidosHoy > 0) flujo[i] -= vendidosHoy * unit;
+      }
+      if (vivos === 0 && sig >= bajas.length) break;   // posición liquidada
+    }
+  });
+
+  return {
+    fechas: fechas,
+    desde: primera,
+    valor: valor,
+    flujo: flujo,
+    sinSerie: Object.keys(sinSerie).sort()
+  };
+}
+
+// Retorno de cada rueda, descontando lo que entró o salió ese día. Es el
+// retorno ponderado por tiempo: mide cómo le fue a la plata que ya estaba, sin
+// que un aporte se confunda con una ganancia.
+//
+//   r = (valor de hoy − lo que entró hoy) ÷ valor de ayer − 1
+//
+// Las ruedas en las que la cartera estaba vacía no tienen retorno: devuelven
+// null y no participan de ningún encadenamiento.
+function retornosDiarios(valor, flujo) {
+  const r = new Array(valor.length).fill(null);
+  for (let i = 1; i < valor.length; i++) {
+    const ayer = valor[i - 1];
+    if (!(ayer > 0)) continue;
+    r[i] = (valor[i] - ((flujo && flujo[i]) || 0)) / ayer - 1;
+  }
+  return r;
+}
+
+// Encadena los retornos diarios en períodos: 'mes' (aaaa-mm) o 'anio' (aaaa).
+// Encadenar y no sumar: dos meses de +10% dan 21%, no 20%.
+function retornosPorPeriodo(fechas, retornos, unidad) {
+  const corte = (unidad === 'anio') ? 4 : 7;
+  const out = [];
+  let actual = null;
+  for (let i = 0; i < fechas.length; i++) {
+    const r = retornos[i];
+    if (r === null || r === undefined) continue;
+    const clave = fechas[i].slice(0, corte);
+    if (!actual || actual.clave !== clave) {
+      actual = { clave: clave, factor: 1, ruedas: 0 };
+      out.push(actual);
+    }
+    actual.factor *= (1 + r);
+    actual.ruedas++;
+  }
+  return out.map(function (p) {
+    return { clave: p.clave, retorno: p.factor - 1, ruedas: p.ruedas };
+  });
+}
+
+// Retorno acumulado de una lista de períodos, encadenados.
+function acumularRetornos(periodos) {
+  return (periodos || []).reduce(function (f, p) { return f * (1 + p.retorno); }, 1) - 1;
+}
+
+// Tasa interna de retorno anualizada de una serie de flujos fechados (XIRR).
+//
+// `flujos`: [{ fecha: 'aaaa-mm-dd', monto }], negativo lo que se puso y positivo
+// lo que se sacó —incluida, al final, la valuación de lo que todavía se tiene—.
+//
+// Contesta otra pregunta que el retorno encadenado: cuánto rindió **la plata**,
+// contando cuándo se puso. Si los aportes cayeron en buen momento la TIR sale
+// mejor que el retorno de la cartera; si cayeron justo antes de una baja, peor.
+//
+// Se resuelve por bisección y no por Newton: con flujos irregulares Newton se
+// escapa y devuelve cualquier cosa, y acá la robustez vale más que la
+// velocidad. Devuelve null si no hay flujos de los dos signos —sin eso no hay
+// tasa que buscar— o si la raíz no cae en el rango.
+function tirAnual(flujos) {
+  const f = (Array.isArray(flujos) ? flujos : []).filter(function (x) {
+    return x && x.fecha && isFinite(x.monto) && x.monto !== 0;
+  }).sort(function (a, b) { return a.fecha < b.fecha ? -1 : (a.fecha > b.fecha ? 1 : 0); });
+  if (f.length < 2) return null;
+  if (!f.some(function (x) { return x.monto > 0; })) return null;
+  if (!f.some(function (x) { return x.monto < 0; })) return null;
+
+  const t0 = Date.parse(f[0].fecha + 'T00:00:00Z');
+  const anios = f.map(function (x) {
+    return (Date.parse(x.fecha + 'T00:00:00Z') - t0) / 86400000 / 365;
+  });
+  const van = function (r) {
+    let s = 0;
+    for (let i = 0; i < f.length; i++) s += f[i].monto / Math.pow(1 + r, anios[i]);
+    return s;
+  };
+
+  // −99,99% a +1000% anual cubre cualquier cartera real.
+  let lo = -0.9999, hi = 10;
+  let vlo = van(lo), vhi = van(hi);
+  if (!isFinite(vlo) || !isFinite(vhi) || vlo * vhi > 0) return null;
+  for (let k = 0; k < 200; k++) {
+    const mid = (lo + hi) / 2;
+    const v = van(mid);
+    if (!isFinite(v)) return null;
+    if (vlo * v <= 0) { hi = mid; vhi = v; } else { lo = mid; vlo = v; }
+  }
+  return (lo + hi) / 2;
+}
+
+// ============================================================
 // EXPORT — para Node.js (testing fuera del browser)
 // ============================================================
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
+    // rendimiento de la cartera en el tiempo
+    ruedaEnOAntes, precioEnRueda, serieDeCartera, retornosDiarios,
+    retornosPorPeriodo, acumularRetornos, tirAnual,
     // parsers de resúmenes
     parseCsv, detectarSeparadorCsv, fechaResumenAIso,
     esMovimientoInternoMp, parseMercadoPagoCsv, parseGaliciaRows,

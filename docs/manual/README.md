@@ -86,6 +86,7 @@ Qué muestra cada una:
 | `20-concentracion-sector.png` | La sección Concentración de Inversiones: sus dos gráficos, con una alerta cada uno |
 | `21-liquidado.png` | La sección Liquidado: ganancias y pérdidas en dos columnas, con el total cruzándolas |
 | `22-portafolios.png` | La tabla de activos en vista por portafolio, con el grupo sin asignar al final |
+| `23-rendimiento.png` | La sección Rendimiento: el resumen de seis cifras, el mes a mes y la comparación por período contra el índice |
 | `16-mesa-trading.png` | La mesa: operación, verificación, tamaño e historial |
 | `05-evolucion.png` | Presupuestado contra real, mes a mes |
 | `09-admin-categorias.png` | Categorías, subcategorías y etiquetas |

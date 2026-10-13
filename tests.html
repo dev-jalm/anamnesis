@@ -3659,6 +3659,213 @@ group('recortarTexto — longitudes máximas de los campos de texto', function (
   });
 });
 
+group('Rendimiento — ubicar una fecha en el calendario de ruedas', function () {
+  const F = ['2026-01-05', '2026-01-06', '2026-01-07', '2026-01-12'];
+  test('una fecha que es rueda cae en su propio índice', function () {
+    assertEqual(ruedaEnOAntes(F, '2026-01-05'), 0);
+    assertEqual(ruedaEnOAntes(F, '2026-01-12'), 3);
+  });
+  test('un fin de semana cae en la rueda anterior', function () {
+    // El 10 es sábado: la última rueda es el 7.
+    assertEqual(ruedaEnOAntes(F, '2026-01-10'), 2);
+  });
+  test('una fecha anterior a todo el calendario no tiene rueda', function () {
+    assertEqual(ruedaEnOAntes(F, '2025-12-31'), -1);
+  });
+  test('una fecha posterior cae en la última rueda', function () {
+    assertEqual(ruedaEnOAntes(F, '2030-01-01'), 3);
+  });
+  test('calendario vacío o fecha vacía no explotan', function () {
+    assertEqual(ruedaEnOAntes([], '2026-01-05'), -1);
+    assertEqual(ruedaEnOAntes(F, ''), -1);
+    assertEqual(ruedaEnOAntes(null, '2026-01-05'), -1);
+  });
+});
+
+group('Rendimiento — precio de un ticker en una rueda', function () {
+  const S = {
+    fechas: ['2026-01-05', '2026-01-06', '2026-01-07'],
+    series: {
+      AAA: { desde: 0, cierres: [10, 11, 12] },
+      BBB: { desde: 2, cierres: [50] }
+    }
+  };
+  test('devuelve el cierre de esa rueda', function () {
+    assertEqual(precioEnRueda(S, 'AAA', 1), 11);
+    assertEqual(precioEnRueda(S, 'BBB', 2), 50);
+  });
+  test('antes de que la serie empiece no hay precio', function () {
+    assertEqual(precioEnRueda(S, 'BBB', 1), null);
+  });
+  test('un ticker sin serie no inventa un precio', function () {
+    assertEqual(precioEnRueda(S, 'ZZZ', 0), null);
+    assertEqual(precioEnRueda(null, 'AAA', 0), null);
+  });
+});
+
+group('Rendimiento — valor de la cartera rueda por rueda', function () {
+  const S = {
+    fechas: ['2026-01-05', '2026-01-06', '2026-01-07', '2026-01-08'],
+    series: { AAA: { desde: 0, cierres: [10, 11, 12, 12] } }
+  };
+  test('una compra vale sus nominales sobre el ratio, al precio de cada día', function () {
+    // 20 CEDEARs con ratio 10 son 2 acciones: a 11 dólares, 22.
+    const r = serieDeCartera([{ ticker: 'AAA', ratio: 10, fecha: '2026-01-06', nominales: 20 }], S);
+    assertEqual(r.valor[0], 0);
+    assertEqual(r.valor[1], 22);
+    assertEqual(r.valor[2], 24);
+    assertEqual(r.desde, 1);
+  });
+  test('el día de la compra el flujo es lo que entró, valuado ese día', function () {
+    const r = serieDeCartera([{ ticker: 'AAA', ratio: 10, fecha: '2026-01-06', nominales: 20 }], S);
+    assertEqual(r.flujo[1], 22);
+    assertEqual(r.flujo[2], 0);
+  });
+  test('una venta saca nominales y deja flujo negativo', function () {
+    const r = serieDeCartera([{
+      ticker: 'AAA', ratio: 10, fecha: '2026-01-05', nominales: 20,
+      ventas: [{ fecha: '2026-01-07', nominales: 10 }]
+    }], S);
+    assertEqual(r.valor[1], 22);   // 2 acciones a 11
+    assertEqual(r.valor[2], 12);   // quedó 1 acción, a 12
+    assertEqual(r.flujo[2], -12);  // salió 1 acción a 12
+  });
+  test('una compra anterior al calendario no se puede valuar y se descarta', function () {
+    const r = serieDeCartera([{ ticker: 'AAA', ratio: 1, fecha: '2020-01-01', nominales: 5 }], S);
+    assertEqual(r.desde, -1);
+    assertEqual(r.valor[3], 0);
+  });
+  test('un ticker sin serie no vale cero: queda afuera y se informa', function () {
+    const r = serieDeCartera([
+      { ticker: 'AAA', ratio: 10, fecha: '2026-01-05', nominales: 10 },
+      { ticker: 'ZZZ', ratio: 1, fecha: '2026-01-05', nominales: 99 }
+    ], S);
+    assertEqual(r.sinSerie, ['ZZZ']);
+    assertEqual(r.valor[0], 10);   // sólo AAA: 1 acción a 10
+  });
+  test('varias compras del mismo ticker se suman', function () {
+    const r = serieDeCartera([
+      { ticker: 'AAA', ratio: 10, fecha: '2026-01-05', nominales: 10 },
+      { ticker: 'AAA', ratio: 10, fecha: '2026-01-07', nominales: 10 }
+    ], S);
+    assertEqual(r.valor[0], 10);
+    assertEqual(r.valor[2], 24);   // 2 acciones a 12
+    assertEqual(r.flujo[2], 12);   // entró 1 acción a 12
+  });
+});
+
+group('Rendimiento — un aporte no es una ganancia', function () {
+  test('duplicar la cartera con plata nueva da 0% de retorno, no 100%', function () {
+    const valor = [100, 200];
+    const flujo = [100, 100];
+    const r = retornosDiarios(valor, flujo);
+    assertEqual(r[0], null);       // la primera rueda no tiene con qué comparar
+    assertEqual(r[1], 0);
+  });
+  test('sin flujos, el retorno es el cambio de valor', function () {
+    const r = retornosDiarios([100, 110, 99], [0, 0, 0]);
+    assert(Math.abs(r[1] - 0.1) < 1e-12, 'esperaba +10%');
+    assert(Math.abs(r[2] + 0.1) < 1e-12, 'esperaba −10%');
+  });
+  test('con la cartera vacía no hay retorno que calcular', function () {
+    const r = retornosDiarios([0, 0, 50], [0, 0, 50]);
+    assertEqual(r[1], null);
+    assertEqual(r[2], null);
+  });
+});
+
+group('Rendimiento — encadenar por período', function () {
+  const F = ['2026-01-30', '2026-01-31', '2026-02-02', '2026-02-03'];
+  test('los retornos de un mes se encadenan, no se suman', function () {
+    const p = retornosPorPeriodo(F, [null, 0.1, 0.1, 0.1], 'mes');
+    assertEqual(p.length, 2);
+    assertEqual(p[0].clave, '2026-01');
+    assert(Math.abs(p[0].retorno - 0.1) < 1e-12);
+    assertEqual(p[1].clave, '2026-02');
+    assert(Math.abs(p[1].retorno - 0.21) < 1e-12, 'dos de +10% dan 21%, no 20%');
+    assertEqual(p[1].ruedas, 2);
+  });
+  test('agrupar por año junta los doce meses', function () {
+    const p = retornosPorPeriodo(F, [null, 0.1, 0.1, 0.1], 'anio');
+    assertEqual(p.length, 1);
+    assertEqual(p[0].clave, '2026');
+    assert(Math.abs(p[0].retorno - 0.331) < 1e-12);
+  });
+  test('las ruedas sin retorno no cuentan', function () {
+    const p = retornosPorPeriodo(F, [null, null, 0.1, null], 'mes');
+    assertEqual(p.length, 1);
+    assertEqual(p[0].clave, '2026-02');
+    assertEqual(p[0].ruedas, 1);
+  });
+  test('acumular encadena los períodos', function () {
+    const acum = acumularRetornos([{ retorno: 0.1 }, { retorno: 0.1 }]);
+    assert(Math.abs(acum - 0.21) < 1e-12);
+    assertEqual(acumularRetornos([]), 0);
+  });
+});
+
+group('Rendimiento — TIR anualizada', function () {
+  test('poner 1.000 y sacar 1.100 al año es 10%', function () {
+    const t = tirAnual([
+      { fecha: '2025-01-01', monto: -1000 },
+      { fecha: '2026-01-01', monto: 1100 }
+    ]);
+    assert(Math.abs(t - 0.1) < 1e-4, 'esperaba 10%, dio ' + t);
+  });
+  test('1.000 que se vuelven 1.210 en dos años también es 10% anual', function () {
+    const t = tirAnual([
+      { fecha: '2024-01-01', monto: -1000 },
+      { fecha: '2025-12-31', monto: 1210 }
+    ]);
+    assert(Math.abs(t - 0.1) < 2e-3, 'esperaba ~10%, dio ' + t);
+  });
+  test('perder la mitad en un año es −50%', function () {
+    const t = tirAnual([
+      { fecha: '2025-01-01', monto: -1000 },
+      { fecha: '2026-01-01', monto: 500 }
+    ]);
+    assert(Math.abs(t + 0.5) < 1e-4, 'esperaba −50%, dio ' + t);
+  });
+  test('con aportes en el medio, la tasa anula el valor actual neto', function () {
+    const flujos = [
+      { fecha: '2024-03-15', monto: -1000 },
+      { fecha: '2024-09-10', monto: -500 },
+      { fecha: '2025-04-02', monto: 300 },
+      { fecha: '2026-10-12', monto: 1600 }
+    ];
+    const t = tirAnual(flujos);
+    assert(t !== null, 'tendría que haber tasa');
+    const t0 = Date.parse(flujos[0].fecha + 'T00:00:00Z');
+    const van = flujos.reduce(function (s, f) {
+      const a = (Date.parse(f.fecha + 'T00:00:00Z') - t0) / 86400000 / 365;
+      return s + f.monto / Math.pow(1 + t, a);
+    }, 0);
+    assert(Math.abs(van) < 1e-6, 'el VAN a la tasa encontrada tiene que ser cero, dio ' + van);
+  });
+  test('el orden en que vienen los flujos no cambia el resultado', function () {
+    const a = tirAnual([
+      { fecha: '2026-01-01', monto: 1100 },
+      { fecha: '2025-01-01', monto: -1000 }
+    ]);
+    assert(Math.abs(a - 0.1) < 1e-4);
+  });
+  test('sin flujos de los dos signos no hay tasa', function () {
+    assertEqual(tirAnual([{ fecha: '2025-01-01', monto: -100 }, { fecha: '2026-01-01', monto: -100 }]), null);
+    assertEqual(tirAnual([{ fecha: '2025-01-01', monto: 100 }]), null);
+    assertEqual(tirAnual([]), null);
+    assertEqual(tirAnual(null), null);
+  });
+  test('los montos en cero y las filas rotas se ignoran', function () {
+    const t = tirAnual([
+      { fecha: '2025-01-01', monto: -1000 },
+      { fecha: '2025-06-01', monto: 0 },
+      { fecha: '', monto: 999 },
+      { fecha: '2026-01-01', monto: 1100 }
+    ]);
+    assert(Math.abs(t - 0.1) < 1e-4);
+  });
+});
+
 group('INTEGRACIÓN — Edge cases que probablemente rompan algo en el futuro', function () {
   test('state sin transactionsByYear: nada explota', function () {
     const prev = globalThis.state;
