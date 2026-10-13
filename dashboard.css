@@ -4308,8 +4308,10 @@ footer .eyebrow-sources {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 10px;
-  margin-bottom: 16px;
 }
+/* El aire entre bloques lo pone el gap de .inv-perf, el mismo de Liquidado: la
+   nota no agrega el suyo encima. */
+.inv-perf > .inv-sector-nota { margin-top: 0; }
 @media (max-width: 1100px) {
   .inv-perf-tiles { grid-template-columns: repeat(3, 1fr); }
 }
@@ -7011,7 +7013,8 @@ body[data-exporting="true"] .section-card {
 }
 /* Aire entre la cabecera del portafolio y su bloque, el mismo que la
    concentración tiene por el padding de su primera fila. */
-.inv-conc-pf .inv-liq { padding-top: 12px; }
+.inv-conc-pf .inv-liq,
+.inv-conc-pf .inv-perf { padding-top: 12px; }
 .inv-conc-pf + .inv-conc-pf { border-top: 1px solid var(--border); }
 /* El nombre del portafolio, en tinta plena: "Portafolio n° 1" se queda en el
    acento de los rótulos y el nombre es el dato que se busca. */
@@ -7283,12 +7286,19 @@ body[data-exporting="true"] .section-card {
    Primer bloque del cuerpo del panel, debajo de la cabecera con el total
    ARS+USD. Una fila por venta, agrupadas en ganancia y pérdida. Mismo padding
    lateral que la concentración, que es el bloque que va justo abajo. */
-.inv-liq {
-  border-top: 1px solid var(--border);
+/* El cuerpo de una sección del panel arranca siempre en la misma columna: los
+   14px de sangría son los que ya tenía Liquidado, y Rendimiento los comparte
+   para que sus tarjetas, sus gráficos y su nota no empiecen antes que el resto
+   de la información. */
+.inv-liq,
+.inv-perf {
   padding: 12px 14px 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+.inv-liq {
+  border-top: 1px solid var(--border);
   font-family: 'JetBrains Mono', monospace;
 }
 .inv-liq-titulos,

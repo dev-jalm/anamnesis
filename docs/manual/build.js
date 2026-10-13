@@ -265,7 +265,7 @@ window.MANUAL = {
       h: 'Cómo rindió la cartera',
       sub: '¿Me fue bien, o sólo subió todo?',
       img: '23-rendimiento',
-      imgCap: 'La sección Rendimiento: las seis cifras del resumen, el mes a mes y la comparación contra el índice. Abajo, qué parte de la cartera se pudo medir.',
+      imgCap: 'La sección Rendimiento, encabezada por la misma banda que las otras: las seis cifras del resumen, el mes a mes y la comparación contra el índice. Abajo, qué parte de la cartera se pudo medir.',
       p: [
         'Las otras tres secciones del panel contestan cuánto tenés, cómo está repartido y qué te dejó lo que vendiste. Las tres son una foto de hoy. Rendimiento es la que falta: cómo te fue en el camino. Es la cuarta sección de Inversiones y, como las demás, se mira por activos o por portafolio.',
         'La pantalla da dos números de rendimiento y no son lo mismo, porque contestan preguntas distintas. El retorno acumulado mide cómo se comportaron los activos, sin importar cuánta plata tenías puesta en cada momento: es el número que se puede comparar contra un índice. La TIR anualizada sí cuenta el cuándo —cuánto pusiste y en qué momento—, y es lo que efectivamente te rindió a vos. Si la TIR es más alta que el retorno acumulado, tus aportes cayeron en buen momento. Si es más baja, entraste justo antes de las bajas.',

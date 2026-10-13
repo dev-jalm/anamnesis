@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.72 |
+| **Versión** | 1.73 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -904,7 +904,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-210a | La **configuración completa** viaja en un solo archivo con cinco secciones, y el usuario elige cuáles incluir: **reglas**, **categorías**, **etiquetas**, **parámetros** y **Ficha médica** (tarjetas KPI, visibilidad de secciones, viajes y presupuestos anuales). Al importar se eligen de nuevo: el archivo puede traer más de las que se quieran aplicar, y **las cinco secciones marcadas se aplican** |
 | RF-210b | De los **parámetros** viajan los que el usuario configura: los umbrales de fuga y de concentración, el máximo de activos por portafolio, los meses para aprender reglas, el modo oscuro automático, los nombres de las jubilaciones, los pesos y umbrales del score y el plan de reserva. Un umbral en **0** viaja igual: desactivarlo es haberlo configurado. No viaja la **cotización MEP** ni sus marcas de cuándo y de dónde salió: es el dato del día y no una preferencia, e importarla vieja valuaría la cartera a un dólar que ya no existe |
 | RF-211a | El producto incorpora **series de precios diarios** —cierre ajustado por dividendos y splits, en dólares— para poder medir el comportamiento de la cartera en el tiempo: con un solo precio por activo no hay volatilidad, ni caída máxima, ni beta, ni correlación. Ninguna fuente de histórico accesible desde el navegador las sirve, así que se cargan una vez desde archivos y se versionan con el producto, igual que el listado de CEDEARs: son un dato de mercado, idéntico para cualquiera que mire el mismo instrumento. Todas comparten un único calendario y cada una declara en qué rueda empieza —las que arrancan tarde es porque el instrumento no existía antes—, de modo que la alineación entre series queda garantizada por construcción |
-| RF-211b | Inversiones suma una cuarta sección plegable, **Rendimiento**, que responde cómo se comportó la cartera en el tiempo. Como las otras tres, ofrece la vista por activos y la vista por portafolio: la pregunta "¿cuánto rindió?" tiene una respuesta por cada ámbito en el que el usuario piensa su plata |
+| RF-211b | Inversiones suma una cuarta sección plegable, **Rendimiento**, que responde cómo se comportó la cartera en el tiempo. Como las otras tres, ofrece la vista por activos y la vista por portafolio: la pregunta "¿cuánto rindió?" tiene una respuesta por cada ámbito en el que el usuario piensa su plata. Se presenta como sus hermanas —la misma banda de encabezado y la misma sangría del cuerpo—, de modo que las cuatro secciones del panel arrancan en una sola columna |
 | RF-211c | El rendimiento se informa de **dos maneras a la vez, porque son dos preguntas distintas**. El **retorno acumulado** encadena los retornos diarios y mide cómo se comportó el activo, con independencia de cuánto dinero había puesto en cada momento: es lo comparable contra un índice. La **TIR anualizada** pondera por el dinero y por el momento en que entró: es lo que le rindió al usuario. Que la TIR supere al retorno acumulado significa que los aportes cayeron en buen momento, y al revés |
 | RF-211d | La medición se hace **en dólares y sobre el precio del activo**: un CEDEAR se traduce a su subyacente por nominales ÷ ratio. Así no hace falta una serie de tipo de cambio —que sería una segunda fuente histórica, con su propio error— y el resultado responde "cómo se comportó lo que compré". La contracara se declara en la pantalla: el premio o descuento del CEDEAR contra su valor teórico queda afuera de la medición |
 | RF-211e | La cobertura parcial **se dice, no se disimula**. Los activos sin serie de precios se nombran y se informa qué porcentaje del valor de hoy quedó efectivamente medido. Un porcentaje de rendimiento calculado sobre un tercio de la cartera presentado como si fuera de toda la cartera es peor que no mostrarlo |
@@ -968,6 +968,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-07 | Las columnas de encabezado y de detalle comparten definición de anchos. No se alinean por relleno |
 | RNF-18 | Un campo nuevo adopta la tipografía —familia, tamaño y peso— de los campos vecinos de la misma fila o formulario. No se elige por separado |
 | RNF-18a | **Un control nuevo no se presenta con el aspecto que le da el navegador.** Si existe un control gemelo —el mismo tipo de control, en la misma columna o en el mismo formulario— adopta su presentación completa: tipografía, fondo, borde, altos y estados de apuntado y foco, incluido cómo se ve cuando todavía no tiene valor. Un control sin presentación propia no se ve neutro: se ve ajeno, y la diferencia es la más visible de todas —fondo claro, control nativo— al lado de los que sí la tienen |
+| RNF-18c | **Una sección nueva de un panel arranca donde arrancan las demás.** El cuerpo lleva la misma sangría que sus hermanas y la banda que lo encabeza es la misma, no una propia. Una sección cuyos bloques empiezan antes que los de la de al lado rompe la columna que el ojo sigue al bajar por el panel, y se nota más que cualquier diferencia de contenido |
 | RNF-18b | **Un gráfico ocupa el ancho de su tarjeta y conserva el cuerpo de letra de la pantalla.** No se dibuja a una medida fija que el navegador después encaja y centra: eso deja la tarjeta medio vacía, o agranda la tipografía del gráfico hasta que no se parece a la de al lado. El dibujo se hace a la medida real, que se conoce recién cuando la tarjeta está en pantalla, y se rehace cuando esa medida cambia. Lo que tiene techo es el grosor de la barra: el sobrante va al aire entre barras, no a engordarlas |
 | RNF-19 | **Toda información emergente que explique un dato** —un umbral superado, un porcentaje, un texto recortado— se presenta con el componente propio del producto, de título y detalle, y no con el emergente nativo del navegador. Éste queda reservado para los controles de acción. Dos emergentes de dibujo y tiempo distintos no conviven en la misma línea |
 
@@ -1225,9 +1226,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.69 | 03/10/2026 | Escape cierra el diálogo que está arriba y uno solo, las capas quedan definidas para los diálogos que se abren desde otro, y los últimos avisos nativos pasan al diálogo propio (RNF-10, RNF-14, RNF-14a, RNF-15a) | Reemplazada |
 | 1.70 | 12/10/2026 | El selector de portafolio del detalle de compras toma la presentación de su gemelo de la misma columna, y queda escrito que un control nuevo nunca se presenta con el aspecto del navegador (RNF-18a) | Reemplazada |
 | 1.71 | 13/10/2026 | Se incorporan las series de precios diarios de los doce instrumentos —dos índices de referencia y diez activos—, primer paso para medir el comportamiento de la cartera en el tiempo (RF-211a, DOC-10) | Reemplazada |
-| 1.72 | 13/10/2026 | Inversiones suma la sección **Rendimiento**: retorno acumulado y TIR anualizada, mes a mes y por período, contra el índice de referencia y diciendo qué parte de la cartera quedó medida (RF-211b a RF-211g, RNF-18b) | **Vigente** |
+| 1.72 | 13/10/2026 | Inversiones suma la sección **Rendimiento**: retorno acumulado y TIR anualizada, mes a mes y por período, contra el índice de referencia y diciendo qué parte de la cartera quedó medida (RF-211b a RF-211g, RNF-18b) | Reemplazada |
+| 1.73 | 13/10/2026 | Rendimiento se presenta como sus hermanas: la misma banda de encabezado y la misma sangría, de modo que las cuatro secciones del panel arrancan en una sola columna (RF-211b, RNF-18c) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Rendimiento arranca en la misma columna que las otras secciones | RF-211b, RNF-18c |
+
+**Implementados en la versión 1.72**
 
 | Cambio | Requerimiento |
 |---|---|

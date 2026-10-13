@@ -168,6 +168,18 @@ repetir.
   financiera sin excepción.
 - **Alineación de columnas:** header y filas de detalle comparten el mismo
   `<colgroup>`. No se alinea a ojo con padding.
+- **Una sección nueva de un panel arranca donde arrancan las demás.** El cuerpo
+  va envuelto en un contenedor que comparte la declaración del de sus hermanas
+  —en Inversiones es la de `.inv-liq`, con sus 14px de sangría— y la banda que
+  lo encabeza es la misma función, no una propia: `cabeceraCarteraHtml` en la
+  vista Activos y `cabeceraPortafolioHtml` en la vista Portafolio. Pasó con
+  Rendimiento, que salió con las tarjetas, los gráficos y la nota pegados al
+  borde del panel mientras Concentración y Liquidado arrancaban 14px adentro, y
+  con una cabecera de portafolio dibujada aparte: sin fondo, de 16px de alto
+  contra los 33 de las otras dos. **Cómo se verifica antes de darlo por
+  cerrado:** leer el `left` del primer bloque de contenido de la sección nueva y
+  el de la misma pieza en las secciones vecinas; si no dan el mismo número, está
+  mal. Es norma de desarrollo, no un caso.
 - **Tipografías:** Fraunces (títulos), Inter (texto), JetBrains Mono (números).
   Valen también para el manual PDF.
 - **Lo muerto se saca.** CSS sin uso se elimina. Ojo: las clases que se arman

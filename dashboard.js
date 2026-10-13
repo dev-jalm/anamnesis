@@ -12202,7 +12202,8 @@ function contenidoCabeceraPortafolio(p, nro, tot) {
   '</div>';
 }
 
-// La banda que encabeza cada portafolio en Concentración y en Liquidado. Usa
+// La banda que encabeza cada portafolio en Concentración, Liquidado y
+// Rendimiento. Usa
 // las mismas clases que la cabecera de la tabla de Activos —.inv-currency-
 // header-row y su contenido— para que las tres secciones se lean igual; acá no
 // es una fila de tabla, así que la banda va en un div.
@@ -12214,9 +12215,9 @@ function cabeceraPortafolioHtml(destinos, g, tot) {
   '</div>';
 }
 
-// La misma banda para la cartera entera: es lo que encabeza las tres secciones
-// en la vista Activos, donde no hay grupos que encabezar. Mismos campos y mismo
-// tratamiento que la de un portafolio, con los totales sin filtrar.
+// La misma banda para la cartera entera: es lo que encabeza las secciones del
+// panel en la vista Activos, donde no hay grupos que encabezar. Mismos campos y
+// mismo tratamiento que la de un portafolio, con los totales sin filtrar.
 function cabeceraCarteraHtml(destinos, tot) {
   return '<div class="inv-currency-header-row inv-conc-pf-head">' +
     contenidoCabeceraPortafolio('cartera', 0, tot || totalesDePortafolio(destinos, null, null)) +
@@ -19838,22 +19839,28 @@ function bloqueRendimiento(destinos, titulo) {
     ? gruposDePortafolioDeCartera(destinos)
     : [{ id: null, portafolio: null, nro: 0 }];
 
+  // Misma estructura que Liquidado: un contenedor por grupo con la cabecera del
+  // portafolio afuera y el cuerpo adentro de .inv-perf, que es lo que lleva la
+  // sangría común a todas las secciones del panel.
   const partes = grupos.map(function (g) {
     const r = rendimientoDeCartera(destinos, g.id === null ? undefined : g.id);
+    // La misma banda que encabeza Concentración y Liquidado, con las mismas
+    // clases: las tres secciones del panel se leen igual.
     const cab = (g.id === null)
-      ? ''
-      : '<div class="inv-currency-head-inner inv-pf-cab">' +
-          (g.portafolio ? rotuloPortafolioHtml(g.portafolio, g.nro)
-                        : '<span class="inv-section-label es-sin">Sin portafolio</span>') + '</div>';
+      ? cabeceraCarteraHtml(destinos, null)
+      : cabeceraPortafolioHtml(destinos, g, null);
+    const envolver = function (cuerpo) {
+      return '<div class="inv-conc-pf">' + cab + '<div class="inv-perf">' + cuerpo + '</div></div>';
+    };
     if (!r) {
-      return cab + '<div class="inv-sector-nota">Todavía no hay compras que medir en este ámbito.</div>';
+      return envolver('<div class="inv-sector-nota">Todavía no hay compras que medir en este ámbito.</div>');
     }
     if (r.vacio) {
-      return cab + '<div class="inv-sector-nota">' + escapeHtmlSafe(
+      return envolver('<div class="inv-sector-nota">' + escapeHtmlSafe(
         'No hay serie de precios para ' + (r.sinSerie.length ? r.sinSerie.join(', ') : 'estos activos') +
-        ', así que no se puede medir su comportamiento todavía.') + '</div>';
+        ', así que no se puede medir su comportamiento todavía.') + '</div>');
     }
-    return cab +
+    return envolver(
       tarjetasRendimiento(r) +
       '<div class="inv-perf-grid">' +
         tarjetaGrafico('mensual', r.meses, 'Rentabilidad mensual') +
@@ -19864,7 +19871,7 @@ function bloqueRendimiento(destinos, titulo) {
               escapeHtmlSafe((r.bench.SPY && r.bench.SPY.nombre) || 'Índice') + '</span>' +
           '</div>') +
       '</div>' +
-      notaCobertura(r);
+      notaCobertura(r));
   });
 
   return partes.join('');
