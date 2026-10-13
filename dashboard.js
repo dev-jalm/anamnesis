@@ -19593,6 +19593,9 @@ function rendimientoDeCartera(destinos, pfId) {
     }
     bench[tk] = {
       nombre: s.nombre,
+      // La serie diaria queda guardada: de ella salen la regresión y la curva
+      // de crecimiento comparado, que necesitan rueda contra rueda.
+      retornos: r,
       meses: retornosPorPeriodo(SP.fechas, r, 'mes'),
       anios: retornosPorPeriodo(SP.fechas, r, 'anio')
     };
@@ -19609,6 +19612,13 @@ function rendimientoDeCartera(destinos, pfId) {
   // que te recuperaste de una caída cuando sólo pusiste plata nueva.
   const indice = indiceDeRiqueza(retornos);
   const submarina = curvaSubmarina(indice);
+
+  // Contra cada índice: beta, alfa y R², más su propia curva de riqueza para
+  // poder dibujar las dos juntas desde la misma base.
+  Object.keys(bench).forEach(function (tk) {
+    bench[tk].regresion = regresionContraIndice(retornos, bench[tk].retornos);
+    bench[tk].indice = indiceDeRiqueza(bench[tk].retornos);
+  });
 
   return {
     serie: serie, retornos: retornos, meses: meses, anios: anios, bench: bench,
@@ -19738,6 +19748,14 @@ function rotuloMes(clave) {
 // con las barras de concentración.
 const PERF_ANCHO_BASE = 420;
 
+// El color del índice de referencia, en un solo lugar para los cuatro gráficos
+// y las leyendas. Es `--muted` y no `--muted-2` por una medición: contra el
+// acento de la cartera, en tema oscuro el par acento/muted-2 queda en ΔE 10,7
+// —por debajo del piso de 15, o sea indistinguible aun con visión de color
+// normal— mientras que acento/muted da 19,6 en oscuro y 18,4 en claro. Un gris
+// neutro y no un segundo color: el índice es la referencia, no otra categoría.
+const COLOR_INDICE = 'var(--muted)';
+
 // Barras de la rentabilidad mes a mes. Verde y rojo, como en toda la pantalla.
 function graficoMensual(meses, ancho) {
   if (!meses.length) return '';
@@ -19814,7 +19832,7 @@ function graficoPorPeriodo(datos, ancho) {
         tipAttrs(nombre + ' · ' + f.clave, pctRend(v, 2)) + '></rect>';
     };
     return barra(f.cartera, 0, 'var(--accent)', 'Cartera') +
-      barra(f.indice, bw + 4, 'var(--muted-2)', datos.indice) +
+      barra(f.indice, bw + 4, COLOR_INDICE, datos.indice) +
       '<text x="' + (x + bw + 2).toFixed(1) + '" y="' + (alto - 8) + '" text-anchor="middle" font-size="9" ' +
         'fill="' + (f.destacado ? 'var(--ink)' : 'var(--muted-2)') + '">' + escapeHtmlSafe(f.clave) + '</text>';
   }).join('');
@@ -19825,6 +19843,138 @@ function graficoPorPeriodo(datos, ancho) {
     '<text x="34" y="' + (cero + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">0</text>' +
     cuerpo +
   '</svg>';
+}
+
+// Las dos curvas de crecimiento, cartera e índice, desde la misma base 100 y
+// sobre las mismas ruedas. Base 100 y no el valor en pesos: lo que se compara
+// es cómo se comportó cada uno, no cuánto dinero había en cada lado.
+function puntosCrecimiento(r) {
+  const SP = window.SERIES_PRECIOS;
+  const spy = r.bench.SPY;
+  if (!spy || !spy.indice) return null;
+  const f = [], c = [], b = [];
+  for (let i = 0; i < r.indice.length; i++) {
+    if (r.indice[i] === null || r.indice[i] === undefined) continue;
+    f.push(SP.fechas[i]);
+    c.push(Math.round(r.indice[i] * 1e4) / 1e2);
+    const v = spy.indice[i];
+    b.push((v === null || v === undefined) ? null : Math.round(v * 1e4) / 1e2);
+  }
+  if (!c.length) return null;
+  return { f: f, c: c, b: b, nombre: spy.nombre };
+}
+
+// Las dos curvas juntas. Es la narrativa de la sección: todo lo demás son
+// cortes de esto.
+function graficoCrecimiento(datos, ancho) {
+  if (!datos || !datos.c.length) return '';
+  // El margen derecho aloja la etiqueta del valor final de cada curva. Van
+  // escritas y no sólo en el emergente: el ámbar de la cartera queda en 2,15:1
+  // contra el fondo claro, y un trazo de ese contraste necesita que el dato
+  // esté también en texto.
+  const alto = 180, arriba = 20, abajo = 128, izq = 46, der = 52;
+  const w = Math.max(ancho || PERF_ANCHO_BASE, 240);
+  const util = w - izq - der;
+  const todos = datos.c.concat(datos.b.filter(function (v) { return v !== null; }));
+  let hi = Math.max.apply(null, todos), lo = Math.min.apply(null, todos);
+  // Siempre con el 100 adentro: sin esa referencia, dos curvas que suben se ven
+  // igual que dos que bajan.
+  hi = Math.max(hi, 100); lo = Math.min(lo, 100);
+  if (hi - lo < 1) { hi += 0.5; lo -= 0.5; }
+  const x = function (i) { return izq + (datos.c.length === 1 ? util / 2 : util * i / (datos.c.length - 1)); };
+  const y = function (v) { return abajo - (abajo - arriba) * (v - lo) / (hi - lo); };
+  const trazo = function (serie) {
+    let d = '', abierto = false;
+    for (let i = 0; i < serie.length; i++) {
+      const v = serie[i];
+      if (v === null) { abierto = false; continue; }
+      d += (abierto ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1);
+      abierto = true;
+    }
+    return d;
+  };
+
+  // Marcas de tiempo, con el mismo criterio que la curva submarina.
+  const unAnio = datos.f[0].slice(0, 4) === datos.f[datos.f.length - 1].slice(0, 4);
+  const corte = unAnio ? 7 : 4;
+  const marcas = []; let prev = null;
+  for (let i = 0; i < datos.f.length; i++) {
+    const cl = datos.f[i].slice(0, corte);
+    if (cl === prev) continue;
+    prev = cl;
+    marcas.push({ i: i, txt: unAnio ? MES_INICIAL[parseInt(cl.slice(5, 7), 10) - 1] : cl });
+  }
+  let ultX = -1e9;
+  const ejeX = marcas.filter(function (m) {
+    if (x(m.i) - ultX < (unAnio ? 16 : 34)) return false;
+    ultX = x(m.i); return true;
+  }).map(function (m) {
+    return '<text x="' + x(m.i).toFixed(1) + '" y="' + (alto - 8) + '" text-anchor="middle" ' +
+      'font-size="9" fill="var(--muted-2)">' + escapeHtmlSafe(m.txt) + '</text>';
+  }).join('');
+
+  const fin = datos.c.length - 1;
+  const finB = (function () { for (let i = fin; i >= 0; i--) if (datos.b[i] !== null) return i; return -1; })();
+  const num = function (v) { return v.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }); };
+
+  return '<svg viewBox="0 0 ' + w.toFixed(0) + ' ' + alto + '" width="' + w.toFixed(0) + '" height="' + alto + '" role="img" ' +
+      'aria-label="Crecimiento de la cartera y del índice desde la misma base">' +
+    // La línea del 100: de ahí arrancaron los dos.
+    '<line x1="40" y1="' + y(100).toFixed(1) + '" x2="' + (w - der).toFixed(0) + '" y2="' + y(100).toFixed(1) +
+      '" stroke="var(--grid)" stroke-dasharray="3 3"/>' +
+    '<text x="36" y="' + (y(100) + 4).toFixed(1) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">100</text>' +
+    '<text x="36" y="' + (arriba + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + num(hi) + '</text>' +
+    (lo < 99.5 ? '<text x="36" y="' + (abajo + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + num(lo) + '</text>' : '') +
+    '<path d="' + trazo(datos.b) + '" fill="none" stroke="' + COLOR_INDICE + '" stroke-width="1.5" stroke-linejoin="round"/>' +
+    '<path d="' + trazo(datos.c) + '" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>' +
+    (finB >= 0
+      ? '<circle cx="' + x(finB).toFixed(1) + '" cy="' + y(datos.b[finB]).toFixed(1) + '" r="3.5" fill="' + COLOR_INDICE + '"' +
+        tipAttrs(datos.nombre, 'Terminó en ' + num(datos.b[finB]) + ' sobre una base de 100') + '></circle>' +
+        // El número en tinta de texto; la identidad la lleva el punto de color
+        // que tiene al lado, no el color de la cifra.
+        '<text x="' + (x(finB) + 7).toFixed(1) + '" y="' + (y(datos.b[finB]) + 3.5).toFixed(1) + '" ' +
+          'font-size="10" fill="var(--muted)">' + num(datos.b[finB]) + '</text>'
+      : '') +
+    '<circle cx="' + x(fin).toFixed(1) + '" cy="' + y(datos.c[fin]).toFixed(1) + '" r="4" fill="var(--accent)"' +
+      tipAttrs('Cartera', 'Terminó en ' + num(datos.c[fin]) + ' sobre una base de 100') + '></circle>' +
+    '<text x="' + (x(fin) + 8).toFixed(1) + '" y="' + (y(datos.c[fin]) + 3.5).toFixed(1) + '" ' +
+      'font-size="10" font-weight="600" fill="var(--ink)">' + num(datos.c[fin]) + '</text>' +
+    ejeX +
+  '</svg>';
+}
+
+// Beta, alfa y R² al pie de la curva, que es donde tienen contexto: las tres
+// hablan de la misma comparación que el gráfico dibuja.
+function pieContraIndice(r) {
+  const spy = r.bench.SPY;
+  const g = spy && spy.regresion;
+  if (!g) {
+    return '<div class="inv-perf-leyenda">' +
+      '<span><i class="inv-perf-swatch" style="background:var(--accent)"></i>Cartera</span>' +
+      (spy ? '<span><i class="inv-perf-swatch" style="background:' + COLOR_INDICE + '"></i>' +
+        escapeHtmlSafe(spy.nombre) + '</span>' : '') +
+      '<span class="inv-perf-sinbeta">Hacen falta ' + MIN_RUEDAS_BETA +
+        ' ruedas para medir beta y alfa</span></div>';
+  }
+  const dato = function (rot, val, tit, det) {
+    return '<span' + tipAttrs(tit, det) + '><b>' + rot + '</b> ' + val + '</span>';
+  };
+  const b = g.beta.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const r2 = (g.r2 === null) ? '—' : pctSinSigno(g.r2, 0);
+  return '<div class="inv-perf-leyenda">' +
+    '<span><i class="inv-perf-swatch" style="background:var(--accent)"></i>Cartera</span>' +
+    '<span><i class="inv-perf-swatch" style="background:' + COLOR_INDICE + '"></i>' + escapeHtmlSafe(spy.nombre) + '</span>' +
+    dato('Beta', b, 'Beta',
+      'Cuánto se mueve la cartera cuando el índice se mueve 1%. En 1,00 lo sigue; ' +
+      'arriba lo exagera y abajo lo amortigua. Sobre ' + g.ruedas + ' ruedas.') +
+    dato('Alfa', pctRend(g.alfa), 'Alfa anualizada',
+      'Lo que rindió por encima de lo que explica el mercado, descontando la beta: ' +
+      'ganarle al índice apalancado no es alfa. Calculada con la tasa libre de riesgo en cero, ' +
+      'lo que la corre tanto como se aleje la beta de 1,00.') +
+    dato('R²', r2, 'R cuadrado',
+      'Qué parte del movimiento de la cartera explica el índice. Con un R² bajo, la beta ' +
+      'describe mal la relación y la alfa es más ruido que habilidad.') +
+  '</div>';
 }
 
 // Los puntos de la curva submarina, compactados para viajar en el atributo de
@@ -19930,6 +20080,7 @@ function tarjetaGrafico(tipo, datos, titulo, extra, clase) {
 function dibujoGrafico(tipo, datos, ancho) {
   if (tipo === 'mensual') return graficoMensual(datos, ancho);
   if (tipo === 'submarina') return graficoSubmarina(datos, ancho);
+  if (tipo === 'crecimiento') return graficoCrecimiento(datos, ancho);
   return graficoPorPeriodo(datos, ancho);
 }
 
@@ -19999,15 +20150,18 @@ function bloqueRendimiento(destinos, titulo) {
     return envolver(
       tarjetasRendimiento(r) +
       '<div class="inv-perf-grid">' +
+        // Primero la narrativa —las dos curvas desde la misma base— y después
+        // sus cortes. Las dos de ancho completo son series de tiempo largas:
+        // lo que hay que leer en ellas es tanto el ancho como la altura.
+        tarjetaGrafico('crecimiento', puntosCrecimiento(r), 'Cien pesos en cada uno',
+          pieContraIndice(r), 'inv-perf-ancho') +
         tarjetaGrafico('mensual', r.meses, 'Rentabilidad mensual') +
         tarjetaGrafico('periodo', filasPorPeriodo(r), 'Por período, contra el índice',
           '<div class="inv-perf-leyenda">' +
             '<span><i class="inv-perf-swatch" style="background:var(--accent)"></i>Cartera</span>' +
-            '<span><i class="inv-perf-swatch" style="background:var(--muted-2)"></i>' +
+            '<span><i class="inv-perf-swatch" style="background:' + COLOR_INDICE + '"></i>' +
               escapeHtmlSafe((r.bench.SPY && r.bench.SPY.nombre) || 'Índice') + '</span>' +
           '</div>') +
-        // A ancho completo: es una serie de tiempo larga y lo que hay que leer
-        // es el ancho de cada caída, no sólo su profundidad.
         tarjetaGrafico('submarina', puntosSubmarina(r), 'Por debajo del mejor momento',
           '', 'inv-perf-ancho') +
       '</div>' +

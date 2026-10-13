@@ -4381,6 +4381,12 @@ footer .eyebrow-sources {
   color: var(--muted-2);
 }
 .inv-perf-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+/* Las cifras de la regresión comparten la fila de la leyenda: hablan de la
+   misma comparación que el gráfico de arriba. El rótulo va en tinta plena y el
+   valor en el apagado de la leyenda, como en el resto de la app. */
+.inv-perf-leyenda span[data-tip-titulo] { cursor: help; }
+.inv-perf-leyenda b { color: var(--ink); font-weight: 600; }
+.inv-perf-sinbeta { font-style: italic; }
 .inv-perf-swatch { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
 
 /* ===== SPARKLINES en tarjetas KPI ===== */

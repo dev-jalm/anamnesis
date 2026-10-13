@@ -3310,6 +3310,68 @@ function volatilidadAnual(retornos) {
   return Math.sqrt(varianza) * Math.sqrt(RUEDAS_POR_ANIO);
 }
 
+/* ---------------------------------------------------------------------------
+   LA CARTERA CONTRA EL ÍNDICE
+
+   Una regresión de los retornos diarios de la cartera contra los del índice.
+   De ahí salen las tres cifras juntas, porque comparten los mismos sumatorios
+   y calcularlas por separado sería recorrer la serie tres veces.
+
+   BETA — cuánto se mueve la cartera cuando el índice se mueve 1%. En 1 sigue al
+   mercado; arriba de 1 lo exagera, abajo lo amortigua. No es una virtud ni un
+   defecto: es el tipo de riesgo que se está corriendo.
+
+   ALFA — lo que rindió por encima de lo que explica el mercado, anualizado. Es
+   el intercepto de la regresión, no la resta de los dos retornos: ganarle al
+   índice con una beta de 1,5 no es mérito, es apalancamiento.
+
+   R² — qué parte del movimiento de la cartera explica el índice. Es el control
+   de validez de las otras dos: con un R² bajo, la beta describe mal la relación
+   y el alfa es más ruido que habilidad. Sin este número, beta y alfa se leen
+   como si siempre significaran lo mismo, y no es así.
+
+   SOBRE LA TASA LIBRE DE RIESGO. El alfa de Jensen la descuenta de los dos
+   lados: α = (r_c − β·r_i) − rf·(1 − β). Acá se calcula el primer término, que
+   es el alfa con la tasa en cero. El error que eso introduce es rf·(1 − β): se
+   anula cuando la beta vale 1 y crece a medida que se aleja. Con una beta de
+   0,8 y una tasa del 4% son 80 puntos básicos anuales. Queda dicho en la
+   pantalla en vez de incorporar una serie de tasas para corregir algo de ese
+   tamaño.
+   ------------------------------------------------------------------------- */
+
+// Una beta sobre veinte ruedas es ruido con forma de número. Un trimestre es el
+// piso por debajo del cual no se informa.
+const MIN_RUEDAS_BETA = 60;
+function regresionContraIndice(rCartera, rIndice) {
+  const x = [], y = [];
+  const n = Math.min((rCartera || []).length, (rIndice || []).length);
+  for (let i = 0; i < n; i++) {
+    const a = rCartera[i], b = rIndice[i];
+    if (a === null || a === undefined || !isFinite(a)) continue;
+    if (b === null || b === undefined || !isFinite(b)) continue;
+    y.push(a); x.push(b);
+  }
+  if (x.length < MIN_RUEDAS_BETA) return null;
+  const m = x.length;
+  const mx = x.reduce(function (s, v) { return s + v; }, 0) / m;
+  const my = y.reduce(function (s, v) { return s + v; }, 0) / m;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < m; i++) {
+    const dx = x[i] - mx, dy = y[i] - my;
+    sxy += dx * dy; sxx += dx * dx; syy += dy * dy;
+  }
+  if (!(sxx > 0)) return null; // el índice no se movió: no hay pendiente
+  const beta = sxy / sxx;
+  const alfaDiario = my - beta * mx;
+  return {
+    beta: beta,
+    // Anualizar componiendo, no multiplicando: el alfa es un retorno.
+    alfa: Math.pow(1 + alfaDiario, RUEDAS_POR_ANIO) - 1,
+    r2: (syy > 0) ? (sxy * sxy) / (sxx * syy) : null,
+    ruedas: m
+  };
+}
+
 // Tasa interna de retorno anualizada de una serie de flujos fechados (XIRR).
 //
 // `flujos`: [{ fecha: 'aaaa-mm-dd', monto }], negativo lo que se puso y positivo
@@ -3364,7 +3426,7 @@ if (typeof module !== 'undefined' && module.exports) {
     retornosPorPeriodo, acumularRetornos, tirAnual,
     // el riesgo de la cartera
     indiceDeRiqueza, curvaSubmarina, caidaMaxima, volatilidadAnual,
-    RUEDAS_POR_ANIO,
+    regresionContraIndice, RUEDAS_POR_ANIO, MIN_RUEDAS_BETA,
     // parsers de resúmenes
     parseCsv, detectarSeparadorCsv, fechaResumenAIso,
     esMovimientoInternoMp, parseMercadoPagoCsv, parseGaliciaRows,
