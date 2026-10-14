@@ -91,68 +91,102 @@ const DEMO_APORTES = [
 ];
 
 /* --------------------------------------------------------------------------
-   Cartera de CEDEARs para la solapa Salud financiera
+   Cartera de la solapa Salud financiera
    --------------------------------------------------------------------------
-   Precios en ARS. Cada activo lleva una LISTA de compras, no una sola: así es
-   como se arma una posición de verdad —de a poco, a precios distintos— y es lo
-   que hace que desplegar un activo muestre algo. Con una compra por ticker, la
-   fila de detalle repetía la cabecera y la función no se entendía.
+   LOS PRECIOS NO SE INVENTAN. Salen de series-precios.js, las mismas que usa
+   la sección Rendimiento: el precio de cada compra es el que el activo tenía
+   ese día y la valuación de hoy es la del último cierre. Antes eran números a
+   mano, y eso rompía la coherencia entre secciones: Rendimiento medía con la
+   serie real mientras Activos valuaba con un precio imaginario, así que la
+   cobertura daba 32% aunque todos los tickers estuvieran cubiertos. Con los
+   precios derivados, lo que dice una sección es lo mismo que dice la otra.
 
-   El precio promedio de compra que muestra la cabecera sale ponderado de estas
-   compras; no está escrito en ningún lado.
+   Un CEDEAR en pesos vale `cierre del subyacente en dólares ÷ ratio × MEP`.
+   Lo que no tiene CEDEAR —el ETF de Vanguard y Barrick— va en dólares, que
+   además es el caso que faltaba: hasta ahora la cartera era toda en pesos y
+   la tabla de activos en USD aparecía siempre vacía.
 
-   MSFT tiene la segunda compra POR ENCIMA del precio actual, a propósito: es el
-   caso que muestra que la cabecera puede estar en verde y una compra suelta en
-   rojo. Sin eso, todas las filas de detalle salían del mismo color y no se veía
-   para qué sirve abrirlas.
+   Cada activo lleva una LISTA de compras, no una sola: así es como se arma una
+   posición de verdad —de a poco, a precios distintos— y es lo que hace que
+   desplegar un activo muestre algo. El precio promedio de compra sale ponderado
+   de esas compras; no está escrito en ningún lado.
+
+   LOS CASOS QUE LA DEMO TIENE QUE MOSTRAR, y de dónde salen ahora que los
+   precios son reales:
+   - GOOGL compró caro en su segunda tanda y hoy vale menos: es la cabecera en
+     verde con una compra suelta en rojo. Antes ese papel lo hacía MSFT con un
+     precio puesto a mano.
+   - MELI compró caro las dos veces: el ticker entero en rojo.
+   - GOOGL lleva además una venta parcial, que es lo que alimenta Liquidado sin
+     tener que cargarla a mano.
+   - Las tres carteras con activos medibles, para que Rendimiento funcione en
+     Reserva y en Jubilación y no sólo en Inversiones.
 
    `meses` es la antigüedad de la compra contra hoy, así la demo no envejece.
    -------------------------------------------------------------------------- */
+// El MEP de la demo. Está acá arriba y en un solo lugar porque de él dependen
+// todos los precios en pesos: si se toca, se mueve la cartera entera y sigue
+// siendo coherente consigo misma.
+const DEMO_MEP = 1285;
+
 const DEMO_CARTERA = [
-  { ticker: 'SPY',  desc: 'SPDR S&P 500 ETF Trust',  broker: 'BALANZ',      actual: 28650, destino: 'inversiones',
-    compras: [ { meses: 8, dia: 12, cant: 15, ppc: 19800 },
-               { meses: 5, dia:  8, cant: 15, ppc: 21400 },
-               { meses: 2, dia: 19, cant: 12, ppc: 24900 } ] },
-  { ticker: 'AAPL', desc: 'Apple Inc.',              broker: 'BALANZ',      actual: 16240, destino: 'inversiones',
-    compras: [ { meses: 7, dia:  5, cant: 40, ppc: 11900 },
-               { meses: 3, dia: 22, cant: 25, ppc: 14240 } ] },
-  { ticker: 'MSFT', desc: 'Microsoft Corporation',   broker: 'NEXO',        actual: 24180, destino: 'inversiones',
-    compras: [ { meses: 7, dia: 18, cant: 18, ppc: 17400 },
-               { meses: 1, dia: 14, cant: 10, ppc: 25560 } ] },
-  // GOOGL lleva una venta parcial: es el caso que muestra la liquidación de
-  // tenencias sin que haya que cargarla a mano. Se vendieron 15 de 35 a 17.100
-  // —por debajo del precio de hoy, así que la venta dejó ganancia pero menos de
-  // la que hubiera dejado esperando, que es la situación real de cualquiera que
-  // vende—. Los 20 que quedan siguen valuándose contra el precio actual.
-  { ticker: 'GOOGL',desc: 'Alphabet Inc.',           broker: 'NEXO',        actual: 17890, destino: 'inversiones',
-    compras: [ { meses: 6, dia: 11, cant: 35, ppc: 15200,
-                 ventas: [ { meses: 1, dia: 23, cant: 15, precio: 17100 } ] } ] },
+  { ticker: 'SPY',  desc: 'SPDR S&P 500 ETF Trust',  broker: 'BALANZ',      destino: 'inversiones',
+    compras: [ { meses: 11, dia: 12, cant: 15 },
+               { meses:  7, dia:  8, cant: 15 },
+               { meses:  3, dia: 19, cant: 12 } ] },
+  { ticker: 'AAPL', desc: 'Apple Inc.',              broker: 'BALANZ',      destino: 'inversiones',
+    compras: [ { meses: 12, dia:  5, cant: 40 },
+               { meses:  8, dia: 22, cant: 25 },
+               { meses:  3, dia:  9, cant: 20 } ] },
+  { ticker: 'MSFT', desc: 'Microsoft Corporation',   broker: 'NEXO',        destino: 'inversiones',
+    compras: [ { meses: 9, dia: 18, cant: 18 },
+               { meses: 3, dia: 14, cant: 10 } ] },
+  // GOOGL hace dos trabajos. La segunda compra fue arriba del precio de hoy:
+  // la cabecera queda en verde y esa fila en rojo, que es para lo que sirve
+  // abrir el detalle. Y lleva una venta parcial —15 de 35— que deja ganancia
+  // pero menos de la que hubiera dejado esperando, la situación real de
+  // cualquiera que vende. Los 20 que quedan siguen valuándose contra hoy.
+  { ticker: 'GOOGL',desc: 'Alphabet Inc.',           broker: 'NEXO',        destino: 'inversiones',
+    compras: [ { meses: 9, dia: 11, cant: 35,
+                 ventas: [ { meses: 2, dia: 23, cant: 15 } ] },
+               // Chica a propósito: tiene que alcanzar para pintar su fila de
+               // rojo sin arrastrar al promedio del ticker, que es lo que hace
+               // al caso.
+               { meses: 5, dia: 16, cant: 8 } ] },
   // NVDA y MELI estaban en 'trading'. Trading ya no lista tenencias por ticker:
   // su detalle es la Mesa, que modela operaciones apalancadas (entrada, stop,
   // salida). Un CEDEAR ahí quedaba invisible pero sumando, así que pasan a
   // inversiones, que es lo que realmente son.
-  { ticker: 'NVDA', desc: 'NVIDIA Corporation',      broker: 'BULL_MARKET', actual: 46700, destino: 'inversiones',
-    compras: [ { meses: 9, dia:  7, cant: 10, ppc: 28400 },
-               { meses: 4, dia: 16, cant:  8, ppc: 35375 } ] },
-  { ticker: 'MELI', desc: 'MercadoLibre Inc.',       broker: 'BALANZ',      actual: 51300, destino: 'inversiones',
-    compras: [ { meses: 5, dia: 24, cant: 12, ppc: 42000 } ] },
-  { ticker: 'KO',   desc: 'The Coca-Cola Company',   broker: 'BALANZ',      actual: 10450, destino: 'jubilacion_jalm',
-    compras: [ { meses: 10, dia: 6, cant: 30, ppc: 8100 },
-               { meses:  6, dia: 6, cant: 25, ppc: 8900 },
-               { meses:  3, dia: 6, cant: 25, ppc: 9700 } ] },
-  { ticker: 'JNJ',  desc: 'Johnson & Johnson',       broker: 'NEXO',        actual: 12980, destino: 'jubilacion_jalm',
-    compras: [ { meses: 8, dia: 20, cant: 45, ppc: 11200 } ] },
+  { ticker: 'NVDA', desc: 'NVIDIA Corporation',      broker: 'BULL_MARKET', destino: 'inversiones',
+    compras: [ { meses: 10, dia:  7, cant: 10 },
+               { meses:  6, dia: 16, cant:  8 } ] },
+  // Las dos tandas caras: el ticker entero en rojo, que es el caso que falta
+  // cuando todo lo demás viene en verde.
+  { ticker: 'MELI', desc: 'MercadoLibre Inc.',       broker: 'BALANZ',      destino: 'inversiones',
+    compras: [ { meses: 12, dia: 24, cant: 6 },
+               { meses:  9, dia: 12, cant: 5 } ] },
+  { ticker: 'KO',   desc: 'The Coca-Cola Company',   broker: 'BALANZ',      destino: 'jubilacion_jalm',
+    compras: [ { meses: 12, dia: 6, cant: 30 },
+               { meses:  8, dia: 6, cant: 25 },
+               { meses:  4, dia: 6, cant: 25 } ] },
+  { ticker: 'JNJ',  desc: 'Johnson & Johnson',       broker: 'NEXO',        destino: 'jubilacion_jalm',
+    compras: [ { meses: 11, dia: 20, cant: 45 },
+               { meses:  5, dia: 20, cant: 20 } ] },
   // VOO pasa a jubilacion_jalm: la demo tiene un solo panel de jubilación y el
   // de CLM no se muestra, así que una posición ahí quedaría invisible.
-  { ticker: 'VOO',  desc: 'Vanguard S&P 500 ETF',    broker: 'BALANZ',      actual: 23400, destino: 'jubilacion_jalm',
-    compras: [ { meses: 9, dia: 15, cant: 18, ppc: 17200 },
-               { meses: 4, dia: 15, cant: 12, ppc: 20950 } ] },
-  // GOLD no está en el listado de BYMA: su sector va cargado a mano, que es el
-  // caso que la demo tiene que mostrar. VOO tampoco está y se deja sin sector,
-  // para que se vea cómo aparece lo que falta asignar.
-  { ticker: 'GOLD', desc: 'Barrick Gold Corporation',broker: 'BULL_MARKET', actual: 8120,  destino: 'reserva', sector: 'materiales',
-    compras: [ { meses: 6, dia:  9, cant: 30, ppc: 6200 },
-               { meses: 2, dia:  9, cant: 25, ppc: 7520 } ] }
+  // Va en dólares porque no tiene CEDEAR: no es una licencia de la demo, es lo
+  // que dice el listado de BYMA.
+  { ticker: 'VOO',  desc: 'Vanguard S&P 500 ETF',    broker: 'BALANZ',      destino: 'jubilacion_jalm', moneda: 'USD',
+    compras: [ { meses: 10, dia: 15, cant: 4 },
+               { meses:  5, dia: 15, cant: 3 } ] },
+  // GOLD tampoco está en el listado de BYMA, así que también va en dólares, y
+  // su sector va cargado a mano: es el caso que la demo tiene que mostrar.
+  // VOO se deja sin sector, para que se vea cómo aparece lo que falta asignar.
+  { ticker: 'GOLD', desc: 'Barrick Gold Corporation',broker: 'BULL_MARKET', destino: 'reserva', moneda: 'USD', sector: 'materiales',
+    // La primera tanda entró antes de la corrida del oro y la segunda en el
+    // pico: una en verde fuerte y otra en rojo, dentro del mismo ticker.
+    compras: [ { meses: 11, dia:  9, cant: 60 },
+               { meses:  6, dia:  9, cant: 45 } ] }
 ];
 
 /* --------------------------------------------------------------------------
@@ -487,32 +521,55 @@ function buildDemoSnapshot(mesesAtras) {
   // Forma de pago por tx. Va en un mapa aparte y no en la tx, igual que en la
   // app. Lo llena la generación de ventas de más abajo.
   const paymentMethodOverrides = {};
+  // El precio de un activo en una fecha, sacado de la serie real. Un CEDEAR en
+  // pesos vale el cierre del subyacente dividido su ratio y pasado a pesos al
+  // MEP; lo que no tiene CEDEAR se opera en dólares y va a su precio directo.
+  // Si la fecha cae fuera de la serie —la demo se corre con el calendario y
+  // algún día va a pasar— se toma la última rueda disponible antes de ella,
+  // que es el mismo criterio que usa el resto de la app.
+  const iso = function (d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+           '-' + String(d.getDate()).padStart(2, '0');
+  };
+  function precioDemo(ticker, fechaIso, moneda) {
+    const SP = window.SERIES_PRECIOS;
+    const s = SP && SP.series && SP.series[ticker];
+    if (!s) return null;
+    let k = ruedaEnOAntes(SP.fechas, fechaIso);
+    if (k < s.desde) k = s.desde;                    // antes de que cotizara
+    const usd = s.cierres[k - s.desde];
+    if (!(usd > 0)) return null;
+    if (moneda === 'USD') return Math.round(usd * 100) / 100;
+    const ratio = (window.CEDEARS_BYMA.instrumentos[ticker] || {}).r;
+    if (!ratio) return null;
+    return Math.round(usd / ratio * DEMO_MEP);
+  }
+
   DEMO_CARTERA.forEach(function (p, i) {
+    const moneda = p.moneda || 'ARS';
     p.compras.forEach(function (c, j) {
       const f = new Date(hoy.getFullYear(), hoy.getMonth() - c.meses, c.dia);
-      const iso = function (d) {
-        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
-               '-' + String(d.getDate()).padStart(2, '0');
-      };
+      const ppc = precioDemo(p.ticker, iso(f), moneda);
       investmentEntries.push({
         id: 'inv_demo_' + i + '_' + j,
         fecha: iso(f),
         broker: p.broker,
         ticker: p.ticker,
         cantidad: c.cant,
-        precio: c.ppc,
-        total: c.cant * c.ppc,
+        precio: ppc,
+        total: c.cant * ppc,
         destino: p.destino,
-        moneda: 'ARS',
+        moneda: moneda,
         createdAt: f.getTime(),
         // Las ventas viven en la compra: el costo de lo vendido sale de su
         // precio. Mismo formato que registra el modal de venta.
         ventas: (c.ventas || []).map(function (v, k) {
           const fv = new Date(hoy.getFullYear(), hoy.getMonth() - v.meses, v.dia);
+          const pv = precioDemo(p.ticker, iso(fv), moneda);
           // Cada venta deja su tx de resultado, igual que la genera la app al
           // vender: sin ella el resultado realizado no aparecería en Historia
           // clínica ni en Evolución, y la demo no mostraría esa mitad.
-          const realizado = v.cant * v.precio - v.cant * c.ppc;
+          const realizado = v.cant * pv - v.cant * ppc;
           if (Math.abs(realizado) >= 0.005) {
             const idTx = 'tx_venta_demo_' + i + '_' + j + '_' + k;
             pushTx(fv.getFullYear(), DEMO_MESES[fv.getMonth()], {
@@ -530,20 +587,25 @@ function buildDemoSnapshot(mesesAtras) {
             paymentMethodOverrides[idTx] = 'transferencia';
           }
           return { id: 'vta_demo_' + i + '_' + j + '_' + k, ts: fv.getTime(), fecha: iso(fv),
-                   cantidad: v.cant, precio: v.precio, total: v.cant * v.precio };
+                   cantidad: v.cant, precio: pv, total: v.cant * pv };
         })
       });
     });
     // La clave lleva la moneda: el mismo ticker vale distinto segun en que se
     // tenga, y con la clave a secas el precio en pesos se mostraba tambien en la
-    // fila en dolares. La cartera demo es toda en pesos.
-    tickerInfo[claveTickerInfo(p.ticker, 'ARS')] = {
+    // fila en dolares.
+    // El precio de hoy es el último cierre de la serie, no un número aparte:
+    // así la valuación de Activos y la medición de Rendimiento hablan del
+    // mismo precio y la cobertura da 100%.
+    const SP = window.SERIES_PRECIOS;
+    const ultima = SP.fechas[SP.fechas.length - 1];
+    tickerInfo[claveTickerInfo(p.ticker, moneda)] = {
       descripcion: p.desc,
-      precioActual: p.actual,
-      moneda: 'ARS',
+      precioActual: precioDemo(p.ticker, ultima, moneda),
+      moneda: moneda,
       lastUpdate: new Date().toISOString()
     };
-    if (p.sector) tickerInfo[claveTickerInfo(p.ticker, 'ARS')].sector = p.sector;
+    if (p.sector) tickerInfo[claveTickerInfo(p.ticker, moneda)].sector = p.sector;
   });
 
   // Operaciones de la Mesa de Trading. Las fechas de DEMO_TRADES vienen en días
@@ -680,7 +742,7 @@ function buildDemoSnapshot(mesesAtras) {
     // agregaría las tarjetas default de la columna izquierda por duplicado.
     params: {
       diasBajo: 5, periFugaPct: 30, learnRulesMonths: 6,
-      cotizacionMep: 1285, sidebarPinned: false,
+      cotizacionMep: DEMO_MEP, sidebarPinned: false,
       viewMode: 'resumen',
       kpiPaletteMigrated: true,
       scoreLeftCardsInitialized: true
