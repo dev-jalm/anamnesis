@@ -4309,10 +4309,10 @@ footer .eyebrow-sources {
 .inv-perf-tiles {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: var(--perf-gap);
 }
-/* El aire entre bloques lo pone el gap de .inv-perf, el mismo de Liquidado: la
-   nota no agrega el suyo encima. */
+/* El aire entre bloques lo pone el gap de .inv-perf: la nota no agrega el
+   suyo encima. */
 .inv-perf > .inv-sector-nota { margin-top: 0; }
 @media (max-width: 1100px) {
   .inv-perf-tiles { grid-template-columns: repeat(2, 1fr); }
@@ -4348,16 +4348,6 @@ footer .eyebrow-sources {
   margin-top: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-/* La separación entre gráficos vive acá y en un solo lugar. El cuerpo de la
-   sección usa un gap más chico —lo comparte con Liquidado—, y con los gráficos
-   colgando directo de él la curva de arriba quedaba a 10px del bloque de abajo
-   mientras los apilados estaban a 18 entre sí. */
-.inv-perf-graficos {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  min-width: 0;
-}
 /* Los tres cortes en el tiempo apilados a la izquierda y la matriz a la
    derecha, ocupando ella sola el alto de los tres. 60/40 y no mitades: las
    series de tiempo necesitan ancho para que se lea el eje, y la matriz es
@@ -4365,13 +4355,13 @@ footer .eyebrow-sources {
 .inv-perf-dos {
   display: grid;
   grid-template-columns: 3fr 2fr;
-  gap: 18px 22px;
+  gap: var(--perf-gap);
 }
 .inv-perf-dos.inv-perf-solo { grid-template-columns: 1fr; }
 .inv-perf-apilados {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--perf-gap);
   min-width: 0;
 }
 /* Los tres de la izquierda crecen para repartirse el alto, y la matriz se
@@ -7339,11 +7329,24 @@ body[data-exporting="true"] .section-card {
   padding: 12px 14px 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 .inv-liq {
+  gap: 10px;
   border-top: 1px solid var(--border);
   font-family: 'JetBrains Mono', monospace;
+}
+/* La sangría y la caja se comparten con Liquidado; el ritmo interno no. Una
+   lista de líneas de texto y una grilla de tarjetas y gráficos no respiran
+   igual.
+   UNA SOLA SEPARACIÓN PARA TODA LA SECCIÓN, en los dos ejes: entre tarjetas,
+   entre sus dos filas, entre las tarjetas y el primer gráfico, entre gráficos
+   y entre las dos columnas. Antes convivían tres valores —10 entre tarjetas,
+   10 entre bloques, 18 y 22 entre gráficos— y cada junta se veía distinta de
+   la de al lado. La medida vive en una variable del contenedor, como la de los
+   controles de Administración: si cambia, cambia en un solo lugar. */
+.inv-perf {
+  --perf-gap: 18px;
+  gap: var(--perf-gap);
 }
 .inv-liq-titulos,
 .inv-liq-fila {
