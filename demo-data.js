@@ -165,20 +165,24 @@ const DEMO_CARTERA = [
   { ticker: 'MELI', desc: 'MercadoLibre Inc.',       broker: 'BALANZ',      destino: 'inversiones',
     compras: [ { meses: 12, dia: 24, cant: 6 },
                { meses:  9, dia: 12, cant: 5 } ] },
+  // Las cantidades de la jubilación están medidas contra lo que la demo
+  // aporta: 140.000 por mes. Con precios reales no se puede comprar cualquier
+  // cosa —una sola unidad del ETF de Vanguard cuesta casi ochocientos mil
+  // pesos—, y pasarse deja el líquido del panel en negativo, que es un estado
+  // imposible: no se invierte lo que no entró.
   { ticker: 'KO',   desc: 'The Coca-Cola Company',   broker: 'BALANZ',      destino: 'jubilacion_jalm',
-    compras: [ { meses: 12, dia: 6, cant: 30 },
-               { meses:  8, dia: 6, cant: 25 },
-               { meses:  4, dia: 6, cant: 25 } ] },
+    compras: [ { meses: 12, dia: 6, cant: 8 },
+               { meses:  8, dia: 6, cant: 7 },
+               { meses:  4, dia: 6, cant: 6 } ] },
   { ticker: 'JNJ',  desc: 'Johnson & Johnson',       broker: 'NEXO',        destino: 'jubilacion_jalm',
-    compras: [ { meses: 11, dia: 20, cant: 45 },
-               { meses:  5, dia: 20, cant: 20 } ] },
+    compras: [ { meses: 11, dia: 20, cant: 12 },
+               { meses:  5, dia: 20, cant: 6 } ] },
   // VOO pasa a jubilacion_jalm: la demo tiene un solo panel de jubilación y el
   // de CLM no se muestra, así que una posición ahí quedaría invisible.
   // Va en dólares porque no tiene CEDEAR: no es una licencia de la demo, es lo
   // que dice el listado de BYMA.
   { ticker: 'VOO',  desc: 'Vanguard S&P 500 ETF',    broker: 'BALANZ',      destino: 'jubilacion_jalm', moneda: 'USD',
-    compras: [ { meses: 10, dia: 15, cant: 4 },
-               { meses:  5, dia: 15, cant: 3 } ] },
+    compras: [ { meses: 10, dia: 15, cant: 1 } ] },
   // GOLD tampoco está en el listado de BYMA, así que también va en dólares, y
   // su sector va cargado a mano: es el caso que la demo tiene que mostrar.
   // VOO se deja sin sector, para que se vea cómo aparece lo que falta asignar.

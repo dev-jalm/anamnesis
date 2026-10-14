@@ -19784,6 +19784,46 @@ const BASE_CRECIMIENTO = 1000;
 // los meses; por debajo, los gráficos saltean etiquetas.
 const ANCHO_MES_ABREV = 26;
 
+// El eje de tiempo de las curvas, uno solo para las dos: marcas al primer día
+// de cada mes, o de cada año cuando la serie es larga.
+//
+// EL CORTE ES LA DURACIÓN, NO EL CAMBIO DE AÑO. Preguntar si la serie empieza
+// y termina en el mismo año calendario dejaba una ventana de trece meses con
+// dos marcas —"2025" y "2026"— y ninguna referencia en el medio, mientras que
+// la misma ventana dentro de un año llevaba doce. Lo que decide cuántas marcas
+// entran es cuánto dura la serie.
+const MESES_PARA_EJE_ANUAL = 20;
+function ejeDeTiempo(fechas, x, alto) {
+  if (!fechas || !fechas.length) return '';
+  const a = fechas[0], b = fechas[fechas.length - 1];
+  const meses = (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7));
+  const porMes = meses < MESES_PARA_EJE_ANUAL;
+  const corte = porMes ? 7 : 4;
+  const marcas = [];
+  let prev = null;
+  for (let i = 0; i < fechas.length; i++) {
+    const cl = fechas[i].slice(0, corte);
+    if (cl === prev) continue;
+    prev = cl;
+    // En una serie por mes, enero lleva el año: es la única referencia de
+    // dónde está parado uno cuando la ventana cruza de un año al otro.
+    marcas.push({ i: i, txt: porMes ? mesAbrev(cl + '-01') : cl,
+      anio: porMes && cl.slice(5, 7) === '01' ? cl.slice(0, 4) : null });
+  }
+  let ultX = -1e9;
+  return marcas.filter(function (m) {
+    if (x(m.i) - ultX < (porMes ? ANCHO_MES_ABREV : 34)) return false;
+    ultX = x(m.i); return true;
+  }).map(function (m) {
+    return '<text x="' + x(m.i).toFixed(1) + '" y="' + (alto - 8) + '" text-anchor="middle" ' +
+        'font-size="9" fill="var(--muted-2)">' + escapeHtmlSafe(m.txt) + '</text>' +
+      (m.anio
+        ? '<text x="' + x(m.i).toFixed(1) + '" y="' + (alto - 19) + '" text-anchor="middle" ' +
+          'font-size="8" fill="var(--muted)">' + m.anio + '</text>'
+        : '');
+  }).join('');
+}
+
 // Barras de la rentabilidad mes a mes. Verde y rojo, como en toda la pantalla.
 function graficoMensual(meses, ancho) {
   if (!meses.length) return '';
@@ -19940,24 +19980,7 @@ function graficoCrecimiento(datos, ancho) {
     return d;
   };
 
-  // Marcas de tiempo, con el mismo criterio que la curva submarina.
-  const unAnio = datos.f[0].slice(0, 4) === datos.f[datos.f.length - 1].slice(0, 4);
-  const corte = unAnio ? 7 : 4;
-  const marcas = []; let prev = null;
-  for (let i = 0; i < datos.f.length; i++) {
-    const cl = datos.f[i].slice(0, corte);
-    if (cl === prev) continue;
-    prev = cl;
-    marcas.push({ i: i, txt: unAnio ? mesAbrev(cl + '-01') : cl });
-  }
-  let ultX = -1e9;
-  const ejeX = marcas.filter(function (m) {
-    if (x(m.i) - ultX < (unAnio ? ANCHO_MES_ABREV : 34)) return false;
-    ultX = x(m.i); return true;
-  }).map(function (m) {
-    return '<text x="' + x(m.i).toFixed(1) + '" y="' + (alto - 8) + '" text-anchor="middle" ' +
-      'font-size="9" fill="var(--muted-2)">' + escapeHtmlSafe(m.txt) + '</text>';
-  }).join('');
+  const ejeX = ejeDeTiempo(datos.f, x, alto);
 
   const fin = datos.c.length - 1;
   const num = function (v) { return Math.round(v).toLocaleString('es-AR'); };
@@ -20113,7 +20136,10 @@ function graficoCorrelacion(datos, ancho) {
   const w = Math.max(ancho || PERF_ANCHO_BASE, 240);
   // La celda crece hasta donde da la tarjeta, con techo: una matriz de dos
   // activos no tiene por qué ocupar media pantalla.
-  const celda = Math.min(Math.max((w - izq - der) / n, 26), 62);
+  // El techo de la celda tiene que dejar la matriz de alto parecido al de la
+  // curva que lleva al lado: con 62px una de seis activos medía 400px contra
+  // los 160 de la curva, y la fila quedaba desbalanceada.
+  const celda = Math.min(Math.max((w - izq - der) / n, 26), 52);
   const alto = arriba + celda * n + abajo;
   const usado = izq + celda * n + der;
   // A diferencia de las series de tiempo, un heatmap es una figura compacta:
@@ -20209,7 +20235,11 @@ function puntosSubmarina(r) {
 function graficoSubmarina(datos, ancho) {
   if (!datos || !datos.d.length) return '';
   const d = datos.d, f = datos.f;
-  const alto = 160, cero = 22, piso = 126, izq = 44, der = 10;
+  // Compartiendo renglón con la matriz la curva queda angosta, y a 160px de
+  // alto se vuelve una chata donde no se distingue una caída del 5 de una del
+  // 15. Gana alto cuando pierde ancho.
+  const angosta = (ancho || PERF_ANCHO_BASE) < 900;
+  const alto = angosta ? 226 : 160, cero = 22, piso = alto - 34, izq = 44, der = 10;
   const w = Math.max(ancho || PERF_ANCHO_BASE, 240);
   const util = w - izq - der;
   const hondo = Math.min.apply(null, d);
@@ -20223,27 +20253,7 @@ function graficoSubmarina(datos, ancho) {
   for (let i = 0; i < d.length; i++) linea += (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(d[i]).toFixed(1);
   const area = linea + 'L' + x(d.length - 1).toFixed(1) + ' ' + cero + 'L' + x(0).toFixed(1) + ' ' + cero + 'Z';
 
-  // Marcas del eje de tiempo: el primer punto de cada año, y si todo cae en un
-  // año, el de cada mes. Sólo donde entran sin pisarse.
-  const unAnio = f[0].slice(0, 4) === f[f.length - 1].slice(0, 4);
-  const corte = unAnio ? 7 : 4;
-  const marcas = [];
-  let prev = null;
-  for (let i = 0; i < f.length; i++) {
-    const cl = f[i].slice(0, corte);
-    if (cl === prev) continue;
-    prev = cl;
-    marcas.push({ i: i, txt: unAnio ? mesAbrev(cl + '-01') : cl });
-  }
-  const minSep = unAnio ? ANCHO_MES_ABREV : 34;
-  let ultX = -1e9;
-  const ejeX = marcas.filter(function (m) {
-    if (x(m.i) - ultX < minSep) return false;
-    ultX = x(m.i); return true;
-  }).map(function (m) {
-    return '<text x="' + x(m.i).toFixed(1) + '" y="' + (alto - 8) + '" text-anchor="middle" ' +
-      'font-size="9" fill="var(--muted-2)">' + escapeHtmlSafe(m.txt) + '</text>';
-  }).join('');
+  const ejeX = ejeDeTiempo(f, x, alto);
 
   // El piso, señalado: es la cifra que la tarjeta de al lado informa.
   const c = datos.caida;
@@ -20375,12 +20385,16 @@ function bloqueRendimiento(destinos, titulo) {
             '<span>' + muestraSerie(COLOR_INDICE, '') +
               escapeHtmlSafe((r.bench.SPY && r.bench.SPY.nombre) || 'Índice') + '</span>' +
           '</div>') +
+        // La caída y la correlación van juntas en una fila: las dos cuentan de
+        // qué está hecho el riesgo, una en el tiempo y la otra entre activos.
+        // Sin matriz —una cartera de un solo activo no tiene pares— la curva
+        // se queda con el ancho entero en vez de dejar medio renglón vacío.
         tarjetaGrafico('submarina', puntosSubmarina(r), 'Por debajo del mejor momento',
-          '', 'inv-perf-ancho') +
+          '', corr ? '' : 'inv-perf-ancho') +
         // Tener diez activos no es estar diversificado si los diez se mueven
         // el mismo día: esto es lo que lo muestra.
         tarjetaGrafico('correlacion', corr, 'Cuánto se mueven juntos',
-          pieCorrelacion(corr), 'inv-perf-ancho') +
+          pieCorrelacion(corr)) +
       '</div>' +
       notaCobertura(r));
   });

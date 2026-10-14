@@ -4352,6 +4352,10 @@ footer .eyebrow-sources {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px 22px;
+  /* Cada tarjeta con su alto natural. Estiradas al de la más alta —que es lo
+     que hace la grilla por omisión—, la curva submarina quedaba con casi 300px
+     de aire debajo al lado de la matriz. */
+  align-items: start;
 }
 @media (max-width: 1100px) {
   .inv-perf-grid { grid-template-columns: 1fr; }
