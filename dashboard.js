@@ -20373,6 +20373,10 @@ function bloqueRendimiento(destinos, titulo) {
     const corr = puntosCorrelacion(destinos, g.id === null ? undefined : g.id);
     return envolver(
       tarjetasRendimiento(r) +
+      // Todos los gráficos van en un contenedor propio: la separación entre
+      // ellos es una sola y no la del cuerpo de la sección, que la comparte
+      // con Liquidado y es más chica.
+      '<div class="inv-perf-graficos">' +
       // Primero la narrativa —todas las curvas desde la misma base, a todo el
       // ancho— y debajo sus cortes.
       tarjetaGrafico('crecimiento', puntosCrecimiento(r), 'Mil pesos en cada uno',
@@ -20396,6 +20400,7 @@ function bloqueRendimiento(destinos, titulo) {
         // el mismo día: esto es lo que lo muestra.
         tarjetaGrafico('correlacion', corr, 'Cuánto se mueven juntos',
           pieCorrelacion(corr)) +
+      '</div>' +
       '</div>' +
       notaCobertura(r));
   });

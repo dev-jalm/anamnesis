@@ -4348,6 +4348,16 @@ footer .eyebrow-sources {
   margin-top: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* La separación entre gráficos vive acá y en un solo lugar. El cuerpo de la
+   sección usa un gap más chico —lo comparte con Liquidado—, y con los gráficos
+   colgando directo de él la curva de arriba quedaba a 10px del bloque de abajo
+   mientras los apilados estaban a 18 entre sí. */
+.inv-perf-graficos {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
 /* Los tres cortes en el tiempo apilados a la izquierda y la matriz a la
    derecha, ocupando ella sola el alto de los tres. 60/40 y no mitades: las
    series de tiempo necesitan ancho para que se lea el eje, y la matriz es
