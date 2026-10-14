@@ -3311,6 +3311,73 @@ function volatilidadAnual(retornos) {
 }
 
 /* ---------------------------------------------------------------------------
+   CUÁNTO SE MUEVEN JUNTOS
+
+   Tener diez activos no es estar diversificado si los diez suben y bajan el
+   mismo día. La correlación entre pares es lo que distingue una cartera
+   repartida de una que es la misma apuesta escrita diez veces.
+   ------------------------------------------------------------------------- */
+
+// Correlación de Pearson entre dos series de retornos, sobre las ruedas en que
+// las dos tienen dato. Devuelve null si no hay suficientes o si alguna no se
+// movió —sin varianza no hay correlación que medir, y devolver 0 haría pasar
+// por "no se mueven juntos" a algo que directamente no se puede comparar—.
+function correlacionDeRetornos(a, b, minRuedas) {
+  const x = [], y = [];
+  const n = Math.min((a || []).length, (b || []).length);
+  for (let i = 0; i < n; i++) {
+    const p = a[i], q = b[i];
+    if (p === null || p === undefined || !isFinite(p)) continue;
+    if (q === null || q === undefined || !isFinite(q)) continue;
+    x.push(p); y.push(q);
+  }
+  const m = x.length;
+  if (m < (minRuedas === undefined ? MIN_RUEDAS_BETA : minRuedas)) return null;
+  const mx = x.reduce(function (s, v) { return s + v; }, 0) / m;
+  const my = y.reduce(function (s, v) { return s + v; }, 0) / m;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < m; i++) {
+    const dx = x[i] - mx, dy = y[i] - my;
+    sxy += dx * dy; sxx += dx * dx; syy += dy * dy;
+  }
+  if (!(sxx > 0) || !(syy > 0)) return null;
+  return sxy / Math.sqrt(sxx * syy);
+}
+
+// La matriz de todos contra todos. `entradas`: [{ clave, retornos }].
+// Devuelve { claves, m }, con m[i][j] la correlación del par y 1 en la
+// diagonal. Sólo se calcula media matriz: es simétrica.
+function matrizCorrelacion(entradas, minRuedas) {
+  const lista = (entradas || []).filter(function (e) { return e && e.retornos; });
+  const claves = lista.map(function (e) { return e.clave; });
+  const m = lista.map(function () { return new Array(lista.length).fill(null); });
+  for (let i = 0; i < lista.length; i++) {
+    m[i][i] = 1;
+    for (let j = i + 1; j < lista.length; j++) {
+      const c = correlacionDeRetornos(lista[i].retornos, lista[j].retornos, minRuedas);
+      m[i][j] = c; m[j][i] = c;
+    }
+  }
+  return { claves: claves, m: m };
+}
+
+// El promedio de las correlaciones entre pares distintos: una sola cifra para
+// decir si la cartera está repartida o es la misma apuesta varias veces.
+// Se promedian los pares, no la matriz entera: la diagonal es siempre 1 y
+// contarla inflaría el número con información que no dice nada.
+function correlacionPromedio(matriz) {
+  if (!matriz || !matriz.m) return null;
+  let suma = 0, n = 0;
+  for (let i = 0; i < matriz.m.length; i++) {
+    for (let j = i + 1; j < matriz.m.length; j++) {
+      const c = matriz.m[i][j];
+      if (c !== null && c !== undefined && isFinite(c)) { suma += c; n++; }
+    }
+  }
+  return n ? suma / n : null;
+}
+
+/* ---------------------------------------------------------------------------
    LA CARTERA CONTRA EL ÍNDICE
 
    Una regresión de los retornos diarios de la cartera contra los del índice.
@@ -3427,6 +3494,7 @@ if (typeof module !== 'undefined' && module.exports) {
     // el riesgo de la cartera
     indiceDeRiqueza, curvaSubmarina, caidaMaxima, volatilidadAnual,
     regresionContraIndice, RUEDAS_POR_ANIO, MIN_RUEDAS_BETA,
+    correlacionDeRetornos, matrizCorrelacion, correlacionPromedio,
     // parsers de resúmenes
     parseCsv, detectarSeparadorCsv, fechaResumenAIso,
     esMovimientoInternoMp, parseMercadoPagoCsv, parseGaliciaRows,

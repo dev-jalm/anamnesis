@@ -20066,6 +20066,128 @@ function pieContraIndice(r) {
   '</div>';
 }
 
+/* La matriz de correlación entre los activos de la cartera.
+
+   LA ESCALA DE COLOR. Es divergente —un polo por signo y el cero en el medio—,
+   y se construye con la opacidad de un solo color por brazo en vez de elegir
+   pasos a mano: así la luminosidad es monótona por construcción, cada brazo
+   tiene un único tono y el punto medio es el fondo de la tarjeta, que es el
+   neutro más honesto que hay. Cálido para la correlación positiva, que es la
+   que hay que vigilar, y frío para la negativa, que es la que diversifica. */
+const CORR_ALFA_MAX = 0.72;   // por encima de esto la cifra deja de leerse
+
+function puntosCorrelacion(destinos, pfId) {
+  const SP = window.SERIES_PRECIOS;
+  if (!SP || !SP.fechas) return null;
+  // Un activo por ticker, con su serie de retornos diarios.
+  const vistos = {};
+  const entradas = [];
+  tenenciasDePortafolio(destinos, pfId === undefined ? null : pfId).forEach(function (e) {
+    const tk = String(e.ticker || '').toUpperCase();
+    if (vistos[tk] || !SP.series[tk]) return;
+    vistos[tk] = true;
+    const s = SP.series[tk];
+    const r = new Array(SP.fechas.length).fill(null);
+    for (let i = s.desde + 1; i < SP.fechas.length; i++) {
+      const hoy = precioEnRueda(SP, tk, i), ayer = precioEnRueda(SP, tk, i - 1);
+      if (hoy !== null && ayer !== null && ayer > 0) r[i] = hoy / ayer - 1;
+    }
+    entradas.push({ clave: tk, nombre: s.nombre, retornos: r });
+  });
+  if (entradas.length < 2) return null;  // con un solo activo no hay pares
+  const mz = matrizCorrelacion(entradas);
+  return {
+    claves: mz.claves,
+    nombres: entradas.map(function (e) { return e.nombre; }),
+    m: mz.m.map(function (f) {
+      return f.map(function (c) { return (c === null) ? null : Math.round(c * 1000) / 1000; });
+    }),
+    promedio: correlacionPromedio(mz)
+  };
+}
+
+function graficoCorrelacion(datos, ancho) {
+  if (!datos || datos.claves.length < 2) return '';
+  const n = datos.claves.length;
+  const izq = 46, arriba = 22, der = 8, abajo = 8;
+  const w = Math.max(ancho || PERF_ANCHO_BASE, 240);
+  // La celda crece hasta donde da la tarjeta, con techo: una matriz de dos
+  // activos no tiene por qué ocupar media pantalla.
+  const celda = Math.min(Math.max((w - izq - der) / n, 26), 62);
+  const alto = arriba + celda * n + abajo;
+  const usado = izq + celda * n + der;
+  // A diferencia de las series de tiempo, un heatmap es una figura compacta:
+  // cuando la tarjeta da más ancho del que necesita, se centra en vez de
+  // estirarse. Una celda de 200px no diría nada más que una de 60.
+  const ancho0 = Math.max(w, usado);
+  const dx = Math.max(0, (ancho0 - usado) / 2);
+
+  let cuerpo = '';
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      const c = datos.m[i][j];
+      const x = dx + izq + j * celda, y = arriba + i * celda;
+      const alfa = (c === null) ? 0 : Math.min(Math.abs(c), 1) * CORR_ALFA_MAX;
+      const color = (c === null || c === 0) ? 'transparent' : (c > 0 ? 'var(--accent)' : 'var(--blue)');
+      const txt = (c === null) ? '—'
+        : (i === j ? '1' : c.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      const detalle = (c === null)
+        ? 'No hay ruedas suficientes en común para medirlo'
+        : (i === j ? 'Un activo contra sí mismo siempre da 1'
+          : (c >= 0.7 ? 'Se mueven casi siempre juntos: tenerlos a los dos diversifica poco'
+            : c >= 0.3 ? 'Se mueven juntos buena parte del tiempo'
+              : c > -0.1 ? 'Se mueven con bastante independencia'
+                : 'Tienden a moverse al revés: es lo que más diversifica'));
+      cuerpo +=
+        '<rect x="' + (x + 1) + '" y="' + (y + 1) + '" width="' + (celda - 2) + '" height="' + (celda - 2) +
+          '" rx="3" fill="' + color + '" fill-opacity="' + alfa.toFixed(3) + '"' +
+          ' stroke="var(--border)" stroke-width="0.5"' +
+          tipAttrs(datos.claves[i] + ' · ' + datos.claves[j],
+            (c === null ? 'Sin medir' : c.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) +
+            ' — ' + detalle) + '></rect>' +
+        '<text x="' + (x + celda / 2) + '" y="' + (y + celda / 2 + 3) + '" text-anchor="middle" ' +
+          'font-size="' + (celda >= 40 ? 10 : 8) + '" fill="var(--ink)" pointer-events="none">' + txt + '</text>';
+    }
+    // Rótulos: el ticker a la izquierda de cada fila y arriba de cada columna.
+    cuerpo +=
+      '<text x="' + (dx + izq - 6) + '" y="' + (arriba + i * celda + celda / 2 + 3) + '" text-anchor="end" ' +
+        'font-size="9" fill="var(--muted-2)">' + escapeHtmlSafe(datos.claves[i]) + '</text>' +
+      '<text x="' + (dx + izq + i * celda + celda / 2) + '" y="' + (arriba - 7) + '" text-anchor="middle" ' +
+        'font-size="9" fill="var(--muted-2)">' + escapeHtmlSafe(datos.claves[i]) + '</text>';
+  }
+
+  return '<svg viewBox="0 0 ' + ancho0.toFixed(0) + ' ' + alto.toFixed(0) + '" width="' + ancho0.toFixed(0) +
+      '" height="' + alto.toFixed(0) + '" role="img" ' +
+      'aria-label="Cuánto se mueven juntos los activos de la cartera">' + cuerpo + '</svg>';
+}
+
+// El pie de la matriz: la escala y la cifra que la resume.
+function pieCorrelacion(datos) {
+  if (!datos) return '';
+  const p = datos.promedio;
+  const muestra = function (color, alfa, rot) {
+    return '<span><svg class="inv-perf-swatch" viewBox="0 0 16 10" width="16" height="10" aria-hidden="true">' +
+      '<rect x="0" y="0" width="16" height="10" rx="2" fill="' + color + '" fill-opacity="' + alfa + '"' +
+      ' stroke="var(--border)" stroke-width="0.5"/></svg>' + rot + '</span>';
+  };
+  const lectura = (p === null) ? ''
+    : (p >= 0.7 ? 'es casi la misma apuesta repetida'
+      : p >= 0.4 ? 'se mueven bastante juntos'
+        : p >= 0.15 ? 'hay diversificación real'
+          : 'están muy poco atados entre sí');
+  return '<div class="inv-perf-leyenda">' +
+    muestra('var(--blue)', CORR_ALFA_MAX, 'Se mueven al revés') +
+    muestra('var(--accent)', 0.12, 'Independientes') +
+    muestra('var(--accent)', CORR_ALFA_MAX, 'Se mueven juntos') +
+    (p === null ? '' :
+      '<span' + tipAttrs('Correlación promedio',
+        'El promedio de los pares, sin contar la diagonal. Cuanto más alto, menos aporta ' +
+        'sumar otro de estos activos: la cartera ya se mueve toda junta.') +
+      '><b>Promedio</b> ' + p.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+      ' — ' + lectura + '</span>') +
+  '</div>';
+}
+
 // Los puntos de la curva submarina, compactados para viajar en el atributo de
 // la tarjeta: dos arreglos paralelos en vez de un objeto por rueda.
 function puntosSubmarina(r) {
@@ -20170,6 +20292,7 @@ function dibujoGrafico(tipo, datos, ancho) {
   if (tipo === 'mensual') return graficoMensual(datos, ancho);
   if (tipo === 'submarina') return graficoSubmarina(datos, ancho);
   if (tipo === 'crecimiento') return graficoCrecimiento(datos, ancho);
+  if (tipo === 'correlacion') return graficoCorrelacion(datos, ancho);
   return graficoPorPeriodo(datos, ancho);
 }
 
@@ -20236,6 +20359,7 @@ function bloqueRendimiento(destinos, titulo) {
         'No hay serie de precios para ' + (r.sinSerie.length ? r.sinSerie.join(', ') : 'estos activos') +
         ', así que no se puede medir su comportamiento todavía.') + '</div>');
     }
+    const corr = puntosCorrelacion(destinos, g.id === null ? undefined : g.id);
     return envolver(
       tarjetasRendimiento(r) +
       '<div class="inv-perf-grid">' +
@@ -20253,6 +20377,10 @@ function bloqueRendimiento(destinos, titulo) {
           '</div>') +
         tarjetaGrafico('submarina', puntosSubmarina(r), 'Por debajo del mejor momento',
           '', 'inv-perf-ancho') +
+        // Tener diez activos no es estar diversificado si los diez se mueven
+        // el mismo día: esto es lo que lo muestra.
+        tarjetaGrafico('correlacion', corr, 'Cuánto se mueven juntos',
+          pieCorrelacion(corr), 'inv-perf-ancho') +
       '</div>' +
       notaCobertura(r));
   });
