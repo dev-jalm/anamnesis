@@ -265,16 +265,18 @@ window.MANUAL = {
       h: 'Cómo rindió la cartera',
       sub: '¿Me fue bien, o sólo subió todo?',
       img: '23-rendimiento',
-      imgCap: 'La sección Rendimiento: arriba lo que rindió, abajo lo que costó en riesgo, y la curva submarina a todo lo ancho. Al pie, qué parte de la cartera se pudo medir.',
+      imgCap: 'Arriba lo que rindió, abajo lo que costó en riesgo, y las cinco curvas desde la misma base. Al lado del título, beta, alfa y R² contra el S&P 500.',
       p: [
-        'Las otras tres secciones del panel contestan cuánto tenés, cómo está repartido y qué te dejó lo que vendiste. Las tres son una foto de hoy. Rendimiento es la que falta: cómo te fue en el camino. Es la cuarta sección de Inversiones y, como las demás, se mira por activos o por portafolio.',
+        'Las otras tres secciones del panel contestan cuánto tenés, cómo está repartido y qué te dejó lo que vendiste. Las tres son una foto de hoy. Rendimiento es la que falta: cómo te fue en el camino. Está en Reserva, en Inversiones y en las jubilaciones; sólo en Inversiones se puede mirar además por portafolio, porque los portafolios son de esa cartera.',
         'La pantalla da dos números de rendimiento y no son lo mismo, porque contestan preguntas distintas. El retorno acumulado mide cómo se comportaron los activos, sin importar cuánta plata tenías puesta en cada momento: es el número que se puede comparar contra un índice. La TIR anualizada sí cuenta el cuándo —cuánto pusiste y en qué momento—, y es lo que efectivamente te rindió a vos. Si la TIR es más alta que el retorno acumulado, tus aportes cayeron en buen momento. Si es más baja, entraste justo antes de las bajas.',
         'El tercer recuadro es el que contesta la pregunta del título. Subir un 19% suena bien hasta que ves que el S&P 500 subió 15% en el mismo período: lo tuyo no fue el mercado entero, fueron cuatro puntos sobre el mercado. La comparación se hace siempre sobre la misma ventana de tiempo que tu cartera —desde tu primera tenencia hasta la última rueda disponible—, porque comparar contra el índice en otro período no es comparar.',
-        'Los dos gráficos de arriba bajan eso al detalle. El de la izquierda es mes a mes, en verde y rojo como el resto de la pantalla, y sirve para ver si el resultado vino parejo o salió de un solo mes bueno. El de la derecha pone cada año al lado del índice, con el total al final, que es la pregunta que uno hace después de mirar los años.'
+        'El gráfico grande pone eso en escena: qué habría sido de mil pesos puestos el primer día en tu cartera, en el S&P 500, en el Nasdaq, en bitcoin y en oro. Todas arrancan juntas, cada una lleva su nombre escrito al final en su color, y la línea punteada marca el día en que empezaste. Al lado del título van tres cifras contra el S&P: beta, alfa y R².',
+        'Beta es cuánto se mueve tu cartera cuando el índice se mueve 1%: en 1,00 lo sigue, arriba lo exagera y abajo lo amortigua. Alfa es lo que rendiste por encima de lo que la beta explica, y es la que distingue el mérito del apalancamiento: ganarle al índice con una beta de 1,5 no es habilidad, es haber corrido más riesgo. R² dice qué parte de tu movimiento explica el índice, y no es un adorno: con un R² bajo la beta describe mal la relación y la alfa es más ruido que otra cosa. Las tres se miran juntas o no se miran.'
       ],
       lista: [
         'Todo se mide en dólares y sobre el precio del activo: un CEDEAR se traduce a su subyacente por nominales dividido ratio. Por eso el premio o descuento del CEDEAR contra su valor teórico queda afuera, y la pantalla lo aclara.',
-        'La app trae las series de precios de doce instrumentos. Un activo que no esté entre ellos no se puede medir, y en vez de ignorarlo en silencio la pantalla lo nombra y dice qué porcentaje de lo que tenés hoy quedó efectivamente medido. Un rendimiento calculado sobre un tercio de la cartera, presentado como si fuera de toda, confunde más que no mostrar nada.',
+        'La app trae las series de precios de diecinueve instrumentos. Un activo que no esté entre ellos no se puede medir, y en vez de ignorarlo en silencio la pantalla lo nombra y dice qué porcentaje de lo que tenés hoy quedó efectivamente medido. Un rendimiento calculado sobre un tercio de la cartera, presentado como si fuera de toda, confunde más que no mostrar nada.',
+        'La alfa se calcula con la tasa libre de riesgo en cero. El desvío que eso introduce es proporcional a cuánto se aleje tu beta de 1,00 y desaparece cuando vale 1,00.',
         'Los meses en verde se cuentan sobre los medidos, no sobre los que llevás invirtiendo. Si empezaste a mitad de mes, ese mes cuenta desde la primera rueda con tenencia.',
         'Pasando el mouse por cualquier barra se ve el período, el porcentaje con dos decimales y sobre cuántas ruedas se calculó.'
       ]
@@ -283,16 +285,21 @@ window.MANUAL = {
       // Continuación sin título propio: es el mismo tema del panel, pero el
       // riesgo necesita su propio aire y la figura de arriba ya ocupó la hoja.
       nuevaPagina: true,
+      img: '24-rendimiento-riesgo',
+      imgCap: 'Los tres cortes en el tiempo a la izquierda y la matriz de correlación a la derecha, ocupando ella sola el alto de los tres.',
       p: [
         'La segunda fila de recuadros contesta la otra mitad de la pregunta: qué costó ese rendimiento. La caída máxima es el peor golpe del período —cuánto, desde cuándo, y si ya lo recuperaste o seguís abajo—, y la volatilidad anual dice cuánto se mueve la cartera en un año normal. Un 20% ganado con una caída del 10% en el medio y un 20% ganado con una del 40% no son el mismo resultado, aunque la cifra de arriba sea idéntica: en el segundo hubo un momento en que vender parecía lo sensato.',
         'La caída máxima informa también cuánto tardaste en volver al máximo anterior, contado en ruedas. Ése es el dato que se subestima: no duele sólo cuánto cae, duele cuánto tarda. Si todavía no volviste, la sección lo dice y agrega en una línea cuánto estás hoy por debajo de tu mejor momento.',
-        'La curva submarina, abajo y a todo lo ancho, es eso mismo día por día. Toca el techo cada vez que hacés un máximo nuevo y cuelga cuando no. Lo que hay que mirar no es sólo cuán hondo baja sino cuán ancha es cada mancha: una caída del 15% que se recupera en tres semanas es un susto, y una del 15% que dura dos años es otra cosa. El punto rojo marca el fondo de la peor.'
+        'La curva submarina es eso mismo día por día. Toca el techo cada vez que hacés un máximo nuevo y cuelga cuando no. Lo que hay que mirar no es sólo cuán hondo baja sino cuán ancha es cada mancha: una caída del 15% que se recupera en tres semanas es un susto, y una del 15% que dura dos años es otra cosa. El punto rojo marca el fondo de la peor.',
+        'Al lado va la matriz de correlación, que contesta algo que ninguna de las otras secciones contesta: si tus activos se mueven juntos. Tener diez no es estar diversificado si los diez suben y bajan el mismo día; es la misma apuesta escrita diez veces. Cada celda cruza dos activos y dice cuánto se movieron juntos en el período: cerca de 1 es casi siempre al mismo tiempo, cerca de 0 es con independencia, y por debajo de 0 es al revés, que es lo que más diversifica. Cuanto más cálida la celda, más atados están.',
+        'Abajo de la matriz hay una sola cifra que la resume: el promedio de todos los pares. Es el número que mirás si querés saber, antes de sumar un activo más, si realmente estás repartiendo o sólo agregando.'
       ],
       lista: [
         'Todo lo que mide riesgo se calcula sobre el retorno, nunca sobre el valor en pesos de la cartera. Si se dibujara sobre el valor, un aporte aparecería como una recuperación: habrías "salido" de la caída por haber puesto plata nueva, que no es salir de nada.',
         'La volatilidad se informa sin signo, porque no es ganancia ni pérdida: es cuánto se mueve.',
-        'Aparece recién cuando hay ruedas suficientes para que signifique algo. Con cuatro datos un desvío no mide nada, así que en vez de mostrarlo en gris no se muestra.',
-        'Mejor mes y peor mes no son adornos: la distancia entre los dos es la que te dice cuánto tenés que estar dispuesto a aguantar.'
+        'Aparece recién cuando hay ruedas suficientes para que signifique algo. Con cuatro datos un desvío no mide nada, así que en vez de mostrarlo en gris no se muestra. Lo mismo vale para cada celda de la matriz.',
+        'Mejor mes y peor mes no son adornos: la distancia entre los dos es la que te dice cuánto tenés que estar dispuesto a aguantar.',
+        'Una cartera de un solo activo no tiene matriz: no hay pares que comparar.'
       ]
     },
     {

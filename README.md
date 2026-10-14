@@ -24,7 +24,7 @@ anamnesis parte de tres decisiones opuestas:
 
 ![Salud financiera](docs/salud-financiera.png)
 
-**Salud financiera** — el patrimonio repartido por destino, con el líquido y lo invertido separados por moneda y la variación contra el precio de hoy. Cada destino se abre en tres secciones plegables: **Activos**, cada uno con sus nominales, su precio promedio de compra y su resultado; **Concentración**, cuánto pesa cada sector y cada tipo de riesgo; y **Liquidado**, lo que ya se vendió separado en ganancias y pérdidas.
+**Salud financiera** — el patrimonio repartido por destino, con el líquido y lo invertido separados por moneda y la variación contra el precio de hoy. Cada destino se abre en cuatro secciones plegables: **Activos**, cada uno con sus nominales, su precio promedio de compra y su resultado; **Concentración**, cuánto pesa cada sector y cada tipo de riesgo; **Liquidado**, lo que ya se vendió separado en ganancias y pérdidas; y **Rendimiento**, cómo se comportó la cartera en el tiempo.
 
 ![Mesa de trading](docs/mesa-trading.png)
 
@@ -45,7 +45,7 @@ La metáfora médica no es decorativa: cada solapa responde una pregunta distint
 | **Historia clínica** | ¿En qué se fue la plata? Movimientos del período, recategorizables, con etiquetas y formas de pago. Dos vistas: **Resumen**, una fila por categoría con su peso sobre el total, y **Completa**, cada movimiento editable en su fila. |
 | **Ficha médica** | ¿Cómo estoy hoy? KPIs configurables, score de salud, distribución por categoría, tipo, periodicidad y medio de pago. También en dos vistas: **Completa** con todos los gráficos, y **Resumen** con las secciones que elijas dejar. |
 | **Diagnóstico** | ¿Qué está pasando? Flujo trimestral, evolución anual e insights automáticos. |
-| **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y las dos jubilaciones, con precios actualizados desde el mercado. El cuerpo de cada cartera son tres secciones que se pliegan: **Activos** —cada uno se despliega en sus compras individuales, con el rendimiento y los días en tenencia de cada una, y se puede **vender** entero o por partes—, **Concentración** —cuánto de su valor está en cada **sector** y en cada tipo de riesgo, con aviso cuando alguno pasa el límite que elegiste— y **Liquidado**, el resultado de lo que ya vendiste. Los activos se agrupan además en **portafolios** según para qué son, y la tabla se puede ver agrupada por ellos. Trading va último y aparte: es la [mesa de operaciones](#la-mesa-de-trading). |
+| **Salud financiera** | ¿Cuánto tengo? Reserva, inversiones y las dos jubilaciones, con precios actualizados desde el mercado. El cuerpo de cada cartera son cuatro secciones que se pliegan: **Activos** —cada uno se despliega en sus compras individuales, con el rendimiento y los días en tenencia de cada una, y se puede **vender** entero o por partes—, **Concentración** —cuánto de su valor está en cada **sector** y en cada tipo de riesgo, con aviso cuando alguno pasa el límite que elegiste—, **Liquidado**, el resultado de lo que ya vendiste, y **[Rendimiento](#cómo-te-fue-no-cuánto-tenés)**, cómo te fue en el camino. Los activos se agrupan además en **portafolios** según para qué son, y la tabla se puede ver agrupada por ellos. Trading va último y aparte: es la [mesa de operaciones](#la-mesa-de-trading). |
 | **Evolución** | ¿Estoy mejorando? Presupuestado contra real, mes a mes, con tendencias por categoría. |
 
 ### Importar los resúmenes
@@ -74,6 +74,22 @@ Las tres secciones —mesa de trabajo, métricas e historial— vienen plegadas.
 
 La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite: con stop y sin stop, abiertas, parciales y cerradas, long y short, salida por objetivo, por stop y a mano, y una que cierra en dos tramos. Una de las que va sin stop cierra **en ganancia**, a propósito: ganar no valida el proceso.
 
+### Cómo te fue, no cuánto tenés
+
+Las otras tres secciones de cada cartera son una foto de hoy: cuánto tenés, cómo está repartido y qué te dejó lo que vendiste. **Rendimiento** es la que falta: cómo te fue en el camino.
+
+Para medir eso no alcanza con el precio de hoy, que es lo único que devuelven las fuentes públicas. Hacen falta series de precios diarios, y ninguna API accesible desde el navegador las sirve sin credenciales. Así que la app las trae incorporadas, con el mismo criterio que el listado de CEDEARs: **19 instrumentos, 751 ruedas, cierre ajustado por dividendos y splits**, versionados junto al código porque son dato de mercado, idéntico para cualquiera que mire el mismo instrumento. Todas comparten un calendario y cada una declara en qué rueda empieza —las que arrancan tarde es porque el instrumento no existía antes—, así la alineación entre series queda garantizada por construcción, que es lo que beta y correlación necesitan.
+
+La sección da **dos números de rendimiento y no son lo mismo**, porque contestan preguntas distintas. El retorno acumulado encadena los retornos diarios y mide cómo se comportaron los activos, sin importar cuánta plata tenías puesta en cada momento: es lo comparable contra un índice. La TIR anualizada sí cuenta el cuándo, y es lo que efectivamente te rindió a vos. Si la TIR es más alta, tus aportes cayeron en buen momento.
+
+Y da lo que casi nunca se muestra al lado del rendimiento: **lo que costó conseguirlo**. La caída máxima con su tiempo de recuperación, la volatilidad anual, y la curva submarina —cuánto estuviste por debajo de tu mejor momento, día por día—. Un 20% ganado con una caída del 10% en el medio y un 20% ganado con una del 40% no son el mismo resultado, aunque la cifra de arriba sea idéntica.
+
+Contra el mercado, las curvas arrancan todas de la misma base: lo que valdrían mil pesos puestos ese primer día en tu cartera, en el S&P 500, en el Nasdaq, en bitcoin y en oro. Al lado, **beta, alfa y R²**. El R² no es un adorno: es el control de validez de los otros dos, porque con un R² bajo la beta describe mal la relación y la alfa es más ruido que habilidad.
+
+La última es la **matriz de correlación**: tener diez activos no es estar diversificado si los diez suben y bajan el mismo día.
+
+Tres decisiones que valen la pena contar. Todo se mide **en dólares y sobre el precio del activo** —un CEDEAR se traduce a su subyacente por nominales dividido ratio—, así no hace falta una serie de tipo de cambio, que sería una segunda fuente histórica con su propio error; la contracara, que el premio del CEDEAR queda afuera, está escrita en la pantalla. El riesgo se calcula sobre el **retorno encadenado y nunca sobre el valor en pesos**: un aporte sube el valor sin ser ganancia, y sobre el valor la curva submarina diría que te recuperaste de una caída cuando lo único que pasó es que pusiste plata nueva. Y **lo que no se puede medir se dice**: si un activo no tiene serie, la pantalla lo nombra y aclara qué porcentaje de la cartera quedó efectivamente medido, porque un rendimiento calculado sobre un tercio presentado como si fuera de todo confunde más que no mostrar nada.
+
 ## Cómo se construyó
 
 - **Vanilla, sin build step.** HTML, CSS y JavaScript sin frameworks ni bundler, que se abre con doble clic y funciona. Las únicas dependencias externas van por CDN: Chart.js y Lucide para gráficos e íconos, html2canvas y jsPDF que solo intervienen al exportar, y SheetJS, que se descarga la primera vez que subís un Excel y no antes. Es una decisión deliberada: una herramienta personal que quiero que siga andando dentro de cinco años no puede depender de una cadena de build que se pudre en seis meses.
@@ -101,18 +117,19 @@ La demo trae seis operaciones de ejemplo elegidas para mostrar los casos límite
 ### Cómo se organiza
 
 ```
-dashboard.html    3.215 líneas    estructura, modales, formularios
-dashboard.css     8.338 líneas    estilos y theming claro/oscuro
-dashboard.js     23.736 líneas    lógica, render, estado, importación
-core.js           2.999 líneas    funciones puras + motor de plantillas
+dashboard.js     25.721 líneas    lógica, render, estado, importación
+dashboard.css     8.718 líneas    estilos y theming claro/oscuro
+tests.html        4.184 líneas    501 tests sobre core.js
+core.js           3.564 líneas    funciones puras + motor de plantillas
+dashboard.html    3.269 líneas    estructura, modales, formularios
 mesa-trading.js   2.985 líneas    mesa de trading: riesgo, liquidación, historial
-mesa-trading.css  1.029 líneas    estilos de la mesa
+series-precios.js 1.659 líneas    19 series de cierres diarios sobre 751 ruedas
+mesa-trading.css  1.059 líneas    estilos de la mesa
+demo-data.js        856 líneas    generador del dataset de demostración
 sistema-4k.js       478 líneas    el reglamento de trading, consultable en la app
 cedears-byma.js     462 líneas    ratio, nombre y sector de los CEDEARs de BYMA
-demo-data.js        761 líneas    generador del dataset de demostración
 tour.js             302 líneas    el recorrido guiado del modo demo
 tour.css            131 líneas    estilos del recorrido
-tests.html        3.614 líneas    428 tests sobre core.js
 ```
 
 ### Cómo se prueba
@@ -141,7 +158,7 @@ No hace falta instalar nada ni tener datos propios.
 
 También podés bajarte el repo y abrir `dashboard.html` —servido por HTTP o como archivo local—: es el mismo botón.
 
-La demo carga un dataset ficticio de 574 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 CEDEARs comprados en 19 tandas, una venta parcial y seis operaciones en la mesa de trading— generado en memoria. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`. Y no hace ninguna llamada por su cuenta: los auto-refrescos de cotización y precios están desactivados, así la demo se ve siempre igual. Sólo sale a la red si vos apretás actualizar precios o traer datos de mercado, y en ese caso pide precios públicos sin mandar nada tuyo.
+La demo carga un dataset ficticio de 574 transacciones sobre 14 meses —sueldos con inflación, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 activos comprados en 22 tandas, una venta parcial y seis operaciones en la mesa de trading— generado en memoria. Los movimientos son inventados, pero **los precios no**: cada compra queda al precio que el activo tenía ese día y la valuación de hoy sale del último cierre, los dos de las mismas series que usa la sección Rendimiento. Con precios puestos a mano, dos secciones hablaban de la misma tenencia y decían cosas distintas. El modo demo **no escribe absolutamente nada**: ni en tu disco, ni en `localStorage`. Y no hace ninguna llamada por su cuenta: los auto-refrescos de cotización y precios están desactivados, así la demo se ve siempre igual. Sólo sale a la red si vos apretás actualizar precios o traer datos de mercado, y en ese caso pide precios públicos sin mandar nada tuyo.
 
 Arranca solo un **recorrido guiado** de once pasos que va oscureciendo la pantalla e iluminando de qué habla: el panel lateral, cada solapa y las acciones de carga y administración. Se corta cuando quieras —con el botón de salir, la cruz, `Escape` o un clic afuera— y se vuelve a lanzar desde **RECORRIDO**, al final del panel lateral. Justo debajo, **MANUAL** abre el PDF adentro de la app, sin salir de la pantalla donde estabas.
 

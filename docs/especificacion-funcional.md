@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.74 |
+| **Versión** | 1.78 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -894,7 +894,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | DOC-07 | Exportación de etiquetas | JSON | `anamnesis-etiquetas-aaaa-mm-dd.json` | Administración |
 | DOC-08 | Manual de usuario | PDF | `manual-de-usuario.pdf` | Compilación desde capturas y texto fuente |
 | DOC-09 | Exportación de configuración completa | JSON | `anamnesis-config-aaaa-mm-dd.json` | Administración → Parámetros |
-| DOC-10 | Series de precios diarios | JS | `series-precios.js` | Carga única desde CSV, con `docs/generar-series-precios.js` |
+| DOC-10 | Series de precios diarios | JS | `series-precios.js` | 19 instrumentos sobre 751 ruedas. Carga desde CSV, con `docs/generar-series-precios.js` |
 
 **Requerimientos de las salidas**
 
@@ -904,7 +904,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-210a | La **configuración completa** viaja en un solo archivo con cinco secciones, y el usuario elige cuáles incluir: **reglas**, **categorías**, **etiquetas**, **parámetros** y **Ficha médica** (tarjetas KPI, visibilidad de secciones, viajes y presupuestos anuales). Al importar se eligen de nuevo: el archivo puede traer más de las que se quieran aplicar, y **las cinco secciones marcadas se aplican** |
 | RF-210b | De los **parámetros** viajan los que el usuario configura: los umbrales de fuga y de concentración, el máximo de activos por portafolio, los meses para aprender reglas, el modo oscuro automático, los nombres de las jubilaciones, los pesos y umbrales del score y el plan de reserva. Un umbral en **0** viaja igual: desactivarlo es haberlo configurado. No viaja la **cotización MEP** ni sus marcas de cuándo y de dónde salió: es el dato del día y no una preferencia, e importarla vieja valuaría la cartera a un dólar que ya no existe |
 | RF-211a | El producto incorpora **series de precios diarios** —cierre ajustado por dividendos y splits, en dólares— para poder medir el comportamiento de la cartera en el tiempo: con un solo precio por activo no hay volatilidad, ni caída máxima, ni beta, ni correlación. Ninguna fuente de histórico accesible desde el navegador las sirve, así que se cargan una vez desde archivos y se versionan con el producto, igual que el listado de CEDEARs: son un dato de mercado, idéntico para cualquiera que mire el mismo instrumento. Todas comparten un único calendario y cada una declara en qué rueda empieza —las que arrancan tarde es porque el instrumento no existía antes—, de modo que la alineación entre series queda garantizada por construcción |
-| RF-211b | Inversiones suma una cuarta sección plegable, **Rendimiento**, que responde cómo se comportó la cartera en el tiempo. Como las otras tres, ofrece la vista por activos y la vista por portafolio: la pregunta "¿cuánto rindió?" tiene una respuesta por cada ámbito en el que el usuario piensa su plata. Se presenta como sus hermanas —la misma banda de encabezado y la misma sangría del cuerpo—, de modo que las cuatro secciones del panel arrancan en una sola columna |
+| RF-211b | Los paneles que acumulan tenencias suman una cuarta sección plegable, **Rendimiento**, que responde cómo se comportó la cartera en el tiempo. Está en **Reserva, Inversiones y las Jubilaciones**: "¿cómo me fue?" no es una pregunta exclusiva de una cartera, y en una jubilación —que es de largo plazo— es justamente la que decide si conviene dejarla donde está. Sólo en Inversiones ofrece la vista por portafolio, porque los portafolios son de esa cartera y de ninguna otra; en el resto trabaja a nivel cartera. Trading queda afuera: no lista tenencias por ticker. Se presenta como sus hermanas —la misma banda de encabezado y la misma sangría del cuerpo—, de modo que las secciones del panel arrancan en una sola columna |
 | RF-211c | El rendimiento se informa de **dos maneras a la vez, porque son dos preguntas distintas**. El **retorno acumulado** encadena los retornos diarios y mide cómo se comportó el activo, con independencia de cuánto dinero había puesto en cada momento: es lo comparable contra un índice. La **TIR anualizada** pondera por el dinero y por el momento en que entró: es lo que le rindió al usuario. Que la TIR supere al retorno acumulado significa que los aportes cayeron en buen momento, y al revés |
 | RF-211d | La medición se hace **en dólares y sobre el precio del activo**: un CEDEAR se traduce a su subyacente por nominales ÷ ratio. Así no hace falta una serie de tipo de cambio —que sería una segunda fuente histórica, con su propio error— y el resultado responde "cómo se comportó lo que compré". La contracara se declara en la pantalla: el premio o descuento del CEDEAR contra su valor teórico queda afuera de la medición |
 | RF-211e | La cobertura parcial **se dice, no se disimula**. Los activos sin serie de precios se nombran y se informa qué porcentaje del valor de hoy quedó efectivamente medido. Un porcentaje de rendimiento calculado sobre un tercio de la cartera presentado como si fuera de toda la cartera es peor que no mostrarlo |
@@ -914,6 +914,12 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-211i | La **caída máxima** informa las cuatro cosas que la definen: cuánto se cayó, desde qué fecha, hasta cuál, y si ya se recuperó o sigue abierta. El tiempo bajo el agua se dice en ruedas, porque es el dato que se subestima: no duele sólo cuánto cae, duele cuánto tarda. Cuando la cartera está hoy por debajo de su mejor momento, la sección lo dice en una línea |
 | RF-211j | La **volatilidad anualizada** se informa sin signo —no es ganancia ni pérdida, es cuánto se mueve— y sólo cuando hay ruedas suficientes para que el cálculo signifique algo; por debajo de ese mínimo no se muestra en gris: no se muestra |
 | RF-211k | Todo lo que mide riesgo —la curva submarina, la caída máxima, la volatilidad— se calcula sobre el **retorno encadenado** y nunca sobre el valor en pesos de la cartera. Un aporte sube el valor sin ser ganancia: sobre el valor, la curva submarina diría que el usuario se recuperó de una caída cuando lo único que pasó es que puso plata nueva |
+| RF-211l | La sección encabeza con la **comparación contra varias referencias desde una base común**: lo que valdría hoy la misma plata puesta en la cartera y en cada referencia el primer día. La base siempre entra en el eje, porque sin ella dos curvas que suben se ven igual que dos que bajan, y cada curva termina con su nombre y su valor escritos |
+| RF-211m | El producto informa **beta, alfa y R²** contra el índice de referencia, y los tres juntos. La beta dice cuánto se mueve la cartera cuando el índice se mueve; la alfa, lo que rindió por encima de lo que la beta explica —ganarle al índice apalancado no es mérito—; y el R², qué parte del movimiento explica el índice, que es el **control de validez de los otros dos**: con un R² bajo la beta describe mal la relación y la alfa es más ruido que habilidad. Las tres se informan sólo con ruedas suficientes, y se declara contra cuál de las referencias están medidas |
+| RF-211n | La alfa se calcula con la **tasa libre de riesgo en cero**, y la pantalla lo dice. El error que eso introduce es proporcional a cuánto se aleje la beta de 1 y se anula cuando vale 1; incorporar una serie de tasas para corregir una diferencia de ese tamaño no se justifica todavía |
+| RF-211o | La sección presenta la **matriz de correlación** entre los activos de la cartera. Tener diez activos no es estar diversificado si los diez suben y bajan el mismo día: la matriz es lo que distingue una cartera repartida de la misma apuesta escrita diez veces. Cada celda informa el valor y, al consultarla, qué significa; al pie va el promedio de los pares —sin la diagonal, que vale siempre 1 y sólo inflaría la cifra— con su lectura en una línea |
+| RF-211p | Una correlación **no se informa como cero cuando no se puede medir**: sin varianza o sin ruedas suficientes no hay correlación, y un cero diría "no se mueven juntos" sobre algo que no se pudo comparar |
+| RF-211q | Una cartera de un solo activo **no tiene matriz**: no hay pares que medir, y la sección lo resuelve dándole el ancho entero a la curva en vez de dejar medio renglón vacío |
 | RF-210c | El import de parámetros **pisa campo a campo**: lo que el archivo no trae se conserva tal como estaba. El resumen previo lo dice en esos términos —cuántos campos hay, cuántos trae el archivo y con cuántos se queda— y los cambios se aplican a la vista en el momento, sin recargar |
 | RF-211 | El manual de usuario incorpora índice con número de página y enlace interno a cada tema |
 | RF-212 | Cada tema del manual comienza en página nueva |
@@ -972,6 +978,9 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-07 | Las columnas de encabezado y de detalle comparten definición de anchos. No se alinean por relleno |
 | RNF-18 | Un campo nuevo adopta la tipografía —familia, tamaño y peso— de los campos vecinos de la misma fila o formulario. No se elige por separado |
 | RNF-18a | **Un control nuevo no se presenta con el aspecto que le da el navegador.** Si existe un control gemelo —el mismo tipo de control, en la misma columna o en el mismo formulario— adopta su presentación completa: tipografía, fondo, borde, altos y estados de apuntado y foco, incluido cómo se ve cuando todavía no tiene valor. Un control sin presentación propia no se ve neutro: se ve ajeno, y la diferencia es la más visible de todas —fondo claro, control nativo— al lado de los que sí la tienen |
+| RNF-18d | **Las series de un gráfico se distinguen por color, y ese color se valida, no se elige a ojo.** La separación entre cada par se mide en los dos temas y tiene que superar el piso por debajo del cual dos tonos no se distinguen, con visión de color normal y con daltonismo. Si la paleta del producto no da para la cantidad de series que hace falta —y se comprueba, no se supone—, se buscan tonos que sí den respetando la saturación del resto de la aplicación y **sin tocar los dos colores que ya significan algo**: el verde de la ganancia y el rojo de la pérdida |
+| RNF-18e | **Un gráfico de varias series lleva el nombre de cada una escrito sobre la propia serie**, no sólo en una leyenda aparte. La leyenda al pie repitiendo lo que cada curva ya dice en su extremo gasta alto en decir dos veces lo mismo; el nombre va en el color de su serie, que es lo que ata el rótulo a la línea |
+| RNF-18f | **Una separación por sección, igual en los dos ejes.** El espacio entre tarjetas, entre filas de tarjetas, entre bloques y entre columnas es el mismo número, y vive en una sola variable. Tres valores conviviendo hacen que cada junta se vea distinta de la de al lado |
 | RNF-18c | **Una sección nueva de un panel arranca donde arrancan las demás.** El cuerpo lleva la misma sangría que sus hermanas y la banda que lo encabeza es la misma, no una propia. Una sección cuyos bloques empiezan antes que los de la de al lado rompe la columna que el ojo sigue al bajar por el panel, y se nota más que cualquier diferencia de contenido |
 | RNF-18b | **Un gráfico ocupa el ancho de su tarjeta y conserva el cuerpo de letra de la pantalla.** No se dibuja a una medida fija que el navegador después encaja y centra: eso deja la tarjeta medio vacía, o agranda la tipografía del gráfico hasta que no se parece a la de al lado. El dibujo se hace a la medida real, que se conoce recién cuando la tarjeta está en pantalla, y se rehace cuando esa medida cambia. Lo que tiene techo es el grosor de la barra: el sobrante va al aire entre barras, no a engordarlas |
 | RNF-19 | **Toda información emergente que explique un dato** —un umbral superado, un porcentaje, un texto recortado— se presenta con el componente propio del producto, de título y detalle, y no con el emergente nativo del navegador. Éste queda reservado para los controles de acción. Dos emergentes de dibujo y tiempo distintos no conviven en la misma línea |
@@ -1016,7 +1025,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 485 pruebas en 60 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 501 pruebas en 62 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 
 **Fundamento de RNF-40.** Requerimiento explícito del cliente: una herramienta personal destinada a seguir operativa dentro de cinco años no puede depender de una cadena de compilación cuyas dependencias se degradan en meses.
@@ -1029,10 +1038,14 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 |---|---|
 | RF-220 | Accesible desde la pantalla de bienvenida, sin conectar archivo ni proveer datos |
 | RF-221 | Genera en memoria un conjunto de datos ficticio de 574 movimientos sobre 14 meses |
-| RF-222 | El conjunto incluye sueldos con incremento progresivo, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 activos repartidos en 19 compras y 6 operaciones de trading |
-| RF-222b | Siete de los diez activos tienen **más de una compra sobre el mismo destino, en fechas distintas**, de modo que desplegar un activo muestre efectivamente su composición y el precio promedio de compra sea un promedio ponderado real y no la copia de un único valor |
-| RF-222c | Al menos un activo tiene una compra por encima de su precio actual, de modo que el conjunto exhiba una posición con resultado positivo que contiene una compra con resultado negativo |
+| RF-222 | El conjunto incluye sueldos con incremento progresivo, aguinaldos, alquiler, supermercado, aportes jubilatorios, una cartera de 10 activos repartidos en 22 compras y 6 operaciones de trading |
+| RF-222a | **Los precios de la demostración no se inventan: salen de las series.** El precio de cada compra es el que el activo tenía ese día y la valuación de hoy es la del último cierre disponible. Con precios puestos a mano, la sección Rendimiento medía con la serie real mientras la tabla de activos valuaba con un número imaginario: dos secciones hablando de la misma tenencia y diciendo cosas distintas, y una cobertura que daba un tercio aunque todos los tickers estuvieran cubiertos. Las fechas siguen siendo relativas al día de hoy, así que el conjunto no envejece, y los precios se derivan en el momento de generarlo |
+| RF-222b | Todos los activos tienen **más de una compra sobre el mismo destino, en fechas distintas** —salvo el de mayor valor unitario, donde una sola ya consume el aporte del período—, de modo que desplegar un activo muestre efectivamente su composición y el precio promedio de compra sea un promedio ponderado real y no la copia de un único valor |
+| RF-222c | Al menos un activo tiene una compra por encima de su precio actual, de modo que el conjunto exhiba una posición con resultado positivo que contiene una compra con resultado negativo. Y al menos uno está entero en pérdida: con todo en verde no se ve cómo se muestra lo que salió mal |
 | RF-222d | Al menos un activo tiene una **venta parcial** registrada, de modo que la liquidación de tenencias se pueda observar sin necesidad de cargarla |
+| RF-222e | El conjunto incluye activos **en dólares y en pesos**. Los que no tienen CEDEAR se operan en dólares, que es lo que corresponde, y de paso la tabla de activos en esa moneda deja de aparecer siempre vacía |
+| RF-222f | Las tres carteras que acumulan tenencias tienen activos con serie de precios, de modo que la sección Rendimiento se pueda observar en todas. El contraste entre ellas es parte de lo que la demostración muestra: una jubilación compuesta por defensivas rinde con una volatilidad y una caída máxima sensiblemente menores que una cartera de tecnológicas |
+| RF-222g | **Lo invertido en cada cartera no supera lo aportado a ella.** Con precios reales las cantidades no son indiferentes: una sola unidad de un ETF puede consumir varios meses de aporte, y pasarse deja el líquido del panel en negativo, que es un estado imposible —no se invierte lo que no entró— |
 | RF-223 | El conjunto es reproducible: la generación parte de una semilla fija |
 | RF-224 | Las operaciones de trading de demostración cubren los casos límite: con stop y sin stop, abierta, parcial y cerrada, compra y venta, salida por objetivo, por stop y a mano, y cierre en dos tramos |
 | RF-225 | La demostración presenta una sola jubilación. La distinción entre las dos es personal del titular y no aporta a un visitante |
@@ -1232,9 +1245,40 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.71 | 13/10/2026 | Se incorporan las series de precios diarios de los doce instrumentos —dos índices de referencia y diez activos—, primer paso para medir el comportamiento de la cartera en el tiempo (RF-211a, DOC-10) | Reemplazada |
 | 1.72 | 13/10/2026 | Inversiones suma la sección **Rendimiento**: retorno acumulado y TIR anualizada, mes a mes y por período, contra el índice de referencia y diciendo qué parte de la cartera quedó medida (RF-211b a RF-211g, RNF-18b) | Reemplazada |
 | 1.73 | 13/10/2026 | Rendimiento se presenta como sus hermanas: la misma banda de encabezado y la misma sangría, de modo que las cuatro secciones del panel arrancan en una sola columna (RF-211b, RNF-18c) | Reemplazada |
-| 1.74 | 13/10/2026 | Rendimiento informa el **riesgo**: curva submarina, caída máxima con su tiempo de recuperación y volatilidad anualizada, en una segunda fila de tarjetas (RF-211g a RF-211k) | **Vigente** |
+| 1.74 | 13/10/2026 | Rendimiento informa el **riesgo**: curva submarina, caída máxima con su tiempo de recuperación y volatilidad anualizada, en una segunda fila de tarjetas (RF-211g a RF-211k) | Reemplazada |
+| 1.75 | 14/10/2026 | La cartera **contra el índice**: las curvas desde una base común, con beta, alfa y R² (RF-211l, RF-211m, RF-211n). Rendimiento pasa a estar también en Reserva y en las Jubilaciones, a nivel cartera (RF-211b) | Reemplazada |
+| 1.76 | 14/10/2026 | Se completan las series de los diecinueve instrumentos y la **matriz de correlación** entre los activos de la cartera, con su promedio de pares (RF-211o, RF-211p, RF-211q, RF-211a, DOC-10) | Reemplazada |
+| 1.77 | 14/10/2026 | **El conjunto de demostración deja de inventar precios**: cada compra queda al precio que el activo tenía ese día y la valuación de hoy sale del último cierre, con activos en las dos monedas y en las tres carteras (RF-222 a RF-222g) | Reemplazada |
+| 1.78 | 14/10/2026 | Las series se distinguen **por color validado** y cada curva lleva su nombre escrito encima; la separación de la sección pasa a ser una sola en los dos ejes (RNF-18d, RNF-18e, RNF-18f) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Un color por serie, validado, y el nombre sobre la propia curva | RNF-18d, RNF-18e |
+| Una sola separación para toda la sección | RNF-18f |
+
+**Implementados en la versión 1.77**
+
+| Cambio | Requerimiento |
+|---|---|
+| El conjunto de demostración con precios reales | RF-222, RF-222a, RF-222b, RF-222c, RF-222e, RF-222f, RF-222g |
+
+**Implementados en la versión 1.76**
+
+| Cambio | Requerimiento |
+|---|---|
+| Las diecinueve series de precios | RF-211a, DOC-10 |
+| La matriz de correlación entre los activos | RF-211o, RF-211p, RF-211q |
+
+**Implementados en la versión 1.75**
+
+| Cambio | Requerimiento |
+|---|---|
+| Las curvas desde una base común, con beta, alfa y R² | RF-211l, RF-211m, RF-211n |
+| Rendimiento en Reserva y en las Jubilaciones | RF-211b |
+
+**Implementados en la versión 1.74**
 
 | Cambio | Requerimiento |
 |---|---|

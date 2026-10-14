@@ -66,6 +66,14 @@ Las imágenes se generaron con html2canvas sobre el panel correspondiente. Si
 cambia una pantalla, alcanza con volver a capturar esa y dejarla con el mismo
 nombre: la numeración define el orden en que aparecen.
 
+**html2canvas y los SVG centrados.** Un SVG al que el CSS centra con
+`margin: auto` dentro de un contenedor flex se dibuja comprimido y recortado:
+a la matriz de correlación le faltaba la última fila, aunque en pantalla
+estuviera entera —verificado contando los elementos del DOM, no mirando—. Se
+arregla en el `onclone`, poniéndole al SVG `margin: 0` y su alto escrito en
+`style` a partir del atributo `height`. Vale la pena recordarlo: la captura no
+siempre muestra lo que muestra la pantalla.
+
 Qué muestra cada una:
 
 | Archivo | Pantalla |
@@ -86,7 +94,8 @@ Qué muestra cada una:
 | `20-concentracion-sector.png` | La sección Concentración de Inversiones: sus dos gráficos, con una alerta cada uno |
 | `21-liquidado.png` | La sección Liquidado: ganancias y pérdidas en dos columnas, con el total cruzándolas |
 | `22-portafolios.png` | La tabla de activos en vista por portafolio, con el grupo sin asignar al final |
-| `23-rendimiento.png` | La sección Rendimiento: el resumen de seis cifras, el mes a mes y la comparación por período contra el índice |
+| `23-rendimiento.png` | Rendimiento, mitad de arriba: las ocho cifras del resumen y las cinco curvas desde la misma base |
+| `24-rendimiento-riesgo.png` | Rendimiento, mitad de abajo: los tres cortes en el tiempo y la matriz de correlación |
 | `16-mesa-trading.png` | La mesa: operación, verificación, tamaño e historial |
 | `05-evolucion.png` | Presupuestado contra real, mes a mes |
 | `09-admin-categorias.png` | Categorías, subcategorías y etiquetas |
