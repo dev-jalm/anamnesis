@@ -20136,10 +20136,11 @@ function graficoCorrelacion(datos, ancho) {
   const w = Math.max(ancho || PERF_ANCHO_BASE, 240);
   // La celda crece hasta donde da la tarjeta, con techo: una matriz de dos
   // activos no tiene por qué ocupar media pantalla.
-  // El techo de la celda tiene que dejar la matriz de alto parecido al de la
-  // curva que lleva al lado: con 62px una de seis activos medía 400px contra
-  // los 160 de la curva, y la fila quedaba desbalanceada.
-  const celda = Math.min(Math.max((w - izq - der) / n, 26), 52);
+  // La celda usa el ancho que le dan, con un piso para que la cifra entre y un
+  // techo para que una matriz de dos o tres activos no se vuelva un tablero de
+  // ajedrez. Lo que sobra de alto —la columna es más alta que ancha y la
+  // matriz es cuadrada, así que siempre sobra— se reparte arriba y abajo.
+  const celda = Math.min(Math.max((w - izq - der) / n, 26), 76);
   const alto = arriba + celda * n + abajo;
   const usado = izq + celda * n + der;
   // A diferencia de las series de tiempo, un heatmap es una figura compacta:
@@ -20372,25 +20373,25 @@ function bloqueRendimiento(destinos, titulo) {
     const corr = puntosCorrelacion(destinos, g.id === null ? undefined : g.id);
     return envolver(
       tarjetasRendimiento(r) +
-      '<div class="inv-perf-grid">' +
-        // Primero la narrativa —todas las curvas desde la misma base— y después
-        // sus cortes. Las dos de ancho completo son series de tiempo largas:
-        // lo que hay que leer en ellas es tanto el ancho como la altura.
-        tarjetaGrafico('crecimiento', puntosCrecimiento(r), 'Mil pesos en cada uno',
-          pieContraIndice(r), 'inv-perf-ancho') +
-        tarjetaGrafico('mensual', r.meses, 'Rentabilidad mensual') +
-        tarjetaGrafico('periodo', filasPorPeriodo(r), 'Por período, contra el índice',
-          '<div class="inv-perf-leyenda">' +
-            '<span>' + muestraSerie('var(--accent)', '') + 'Cartera</span>' +
-            '<span>' + muestraSerie(COLOR_INDICE, '') +
-              escapeHtmlSafe((r.bench.SPY && r.bench.SPY.nombre) || 'Índice') + '</span>' +
-          '</div>') +
-        // La caída y la correlación van juntas en una fila: las dos cuentan de
-        // qué está hecho el riesgo, una en el tiempo y la otra entre activos.
-        // Sin matriz —una cartera de un solo activo no tiene pares— la curva
-        // se queda con el ancho entero en vez de dejar medio renglón vacío.
-        tarjetaGrafico('submarina', puntosSubmarina(r), 'Por debajo del mejor momento',
-          '', corr ? '' : 'inv-perf-ancho') +
+      // Primero la narrativa —todas las curvas desde la misma base, a todo el
+      // ancho— y debajo sus cortes.
+      tarjetaGrafico('crecimiento', puntosCrecimiento(r), 'Mil pesos en cada uno',
+        pieContraIndice(r)) +
+      // Los tres cortes en el tiempo apilados en una columna, y al lado la
+      // matriz, que no es una serie de tiempo sino una foto de todos contra
+      // todos. Sin matriz —una cartera de un solo activo no tiene pares, como
+      // la reserva— la columna de los tres toma el ancho entero.
+      '<div class="inv-perf-dos' + (corr ? '' : ' inv-perf-solo') + '">' +
+        '<div class="inv-perf-apilados">' +
+          tarjetaGrafico('mensual', r.meses, 'Rentabilidad mensual') +
+          tarjetaGrafico('periodo', filasPorPeriodo(r), 'Por período, contra el índice',
+            '<div class="inv-perf-leyenda">' +
+              '<span>' + muestraSerie('var(--accent)', '') + 'Cartera</span>' +
+              '<span>' + muestraSerie(COLOR_INDICE, '') +
+                escapeHtmlSafe((r.bench.SPY && r.bench.SPY.nombre) || 'Índice') + '</span>' +
+            '</div>') +
+          tarjetaGrafico('submarina', puntosSubmarina(r), 'Por debajo del mejor momento') +
+        '</div>' +
         // Tener diez activos no es estar diversificado si los diez se mueven
         // el mismo día: esto es lo que lo muestra.
         tarjetaGrafico('correlacion', corr, 'Cuánto se mueven juntos',

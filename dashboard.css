@@ -4348,21 +4348,37 @@ footer .eyebrow-sources {
   margin-top: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.inv-perf-grid {
+/* Los tres cortes en el tiempo apilados a la izquierda y la matriz a la
+   derecha, ocupando ella sola el alto de los tres. 60/40 y no mitades: las
+   series de tiempo necesitan ancho para que se lea el eje, y la matriz es
+   cuadrada y se defiende con menos. */
+.inv-perf-dos {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 3fr 2fr;
   gap: 18px 22px;
-  /* Cada tarjeta con su alto natural. Estiradas al de la más alta —que es lo
-     que hace la grilla por omisión—, la curva submarina quedaba con casi 300px
-     de aire debajo al lado de la matriz. */
-  align-items: start;
 }
+.inv-perf-dos.inv-perf-solo { grid-template-columns: 1fr; }
+.inv-perf-apilados {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+/* Los tres de la izquierda crecen para repartirse el alto, y la matriz se
+   estira hasta el total: así las dos columnas terminan a la misma altura, que
+   es lo que hace que el bloque se lea como un bloque y no como dos cosas
+   sueltas. El `0` del medio es `flex-shrink`, y no está de adorno: con el 1
+   que viene por omisión las tarjetas se achicaban por debajo de su contenido
+   y les aparecía una barra de desplazamiento a cada una. */
+.inv-perf-apilados > .inv-perf-chart { flex: 1 0 auto; }
+/* La matriz es cuadrada y la columna que le toca es más alta que ancha, así
+   que su dibujo nunca llena el alto: lo que sobra se reparte arriba y abajo en
+   vez de amontonarse debajo. El título queda arriba y la escala al pie. */
+.inv-perf-chart[data-perf="correlacion"] { display: flex; flex-direction: column; }
+.inv-perf-chart[data-perf="correlacion"] > svg { margin-top: auto; margin-bottom: auto; }
 @media (max-width: 1100px) {
-  .inv-perf-grid { grid-template-columns: 1fr; }
+  .inv-perf-dos { grid-template-columns: 1fr; }
 }
-/* La curva submarina toma las dos columnas: es una serie de tiempo larga y lo
-   que hay que leer es el ancho de cada caída, no sólo su profundidad. */
-.inv-perf-ancho { grid-column: 1 / -1; }
 .inv-perf-chart {
   background: var(--card);
   border: 1px solid var(--border);
