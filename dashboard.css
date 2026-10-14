@@ -18,6 +18,18 @@
   --blue: #4A6B8A;
   --blue-2: #88A8C4;
   --orange: #E8A07C;
+  /* Las cinco series del gráfico de crecimiento. No salen de los colores de
+     arriba: se buscaron para que las cinco se distingan entre sí, y ninguna
+     combinación de la paleta llegaba al piso —la mejor daba ΔE 13,2 contra un
+     mínimo de 15, y encima usando el verde y el rojo, que acá significan
+     ganancia y pérdida—. Estos miden 19,6 de separación en visión normal y
+     11,4 en daltonismo, con la croma apagada del resto de la app y esquivando
+     los dos tonos reservados. La cartera se queda con el acento. */
+  --serie-cartera: var(--accent);
+  --serie-spy: #4E47A8;
+  --serie-qqq: #AA6ECD;
+  --serie-btc: #188D7C;
+  --serie-oro: #8D3D00;
   --tooltip-bg: #2A2520;
   --tooltip-text: #F5F1E8;
   /* Título de tooltip en color de acento. En claro es el acento de siempre
@@ -57,6 +69,13 @@
   --blue: #6F92B5;
   --blue-2: #A8C4DC;
   --orange: #F2B589;
+  /* Las cinco series del gráfico de crecimiento, en su versión para fondo
+     oscuro: 16,1 de separación en visión normal y 10,1 en daltonismo. */
+  --serie-cartera: var(--accent);
+  --serie-spy: #5E59BB;
+  --serie-qqq: #B174D4;
+  --serie-btc: #34A08E;
+  --serie-oro: #A14E1C;
   --tooltip-bg: #EFE7D6;
   --tooltip-text: #1A1714;
   --tooltip-accent: #7A5A0E;

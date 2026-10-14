@@ -19762,19 +19762,23 @@ const PERF_ANCHO_BASE = 420;
 // segundo color: una referencia es contexto, no otra categoría.
 const COLOR_INDICE = 'var(--muted)';
 
-/* Las referencias del gráfico de crecimiento.
-   POR QUÉ SE DISTINGUEN POR TRAZO Y NO POR COLOR. Se probaron las 330
-   combinaciones de cinco colores que la paleta de la app permite: ninguna pasa
-   la separación mínima en los dos temas —la mejor llega a ΔE 13,2 contra un
-   piso de 15, y encima usando el rojo y el verde, que acá significan pérdida y
-   ganancia—. La paleta es cálida y de baja saturación a propósito, y no da
-   para cinco series categóricas. Entonces: un solo color para el dato (la
-   cartera) y un solo neutro para todas las referencias, que se distinguen
-   entre sí por el patrón del trazo y por su nombre escrito al final de la
-   curva. Es la solución clásica de un gráfico financiero y no depende de que
-   el lector distinga cinco tonos cercanos. */
+/* Las referencias, con un color propio cada una.
+   DE DÓNDE SALEN ESOS COLORES. No de la paleta: se probaron las 330
+   combinaciones de cinco que permite y ninguna llega al piso de separación
+   —la mejor da ΔE 13,2 contra un mínimo de 15, y encima usa el verde y el
+   rojo, que en esta pantalla significan ganancia y pérdida—. Se buscaron
+   entonces cinco tonos con la croma apagada del resto de la app, esquivando
+   esos dos: miden 19,6 de separación en visión normal y 11,4 en daltonismo
+   sobre fondo claro, 16,1 y 10,1 sobre oscuro. Viven en el CSS, uno por tema.
+   El trazo es el mismo para las cuatro referencias; sólo la cartera va más
+   gruesa, porque es el dato y las otras son contexto. */
 const BENCH_TICKERS = ['SPY', 'QQQ', 'IBIT', 'GLD'];
-const BENCH_TRAZO = { SPY: '', QQQ: '6 3', IBIT: '2 3', GLD: '8 3 2 3' };
+const BENCH_COLOR = {
+  SPY: 'var(--serie-spy)', QQQ: 'var(--serie-qqq)',
+  IBIT: 'var(--serie-btc)', GLD: 'var(--serie-oro)'
+};
+const COLOR_CARTERA = 'var(--serie-cartera)';
+const TRAZO_REFERENCIA = 1.6, TRAZO_CARTERA = 2.6;
 
 // Lo que valdría hoy la misma plata puesta en cada cosa el primer día.
 const BASE_CRECIMIENTO = 1000;
@@ -19871,53 +19875,78 @@ function graficoMensual(meses, ancho) {
 }
 
 // Las filas del gráfico por período: cada año y, al final, el total — que es la
-// pregunta que uno hace después de mirar los años.
+// pregunta que uno hace después de mirar los años. Cada fila trae la cartera y
+// las cuatro referencias, con los mismos colores que la curva de arriba.
 function filasPorPeriodo(r) {
-  const spy = r.bench.SPY;
+  const refs = BENCH_TICKERS.filter(function (tk) { return r.bench[tk]; });
+  const series = [{ clave: '__cartera__', nombre: 'Cartera', color: COLOR_CARTERA }]
+    .concat(refs.map(function (tk) {
+      return { clave: tk, nombre: r.bench[tk].nombre, color: BENCH_COLOR[tk] };
+    }));
+  const valorDe = function (tk, anio) {
+    const b = r.bench[tk].anios.filter(function (x) { return x.clave === anio; })[0];
+    return b ? b.retorno : null;
+  };
   const filas = r.anios.map(function (a) {
-    const b = spy ? spy.anios.filter(function (x) { return x.clave === a.clave; })[0] : null;
-    return { clave: a.clave, cartera: a.retorno, indice: b ? b.retorno : null };
+    const v = { __cartera__: a.retorno };
+    refs.forEach(function (tk) { v[tk] = valorDe(tk, a.clave); });
+    return { clave: a.clave, v: v };
   });
   if (!filas.length) return null;
-  filas.push({
-    clave: 'Total', cartera: r.acumulado,
-    indice: spy ? acumularRetornos(spy.meses) : null, destacado: true
-  });
-  return { filas: filas, indice: (spy && spy.nombre) || 'Índice' };
+  const total = { __cartera__: r.acumulado };
+  refs.forEach(function (tk) { total[tk] = acumularRetornos(r.bench[tk].meses); });
+  filas.push({ clave: 'Total', v: total, destacado: true });
+  return { filas: filas, series: series };
 }
 
-// Barras agrupadas por año: la cartera contra el índice.
+// Barras agrupadas por año: la cartera contra cada referencia.
 function graficoPorPeriodo(datos, ancho) {
   if (!datos || !datos.filas.length) return '';
-  const filas = datos.filas;
+  const filas = datos.filas, series = datos.series, ns = series.length;
   const vals = [];
-  filas.forEach(function (f) { vals.push(Math.abs(f.cartera)); if (f.indice !== null) vals.push(Math.abs(f.indice)); });
-  const tope = Math.max.apply(null, vals) || 0.01;
-  const alto = 170, cero = 118, izq = 44, der = 6;
+  filas.forEach(function (f) {
+    series.forEach(function (s) { if (f.v[s.clave] !== null && f.v[s.clave] !== undefined) vals.push(f.v[s.clave]); });
+  });
+  // La línea del cero se ubica según cuánto hay de cada lado, en vez de quedar
+  // fija abajo. Con todo positivo queda al pie, como antes; en cuanto una
+  // referencia cae —el bitcoin del período de la demo perdió un tercio— sube
+  // lo necesario para que la barra negativa entre. Fija, se salía del dibujo.
+  const alto = 170, arriba = 26, abajo = 118, izq = 44, der = 6;
+  const area = abajo - arriba;
+  const maxPos = Math.max(0, Math.max.apply(null, vals.concat([0])));
+  const maxNeg = Math.min(0, Math.min.apply(null, vals.concat([0])));
+  const rango = (maxPos - maxNeg) || 0.01;
+  const cero = arriba + area * (maxPos / rango);
   const util = Math.max(ancho || PERF_ANCHO_BASE, 240) - izq - der;
+  // Con cinco barras por grupo el ancho se reparte entre todas; el piso de 4px
+  // es para que una barra siga siendo una barra y no una línea.
   const grupo = Math.max(util / filas.length, 60);
-  const bw = Math.min(34, (grupo - 14) / 2);
+  const bw = Math.max(Math.min(26, (grupo - 16) / ns), 4);
+  const sep = bw < 8 ? 1 : 2;
+  const anchoGrupo = bw * ns + sep * (ns - 1);
   const w = Math.max(ancho || PERF_ANCHO_BASE, izq + der + grupo * filas.length);
   const cuerpo = filas.map(function (f, i) {
-    const x = izq + i * grupo + (grupo - (bw * 2 + 4)) / 2;
-    const barra = function (v, dx, color, nombre) {
-      if (v === null) return '';
-      const h = Math.max(2, Math.abs(v) / tope * 92);
+    const x = izq + i * grupo + (grupo - anchoGrupo) / 2;
+    const barras = series.map(function (s, k) {
+      const v = f.v[s.clave];
+      if (v === null || v === undefined) return '';
+      const h = Math.max(2, Math.abs(v) / rango * area);
       const y = v >= 0 ? cero - h : cero;
-      return '<rect x="' + (x + dx).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) +
-        '" height="' + h.toFixed(1) + '" rx="3" fill="' + color + '"' +
-        tipAttrs(nombre + ' · ' + f.clave, pctRend(v, 2)) + '></rect>';
-    };
-    return barra(f.cartera, 0, 'var(--accent)', 'Cartera') +
-      barra(f.indice, bw + 4, COLOR_INDICE, datos.indice) +
-      '<text x="' + (x + bw + 2).toFixed(1) + '" y="' + (alto - 8) + '" text-anchor="middle" font-size="9" ' +
+      return '<rect x="' + (x + k * (bw + sep)).toFixed(1) + '" y="' + y.toFixed(1) +
+        '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="' + (bw < 10 ? 2 : 3) +
+        '" fill="' + s.color + '"' +
+        tipAttrs(s.nombre + ' · ' + f.clave, pctRend(v, 2)) + '></rect>';
+    }).join('');
+    return barras +
+      '<text x="' + (x + anchoGrupo / 2).toFixed(1) + '" y="' + (alto - 8) + '" text-anchor="middle" font-size="9" ' +
         'fill="' + (f.destacado ? 'var(--ink)' : 'var(--muted-2)') + '">' + escapeHtmlSafe(f.clave) + '</text>';
   }).join('');
   return '<svg viewBox="0 0 ' + w.toFixed(0) + ' ' + alto + '" width="' + w.toFixed(0) + '" height="' + alto + '" role="img" ' +
-      'aria-label="Retorno por año de la cartera contra el índice">' +
-    '<line x1="38" y1="' + cero + '" x2="' + (w - 6).toFixed(0) + '" y2="' + cero + '" stroke="var(--grid)"/>' +
-    '<text x="34" y="' + (cero - 88) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + pctRend(tope, 0) + '</text>' +
-    '<text x="34" y="' + (cero + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">0</text>' +
+      'aria-label="Retorno por año de la cartera y de las referencias">' +
+    '<line x1="38" y1="' + cero.toFixed(1) + '" x2="' + (w - 6).toFixed(0) + '" y2="' + cero.toFixed(1) + '" stroke="var(--grid)"/>' +
+    (maxPos > 0 ? '<text x="34" y="' + (arriba + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + pctRend(maxPos, 0) + '</text>' : '') +
+    '<text x="34" y="' + (cero + 4).toFixed(1) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">0</text>' +
+    (maxNeg < 0 ? '<text x="34" y="' + (abajo + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + pctRend(maxNeg, 0) + '</text>' : '') +
     cuerpo +
   '</svg>';
 }
@@ -19931,7 +19960,7 @@ function puntosCrecimiento(r) {
   if (!refs.length) return null;
   const f = [], c = [];
   const series = refs.map(function (tk) {
-    return { tk: tk, nombre: r.bench[tk].nombre, trazo: BENCH_TRAZO[tk] || '', v: [] };
+    return { tk: tk, nombre: r.bench[tk].nombre, color: BENCH_COLOR[tk] || COLOR_INDICE, v: [] };
   });
   for (let i = 0; i < r.indice.length; i++) {
     if (r.indice[i] === null || r.indice[i] === undefined) continue;
@@ -19943,7 +19972,9 @@ function puntosCrecimiento(r) {
     });
   }
   if (!c.length) return null;
-  return { f: f, c: c, series: series };
+  // La rueda en que arrancó la cartera: la primera compra del activo más
+  // viejo que todavía se tiene. Va marcada en el gráfico como referencia.
+  return { f: f, c: c, series: series, arranque: f[0] };
 }
 
 // Todas las curvas juntas. Es la narrativa de la sección: lo demás son cortes
@@ -19986,18 +20017,19 @@ function graficoCrecimiento(datos, ancho) {
   const num = function (v) { return Math.round(v).toLocaleString('es-AR'); };
   const base = num(BASE_CRECIMIENTO);
 
-  // Cada curva termina con su nombre y su valor. Como las referencias comparten
-  // el neutro, la etiqueta es lo que las identifica, así que no puede faltar
-  // ninguna: cuando dos terminan a la misma altura se las separa en vertical,
-  // en vez de dejar que una tape a la otra.
+  // Cada curva termina con su nombre y su valor: el color dice cuál es y la
+  // etiqueta lo confirma, que es lo que hace que no haya que acertarle al tono
+  // para leer el gráfico. Cuando dos terminan a la misma altura se las separa
+  // en vertical, en vez de dejar que una tape a la otra.
   const etiquetas = [];
   datos.series.forEach(function (s) {
     let i = -1;
     for (let k = s.v.length - 1; k >= 0; k--) if (s.v[k] !== null) { i = k; break; }
     if (i < 0) return;
-    etiquetas.push({ i: i, y: y(s.v[i]), v: s.v[i], nombre: s.nombre, trazo: s.trazo, cartera: false });
+    etiquetas.push({ i: i, y: y(s.v[i]), v: s.v[i], nombre: s.nombre, color: s.color, cartera: false });
   });
-  etiquetas.push({ i: fin, y: y(datos.c[fin]), v: datos.c[fin], nombre: 'Cartera', trazo: '', cartera: true });
+  etiquetas.push({ i: fin, y: y(datos.c[fin]), v: datos.c[fin], nombre: 'Cartera',
+    color: COLOR_CARTERA, cartera: true });
   etiquetas.sort(function (a, b) { return a.y - b.y; });
   const ALTO_ETIQ = 13;
   for (let k = 1; k < etiquetas.length; k++) {
@@ -20008,14 +20040,14 @@ function graficoCrecimiento(datos, ancho) {
   if (exceso > 0) etiquetas.forEach(function (e) { e.y -= exceso; });
 
   const curvas = datos.series.map(function (s) {
-    return '<path d="' + trazo(s.v) + '" fill="none" stroke="' + COLOR_INDICE + '" stroke-width="1.3" ' +
-      (s.trazo ? 'stroke-dasharray="' + s.trazo + '" ' : '') + 'stroke-linejoin="round"/>';
+    return '<path d="' + trazo(s.v) + '" fill="none" stroke="' + s.color +
+      '" stroke-width="' + TRAZO_REFERENCIA + '" stroke-linejoin="round"/>';
   }).join('');
 
   const rotulos = etiquetas.map(function (e) {
     const px = x(e.i), py = y(e.v);
     return '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="' + (e.cartera ? 4 : 3) + '" ' +
-        'fill="' + (e.cartera ? 'var(--accent)' : COLOR_INDICE) + '"' +
+        'fill="' + e.color + '"' +
         tipAttrs(e.nombre, 'Terminó en ' + num(e.v) + ' sobre una base de ' + base) + '></circle>' +
       // Guía hasta la etiqueta cuando hubo que correrla de su altura real.
       (Math.abs(e.y - py) > 1.5
@@ -20036,19 +20068,30 @@ function graficoCrecimiento(datos, ancho) {
     '<text x="40" y="' + (arriba + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + num(hi) + '</text>' +
     (lo < BASE_CRECIMIENTO * 0.995
       ? '<text x="40" y="' + (abajo + 4) + '" text-anchor="end" font-size="9" fill="var(--muted-2)">' + num(lo) + '</text>' : '') +
+    // Dónde arrancó la cartera: la compra más vieja que todavía se tiene. Es
+    // también donde arranca la medición, así que la línea cae sobre el eje;
+    // está para que la fecha se lea en el gráfico y no sólo en la tarjeta.
+    (datos.arranque
+      ? '<line x1="' + x(0).toFixed(1) + '" y1="' + arriba + '" x2="' + x(0).toFixed(1) + '" y2="' + abajo +
+          '" stroke="var(--muted-2)" stroke-width="1" stroke-dasharray="3 3"' +
+          tipAttrs('Primera compra', 'Acá arranca la cartera y arranca la medición: ' +
+            datos.arranque.split('-').reverse().join('/')) + '></line>' +
+        '<text x="' + (x(0) + 4).toFixed(1) + '" y="' + (arriba + 8) + '" font-size="8" fill="var(--muted-2)">' +
+          datos.arranque.split('-').reverse().join('/') + '</text>'
+      : '') +
     curvas +
-    '<path d="' + trazo(datos.c) + '" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>' +
+    '<path d="' + trazo(datos.c) + '" fill="none" stroke="' + COLOR_CARTERA +
+      '" stroke-width="' + TRAZO_CARTERA + '" stroke-linejoin="round"/>' +
     rotulos + ejeX +
   '</svg>';
 }
 
-// La muestra de cada serie en la leyenda. La de la cartera es un trazo lleno
-// de su color; las referencias comparten el neutro y se distinguen por el
-// mismo patrón con el que están dibujadas en el gráfico.
-function muestraSerie(color, dash) {
-  return '<svg class="inv-perf-swatch" viewBox="0 0 16 4" width="16" height="4" aria-hidden="true">' +
-    '<line x1="0" y1="2" x2="16" y2="2" stroke="' + color + '" stroke-width="2.4"' +
-      (dash ? ' stroke-dasharray="' + dash + '"' : '') + '/></svg>';
+// La muestra de cada serie en la leyenda: un trazo de su color, con el mismo
+// grosor con que está dibujada en el gráfico.
+function muestraSerie(color, grueso) {
+  return '<svg class="inv-perf-swatch" viewBox="0 0 16 5" width="16" height="5" aria-hidden="true">' +
+    '<line x1="0" y1="2.5" x2="16" y2="2.5" stroke="' + color +
+      '" stroke-width="' + (grueso ? 4 : 2.4) + '"/></svg>';
 }
 
 // La leyenda y, al pie de la curva, beta/alfa/R², que es donde tienen
@@ -20056,9 +20099,9 @@ function muestraSerie(color, dash) {
 function pieContraIndice(r) {
   const spy = r.bench.SPY;
   const g = spy && spy.regresion;
-  const leyenda = '<span>' + muestraSerie('var(--accent)', '') + 'Cartera</span>' +
+  const leyenda = '<span>' + muestraSerie(COLOR_CARTERA, true) + 'Cartera</span>' +
     BENCH_TICKERS.filter(function (tk) { return r.bench[tk]; }).map(function (tk) {
-      return '<span>' + muestraSerie(COLOR_INDICE, BENCH_TRAZO[tk] || '') +
+      return '<span>' + muestraSerie(BENCH_COLOR[tk], false) +
         escapeHtmlSafe(r.bench[tk].nombre) + '</span>';
     }).join('');
   if (!g) {
@@ -20384,11 +20427,13 @@ function bloqueRendimiento(destinos, titulo) {
       '<div class="inv-perf-dos' + (corr ? '' : ' inv-perf-solo') + '">' +
         '<div class="inv-perf-apilados">' +
           tarjetaGrafico('mensual', r.meses, 'Rentabilidad mensual') +
-          tarjetaGrafico('periodo', filasPorPeriodo(r), 'Por período, contra el índice',
+          tarjetaGrafico('periodo', filasPorPeriodo(r), 'Por período, contra las referencias',
             '<div class="inv-perf-leyenda">' +
-              '<span>' + muestraSerie('var(--accent)', '') + 'Cartera</span>' +
-              '<span>' + muestraSerie(COLOR_INDICE, '') +
-                escapeHtmlSafe((r.bench.SPY && r.bench.SPY.nombre) || 'Índice') + '</span>' +
+              '<span>' + muestraSerie(COLOR_CARTERA, true) + 'Cartera</span>' +
+              BENCH_TICKERS.filter(function (tk) { return r.bench[tk]; }).map(function (tk) {
+                return '<span>' + muestraSerie(BENCH_COLOR[tk], false) +
+                  escapeHtmlSafe(r.bench[tk].nombre) + '</span>';
+              }).join('') +
             '</div>') +
           tarjetaGrafico('submarina', puntosSubmarina(r), 'Por debajo del mejor momento') +
         '</div>' +
