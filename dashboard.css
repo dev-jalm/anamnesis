@@ -4426,6 +4426,21 @@ footer .eyebrow-sources {
 .inv-perf-leyenda span[data-tip-titulo] { cursor: help; }
 .inv-perf-leyenda b { color: var(--ink); font-weight: 600; }
 .inv-perf-sinbeta { font-style: italic; }
+/* Beta, alfa y R² al lado del título, con la misma tipografía y cuerpo que la
+   leyenda que reemplazan. La barra los separa del título sin cargar otra
+   línea. */
+.inv-perf-cab-sep,
+.inv-perf-cab-contra,
+.inv-perf-cab-dato {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted-2);
+  margin-left: 8px;
+}
+.inv-perf-cab-sep { color: var(--border); margin-left: 10px; }
+.inv-perf-cab-dato { cursor: help; }
+.inv-perf-cab-dato b { color: var(--ink); font-weight: 600; }
+.inv-sector-head .inv-perf-sinbeta { font-size: 10px; color: var(--muted-2); margin-left: 8px; }
 /* La muestra es un trazo SVG y no un bloque de color: las referencias comparten
    el mismo neutro y lo que las distingue es el patrón de la línea. */
 .inv-perf-swatch { width: 16px; height: 4px; display: inline-block; flex-shrink: 0; overflow: visible; }

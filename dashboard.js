@@ -19985,8 +19985,11 @@ function graficoCrecimiento(datos, ancho) {
   // escritos y no sólo en el emergente: es lo que distingue una referencia de
   // otra, porque todas comparten el mismo neutro.
   // `der` tiene que alojar el nombre más largo con su valor —"Nasdaq 100
-  // 12.345"— sin que lo corte el borde de la tarjeta.
-  const alto = 196, arriba = 20, abajo = 140, izq = 50, der = 120;
+  // 12.345"— sin que lo corte el borde de la tarjeta. El alto se quedó con lo
+  // que ocupaba la leyenda del pie, que ya no está: cada curva lleva su nombre
+  // escrito al final y en su color, así que repetirla abajo era gastar alto en
+  // decir dos veces lo mismo.
+  const alto = 240, arriba = 20, abajo = 184, izq = 50, der = 132;
   const w = Math.max(ancho || PERF_ANCHO_BASE, 320);
   const util = w - izq - der;
   let todos = datos.c.slice();
@@ -20054,9 +20057,17 @@ function graficoCrecimiento(datos, ancho) {
         ? '<line x1="' + (px + 4).toFixed(1) + '" y1="' + py.toFixed(1) + '" x2="' + (px + 9).toFixed(1) +
           '" y2="' + e.y.toFixed(1) + '" stroke="var(--grid)" stroke-width="1"/>'
         : '') +
+      // El nombre en el color de su curva: sin leyenda abajo, es lo que ata
+      // cada rótulo a su línea. El valor va en tinta, que es un número y se
+      // lee mejor con el contraste pleno.
       '<text x="' + (px + 11).toFixed(1) + '" y="' + (e.y + 3.5).toFixed(1) + '" font-size="9" ' +
-        (e.cartera ? 'font-weight="600" fill="var(--ink)"' : 'fill="var(--muted)"') + '>' +
-        escapeHtmlSafe(e.nombre) + ' ' + num(e.v) + '</text>';
+        'font-weight="' + (e.cartera ? 700 : 600) + '" fill="' + e.color + '">' +
+        escapeHtmlSafe(e.nombre) + '</text>' +
+      // 5,4px es el avance de JetBrains Mono a 9px; 6 deja además el espacio
+      // entre el nombre y el número sin que se toquen.
+      '<text x="' + (px + 13 + e.nombre.length * 6).toFixed(1) + '" y="' + (e.y + 3.5).toFixed(1) +
+        '" font-size="9" ' + (e.cartera ? 'font-weight="700" fill="var(--ink)"' : 'fill="var(--muted)"') +
+        '>' + num(e.v) + '</text>';
   }).join('');
 
   return '<svg viewBox="0 0 ' + w.toFixed(0) + ' ' + alto + '" width="' + w.toFixed(0) + '" height="' + alto + '" role="img" ' +
@@ -20094,31 +20105,29 @@ function muestraSerie(color, grueso) {
       '" stroke-width="' + (grueso ? 4 : 2.4) + '"/></svg>';
 }
 
-// La leyenda y, al pie de la curva, beta/alfa/R², que es donde tienen
-// contexto: hablan de la misma comparación que el gráfico dibuja.
-function pieContraIndice(r) {
+// Beta, alfa y R² al lado del título, separados por una barra. Van ahí y no al
+// pie porque el pie se fue: con cada curva rotulada con su nombre y su color,
+// la leyenda repetía lo que el gráfico ya decía, y ese alto rinde más como
+// dibujo.
+function rotuloContraIndice(r) {
   const spy = r.bench.SPY;
   const g = spy && spy.regresion;
-  const leyenda = '<span>' + muestraSerie(COLOR_CARTERA, true) + 'Cartera</span>' +
-    BENCH_TICKERS.filter(function (tk) { return r.bench[tk]; }).map(function (tk) {
-      return '<span>' + muestraSerie(BENCH_COLOR[tk], false) +
-        escapeHtmlSafe(r.bench[tk].nombre) + '</span>';
-    }).join('');
+  if (!spy) return '';
   if (!g) {
-    return '<div class="inv-perf-leyenda">' + leyenda +
+    return '<span class="inv-perf-cab-sep">|</span>' +
       '<span class="inv-perf-sinbeta">Hacen falta ' + MIN_RUEDAS_BETA +
-        ' ruedas para medir beta y alfa</span></div>';
+        ' ruedas para medir beta y alfa</span>';
   }
   const dato = function (rot, val, tit, det) {
-    return '<span' + tipAttrs(tit, det) + '><b>' + rot + '</b> ' + val + '</span>';
+    return '<span class="inv-perf-cab-dato"' + tipAttrs(tit, det) + '><b>' + rot + '</b> ' + val + '</span>';
   };
   const b = g.beta.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const r2 = (g.r2 === null) ? '—' : pctSinSigno(g.r2, 0);
   // Las tres son contra el S&P 500 y no contra las cuatro referencias: con más
   // de una en pantalla hay que decir cuál, o el número no se sabe de qué habla.
   const contra = ' Contra ' + spy.nombre + '.';
-  return '<div class="inv-perf-leyenda">' + leyenda +
-    '<span class="inv-perf-sep">contra ' + escapeHtmlSafe(spy.nombre) + ':</span>' +
+  return '<span class="inv-perf-cab-sep">|</span>' +
+    '<span class="inv-perf-cab-contra">contra ' + escapeHtmlSafe(spy.nombre) + '</span>' +
     dato('Beta', b, 'Beta',
       'Cuánto se mueve la cartera cuando el índice se mueve 1%. En 1,00 lo sigue; ' +
       'arriba lo exagera y abajo lo amortigua. Sobre ' + g.ruedas + ' ruedas.' + contra) +
@@ -20128,8 +20137,7 @@ function pieContraIndice(r) {
       'lo que la corre tanto como se aleje la beta de 1,00.' + contra) +
     dato('R²', r2, 'R cuadrado',
       'Qué parte del movimiento de la cartera explica el índice. Con un R² bajo, la beta ' +
-      'describe mal la relación y la alfa es más ruido que habilidad.' + contra) +
-  '</div>';
+      'describe mal la relación y la alfa es más ruido que habilidad.' + contra);
 }
 
 /* La matriz de correlación entre los activos de la cartera.
@@ -20331,12 +20339,13 @@ function graficoSubmarina(datos, ancho) {
 // La tarjeta guarda sus propios datos: así el redibujado por ancho no depende
 // de volver a calcular toda la cartera ni de un estado paralelo que se
 // desincronice con el DOM.
-function tarjetaGrafico(tipo, datos, titulo, extra, clase) {
+function tarjetaGrafico(tipo, datos, titulo, extra, clase, alLadoDelTitulo) {
   if (!dibujoGrafico(tipo, datos, PERF_ANCHO_BASE)) return '';
   return '<div class="inv-perf-chart' + (clase ? ' ' + clase : '') +
       '" data-perf="' + tipo + '" data-perf-datos="' +
       escapeHtmlSafe(JSON.stringify(datos)) + '">' +
-    '<div class="inv-sector-head"><span class="inv-section-label">' + escapeHtmlSafe(titulo) + '</span></div>' +
+    '<div class="inv-sector-head"><span class="inv-section-label">' + escapeHtmlSafe(titulo) + '</span>' +
+      (alLadoDelTitulo || '') + '</div>' +
     dibujoGrafico(tipo, datos, PERF_ANCHO_BASE) +
     (extra || '') +
   '</div>';
@@ -20419,7 +20428,7 @@ function bloqueRendimiento(destinos, titulo) {
       // Primero la narrativa —todas las curvas desde la misma base, a todo el
       // ancho— y debajo sus cortes.
       tarjetaGrafico('crecimiento', puntosCrecimiento(r), 'Mil pesos en cada uno',
-        pieContraIndice(r)) +
+        '', '', rotuloContraIndice(r)) +
       // Los tres cortes en el tiempo apilados en una columna, y al lado la
       // matriz, que no es una serie de tiempo sino una foto de todos contra
       // todos. Sin matriz —una cartera de un solo activo no tiene pares, como
