@@ -21040,14 +21040,14 @@ function buildInvestmentDetailPanel(destinos, title) {
           liquidadoHtml, '',
           vistaSeccionToggle((destinos[0] || '') + '|liq')) +
         // Rendimiento va último: las tres de arriba cuentan cómo está la
-        // cartera hoy, y ésta cómo llegó hasta acá. Sólo en Inversiones, con el
-        // mismo criterio que los portafolios (RF-080z).
-        (admitePortafolios(destinos)
-          ? bloquePlegableInv('Rendimiento',
-              'Cómo se comportó en el tiempo: cuánto rindió y contra qué se compara.',
-              bloqueRendimiento(destinos, title), '',
-              vistaSeccionToggle((destinos[0] || '') + '|rend'))
-          : '')) +
+        // cartera hoy, y ésta cómo llegó hasta acá. Va en todas las carteras
+        // que tienen tenencias —la pregunta "¿cómo me fue?" no es exclusiva de
+        // Inversiones—, pero sólo a nivel cartera: el selector de vista se
+        // omite solo donde los portafolios no existen (vistaActivosToggle).
+        bloquePlegableInv('Rendimiento',
+          'Cómo se comportó en el tiempo: cuánto rindió y contra qué se compara.',
+          bloqueRendimiento(destinos, title), '',
+          vistaSeccionToggle((destinos[0] || '') + '|rend'))) +
     '</div>' +
   '</details>';
 }
