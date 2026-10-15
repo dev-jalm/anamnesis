@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.78 |
+| **Versión** | 1.79 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -915,6 +915,8 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-211j | La **volatilidad anualizada** se informa sin signo —no es ganancia ni pérdida, es cuánto se mueve— y sólo cuando hay ruedas suficientes para que el cálculo signifique algo; por debajo de ese mínimo no se muestra en gris: no se muestra |
 | RF-211k | Todo lo que mide riesgo —la curva submarina, la caída máxima, la volatilidad— se calcula sobre el **retorno encadenado** y nunca sobre el valor en pesos de la cartera. Un aporte sube el valor sin ser ganancia: sobre el valor, la curva submarina diría que el usuario se recuperó de una caída cuando lo único que pasó es que puso plata nueva |
 | RF-211l | La sección encabeza con la **comparación contra varias referencias desde una base común**: lo que valdría hoy la misma plata puesta en la cartera y en cada referencia el primer día. La base siempre entra en el eje, porque sin ella dos curvas que suben se ven igual que dos que bajan, y cada curva termina con su nombre y su valor escritos |
+| RF-211m1 | Las tres cifras se informan **contra los dos índices de referencia**, en bloques separados al lado del título. Bitcoin y el oro quedan afuera de la regresión aunque estén en el gráfico: están ahí como contexto, no como vara, y una beta contra el oro no es una pregunta que nadie se haga |
+| RF-211m2 | Cada una de las tres explica **cómo se lee**, con un renglón por caso: qué significa una beta por encima y por debajo de 1, qué significa una alfa positiva y una negativa, y a partir de qué R² la comparación deja de ser útil. Un número que el usuario no sabe interpretar no informa nada |
 | RF-211m | El producto informa **beta, alfa y R²** contra el índice de referencia, y los tres juntos. La beta dice cuánto se mueve la cartera cuando el índice se mueve; la alfa, lo que rindió por encima de lo que la beta explica —ganarle al índice apalancado no es mérito—; y el R², qué parte del movimiento explica el índice, que es el **control de validez de los otros dos**: con un R² bajo la beta describe mal la relación y la alfa es más ruido que habilidad. Las tres se informan sólo con ruedas suficientes, y se declara contra cuál de las referencias están medidas |
 | RF-211n | La alfa se calcula con la **tasa libre de riesgo en cero**, y la pantalla lo dice. El error que eso introduce es proporcional a cuánto se aleje la beta de 1 y se anula cuando vale 1; incorporar una serie de tasas para corregir una diferencia de ese tamaño no se justifica todavía |
 | RF-211o | La sección presenta la **matriz de correlación** entre los activos de la cartera. Tener diez activos no es estar diversificado si los diez suben y bajan el mismo día: la matriz es lo que distingue una cartera repartida de la misma apuesta escrita diez veces. Cada celda informa el valor y, al consultarla, qué significa; al pie va el promedio de los pares —sin la diagonal, que vale siempre 1 y sólo inflaría la cifra— con su lectura en una línea |
@@ -1249,9 +1251,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.75 | 14/10/2026 | La cartera **contra el índice**: las curvas desde una base común, con beta, alfa y R² (RF-211l, RF-211m, RF-211n). Rendimiento pasa a estar también en Reserva y en las Jubilaciones, a nivel cartera (RF-211b) | Reemplazada |
 | 1.76 | 14/10/2026 | Se completan las series de los diecinueve instrumentos y la **matriz de correlación** entre los activos de la cartera, con su promedio de pares (RF-211o, RF-211p, RF-211q, RF-211a, DOC-10) | Reemplazada |
 | 1.77 | 14/10/2026 | **El conjunto de demostración deja de inventar precios**: cada compra queda al precio que el activo tenía ese día y la valuación de hoy sale del último cierre, con activos en las dos monedas y en las tres carteras (RF-222 a RF-222g) | Reemplazada |
-| 1.78 | 14/10/2026 | Las series se distinguen **por color validado** y cada curva lleva su nombre escrito encima; la separación de la sección pasa a ser una sola en los dos ejes (RNF-18d, RNF-18e, RNF-18f) | **Vigente** |
+| 1.78 | 14/10/2026 | Las series se distinguen **por color validado** y cada curva lleva su nombre escrito encima; la separación de la sección pasa a ser una sola en los dos ejes (RNF-18d, RNF-18e, RNF-18f) | Reemplazada |
+| 1.79 | 15/10/2026 | Beta, alfa y R² se informan contra **los dos índices** y cada una explica cómo se lee, con un renglón por caso (RF-211m1, RF-211m2) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| Las tres cifras contra los dos índices, y cómo se lee cada una | RF-211m1, RF-211m2 |
+
+**Implementados en la versión 1.78**
 
 | Cambio | Requerimiento |
 |---|---|

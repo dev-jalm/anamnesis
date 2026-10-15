@@ -20105,39 +20105,44 @@ function muestraSerie(color, grueso) {
       '" stroke-width="' + (grueso ? 4 : 2.4) + '"/></svg>';
 }
 
-// Beta, alfa y R² al lado del título, separados por una barra. Van ahí y no al
-// pie porque el pie se fue: con cada curva rotulada con su nombre y su color,
-// la leyenda repetía lo que el gráfico ya decía, y ese alto rinde más como
-// dibujo.
+// Los índices contra los que se mide la regresión. Los otros dos instrumentos
+// del gráfico —bitcoin y oro— están ahí como contexto, no como vara: una beta
+// contra el oro no es una pregunta que nadie se haga.
+const INDICES_REGRESION = ['SPY', 'QQQ'];
+
+// Beta, alfa y R² al lado del título, un bloque por índice separado con una
+// barra. Van ahí y no al pie porque el pie se fue: con cada curva rotulada con
+// su nombre y su color, la leyenda repetía lo que el gráfico ya decía, y ese
+// alto rinde más como dibujo.
 function rotuloContraIndice(r) {
-  const spy = r.bench.SPY;
-  const g = spy && spy.regresion;
-  if (!spy) return '';
-  if (!g) {
-    return '<span class="inv-perf-cab-sep">|</span>' +
-      '<span class="inv-perf-sinbeta">Hacen falta ' + MIN_RUEDAS_BETA +
-        ' ruedas para medir beta y alfa</span>';
-  }
   const dato = function (rot, val, tit, det) {
     return '<span class="inv-perf-cab-dato"' + tipAttrs(tit, det) + '><b>' + rot + '</b> ' + val + '</span>';
   };
-  const b = g.beta.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const r2 = (g.r2 === null) ? '—' : pctSinSigno(g.r2, 0);
-  // Las tres son contra el S&P 500 y no contra las cuatro referencias: con más
-  // de una en pantalla hay que decir cuál, o el número no se sabe de qué habla.
-  const contra = ' Contra ' + spy.nombre + '.';
-  return '<span class="inv-perf-cab-sep">|</span>' +
-    '<span class="inv-perf-cab-contra">contra ' + escapeHtmlSafe(spy.nombre) + '</span>' +
-    dato('Beta', b, 'Beta',
-      'Cuánto se mueve la cartera cuando el índice se mueve 1%. En 1,00 lo sigue; ' +
-      'arriba lo exagera y abajo lo amortigua. Sobre ' + g.ruedas + ' ruedas.' + contra) +
-    dato('Alfa', pctRend(g.alfa), 'Alfa anualizada',
-      'Lo que rindió por encima de lo que explica el mercado, descontando la beta: ' +
-      'ganarle al índice apalancado no es alfa. Calculada con la tasa libre de riesgo en cero, ' +
-      'lo que la corre tanto como se aleje la beta de 1,00.' + contra) +
-    dato('R²', r2, 'R cuadrado',
-      'Qué parte del movimiento de la cartera explica el índice. Con un R² bajo, la beta ' +
-      'describe mal la relación y la alfa es más ruido que habilidad.' + contra);
+  return INDICES_REGRESION.map(function (tk) {
+    const ix = r.bench[tk];
+    if (!ix) return '';
+    const g = ix.regresion;
+    const cab = '<span class="inv-perf-cab-sep">|</span>' +
+      '<span class="inv-perf-cab-contra">contra ' + escapeHtmlSafe(ix.nombre) + '</span>';
+    if (!g) {
+      return cab + '<span class="inv-perf-sinbeta">hacen falta ' + MIN_RUEDAS_BETA + ' ruedas</span>';
+    }
+    const b = g.beta.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const r2 = (g.r2 === null) ? '—' : pctSinSigno(g.r2, 0);
+    // El detalle va en renglones: cada uno es un caso de lectura, y leídos en
+    // fila se entiende qué significa el número que se está mirando.
+    return cab +
+      dato('Beta', b, 'Beta contra ' + ix.nombre,
+        g.ruedas + ' ruedas analizadas\n' +
+        '> 1: Más volátil que el ' + ix.nombre + '\n' +
+        '< 1: Menos volátil (más defensiva)') +
+      dato('Alfa', pctRend(g.alfa), 'Alfa anualizada contra ' + ix.nombre,
+        'Positivo (+): Superó al índice tras ajustar por riesgo\n' +
+        'Negativo (−): Rindió menos de lo esperado') +
+      dato('R²', r2, 'R cuadrado contra ' + ix.nombre,
+        '> 85%: Alta correlación (Beta y Alfa son confiables)\n' +
+        '< 70%: La comparación con el ' + ix.nombre + ' no es muy útil');
+  }).join('');
 }
 
 /* La matriz de correlación entre los activos de la cartera.

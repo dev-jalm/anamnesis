@@ -4437,7 +4437,10 @@ footer .eyebrow-sources {
   color: var(--muted-2);
   margin-left: 8px;
 }
-.inv-perf-cab-sep { color: var(--border); margin-left: 10px; }
+/* La barra separa, pero tiene que verse: en el color del borde daba 1,22:1
+   contra el fondo de la tarjeta y no se distinguía del espacio en blanco. Va
+   en el mismo apagado que el resto del rótulo. */
+.inv-perf-cab-sep { color: var(--muted); margin-left: 10px; }
 .inv-perf-cab-dato { cursor: help; }
 .inv-perf-cab-dato b { color: var(--ink); font-weight: 600; }
 .inv-sector-head .inv-perf-sinbeta { font-size: 10px; color: var(--muted-2); margin-left: 8px; }
@@ -6490,6 +6493,10 @@ body[data-exporting="true"] .section-card {
   font-size: 11px;
   line-height: 1.4;
   opacity: 0.85;
+  /* Un detalle puede venir en renglones —la lectura de una beta o de un R² es
+     una línea por caso— y el texto se inserta con textContent, que no
+     interpreta HTML. Los saltos van como saltos de verdad. */
+  white-space: pre-line;
 }
 
 /* Bloque "Concentración por sector" del cuerpo de cada cartera. Una fila por
