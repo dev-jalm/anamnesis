@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.80 |
+| **Versión** | 1.81 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -923,6 +923,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-211o | La sección presenta la **matriz de correlación** entre los activos de la cartera. Tener diez activos no es estar diversificado si los diez suben y bajan el mismo día: la matriz es lo que distingue una cartera repartida de la misma apuesta escrita diez veces. Cada celda informa el valor y, al consultarla, qué significa; al pie va el promedio de los pares —sin la diagonal, que vale siempre 1 y sólo inflaría la cifra— con su lectura en una línea |
 | RF-211p | Una correlación **no se informa como cero cuando no se puede medir**: sin varianza o sin ruedas suficientes no hay correlación, y un cero diría "no se mueven juntos" sobre algo que no se pudo comparar |
 | RF-211q | Una cartera de un solo activo **no tiene matriz**: no hay pares que medir, y la sección lo resuelve dándole el ancho entero a la curva en vez de dejar medio renglón vacío |
+| RF-210d | El diálogo **nombra lo que cada tilde se lleva**, no sólo su título. La sección de categorías arrastra además el **color, la clasificación y las subcategorías** de cada una —con su propia clasificación—, así que el contador dice cuántas categorías y cuántas subcategorías viajan. Un tilde que dice "Categorías (26)" sobre un archivo que también lleva 65 subcategorías obliga a abrir el JSON para saber qué se está guardando |
 | RF-210c | El import de parámetros **pisa campo a campo**: lo que el archivo no trae se conserva tal como estaba. El resumen previo lo dice en esos términos —cuántos campos hay, cuántos trae el archivo y con cuántos se queda— y los cambios se aplican a la vista en el momento, sin recargar |
 | RF-211 | El manual de usuario incorpora índice con número de página y enlace interno a cada tema |
 | RF-212 | Cada tema del manual comienza en página nueva |
@@ -1254,7 +1255,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.77 | 14/10/2026 | **El conjunto de demostración deja de inventar precios**: cada compra queda al precio que el activo tenía ese día y la valuación de hoy sale del último cierre, con activos en las dos monedas y en las tres carteras (RF-222 a RF-222g) | Reemplazada |
 | 1.78 | 14/10/2026 | Las series se distinguen **por color validado** y cada curva lleva su nombre escrito encima; la separación de la sección pasa a ser una sola en los dos ejes (RNF-18d, RNF-18e, RNF-18f) | Reemplazada |
 | 1.79 | 15/10/2026 | Beta, alfa y R² se informan contra **los dos índices** y cada una explica cómo se lee, con un renglón por caso (RF-211m1, RF-211m2) | Reemplazada |
-| 1.80 | 16/10/2026 | El listado de reglas informa la categoría cuando no hay subcategoría: las reglas de las categorías de flujo mostraban esa celda vacía (RF-168a) | **Vigente** |
+| 1.80 | 16/10/2026 | El listado de reglas informa la categoría cuando no hay subcategoría: las reglas de las categorías de flujo mostraban esa celda vacía (RF-168a) | Reemplazada |
+| 1.81 | 16/10/2026 | El diálogo de configuración dice cuántas subcategorías viajan con las categorías (RF-210d) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

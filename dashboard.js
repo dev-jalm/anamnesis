@@ -25590,6 +25590,14 @@ function openFullConfigModal(mode) {
   // Actualizar contadores
   const rCount = (state.categoryRules || []).length;
   const cCount = Object.keys(state.categoryLabels || {}).length;
+  // Las subcategorías viajan dentro de la sección Categorías (labels y
+  // clasificación, ver serializeFullConfig), pero el contador decía sólo
+  // "26 categorías" y no había forma de saberlo desde el diálogo: hay que
+  // nombrarlas para que el tilde diga lo que se lleva.
+  const subLabels = state.subcategoryLabels || {};
+  const sCount = Object.keys(subLabels).reduce(function (n, catKey) {
+    return n + Object.keys(subLabels[catKey] || {}).length;
+  }, 0);
   const tCount = Object.keys(state.taglabels || {}).length;
   // Parámetros: cuántos campos van a viajar de verdad. La lista es la misma que
   // usa el serializador (PARAMS_CONFIG_KEYS), no una copia: repetirla fue lo que
@@ -25603,10 +25611,12 @@ function openFullConfigModal(mode) {
   const fmCount = (state.kpiCardsConfig || []).length;
 
   document.getElementById('fullCountRules').textContent = '(' + rCount + ' regla' + (rCount === 1 ? '' : 's') + ')';
-  document.getElementById('fullCountCategories').textContent = '(' + cCount + ' categoría' + (cCount === 1 ? '' : 's') + ')';
+  document.getElementById('fullCountCategories').textContent = '(' + cCount + ' categoría' + (cCount === 1 ? '' : 's')
+    + (sCount > 0 ? ' · ' + sCount + ' subcategoría' + (sCount === 1 ? '' : 's') : '') + ')';
   document.getElementById('fullCountTags').textContent = '(' + tCount + ' etiqueta' + (tCount === 1 ? '' : 's') + ')';
   document.getElementById('fullCountParams').textContent = '(' + pCount + ' campo' + (pCount === 1 ? '' : 's') + ')';
-  document.getElementById('fullCountFichaMedica').textContent = '(' + fmCount + ' tarjeta KPI' + (fmCount === 1 ? '' : 's') + ')';
+  // La "s" del plural va en tarjeta, no en la sigla: eran "0 tarjeta KPIs".
+  document.getElementById('fullCountFichaMedica').textContent = '(' + fmCount + ' tarjeta' + (fmCount === 1 ? '' : 's') + ' KPI)';
   // Default todos chequeados
   Array.from(document.querySelectorAll('.fullconfig-section input[type="checkbox"]')).forEach(function (cb) {
     cb.checked = true;
