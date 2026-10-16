@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.79 |
+| **Versión** | 1.80 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -510,6 +510,7 @@ Cinco pantallas.
 | RF-167a | La edición de una regla existente alcanza a la totalidad de los campos de su alta: patrón, modo de coincidencia, acción, categoría, subcategoría, periodicidad, renombre y etiquetas. La validez exigida es la de RF-165 |
 | RF-167b | Al pasar una regla a descartar se eliminan los datos que esa acción no utiliza —categoría, periodicidad, renombre y etiquetas—, de modo que no reaparezcan si más tarde vuelve a clasificar |
 | RF-168 | Las reglas se agrupan visualmente. El grupo de reglas de descarte se presenta siempre visible, con independencia del filtro activo |
+| RF-168a | Cada regla del listado informa **a dónde manda**: la subcategoría cuando la tiene y la categoría cuando no. Las categorías de flujo —Préstamo, Sueldo, Jubilación, Reserva— no tienen subcategorías, de modo que mostrar sólo la subcategoría dejaba a todas sus reglas con la celda vacía. Que el nombre esté también en el encabezado del grupo no alcanza: un encabezado se lee una vez y la fila se lee sola cuando se la busca con un filtro puesto |
 | RF-169 | La re-aplicación de reglas sobre movimientos ya cargados requiere confirmación explícita, indicando la cantidad exacta de movimientos que se eliminarían |
 
 #### 4.11.3 Modo viaje
@@ -1252,9 +1253,16 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.76 | 14/10/2026 | Se completan las series de los diecinueve instrumentos y la **matriz de correlación** entre los activos de la cartera, con su promedio de pares (RF-211o, RF-211p, RF-211q, RF-211a, DOC-10) | Reemplazada |
 | 1.77 | 14/10/2026 | **El conjunto de demostración deja de inventar precios**: cada compra queda al precio que el activo tenía ese día y la valuación de hoy sale del último cierre, con activos en las dos monedas y en las tres carteras (RF-222 a RF-222g) | Reemplazada |
 | 1.78 | 14/10/2026 | Las series se distinguen **por color validado** y cada curva lleva su nombre escrito encima; la separación de la sección pasa a ser una sola en los dos ejes (RNF-18d, RNF-18e, RNF-18f) | Reemplazada |
-| 1.79 | 15/10/2026 | Beta, alfa y R² se informan contra **los dos índices** y cada una explica cómo se lee, con un renglón por caso (RF-211m1, RF-211m2) | **Vigente** |
+| 1.79 | 15/10/2026 | Beta, alfa y R² se informan contra **los dos índices** y cada una explica cómo se lee, con un renglón por caso (RF-211m1, RF-211m2) | Reemplazada |
+| 1.80 | 16/10/2026 | El listado de reglas informa la categoría cuando no hay subcategoría: las reglas de las categorías de flujo mostraban esa celda vacía (RF-168a) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
+
+| Cambio | Requerimiento |
+|---|---|
+| El destino de cada regla, también sin subcategoría | RF-168a |
+
+**Implementados en la versión 1.79**
 
 | Cambio | Requerimiento |
 |---|---|

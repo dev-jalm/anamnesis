@@ -8574,17 +8574,21 @@ function renderRulesList() {
     const rowsHtml = groupRules.map(function (r) {
       const subLabel = (r.subcategoria && state.subcategoryLabels[r.categoria] && state.subcategoryLabels[r.categoria][r.subcategoria])
         ? state.subcategoryLabels[r.categoria][r.subcategoria] : (r.subcategoria || '');
-      // El nombre de categoría ya está en el header del grupo. En la fila
-      // mostramos solo la sub (si existe) para ahorrar espacio. Si no hay sub,
-      // dejamos un guión sutil.
-      // En una regla de descarte esa columna no tiene sub que mostrar: se usa
-      // para decir qué hace, que es lo único que importa saber de ella.
-      // Esa columna dice qué HACE la regla. Si sólo renombra no hay sub que
-      // mostrar, así que se muestra el texto nuevo, que es lo que la define.
+      // Esa columna dice a dónde manda la regla: la subcategoría si la tiene y
+      // la categoría si no. Antes, sin sub, quedaba un guión: las categorías de
+      // flujo —Préstamo, Sueldo, Jubilación, Reserva— no tienen subcategorías,
+      // así que TODAS sus reglas mostraban una celda vacía. El nombre está
+      // también en el encabezado del grupo, pero un grupo se lee una vez y la
+      // fila se lee sola cuando uno la busca con el filtro puesto.
+      // En una regla de descarte no hay destino: se usa para decir qué hace,
+      // que es lo único que importa saber de ella. Y si sólo renombra, el texto
+      // nuevo, que es lo que la define.
       const renombraA = descripcionDeRegla(r);
       const subDisplay = esReglaDescarte(r)
         ? 'se descarta'
-        : (subLabel ? ('· ' + subLabel) : (renombraA && !r.categoria ? '→ ' + renombraA : '—'));
+        : (subLabel ? ('· ' + subLabel)
+          : (r.categoria ? ((state.categoryLabels && state.categoryLabels[r.categoria]) || r.categoria)
+            : (renombraA ? '→ ' + renombraA : '—')));
       const periLabel = r.periodicidad ? ((PERIODICITY_OPTIONS.find(function (o) { return o.key === r.periodicidad; }) || { label: '' }).label) : '';
       const mtLabel = MATCHTYPE_LABELS[r.matchType] || 'contiene';
       const enabledStyle = r.enabled === false ? ' disabled' : '';
