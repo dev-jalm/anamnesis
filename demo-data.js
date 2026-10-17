@@ -799,19 +799,19 @@ function buildDemoSnapshot(mesesAtras) {
     // nada hasta que alguien aprieta RE-APLICAR, que es justo lo que se quiere
     // poder probar.
     categoryRules: [
-      { id: 'rule_demo_super', pattern: 'Coto;Carrefour;Dia;Jumbo', matchType: 'contains',
+      { id: 'rule_demo_super', pattern: 'COTO;CARREFOUR;DIA;JUMBO', matchType: 'contains',
         categoria: 'Alimentacion', subcategoria: 'Supermercado', periodicidad: 'variable',
         formaPago: 'tarjeta', descripcionNueva: '', tags: [], enabled: true },
       { id: 'rule_demo_prepaga', pattern: 'OSDE', matchType: 'contains',
         categoria: 'Salud', subcategoria: 'Prepaga', periodicidad: 'fijo',
         formaPago: 'transferencia', descripcionNueva: '', tags: [], enabled: true },
-      { id: 'rule_demo_nafta', pattern: 'YPF;Shell;Axion', matchType: 'contains',
+      { id: 'rule_demo_nafta', pattern: 'YPF;SHELL;AXION', matchType: 'contains',
         categoria: 'Transporte', subcategoria: 'Combustible', periodicidad: 'variable',
         formaPago: 'tarjeta', descripcionNueva: '', tags: [], enabled: true },
-      { id: 'rule_demo_sube', pattern: 'Carga SUBE', matchType: 'contains',
+      { id: 'rule_demo_sube', pattern: 'CARGA SUBE', matchType: 'contains',
         categoria: 'Transporte', subcategoria: 'SUBE', periodicidad: 'variable',
         formaPago: 'qr', descripcionNueva: '', tags: [], enabled: true },
-      { id: 'rule_demo_streaming', pattern: 'Netflix;Spotify;Max;Disney+', matchType: 'contains',
+      { id: 'rule_demo_streaming', pattern: 'NETFLIX;SPOTIFY;MAX;DISNEY+', matchType: 'contains',
         categoria: 'Membresias', subcategoria: 'Streaming', periodicidad: 'fijo',
         formaPago: 'tarjeta', descripcionNueva: '', tags: [], enabled: true },
       // Sólo fija con qué se pagó: no toca la categoría de nada.

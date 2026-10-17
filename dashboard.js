@@ -8686,7 +8686,7 @@ function renderRulesList() {
           '<i data-lucide="' + (r.enabled === false ? 'circle' : 'check-circle-2') + '" style="width:16px;height:16px;color:' + (r.enabled === false ? 'var(--muted)' : 'var(--green)') + '"></i>' +
         '</button>' +
         '<div class="rule-row-mt">' + mtLabel + '</div>' +
-        '<div class="rule-row-pattern" title="' + escapeHtml(r.pattern) + '">' + escapeHtml(r.pattern) +
+        '<div class="rule-row-pattern' + (r.matchType === 'regex' ? '' : ' rule-pattern-mayus') + '" title="' + escapeHtml(r.pattern) + '">' + escapeHtml(r.pattern) +
           (renombraA && r.categoria
             ? '<span class="rule-row-rename" title="Renombra la descripción a: ' + escapeHtml(renombraA) + '"> → ' + escapeHtml(renombraA) + '</span>'
             : '') +
@@ -8787,8 +8787,8 @@ function escapeHtml(s) {
 }
 
 function addRuleFromForm() {
-  const pattern = document.getElementById('rulePatternInput').value.trim();
   const matchType = document.getElementById('ruleMatchType').value || 'contains';
+  const pattern = normalizarPatronDeRegla(document.getElementById('rulePatternInput').value, matchType);
   const catValue = document.getElementById('ruleCategorySel').value || '';
   const periodicidad = document.getElementById('rulePeriodicitySel').value || '';
   const pagoSel = document.getElementById('rulePaymentSel');
@@ -9167,7 +9167,9 @@ function applyLearnRules() {
     if (!sel.has(i)) return;
     state.categoryRules.push({
       id: 'rule_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '_' + i,
-      pattern: s.pattern,
+      // Las reglas aprendidas se guardan con el mismo criterio que las escritas
+      // a mano: el patrón en mayúsculas.
+      pattern: normalizarPatronDeRegla(s.pattern, 'contains'),
       matchType: 'contains',
       categoria: s.categoria,
       subcategoria: s.subcategoria || '',
@@ -9228,22 +9230,26 @@ function applyLearnRules() {
 })();
 
 // Bindeo de los selectores matchType para ocultar/mostrar el hint de "separar
-// con ;" según corresponda (solo aplica a contains/starts).
+// con ;" según corresponda (solo aplica a contains/starts), y para que el
+// campo del patrón escriba en mayúsculas salvo cuando se está escribiendo una
+// expresión regular, que se guarda tal cual.
 (function bindMatchTypeHints() {
-  function refreshHint(selectId, hintId) {
+  function refreshHint(selectId, hintId, inputId) {
     const sel = document.getElementById(selectId);
     const hint = document.getElementById(hintId);
     if (!sel || !hint) return;
+    const input = inputId ? document.getElementById(inputId) : null;
     const update = function () {
       const t = sel.value;
       const applies = (t === 'contains' || t === 'starts' || !t);
       hint.classList.toggle('hidden', !applies);
+      if (input) input.classList.toggle('rule-pattern-mayus', t !== 'regex');
     };
     sel.addEventListener('change', update);
     update();
   }
-  refreshHint('ruleMatchType', 'rulePatternHint');
-  refreshHint('ruleEditMatchType', 'ruleEditPatternHint');
+  refreshHint('ruleMatchType', 'rulePatternHint', 'rulePatternInput');
+  refreshHint('ruleEditMatchType', 'ruleEditPatternHint', 'ruleEditPatternInput');
 })();
 
 // ================= MODAL EDITAR REGLA =================
@@ -9262,7 +9268,11 @@ function openRuleEditor(ruleId) {
   ruleEditorState.ruleId = ruleId;
   // Cargar valores actuales
   document.getElementById('ruleEditPatternInput').value = rule.pattern || '';
-  document.getElementById('ruleEditMatchType').value = rule.matchType || 'contains';
+  const mtSel = document.getElementById('ruleEditMatchType');
+  mtSel.value = rule.matchType || 'contains';
+  // Asignar .value por código no dispara 'change': sin esto, el campo abriría
+  // con la ayuda y el estilo del modo de la regla anterior.
+  mtSel.dispatchEvent(new Event('change'));
   // Categoría: usar el mismo schema que el form de creación, con valor
   // pre-seleccionado. El selector incluye la acción de descartar, igual que el
   // alta: sin esa opción, abrir una regla de descarte la mostraba sin categoría
@@ -9367,8 +9377,8 @@ function saveRuleEdit() {
   const rule = (state.categoryRules || []).find(function (r) { return r.id === ruleId; });
   if (!rule) return;
 
-  const pattern = document.getElementById('ruleEditPatternInput').value.trim();
   const matchType = document.getElementById('ruleEditMatchType').value || 'contains';
+  const pattern = normalizarPatronDeRegla(document.getElementById('ruleEditPatternInput').value, matchType);
   const catValue = document.getElementById('ruleEditCategorySel').value || '';
   const periodicidad = document.getElementById('ruleEditPeriodicitySel').value || '';
   const pagoSelEdit = document.getElementById('ruleEditPaymentSel');
@@ -15180,6 +15190,18 @@ function applyStateSnapshot(snap) {
   }
   if (snap.paymentMethodOverrides) state.paymentMethodOverrides = snap.paymentMethodOverrides;
   if (Array.isArray(snap.categoryRules)) state.categoryRules = snap.categoryRules;
+  // El patrón de cada regla se guarda en mayúsculas (normalizarPatronDeRegla,
+  // en core.js). Las que vienen del archivo se normalizan acá: si no,
+  // convivirían dos formatos del mismo campo —las viejas en minúscula, las
+  // nuevas en mayúscula— que es justo lo que el criterio único evita. Es
+  // idempotente y no cambia qué matchea ninguna, porque el matcheo compara en
+  // minúsculas de los dos lados. Las de expresión regular quedan tal cual, por
+  // lo mismo que no se escriben en mayúsculas de entrada.
+  if (Array.isArray(state.categoryRules)) {
+    state.categoryRules.forEach(function (r) {
+      if (r && r.pattern) r.pattern = normalizarPatronDeRegla(r.pattern, r.matchType);
+    });
+  }
   if (snap.params) state.params = Object.assign({}, state.params, snap.params);
   if (Array.isArray(snap.recurringDismissed)) state.recurringDismissed = snap.recurringDismissed;
   if (Array.isArray(snap.travels)) state.travels = snap.travels;

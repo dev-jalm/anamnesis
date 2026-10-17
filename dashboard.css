@@ -544,12 +544,13 @@ footer .eyebrow-sources {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* El patrón se muestra en mayúsculas, como en el campo donde se escribe. El
-   valor guardado NO se toca: en una regla de expresión regular, pasar el
-   patrón a mayúsculas cambia lo que significa —`\d` es un dígito y `\D` es lo
-   contrario— y rompería la regla. El matcheo ignora mayúsculas de todos modos. */
-.rule-row-pattern,
-.rule-pattern-input {
+/* El patrón se escribe, se guarda y se muestra en mayúsculas: un solo criterio
+   (normalizarPatronDeRegla en core.js). La clase la pone quien sabe el modo de
+   coincidencia, porque una expresión regular queda afuera —`\d` en mayúscula
+   es `\D`, que significa lo contrario— y mostrarla distinta de como está
+   guardada sería mentir sobre lo que la regla dice. */
+.rule-row-pattern.rule-pattern-mayus,
+.rule-pattern-input.rule-pattern-mayus {
   text-transform: uppercase;
 }
 /* El ejemplo del campo vacío se lee mejor como está escrito, en minúscula: es

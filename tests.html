@@ -3273,6 +3273,41 @@ group('Reglas de descarte — movimientos que no entran', function () {
   });
 });
 
+group('Reglas — el patrón se guarda en mayúsculas', function () {
+  test('un patrón de texto se guarda en mayúsculas, sin espacios al borde', function () {
+    assertEqual(normalizarPatronDeRegla('  Coto;Carrefour ', 'contains'), 'COTO;CARREFOUR');
+    assertEqual(normalizarPatronDeRegla('osde', 'exact'), 'OSDE');
+    assertEqual(normalizarPatronDeRegla('Carga SUBE', 'starts'), 'CARGA SUBE');
+    assertEqual(normalizarPatronDeRegla('', 'contains'), '');
+    assertEqual(normalizarPatronDeRegla(null, 'contains'), '');
+  });
+  test('una expresión regular NO se toca', function () {
+    // \d en mayúscula es \D, que significa lo contrario: pasar el patrón a
+    // mayúsculas rompería la regla.
+    assertEqual(normalizarPatronDeRegla('merpago\\d{4}', 'regex'), 'merpago\\d{4}');
+    assertEqual(normalizarPatronDeRegla('  ^pago\\s+\\w+ ', 'regex'), '^pago\\s+\\w+');
+  });
+  test('guardar en mayúsculas no cambia lo que matchea', function () {
+    const tx = 'Compra en Coto Palermo 1234';
+    const minus = { id: 'a', pattern: 'coto', matchType: 'contains', categoria: 'Alimentacion', enabled: true };
+    const mayus = { id: 'b', pattern: normalizarPatronDeRegla('coto', 'contains'), matchType: 'contains', categoria: 'Alimentacion', enabled: true };
+    assertEqual(mayus.pattern, 'COTO');
+    assert(matchCategoryRule(tx, minus) !== null, 'la vieja matchea');
+    assert(matchCategoryRule(tx, mayus) !== null, 'la normalizada matchea igual');
+  });
+  test('el modo exacto también matchea con el patrón en mayúsculas', function () {
+    const r = { id: 'c', pattern: normalizarPatronDeRegla('Carga SUBE', 'exact'), matchType: 'exact', categoria: 'Transporte', enabled: true };
+    assert(matchCategoryRule('carga sube', r) !== null, 'ignora mayúsculas');
+    assert(matchCategoryRule('Carga SUBE', r) !== null);
+    assert(matchCategoryRule('Carga SUBE 2', r) === null, 'exacto sigue siendo exacto');
+  });
+  test('una regex guardada tal cual sigue matcheando lo suyo', function () {
+    const r = { id: 'd', pattern: normalizarPatronDeRegla('merpago\\d{4}', 'regex'), matchType: 'regex', categoria: 'Gastronomia', enabled: true };
+    assert(matchCategoryRule('MERPAGO1234', r) !== null, 'matchea por la flag i');
+    assert(matchCategoryRule('MERPAGOXXXX', r) === null, '\\d sigue siendo un dígito');
+  });
+});
+
 group('Reglas — forma de pago', function () {
   const regla = (extra) => Object.assign(
     { id: 'rp', pattern: 'merpago', matchType: 'contains', enabled: true }, extra || {});

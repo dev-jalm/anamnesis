@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.89 |
+| **Versión** | 1.90 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -517,7 +517,8 @@ Cinco pantallas.
 | RF-167b | Al pasar una regla a descartar se eliminan los datos que esa acción no utiliza —categoría, periodicidad, forma de pago, renombre y etiquetas—, de modo que no reaparezcan si más tarde vuelve a clasificar |
 | RF-168 | Las reglas se agrupan visualmente. El grupo de reglas de descarte se presenta siempre visible, con independencia del filtro activo |
 | RF-168b | Las reglas que no clasifican se agrupan por lo que sí hacen —«Sólo renombrar», «Sólo forma de pago»—, nunca bajo una clave interna del sistema |
-| RF-168c | En el listado, **los cinco datos de una regla se presentan con la misma tipografía, cuerpo y color**: modo de coincidencia, patrón, destino, periodicidad y forma de pago. Con un estilo distinto por columna, una misma fila se leía como cinco cosas sin relación. El patrón se muestra **en mayúsculas**, igual que en el campo donde se escribe; el valor guardado no se altera, porque en una regla de expresión regular pasar el patrón a mayúsculas cambiaría lo que significa |
+| RF-168c | En el listado, **los cinco datos de una regla se presentan con la misma tipografía, cuerpo y color**: modo de coincidencia, patrón, destino, periodicidad y forma de pago. Con un estilo distinto por columna, una misma fila se leía como cinco cosas sin relación |
+| RF-168d | El patrón **se escribe, se guarda y se muestra en mayúsculas**: un solo criterio para el campo, el archivo y el listado. Normalizarlo no altera qué reconoce cada regla, porque la coincidencia ya compara ambos lados en minúsculas y sin acentos. Los patrones guardados antes se normalizan al abrir el archivo, de modo que no convivan dos formatos del mismo campo. **La expresión regular es la excepción**: no es texto sino código, y en mayúsculas significa otra cosa —`\d`, un dígito, pasa a `\D`, que es cualquier cosa menos un dígito—, así que se guarda y se muestra tal como se escribió |
 | RF-168a | Cada regla del listado informa **a dónde manda**: la subcategoría cuando la tiene y la categoría cuando no. Las categorías de flujo —Préstamo, Sueldo, Jubilación, Reserva— no tienen subcategorías, de modo que mostrar sólo la subcategoría dejaba a todas sus reglas con la celda vacía. Que el nombre esté también en el encabezado del grupo no alcanza: un encabezado se lee una vez y la fila se lee sola cuando se la busca con un filtro puesto |
 | RF-169 | La re-aplicación de reglas sobre movimientos ya cargados requiere confirmación explícita, indicando la cantidad exacta de movimientos que se eliminarían |
 
@@ -656,7 +657,7 @@ Qué compra pertenece a qué portafolio se registra **en la compra misma** (RF-0
 | Campo | Tipo | Dominio | Obligatorio |
 |---|---|---|---|
 | `id` | Texto | Generado | Sí |
-| `pattern` | Texto | Libre | Sí |
+| `pattern` | Texto | Libre, **en mayúsculas** salvo si `matchType = regex` | Sí |
 | `matchType` | Enumerado | `contains` \| `exact` \| `starts` \| `regex` | Sí |
 | `accion` | Enumerado | `descartar` o ausente | No |
 | `categoria` | Texto | Clave de categoría | Condicional |
@@ -1041,7 +1042,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 521 pruebas en 64 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 526 pruebas en 65 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 | RNF-45 | **El buscador de movimientos espera a que se deje de escribir** antes de filtrar. Un listado de 1.500 movimientos se recalcula entero en cada pulsación: escribir una palabra de doce letras eran doce recálculos y un segundo y medio de pantalla trabada —medido—. La espera es de 160 ms, por debajo del umbral en que la respuesta deja de percibirse inmediata |
 | RNF-46 | **Lo que se usa muchas veces se construye una sola vez.** Los formateadores de número viven fuera de la función que los usa: crear uno cuesta 47 veces más que usarlo, y el formateo de montos llegó a ser más de la mitad del tiempo de cada pulsación. La misma regla vale para el dibujado de iconos, que se acota al elemento que cambió en lugar de recorrer la pantalla entera, y para las claves de ordenamiento, que se calculan una vez por fila y no dentro del comparador |
@@ -1279,7 +1280,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.86 | 17/10/2026 | Reintegros se suma al catálogo de categorías de flujo (RF-024, RF-024a, RF-102a, 5.7, RNF-43) | Reemplazada |
 | 1.87 | 17/10/2026 | Una regla puede fijar la forma de pago, en el alta y en la edición (RF-164a, RF-165, RF-167a, RF-167b, RF-168b, 5.4, RNF-43) | Reemplazada |
 | 1.88 | 17/10/2026 | El listado de movimientos deja de trabarse con 1.500 filas: el buscador espera, los formateadores se reusan y los iconos se dibujan sólo donde cambiaron (RNF-45, RNF-46, RNF-47) | Reemplazada |
-| 1.89 | 17/10/2026 | El alta de reglas se reacomoda en dos filas parejas y el listado presenta sus cinco datos con una sola tipografía (RF-168c) | **Vigente** |
+| 1.89 | 17/10/2026 | El alta de reglas se reacomoda en dos filas parejas y el listado presenta sus cinco datos con una sola tipografía (RF-168c) | Reemplazada |
+| 1.90 | 17/10/2026 | El patrón de una regla se guarda en mayúsculas, con la expresión regular como excepción (RF-168d, 5.4, RNF-43) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

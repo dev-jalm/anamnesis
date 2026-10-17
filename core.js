@@ -438,6 +438,20 @@ function descripcionDeRegla(rule) {
   return txt || null;
 }
 
+// El patrón de una regla se guarda SIEMPRE en mayúsculas, que es como se ve en
+// el campo y en el listado: un solo criterio para lo que se escribe, lo que se
+// guarda y lo que se lee. El matcheo no se entera —compara los dos lados en
+// minúsculas y sin acentos—, así que esto no cambia qué matchea cada regla.
+//
+// La excepción es la expresión regular, que no es texto sino código: ahí
+// `\d` (un dígito) pasado a mayúscula es `\D` (cualquier cosa menos un
+// dígito), y lo mismo con \w, \s y \b. Una regla de regex se guarda y se
+// muestra tal como se escribió.
+function normalizarPatronDeRegla(pattern, matchType) {
+  const s = String(pattern === undefined || pattern === null ? '' : pattern).trim();
+  return (matchType === 'regex') ? s : s.toUpperCase();
+}
+
 function matchCategoryRule(desc, rule) {
   if (!rule || rule.enabled === false || !rule.pattern) return null;
   // Una regla sirve si hace ALGO: clasificar, descartar, renombrar o fijar la
@@ -3705,7 +3719,7 @@ if (typeof module !== 'undefined' && module.exports) {
     dedupIncomingTransactions,
     // export / import config
     CONFIG_EXPORT_VERSION,
-    serializeRules, deserializeRules,
+    serializeRules, deserializeRules, normalizarPatronDeRegla,
     serializeCategories, deserializeCategories, contarSubcategorias,
     serializeTags, deserializeTags,
     serializeFullConfig, previewImport, PARAMS_CONFIG_KEYS,
