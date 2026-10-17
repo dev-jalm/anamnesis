@@ -1559,7 +1559,7 @@
             Texto / patrón
             <span class="rule-label-hint" id="ruleEditPatternHint">(podés poner varias palabras separadas con <code>;</code>, la regla matchea si la descripción contiene cualquiera)</span>
           </label>
-          <input type="text" id="ruleEditPatternInput" class="period-select" placeholder="ej: Carrefour;Dia;Sandy">
+          <input type="text" id="ruleEditPatternInput" class="period-select rule-pattern-input" placeholder="ej: Carrefour;Dia;Sandy">
         </div>
       </div>
       <div class="rule-add-row">
@@ -2659,12 +2659,22 @@
               <option value="regex">matchea regex</option>
             </select>
           </div>
-          <div class="rule-field" style="flex:1">
+          <div class="rule-field" style="flex:1 1 320px;min-width:260px">
+            <!-- La ayuda va corta: con el campo más angosto, el texto largo se
+                 partía en dos líneas y bajaba su rótulo respecto de los otros
+                 dos de la fila. La explicación entera quedó en el emergente. -->
             <label class="rule-label">
               Texto / patrón
-              <span class="rule-label-hint" id="rulePatternHint">(podés poner varias palabras separadas con <code>;</code>, la regla matchea si la descripción contiene cualquiera)</span>
+              <span class="rule-label-hint" id="rulePatternHint">(varias, separadas con <code>;</code>)</span>
             </label>
-            <input type="text" id="rulePatternInput" class="period-select" placeholder="ej: Carrefour;Dia;Sandy (separá con ;)">
+            <input type="text" id="rulePatternInput" class="period-select rule-pattern-input" placeholder="ej: Carrefour;Dia;Sandy (separá con ;)" title="Podés poner varias palabras separadas con punto y coma: la regla matchea si la descripción contiene cualquiera de ellas.">
+          </div>
+          <!-- Las etiquetas van acá arriba, al lado del patrón: son el campo
+               que más ancho pide —crece con cada etiqueta creada— y abajo
+               empujaba al resto contra el borde. -->
+          <div class="rule-field" style="flex:1 1 280px;min-width:220px">
+            <label class="rule-label">Etiquetas (opcional)</label>
+            <div class="rule-tags-picker rule-tags-picker-inline" id="ruleTagsPicker"></div>
           </div>
         </div>
         <div class="rule-add-row">
@@ -2693,10 +2703,6 @@
           <div class="rule-field" style="flex:1 1 180px;min-width:160px">
             <label class="rule-label">Forma de pago (opcional)</label>
             <select class="period-select" id="rulePaymentSel"></select>
-          </div>
-          <div class="rule-field" style="flex:2 1 280px;min-width:220px">
-            <label class="rule-label">Etiquetas (opcional)</label>
-            <div class="rule-tags-picker rule-tags-picker-inline" id="ruleTagsPicker"></div>
           </div>
           <div class="rule-field" style="align-self:flex-end">
             <button class="upload-btn" id="addRuleBtn">

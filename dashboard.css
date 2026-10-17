@@ -494,12 +494,12 @@ footer .eyebrow-sources {
 .rule-row {
   display: grid;
   /* Los anchos fijos están medidos contra el texto más largo de cada columna y
-     no estimados: "MATCHEA REGEX" ocupa 84,5px, "Esporádico" 58,4 y
-     "Transferencia" 71,3. Ajustarlos dejó lugar para la columna nueva —la
-     forma de pago, al lado de la periodicidad porque las dos dicen con qué
-     atributo queda marcada la tx— y de paso más ancho que antes para el patrón
-     y el destino, que son las dos que se recortan. */
-  grid-template-columns: 24px 92px 1fr 1fr 66px 80px 28px 28px 28px 28px;
+     no estimados. Con las cinco celdas en una sola tipografía —mono 11px, más
+     ancha que la Inter que usaban tres de ellas— los textos más largos miden
+     "matchea regex" 85,8px, "Esporádico" 66 y "Transferencia" 85,8: de ahí 92,
+     70 y 90, con un par de píxeles de aire. Unificar la tipografía sin rehacer
+     esta cuenta dejaba "Transferencia" recortada. */
+  grid-template-columns: 24px 92px 1fr 1fr 70px 90px 28px 28px 28px 28px;
   /* Filas explícitas: primera fila para el contenido principal, segunda fila
      opcional para los chips de tags. */
   grid-template-rows: auto auto;
@@ -528,32 +528,37 @@ footer .eyebrow-sources {
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
 }
-.rule-row-mt {
+/* Las cinco celdas de datos de una regla —modo de coincidencia, patrón,
+   destino, periodicidad y forma de pago— comparten tipografía, cuerpo y color.
+   Cada una tenía el suyo (mono 10 apagado, mono 12, Inter 12, Inter 11) y la
+   fila se leía como cinco cosas distintas en vez de como una. */
+.rule-row-mt,
+.rule-row-pattern,
+.rule-row-cat,
+.rule-row-peri,
+.rule-row-pago {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.5px;
-  color: var(--muted-2);
-  text-transform: uppercase;
-}
-.rule-row-pattern {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* El patrón se muestra en mayúsculas, como en el campo donde se escribe. El
+   valor guardado NO se toca: en una regla de expresión regular, pasar el
+   patrón a mayúsculas cambia lo que significa —`\d` es un dígito y `\D` es lo
+   contrario— y rompería la regla. El matcheo ignora mayúsculas de todos modos. */
+.rule-row-pattern,
+.rule-pattern-input {
+  text-transform: uppercase;
+}
+/* El ejemplo del campo vacío se lee mejor como está escrito, en minúscula: es
+   una indicación, no algo que el usuario haya tipeado. */
+.rule-pattern-input::placeholder {
+  text-transform: none;
+}
 .rule-row-cat {
   display: flex; align-items: center; gap: 6px;
-  font-size: 12px;
-  color: var(--ink);
-}
-/* Periodicidad y forma de pago: dos datos del mismo tipo —con qué atributo
-   queda marcada la tx— y por eso comparten declaración y no una cada una. */
-.rule-row-peri,
-.rule-row-pago {
-  font-size: 11px;
-  color: var(--muted-2);
 }
 .rule-row-action {
   background: transparent;
@@ -5676,12 +5681,10 @@ body[data-exporting="true"] .section-card {
   padding: 8px 12px !important;
   min-height: 0 !important;
 }
-.rules-list .rule-row-pattern,
-.rules-list .rule-row-cat,
-.rules-list .rule-row-mt,
-.rules-list .rule-row-peri {
-  font-size: 11px;
-}
+/* El cuerpo de las celdas lo fija la declaración única de .rule-row-* allá
+   arriba. Acá vivía un segundo tamaño, más específico, que las pisaba y que al
+   agregarse la columna de forma de pago dejó a esa celda medio punto más
+   grande que sus cuatro vecinas. */
 
 /* Agrupación de reglas por categoría — vista colapsable */
 .rules-group {

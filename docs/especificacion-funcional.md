@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.88 |
+| **Versión** | 1.89 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -517,6 +517,7 @@ Cinco pantallas.
 | RF-167b | Al pasar una regla a descartar se eliminan los datos que esa acción no utiliza —categoría, periodicidad, forma de pago, renombre y etiquetas—, de modo que no reaparezcan si más tarde vuelve a clasificar |
 | RF-168 | Las reglas se agrupan visualmente. El grupo de reglas de descarte se presenta siempre visible, con independencia del filtro activo |
 | RF-168b | Las reglas que no clasifican se agrupan por lo que sí hacen —«Sólo renombrar», «Sólo forma de pago»—, nunca bajo una clave interna del sistema |
+| RF-168c | En el listado, **los cinco datos de una regla se presentan con la misma tipografía, cuerpo y color**: modo de coincidencia, patrón, destino, periodicidad y forma de pago. Con un estilo distinto por columna, una misma fila se leía como cinco cosas sin relación. El patrón se muestra **en mayúsculas**, igual que en el campo donde se escribe; el valor guardado no se altera, porque en una regla de expresión regular pasar el patrón a mayúsculas cambiaría lo que significa |
 | RF-168a | Cada regla del listado informa **a dónde manda**: la subcategoría cuando la tiene y la categoría cuando no. Las categorías de flujo —Préstamo, Sueldo, Jubilación, Reserva— no tienen subcategorías, de modo que mostrar sólo la subcategoría dejaba a todas sus reglas con la celda vacía. Que el nombre esté también en el encabezado del grupo no alcanza: un encabezado se lee una vez y la fila se lee sola cuando se la busca con un filtro puesto |
 | RF-169 | La re-aplicación de reglas sobre movimientos ya cargados requiere confirmación explícita, indicando la cantidad exacta de movimientos que se eliminarían |
 
@@ -1277,7 +1278,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.85 | 17/10/2026 | Se cargan varios resúmenes de una, y el que no tiene su formato configurado se saltea con aviso (RF-115b, RF-115c, RNF-43) | Reemplazada |
 | 1.86 | 17/10/2026 | Reintegros se suma al catálogo de categorías de flujo (RF-024, RF-024a, RF-102a, 5.7, RNF-43) | Reemplazada |
 | 1.87 | 17/10/2026 | Una regla puede fijar la forma de pago, en el alta y en la edición (RF-164a, RF-165, RF-167a, RF-167b, RF-168b, 5.4, RNF-43) | Reemplazada |
-| 1.88 | 17/10/2026 | El listado de movimientos deja de trabarse con 1.500 filas: el buscador espera, los formateadores se reusan y los iconos se dibujan sólo donde cambiaron (RNF-45, RNF-46, RNF-47) | **Vigente** |
+| 1.88 | 17/10/2026 | El listado de movimientos deja de trabarse con 1.500 filas: el buscador espera, los formateadores se reusan y los iconos se dibujan sólo donde cambiaron (RNF-45, RNF-46, RNF-47) | Reemplazada |
+| 1.89 | 17/10/2026 | El alta de reglas se reacomoda en dos filas parejas y el listado presenta sus cinco datos con una sola tipografía (RF-168c) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 
