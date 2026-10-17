@@ -1577,6 +1577,10 @@
             <option value="imprevisto">Imprevisto</option>
           </select>
         </div>
+        <div class="rule-field" style="flex:1">
+          <label class="rule-label">Forma de pago (opcional)</label>
+          <select class="period-select" id="ruleEditPaymentSel"></select>
+        </div>
       </div>
       <div class="rule-add-row">
         <div class="rule-field" style="flex:1">
@@ -2683,6 +2687,12 @@
               <option value="esporadico">Esporádico</option>
               <option value="imprevisto">Imprevisto</option>
             </select>
+          </div>
+          <!-- Las opciones las llena opcionesFormaDePago() al abrir el panel:
+               la lista de formas de pago vive una sola vez, en el JS. -->
+          <div class="rule-field" style="flex:1 1 180px;min-width:160px">
+            <label class="rule-label">Forma de pago (opcional)</label>
+            <select class="period-select" id="rulePaymentSel"></select>
           </div>
           <div class="rule-field" style="flex:2 1 280px;min-width:220px">
             <label class="rule-label">Etiquetas (opcional)</label>

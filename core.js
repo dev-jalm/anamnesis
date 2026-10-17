@@ -398,7 +398,7 @@ function getCategoryClassification(catKey) {
 // ============================================================
 
 // Evalúa UNA regla contra una descripción. Devuelve { categoria, subcategoria,
-// periodicidad } si matchea, null si no.
+// periodicidad, formaPago, tags } si matchea, null si no.
 // matchType: 'exact' | 'starts' | 'contains' (default) | 'regex'.
 // Comparación case-insensitive Y sin acentos para todos los modos excepto regex:
 // ambos lados se normalizan a lowercase + NFD strip (Café ↔ cafe ↔ CAFE ↔ CAFÉ
@@ -430,10 +430,12 @@ function descripcionDeRegla(rule) {
 
 function matchCategoryRule(desc, rule) {
   if (!rule || rule.enabled === false || !rule.pattern) return null;
-  // Una regla sirve si hace ALGO: clasificar, descartar o renombrar. Antes se
-  // exigía categoría siempre; ahora esa exigencia es sólo para las que
-  // clasifican, porque las otras dos no la necesitan.
-  if (!rule.categoria && !esReglaDescarte(rule) && !descripcionDeRegla(rule)) return null;
+  // Una regla sirve si hace ALGO: clasificar, descartar, renombrar o fijar la
+  // forma de pago. Antes se exigía categoría siempre; ahora esa exigencia es
+  // sólo para las que clasifican, porque las otras no la necesitan. Una regla
+  // de sólo forma de pago —"todo lo que diga MERPAGO es QR"— es un uso
+  // legítimo: obligar a elegir también una categoría la cambiaría.
+  if (!rule.categoria && !esReglaDescarte(rule) && !descripcionDeRegla(rule) && !rule.formaPago) return null;
   const haystack = String(desc || '').toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const rawPattern = String(rule.pattern);
@@ -468,6 +470,10 @@ function matchCategoryRule(desc, rule) {
     categoria: rule.categoria,
     subcategoria: rule.subcategoria || '',
     periodicidad: rule.periodicidad || '',
+    // La forma de pago no vive en la transacción sino en el mapa de overrides
+    // del state, así que acá sólo se informa cuál corresponde: escribirla es
+    // tarea de quien aplica la regla.
+    formaPago: rule.formaPago || '',
     // Etiquetas a aplicar (array de keys). Backward compat: si la regla solo trae
     // `tag` (string, formato viejo), lo migramos a array.
     tags: Array.isArray(rule.tags)

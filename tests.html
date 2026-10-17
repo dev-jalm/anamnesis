@@ -580,7 +580,7 @@ group('matchCategoryRule — match individual', function () {
   test('devuelve subcategoria y periodicidad si están', function () {
     const r = { pattern: 'spotify', categoria: 'Membresias', subcategoria: 'Streaming', periodicidad: 'fijo' };
     const res = matchCategoryRule('Spotify XYZ', r);
-    assertEqual(res, { categoria: 'Membresias', subcategoria: 'Streaming', periodicidad: 'fijo', tags: [] });
+    assertEqual(res, { categoria: 'Membresias', subcategoria: 'Streaming', periodicidad: 'fijo', formaPago: '', tags: [] });
   });
   test('devuelve tags si la regla tiene (array)', function () {
     const r = { pattern: 'bariloche', categoria: 'Gastronomia', tags: ['Viaje2026', 'CLM'] };
@@ -3270,6 +3270,46 @@ group('Reglas de descarte — movimientos que no entran', function () {
     // No trae categoría: quien la use para clasificar tiene que chequear la acción
     assertEqual(res.categoria, undefined);
     globalThis.state = prev;
+  });
+});
+
+group('Reglas — forma de pago', function () {
+  const regla = (extra) => Object.assign(
+    { id: 'rp', pattern: 'merpago', matchType: 'contains', enabled: true }, extra || {});
+
+  test('la regla informa con qué se pagó', function () {
+    const r = matchCategoryRule('MERPAGO*KIOSCO', regla({ categoria: 'Alimentacion', formaPago: 'qr' }));
+    assert(r !== null, 'debe matchear');
+    assertEqual(r.formaPago, 'qr');
+  });
+  test('una regla sin forma de pago la informa vacía, no undefined', function () {
+    // Quien aplica pregunta `if (res.formaPago)`: un undefined funcionaría
+    // igual, pero el objeto que devuelve el motor tiene forma estable.
+    const r = matchCategoryRule('MERPAGO*KIOSCO', regla({ categoria: 'Alimentacion' }));
+    assertEqual(r.formaPago, '');
+  });
+  test('una regla que SÓLO fija la forma de pago matchea igual', function () {
+    // "Todo lo que diga MERPAGO es QR", sin tocar la categoría. Antes una regla
+    // sin categoría, descarte ni renombre se descartaba por no hacer nada.
+    const r = matchCategoryRule('MERPAGO*KIOSCO', regla({ formaPago: 'qr' }));
+    assert(r !== null, 'debe matchear');
+    assertEqual(r.formaPago, 'qr');
+    assertEqual(r.categoria, undefined);
+  });
+  test('una regla que sigue sin hacer nada sigue sin matchear', function () {
+    assertEqual(matchCategoryRule('MERPAGO*KIOSCO', regla({})), null);
+    assertEqual(matchCategoryRule('MERPAGO*KIOSCO', regla({ formaPago: '' })), null);
+  });
+  test('una regla de descarte no arrastra forma de pago', function () {
+    const r = matchCategoryRule('MERPAGO*KIOSCO', regla({ accion: REGLA_DESCARTAR, formaPago: 'qr' }));
+    assertEqual(r.accion, REGLA_DESCARTAR);
+    assertEqual(r.formaPago, undefined);
+  });
+  test('la forma de pago viaja en el export de reglas', function () {
+    const blob = serializeRules([regla({ categoria: 'Alimentacion', formaPago: 'tarjeta' })]);
+    assertEqual(blob.data.rules[0].formaPago, 'tarjeta');
+    const vuelta = deserializeRules(blob, [], 'replace_all');
+    assertEqual(vuelta[0].formaPago, 'tarjeta');
   });
 });
 

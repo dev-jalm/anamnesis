@@ -791,7 +791,37 @@ function buildDemoSnapshot(mesesAtras) {
       AUTO: { label: 'AUTO', color: '#E0742A' }
     },
     paymentMethodOverrides: paymentMethodOverrides,
-    categoryRules: [],
+    // Un puñado de reglas de las que uno escribiría de verdad, con las cuatro
+    // cosas que una regla puede hacer: clasificar, renombrar, fijar la forma de
+    // pago y descartar. Sin ellas el panel de Reglas era una pantalla vacía en
+    // el modo demostración —y en la captura del manual, que lo documenta—.
+    // Las tx de la demo ya vienen clasificadas, así que las reglas no cambian
+    // nada hasta que alguien aprieta RE-APLICAR, que es justo lo que se quiere
+    // poder probar.
+    categoryRules: [
+      { id: 'rule_demo_super', pattern: 'Coto;Carrefour;Dia;Jumbo', matchType: 'contains',
+        categoria: 'Alimentacion', subcategoria: 'Supermercado', periodicidad: 'variable',
+        formaPago: 'tarjeta', descripcionNueva: '', tags: [], enabled: true },
+      { id: 'rule_demo_prepaga', pattern: 'OSDE', matchType: 'contains',
+        categoria: 'Salud', subcategoria: 'Prepaga', periodicidad: 'fijo',
+        formaPago: 'transferencia', descripcionNueva: '', tags: [], enabled: true },
+      { id: 'rule_demo_nafta', pattern: 'YPF;Shell;Axion', matchType: 'contains',
+        categoria: 'Transporte', subcategoria: 'Combustible', periodicidad: 'variable',
+        formaPago: 'tarjeta', descripcionNueva: '', tags: [], enabled: true },
+      { id: 'rule_demo_sube', pattern: 'Carga SUBE', matchType: 'contains',
+        categoria: 'Transporte', subcategoria: 'SUBE', periodicidad: 'variable',
+        formaPago: 'qr', descripcionNueva: '', tags: [], enabled: true },
+      { id: 'rule_demo_streaming', pattern: 'Netflix;Spotify;Max;Disney+', matchType: 'contains',
+        categoria: 'Membresias', subcategoria: 'Streaming', periodicidad: 'fijo',
+        formaPago: 'tarjeta', descripcionNueva: '', tags: [], enabled: true },
+      // Sólo fija con qué se pagó: no toca la categoría de nada.
+      { id: 'rule_demo_merpago', pattern: 'MERPAGO', matchType: 'contains',
+        categoria: '', subcategoria: '', periodicidad: '',
+        formaPago: 'qr', descripcionNueva: '', tags: [], enabled: true },
+      // Y una que descarta, para mostrar la cuarta acción.
+      { id: 'rule_demo_descarte', pattern: 'SALDO ANTERIOR;TOTAL DEL PERIODO', matchType: 'contains',
+        accion: 'descartar', enabled: true }
+    ],
     // viewMode 'resumen' arranca la Ficha médica en la vista compacta: para
     // alguien que entra por primera vez, la vista completa es demasiada
     // información de golpe.

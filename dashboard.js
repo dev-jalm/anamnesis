@@ -1057,6 +1057,10 @@ function applyLearningToTransactions(txs) {
       if (ruleMatch.descripcionNueva && aplicarRenombreDeRegla(t, ruleMatch.descripcionNueva)) {
         renamed++;
       }
+      // La forma de pago se guarda fuera de la tx, en el mapa de overrides, y
+      // se escribe aunque la regla sólo renombre: es un dato de la tx tanto
+      // como la categoría. Se aplica antes del corte de abajo por eso mismo.
+      if (ruleMatch.formaPago) aplicarFormaDePagoDeRegla(t, ruleMatch.formaPago);
       // Una regla que sólo renombra no toca la categoría: sin esto, la dejaría
       // en undefined y se perdería lo que hubiera puesto el aprendizaje.
       if (!ruleMatch.categoria) return;
@@ -5019,6 +5023,20 @@ const PAYMENT_METHOD_LABELS = {
 };
 const PAYMENT_METHOD_ORDER = ['efectivo', 'transferencia', 'qr', 'tarjeta', 'sin'];
 
+// Las opciones de un selector de forma de pago, en un solo lugar: la carga
+// manual y las reglas ofrecen exactamente las mismas, y una lista escrita dos
+// veces se desincroniza el día que se agregue una forma nueva.
+// "Sin clasificar" no se ofrece: es lo que la app deduce cuando no sabe, no
+// algo que alguien quiera elegir.
+function opcionesFormaDePago(selKey, textoVacio) {
+  let html = '<option value="">' + escapeHtmlSafe(textoVacio || '— Forma de pago —') + '</option>';
+  PAYMENT_METHOD_ORDER.forEach(function (k) {
+    if (k === 'sin') return;
+    html += '<option value="' + k + '"' + (k === selKey ? ' selected' : '') + '>' + PAYMENT_METHOD_LABELS[k] + '</option>';
+  });
+  return html;
+}
+
 // Devuelve la forma de pago efectiva de una transacción.
 // Prioriza el override manual del usuario; si no, deriva por reglas.
 function getPaymentMethod(tx) {
@@ -5030,6 +5048,19 @@ function getPaymentMethod(tx) {
   if (desc.indexOf('TRANSFERENCIA') >= 0) return 'transferencia';
   if (desc.indexOf('PAGO') >= 0) return 'qr';
   return 'sin';
+}
+
+// Fija la forma de pago que indica una regla. No se escribe en la transacción
+// —ahí no vive— sino en el mapa de overrides, que es el mismo lugar donde la
+// deja la edición a mano. Pisa lo que hubiera: una regla es una decisión
+// explícita del usuario y tiene prioridad, igual que con la categoría.
+// Devuelve true si efectivamente cambió algo.
+function aplicarFormaDePagoDeRegla(tx, forma) {
+  if (!tx || !tx.id || !forma) return false;
+  if (!state.paymentMethodOverrides) state.paymentMethodOverrides = {};
+  if (state.paymentMethodOverrides[tx.id] === forma) return false;
+  state.paymentMethodOverrides[tx.id] = forma;
+  return true;
 }
 
 function aggregatePaymentMethodTotals() {
@@ -5902,13 +5933,9 @@ function renderManualList() {
     });
     return html;
   }
+  // Las mismas opciones que ofrecen las reglas: una sola lista, arriba.
   function buildPagoOptions(selKey) {
-    let html = '<option value="">— Forma de pago —</option>';
-    PAYMENT_METHOD_ORDER.forEach(function (k) {
-      if (k === 'sin') return; // No tiene sentido elegir "Sin clasificar"
-      html += '<option value="' + k + '"' + (k === selKey ? ' selected' : '') + '>' + PAYMENT_METHOD_LABELS[k] + '</option>';
-    });
-    return html;
+    return opcionesFormaDePago(selKey);
   }
   // Chips de etiquetas (mismo estilo que en otros lados)
   function buildTagsChips(selectedTags) {
@@ -8414,6 +8441,10 @@ function renderRulesTab() {
         '<option value="' + REGLA_DESCARTAR + '">— Descartar el movimiento —</option>' +
       '</optgroup>';
   }
+  // Las formas de pago salen de la misma función que usa la carga manual, así
+  // que el día que haya una nueva aparece en los dos lados sola.
+  const pagoSel = document.getElementById('rulePaymentSel');
+  if (pagoSel) pagoSel.innerHTML = opcionesFormaDePago(pagoSel.value || '', '— sin asignar —');
   sincronizarFormReglaDescarte();
   // Resetear y renderizar el picker de tags cuando se abre la solapa
   ruleFormTagsState.selected.clear();
@@ -8430,15 +8461,17 @@ function sincronizarFormReglaDescarte() {
   if (!sel) return;
   const descarta = sel.value === REGLA_DESCARTAR;
   const peri = document.getElementById('rulePeriodicitySel');
+  const pago = document.getElementById('rulePaymentSel');
   const tags = document.getElementById('ruleTagsPicker');
   // Renombrar tampoco aplica a un descarte: el movimiento no se va a ver.
   const renombrar = document.getElementById('ruleRenameInput');
-  [peri, tags, renombrar].forEach(function (el) {
+  [peri, pago, tags, renombrar].forEach(function (el) {
     const campo = el && el.closest('.rule-field');
     if (campo) campo.classList.toggle('hidden', descarta);
   });
   if (descarta) {
     if (peri) peri.value = '';
+    if (pago) pago.value = '';
     if (renombrar) renombrar.value = '';
     if (typeof ruleFormTagsState !== 'undefined' && ruleFormTagsState.selected) {
       ruleFormTagsState.selected.clear();
@@ -8553,7 +8586,9 @@ function renderRulesList() {
     // y conviene verlas juntas, porque son las que borran cosas.
     const catKey = esReglaDescarte(r)
       ? '__descartar__'
-      : (r.categoria || (descripcionDeRegla(r) ? '__renombrar__' : '__sin__'));
+      : (r.categoria
+        || (descripcionDeRegla(r) ? '__renombrar__'
+          : (r.formaPago ? '__pago__' : '__sin__')));
     if (!groups[catKey]) groups[catKey] = [];
     groups[catKey].push(r);
   });
@@ -8562,6 +8597,12 @@ function renderRulesList() {
   const etiquetaGrupo = function (k) {
     if (k === '__descartar__') return 'Descartar al importar';
     if (k === '__renombrar__') return 'Sólo renombrar';
+    if (k === '__pago__') return 'Sólo forma de pago';
+    // Una regla sin categoría, renombre, descarte ni forma de pago no hace
+    // nada y el motor la ignora, pero si alguna llegara acá —de un archivo
+    // importado, por ejemplo— el encabezado tiene que decir algo legible y no
+    // la key interna.
+    if (k === '__sin__') return 'Sin destino';
     return state.categoryLabels[k] || k;
   };
   const orderedCatKeys = Object.keys(groups).sort(function (a, b) {
@@ -8613,8 +8654,16 @@ function renderRulesList() {
         ? 'se descarta'
         : (subLabel ? ('· ' + subLabel)
           : (r.categoria ? ((state.categoryLabels && state.categoryLabels[r.categoria]) || r.categoria)
-            : (renombraA ? '→ ' + renombraA : '—')));
+            : (renombraA ? '→ ' + renombraA
+              // Una regla puede no clasificar ni renombrar y sólo marcar con
+              // qué se pagó. Decirlo acá evita la celda vacía: la columna de
+              // al lado tiene el dato, pero esta es la que dice qué hace.
+              // Sin bajar a minúscula: "QR" es una sigla y quedaba "se paga
+              // con qr". Los nombres de las formas de pago se muestran igual
+              // en toda la app.
+              : (r.formaPago ? 'se paga con ' + (PAYMENT_METHOD_LABELS[r.formaPago] || r.formaPago) : '—'))));
       const periLabel = r.periodicidad ? ((PERIODICITY_OPTIONS.find(function (o) { return o.key === r.periodicidad; }) || { label: '' }).label) : '';
+      const pagoLabel = r.formaPago ? (PAYMENT_METHOD_LABELS[r.formaPago] || r.formaPago) : '';
       const mtLabel = MATCHTYPE_LABELS[r.matchType] || 'contiene';
       const enabledStyle = r.enabled === false ? ' disabled' : '';
       const ruleTags = Array.isArray(r.tags) ? r.tags : (r.tag ? [r.tag] : []);
@@ -8639,6 +8688,7 @@ function renderRulesList() {
         '</div>' +
         '<div class="rule-row-cat" title="' + escapeHtml(subDisplay) + '">' + escapeHtml(subDisplay) + '</div>' +
         '<div class="rule-row-peri">' + (periLabel || '—') + '</div>' +
+        '<div class="rule-row-pago">' + (pagoLabel || '—') + '</div>' +
         '<button class="rule-row-action" data-action="apply" title="Aplicar esta regla a tx existentes">' +
           '<i data-lucide="play" style="width:14px;height:14px"></i>' +
         '</button>' +
@@ -8736,6 +8786,8 @@ function addRuleFromForm() {
   const matchType = document.getElementById('ruleMatchType').value || 'contains';
   const catValue = document.getElementById('ruleCategorySel').value || '';
   const periodicidad = document.getElementById('rulePeriodicitySel').value || '';
+  const pagoSel = document.getElementById('rulePaymentSel');
+  const formaPago = pagoSel ? (pagoSel.value || '') : '';
   const renombrar = (document.getElementById('ruleRenameInput').value || '').trim();
   // El selector usa el formato "cat::sub" (mismo que Hábitos). Si la sub está vacía,
   // la regla aplica solo a nivel categoría.
@@ -8743,8 +8795,8 @@ function addRuleFromForm() {
   const idx = catValue.indexOf('::');
   const categoria = esDescarte ? '' : (idx >= 0 ? catValue.substring(0, idx) : catValue);
   const subcategoria = (esDescarte || idx < 0) ? '' : catValue.substring(idx + 2);
-  if (!pattern || (!categoria && !esDescarte && !renombrar)) {
-    appAlert('Tenés que ingresar un patrón y, al menos, una categoría o una descripción de reemplazo.');
+  if (!pattern || (!categoria && !esDescarte && !renombrar && !formaPago)) {
+    appAlert('Tenés que ingresar un patrón y, al menos, una categoría, una descripción de reemplazo o una forma de pago.');
     return;
   }
   // Validar regex si aplica
@@ -8767,6 +8819,7 @@ function addRuleFromForm() {
         categoria: categoria,
         subcategoria: subcategoria,
         periodicidad: periodicidad,
+        formaPago: formaPago,
         descripcionNueva: renombrar,
         tags: Array.from(ruleFormTagsState.selected),
         enabled: true
@@ -8775,6 +8828,7 @@ function addRuleFromForm() {
   state.categoryRules.push(newRule);
   document.getElementById('rulePatternInput').value = '';
   document.getElementById('rulePeriodicitySel').value = '';
+  if (pagoSel) pagoSel.value = '';
   document.getElementById('ruleRenameInput').value = '';
   document.getElementById('ruleCategorySel').value = '';
   // Limpiar selección de tags y re-renderizar el picker
@@ -9218,6 +9272,8 @@ function openRuleEditor(ruleId) {
       '</optgroup>';
   }
   document.getElementById('ruleEditPeriodicitySel').value = rule.periodicidad || '';
+  const pagoSel = document.getElementById('ruleEditPaymentSel');
+  if (pagoSel) pagoSel.innerHTML = opcionesFormaDePago(rule.formaPago || '', '— sin asignar —');
   const renombrarInput = document.getElementById('ruleEditRenameInput');
   if (renombrarInput) renombrarInput.value = descripcionDeRegla(rule) || '';
   // Tags: cargar las que tiene
@@ -9282,14 +9338,16 @@ function sincronizarEditorReglaDescarte() {
   if (!sel) return;
   const descarta = sel.value === REGLA_DESCARTAR;
   const peri = document.getElementById('ruleEditPeriodicitySel');
+  const pago = document.getElementById('ruleEditPaymentSel');
   const tags = document.getElementById('ruleEditTagsPicker');
   const renombrar = document.getElementById('ruleEditRenameInput');
-  [peri, tags, renombrar].forEach(function (el) {
+  [peri, pago, tags, renombrar].forEach(function (el) {
     const campo = el && el.closest('.rule-field');
     if (campo) campo.classList.toggle('hidden', descarta);
   });
   if (descarta) {
     if (peri) peri.value = '';
+    if (pago) pago.value = '';
     if (renombrar) renombrar.value = '';
     if (ruleEditorState.selectedTags && ruleEditorState.selectedTags.size > 0) {
       ruleEditorState.selectedTags.clear();
@@ -9308,6 +9366,8 @@ function saveRuleEdit() {
   const matchType = document.getElementById('ruleEditMatchType').value || 'contains';
   const catValue = document.getElementById('ruleEditCategorySel').value || '';
   const periodicidad = document.getElementById('ruleEditPeriodicitySel').value || '';
+  const pagoSelEdit = document.getElementById('ruleEditPaymentSel');
+  const formaPago = pagoSelEdit ? (pagoSelEdit.value || '') : '';
   const renombrarInput = document.getElementById('ruleEditRenameInput');
   const renombrar = renombrarInput ? renombrarInput.value.trim() : '';
   const esDescarte = catValue === REGLA_DESCARTAR;
@@ -9315,10 +9375,11 @@ function saveRuleEdit() {
   const categoria = esDescarte ? '' : (idx >= 0 ? catValue.substring(0, idx) : catValue);
   const subcategoria = (esDescarte || idx < 0) ? '' : catValue.substring(idx + 2);
   // Misma validación que el alta: la regla vale si hace algo — clasificar,
-  // descartar o renombrar. Exigir categoría siempre dejaba sin poder guardar a
-  // las reglas que sólo renombran, que el alta sí permite crear.
-  if (!pattern || (!categoria && !esDescarte && !renombrar)) {
-    appAlert('Tenés que ingresar un patrón y, al menos, una categoría o una descripción de reemplazo.');
+  // descartar, renombrar o fijar la forma de pago. Exigir categoría siempre
+  // dejaba sin poder guardar a las reglas que sólo renombran, que el alta sí
+  // permite crear.
+  if (!pattern || (!categoria && !esDescarte && !renombrar && !formaPago)) {
+    appAlert('Tenés que ingresar un patrón y, al menos, una categoría, una descripción de reemplazo o una forma de pago.');
     return;
   }
   if (matchType === 'regex') {
@@ -9334,6 +9395,7 @@ function saveRuleEdit() {
     rule.categoria = '';
     rule.subcategoria = '';
     rule.periodicidad = '';
+    rule.formaPago = '';
     rule.descripcionNueva = '';
     rule.tags = [];
   } else {
@@ -9341,6 +9403,7 @@ function saveRuleEdit() {
     rule.categoria = categoria;
     rule.subcategoria = subcategoria;
     rule.periodicidad = periodicidad;
+    rule.formaPago = formaPago;
     rule.descripcionNueva = renombrar;
     rule.tags = Array.from(ruleEditorState.selectedTags);
   }
@@ -9539,7 +9602,7 @@ function reapplyAllRules() {
   }, function (result) {
     if (result !== true) return; // Cancelar/X/Esc → no re-aplicar
     // Aplicar
-    let matched = 0, changedCat = 0, changedSub = 0, changedPeri = 0, addedTags = 0, borradas = 0, renombradas = 0;
+    let matched = 0, changedCat = 0, changedSub = 0, changedPeri = 0, changedPago = 0, addedTags = 0, borradas = 0, renombradas = 0;
     Object.keys(state.transactionsByYear || {}).forEach(function (y) {
       const yb = state.transactionsByYear[y];
       if (!yb) return;
@@ -9559,7 +9622,8 @@ function reapplyAllRules() {
           if (!res || res.accion === REGLA_DESCARTAR) return;
           matched++;
           if (res.descripcionNueva && aplicarRenombreDeRegla(t, res.descripcionNueva)) renombradas++;
-          if (!res.categoria) return;   // regla que sólo renombra
+          if (res.formaPago && aplicarFormaDePagoDeRegla(t, res.formaPago)) changedPago++;
+          if (!res.categoria) return;   // regla que sólo renombra o fija el pago
           if (t.categoria !== res.categoria) { t.categoria = res.categoria; changedCat++; }
           if (res.subcategoria && t.subcategoria !== res.subcategoria) { t.subcategoria = res.subcategoria; changedSub++; }
           if (res.periodicidad && t.periodicidad !== res.periodicidad) { t.periodicidad = res.periodicidad; changedPeri++; }
@@ -9583,6 +9647,7 @@ function reapplyAllRules() {
         '• Categorías cambiadas: <strong style="color:var(--ink)">' + changedCat + '</strong><br>' +
         '• Subcategorías cambiadas: <strong style="color:var(--ink)">' + changedSub + '</strong><br>' +
         '• Periodicidades cambiadas: <strong style="color:var(--ink)">' + changedPeri + '</strong><br>' +
+        '• Formas de pago cambiadas: <strong style="color:var(--ink)">' + changedPago + '</strong><br>' +
         '• Etiquetas agregadas: <strong style="color:var(--ink)">' + addedTags + '</strong>' +
         (renombradas > 0 ? '<br>• Descripciones reemplazadas: <strong style="color:var(--ink)">' + renombradas + '</strong>' : '') +
         (borradas > 0
@@ -9665,7 +9730,7 @@ function applySingleRule(ruleId) {
     danger: false
   }, function (result) {
     if (result !== true) return;
-    let matched = 0, changedCat = 0, changedSub = 0, changedPeri = 0, addedTags = 0;
+    let matched = 0, changedCat = 0, changedSub = 0, changedPeri = 0, changedPago = 0, addedTags = 0;
     Object.keys(state.transactionsByYear || {}).forEach(function (y) {
       const yb = state.transactionsByYear[y];
       if (!yb) return;
@@ -9677,6 +9742,7 @@ function applySingleRule(ruleId) {
           const res = matchCategoryRule(t.descripcion, rule);
           if (!res) return;
           matched++;
+          if (res.formaPago && aplicarFormaDePagoDeRegla(t, res.formaPago)) changedPago++;
           if (t.categoria !== res.categoria) { t.categoria = res.categoria; changedCat++; }
           if (res.subcategoria && t.subcategoria !== res.subcategoria) { t.subcategoria = res.subcategoria; changedSub++; }
           if (res.periodicidad && t.periodicidad !== res.periodicidad) { t.periodicidad = res.periodicidad; changedPeri++; }
@@ -9700,6 +9766,7 @@ function applySingleRule(ruleId) {
         '• Categorías cambiadas: <strong style="color:var(--ink)">' + changedCat + '</strong><br>' +
         '• Subcategorías cambiadas: <strong style="color:var(--ink)">' + changedSub + '</strong><br>' +
         '• Periodicidades cambiadas: <strong style="color:var(--ink)">' + changedPeri + '</strong><br>' +
+        '• Formas de pago cambiadas: <strong style="color:var(--ink)">' + changedPago + '</strong><br>' +
         '• Etiquetas agregadas: <strong style="color:var(--ink)">' + addedTags + '</strong>' +
         '</div>',
       cancelLabel: null,

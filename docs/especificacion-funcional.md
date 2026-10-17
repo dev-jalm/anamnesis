@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.86 |
+| **Versión** | 1.87 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -509,12 +509,14 @@ Cinco pantallas.
 | RF-162 | Una regla puede **clasificar**: asignar categoría, subcategoría, periodicidad y etiquetas |
 | RF-163 | Una regla puede **descartar**: eliminar el movimiento durante la importación, sin que llegue a incorporarse |
 | RF-164 | Una regla puede **renombrar**: sustituir la descripción del archivo por un texto propio |
-| RF-165 | Una regla es válida si ejecuta al menos una de las tres acciones. No se exige categoría cuando la acción es descartar o renombrar |
+| RF-164a | Una regla puede **fijar la forma de pago** —efectivo, transferencia, QR o tarjeta—, que de otro modo la aplicación deduce de la descripción y del origen. Se registra donde la deja la edición a mano, fuera del movimiento, y **pisa lo que hubiera**: una regla es una decisión explícita del usuario. Puede ser la única acción de la regla: "todo lo que diga MERPAGO es QR" no tiene por qué cambiar además la categoría |
+| RF-165 | Una regla es válida si ejecuta al menos una de las cuatro acciones. No se exige categoría cuando la acción es descartar, renombrar o fijar la forma de pago |
 | RF-166 | Ante múltiples coincidencias, se aplica la primera regla que coincida. El orden lo controla el usuario |
 | RF-167 | Una regla puede desactivarse sin eliminarla |
-| RF-167a | La edición de una regla existente alcanza a la totalidad de los campos de su alta: patrón, modo de coincidencia, acción, categoría, subcategoría, periodicidad, renombre y etiquetas. La validez exigida es la de RF-165 |
-| RF-167b | Al pasar una regla a descartar se eliminan los datos que esa acción no utiliza —categoría, periodicidad, renombre y etiquetas—, de modo que no reaparezcan si más tarde vuelve a clasificar |
+| RF-167a | La edición de una regla existente alcanza a la totalidad de los campos de su alta: patrón, modo de coincidencia, acción, categoría, subcategoría, periodicidad, forma de pago, renombre y etiquetas. La validez exigida es la de RF-165 |
+| RF-167b | Al pasar una regla a descartar se eliminan los datos que esa acción no utiliza —categoría, periodicidad, forma de pago, renombre y etiquetas—, de modo que no reaparezcan si más tarde vuelve a clasificar |
 | RF-168 | Las reglas se agrupan visualmente. El grupo de reglas de descarte se presenta siempre visible, con independencia del filtro activo |
+| RF-168b | Las reglas que no clasifican se agrupan por lo que sí hacen —«Sólo renombrar», «Sólo forma de pago»—, nunca bajo una clave interna del sistema |
 | RF-168a | Cada regla del listado informa **a dónde manda**: la subcategoría cuando la tiene y la categoría cuando no. Las categorías de flujo —Préstamo, Sueldo, Jubilación, Reserva— no tienen subcategorías, de modo que mostrar sólo la subcategoría dejaba a todas sus reglas con la celda vacía. Que el nombre esté también en el encabezado del grupo no alcanza: un encabezado se lee una vez y la fila se lee sola cuando se la busca con un filtro puesto |
 | RF-169 | La re-aplicación de reglas sobre movimientos ya cargados requiere confirmación explícita, indicando la cantidad exacta de movimientos que se eliminarían |
 
@@ -659,10 +661,12 @@ Qué compra pertenece a qué portafolio se registra **en la compra misma** (RF-0
 | `categoria` | Texto | Clave de categoría | Condicional |
 | `subcategoria` | Texto | Clave de subcategoría | No |
 | `periodicidad` | Enumerado | `fijo` \| `variable` \| `esporadico` | No |
+| `formaPago` | Enumerado | `efectivo` \| `transferencia` \| `qr` \| `tarjeta` | No |
 | `descripcionNueva` | Texto | Máx. 60 | No |
+| `tags` | Lista | Claves de etiqueta | No |
 | `enabled` | Lógico | | Sí |
 
-**Regla de validación:** debe cumplirse al menos una de: `categoria` presente, `accion = descartar`, `descripcionNueva` presente.
+**Regla de validación:** debe cumplirse al menos una de: `categoria` presente, `accion = descartar`, `descripcionNueva` presente, `formaPago` presente.
 
 ### 5.5 Plantilla de importación
 
@@ -1036,7 +1040,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 515 pruebas en 63 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 521 pruebas en 64 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 
 **Fundamento de RNF-40.** Requerimiento explícito del cliente: una herramienta personal destinada a seguir operativa dentro de cinco años no puede depender de una cadena de compilación cuyas dependencias se degradan en meses.
@@ -1268,7 +1272,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.83 | 17/10/2026 | El resumen del import cuenta las subcategorías en su propia fila (RF-210d, RNF-43) | Reemplazada |
 | 1.84 | 17/10/2026 | Diez cargas por origen con el período de cada archivo, y aviso cuando se sueltan varios (RF-115a, RF-115b) | Reemplazada |
 | 1.85 | 17/10/2026 | Se cargan varios resúmenes de una, y el que no tiene su formato configurado se saltea con aviso (RF-115b, RF-115c, RNF-43) | Reemplazada |
-| 1.86 | 17/10/2026 | Reintegros se suma al catálogo de categorías de flujo (RF-024, RF-024a, RF-102a, 5.7, RNF-43) | **Vigente** |
+| 1.86 | 17/10/2026 | Reintegros se suma al catálogo de categorías de flujo (RF-024, RF-024a, RF-102a, 5.7, RNF-43) | Reemplazada |
+| 1.87 | 17/10/2026 | Una regla puede fijar la forma de pago, en el alta y en la edición (RF-164a, RF-165, RF-167a, RF-167b, RF-168b, 5.4, RNF-43) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

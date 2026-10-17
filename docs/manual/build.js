@@ -357,8 +357,9 @@ window.MANUAL = {
       imgCap: 'Reglas de categorización automática, agrupadas por categoría.',
       p: [
         'Las reglas categorizan solas los movimientos al importarlos. Se evalúan en orden y la primera que coincide define la categoría.',
-        'Una regla mira la descripción del movimiento y puede exigir que contenga un texto, que sea exacto, que empiece con algo o que coincida con una expresión regular. Además de la categoría, puede asignar periodicidad y etiquetas.',
-        'Una regla hace una de tres cosas: clasificar, descartar el movimiento al importarlo, o renombrar su descripción por un texto legible —"MERPAGO*STARBUCKS 0034512" pasa a ser "Starbucks" y la original queda guardada—. Renombrar se puede combinar con clasificar.'
+        'Una regla mira la descripción del movimiento y puede exigir que contenga un texto, que sea exacto, que empiece con algo o que coincida con una expresión regular. Además de la categoría, puede asignar periodicidad, forma de pago y etiquetas.',
+        'Una regla hace una de cuatro cosas: clasificar, descartar el movimiento al importarlo, renombrar su descripción por un texto legible —"MERPAGO*STARBUCKS 0034512" pasa a ser "Starbucks" y la original queda guardada— o fijar con qué se pagó. Se combinan entre sí, y cualquiera alcanza por sí sola: una regla puede marcar que todo lo que diga MERPAGO se pagó con QR sin tocar la categoría.',
+        'La forma de pago que pone una regla pisa la que la app venía deduciendo de la descripción y del origen, igual que si la hubieras elegido a mano en el movimiento.'
       ],
       lista: [
         'El lápiz de cada fila abre la regla con todos sus campos, los mismos del alta. Se puede cambiar hasta lo que la regla hace: una que clasifica puede pasar a descartar, y al revés.',
