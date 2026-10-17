@@ -25468,6 +25468,13 @@ function refreshImportPreview() {
   const stateLike = {
     categoryRules: state.categoryRules || [],
     categoryLabels: state.categoryLabels || {},
+    // Los tres diccionarios que acompañan a las categorías: sin ellos el
+    // preview fusionaba contra un estado vacío y la cuenta de subcategorías
+    // daba las del archivo, no las que van a quedar.
+    categoryColors: state.categoryColors || {},
+    categoryClassification: state.categoryClassification || {},
+    subcategoryLabels: state.subcategoryLabels || {},
+    subcategoryClassification: state.subcategoryClassification || {},
     tags: state.taglabels || {},   // mapear taglabels → tags para core.js
     params: state.params || {},
     kpiCardsConfig: state.kpiCardsConfig || []
@@ -25488,6 +25495,7 @@ function refreshImportPreview() {
   }
   if (preview.rules) lines.push(fmtRow('Reglas', preview.rules));
   if (preview.categories) lines.push(fmtRow('Categorías', preview.categories));
+  if (preview.subcategories) lines.push(fmtRow('Subcategorías', preview.subcategories));
   if (preview.tags) lines.push(fmtRow('Etiquetas', preview.tags));
   if (preview.params) lines.push(fmtRow('Parámetros', preview.params));
   // La fila se llama por lo que cuenta: la sección Ficha médica lleva además la
@@ -25621,11 +25629,9 @@ function openFullConfigModal(mode) {
   // Las subcategorías viajan dentro de la sección Categorías (labels y
   // clasificación, ver serializeFullConfig), pero el contador decía sólo
   // "26 categorías" y no había forma de saberlo desde el diálogo: hay que
-  // nombrarlas para que el tilde diga lo que se lleva.
-  const subLabels = state.subcategoryLabels || {};
-  const sCount = Object.keys(subLabels).reduce(function (n, catKey) {
-    return n + Object.keys(subLabels[catKey] || {}).length;
-  }, 0);
+  // nombrarlas para que el tilde diga lo que se lleva. La cuenta es la misma
+  // que usa el resumen del import.
+  const sCount = contarSubcategorias(state.subcategoryLabels);
   const tCount = Object.keys(state.taglabels || {}).length;
   // Parámetros: cuántos campos van a viajar de verdad. La lista es la misma que
   // usa el serializador (PARAMS_CONFIG_KEYS), no una copia: repetirla fue lo que

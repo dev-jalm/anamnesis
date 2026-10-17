@@ -2391,6 +2391,33 @@ group('Export / Import de configuración', function () {
     assertEqual(p3.rules.willHave, 4);  // a (conservada), b, c (nuevas), old (conservada)
   });
 
+  test('contarSubcategorias — suma las de todas las categorías', function () {
+    assertEqual(contarSubcategorias({ A: { x: 'X', y: 'Y' }, B: { z: 'Z' } }), 3);
+    assertEqual(contarSubcategorias({ A: {} }), 0);
+    assertEqual(contarSubcategorias(null), 0);
+  });
+
+  test('previewImport — las subcategorías se cuentan aparte y según el modo', function () {
+    const blob = serializeFullConfig({
+      categoryLabels: { Alimentacion: 'Alimentación', Ocio: 'Ocio' },
+      subcategoryLabels: { Alimentacion: { Super: 'Supermercado', Resto: 'Restaurante' }, Ocio: { Cine: 'Cine' } }
+    }, { categories: true });
+    const existing = {
+      categoryLabels: { Alimentacion: 'Comida', Transporte: 'Transporte' },
+      subcategoryLabels: { Alimentacion: { Super: 'Chino' }, Transporte: { Nafta: 'Nafta' } }
+    };
+    const todo = previewImport(blob, existing, 'replace_all').subcategories;
+    assertEqual(todo.current, 2);    // Super y Nafta
+    assertEqual(todo.incoming, 3);   // Super, Resto y Cine
+    assertEqual(todo.willHave, 3);   // queda sólo lo del archivo
+    // Por id: se suman las que el archivo no trae (Nafta) a las tres del archivo.
+    assertEqual(previewImport(blob, existing, 'replace_byid').subcategories.willHave, 4);
+    // Sin sobreescribir: mismas cuatro, pero Super conserva el nombre del usuario.
+    assertEqual(previewImport(blob, existing, 'merge_new').subcategories.willHave, 4);
+    const sinPisar = deserializeCategories({ type: 'categories', data: blob.data.categories }, existing, 'merge_new');
+    assertEqual(sinPisar.subcategoryLabels.Alimentacion.Super, 'Chino');
+  });
+
   test('fusionarPorId — el modo manda sobre un array con id propio', function () {
     const actuales = [{ id: 'a', v: 1 }, { id: 'b', v: 1 }];
     const entrantes = [{ id: 'b', v: 2 }, { id: 'c', v: 2 }];

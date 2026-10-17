@@ -1107,6 +1107,16 @@ function deserializeRules(parsed, existing, mode) {
 }
 
 // ----- CATEGORÍAS (incluye labels + clasificaciones + subcategorías + colores) -----
+// Cuántas subcategorías hay en un { catKey: { subKey: label } }. Una sola
+// función para el contador del diálogo y para el resumen del import: tener la
+// cuenta escrita dos veces fue lo que desincronizó al contador de parámetros.
+function contarSubcategorias(dictDeDicts) {
+  const d = dictDeDicts || {};
+  return Object.keys(d).reduce(function (n, catKey) {
+    return n + Object.keys(d[catKey] || {}).length;
+  }, 0);
+}
+
 // Devuelve un blob serializable. El "ID" de una categoría es su key (string).
 function serializeCategories(stateLike) {
   return {
@@ -1412,6 +1422,11 @@ function previewImport(parsed, currentStateLike, mode) {
       incoming: Object.keys(incomingLabels).length,
       willHave: Object.keys(after.categoryLabels).length
     };
+    out.subcategories = {
+      current: contarSubcategorias(cur.subcategoryLabels),
+      incoming: contarSubcategorias(parsed.data && parsed.data.subcategoryLabels),
+      willHave: contarSubcategorias(after.subcategoryLabels)
+    };
   }
   // Tags
   if (parsed && parsed.type === 'tags') {
@@ -1437,6 +1452,13 @@ function previewImport(parsed, currentStateLike, mode) {
         current: Object.keys(cur.categoryLabels || {}).length,
         incoming: Object.keys((parsed.data.categories && parsed.data.categories.categoryLabels) || {}).length,
         willHave: Object.keys(after.categoryLabels).length
+      };
+      // Las subcategorías viajan dentro de la sección y se cuentan aparte: son
+      // la mayoría de lo que entra y no estaban dichas en ningún lado.
+      out.subcategories = {
+        current: contarSubcategorias(cur.subcategoryLabels),
+        incoming: contarSubcategorias(parsed.data.categories && parsed.data.categories.subcategoryLabels),
+        willHave: contarSubcategorias(after.subcategoryLabels)
       };
     }
     if (parsed.sections.tags) {
@@ -3625,7 +3647,7 @@ if (typeof module !== 'undefined' && module.exports) {
     // export / import config
     CONFIG_EXPORT_VERSION,
     serializeRules, deserializeRules,
-    serializeCategories, deserializeCategories,
+    serializeCategories, deserializeCategories, contarSubcategorias,
     serializeTags, deserializeTags,
     serializeFullConfig, previewImport, PARAMS_CONFIG_KEYS,
     fusionarPorId, fusionarDict, fusionarFichaMedica,

@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.82 |
+| **Versión** | 1.83 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -923,7 +923,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-211o | La sección presenta la **matriz de correlación** entre los activos de la cartera. Tener diez activos no es estar diversificado si los diez suben y bajan el mismo día: la matriz es lo que distingue una cartera repartida de la misma apuesta escrita diez veces. Cada celda informa el valor y, al consultarla, qué significa; al pie va el promedio de los pares —sin la diagonal, que vale siempre 1 y sólo inflaría la cifra— con su lectura en una línea |
 | RF-211p | Una correlación **no se informa como cero cuando no se puede medir**: sin varianza o sin ruedas suficientes no hay correlación, y un cero diría "no se mueven juntos" sobre algo que no se pudo comparar |
 | RF-211q | Una cartera de un solo activo **no tiene matriz**: no hay pares que medir, y la sección lo resuelve dándole el ancho entero a la curva en vez de dejar medio renglón vacío |
-| RF-210d | El diálogo **nombra lo que cada tilde se lleva**, no sólo su título. La sección de categorías arrastra además el **color, la clasificación y las subcategorías** de cada una —con su propia clasificación—, así que el contador dice cuántas categorías y cuántas subcategorías viajan. Un tilde que dice "Categorías (26)" sobre un archivo que también lleva 65 subcategorías obliga a abrir el JSON para saber qué se está guardando |
+| RF-210d | El diálogo **nombra lo que cada tilde se lleva**, no sólo su título. La sección de categorías arrastra además el **color, la clasificación y las subcategorías** de cada una —con su propia clasificación—, así que el contador dice cuántas categorías y cuántas subcategorías viajan. Un tilde que dice "Categorías (26)" sobre un archivo que también lleva 65 subcategorías obliga a abrir el JSON para saber qué se está guardando. Por el mismo motivo las **subcategorías son una fila propia del resumen previo**, con su cuenta actual, la del archivo y la que va a quedar: son la mayoría de lo que entra y el modo de importación las afecta igual que a las categorías |
 | RF-210e | El **modo de importación elegido vale para todas las secciones**, también para la Ficha médica: sus tarjetas KPI, sus viajes, la visibilidad de secciones y los presupuestos anuales se fusionan igual que las reglas y las categorías. "Fusionar sin sobreescribir" promete que lo existente nunca se toca, y una sección que pise igual lo convierte en un botón que miente. En el resumen previo esa fila se llama **Tarjetas KPI**, que es lo que cuenta —la sección lleva además la visibilidad, los viajes y los presupuestos—, y el número que anuncia sale del mismo cálculo que aplica el import. Un archivo sin ninguna tarjeta no deja al usuario sin tarjetas ni siquiera en "reemplazar todo": es un archivo mal generado, no la decisión de quedarse sin ninguna |
 | RF-210f | Una configuración de tarjetas KPI que **llega de un archivo es una decisión tomada**, no un estado viejo que haya que completar: al importarla se marca como migrada. Sin esa marca, la pasada siguiente le agregaba las tarjetas de fábrica de la columna del score que el archivo no traía y le devolvía el color de fábrica a las que comparten identificador con una default — el usuario terminaba con una mezcla de sus tarjetas y las de fábrica. Por el mismo motivo, **sembrar las tarjetas de fábrica en un archivo nuevo cuenta como haber migrado**: son exactamente las de fábrica, no hay nada que completarles |
 | RF-210c | El import de parámetros **pisa campo a campo**: lo que el archivo no trae se conserva tal como estaba. El resumen previo lo dice en esos términos —cuántos campos hay, cuántos trae el archivo y con cuántos se queda— y los cambios se aplican a la vista en el momento, sin recargar |
@@ -1031,7 +1031,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 506 pruebas en 62 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 508 pruebas en 62 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 
 **Fundamento de RNF-40.** Requerimiento explícito del cliente: una herramienta personal destinada a seguir operativa dentro de cinco años no puede depender de una cadena de compilación cuyas dependencias se degradan en meses.
@@ -1259,7 +1259,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.79 | 15/10/2026 | Beta, alfa y R² se informan contra **los dos índices** y cada una explica cómo se lee, con un renglón por caso (RF-211m1, RF-211m2) | Reemplazada |
 | 1.80 | 16/10/2026 | El listado de reglas informa la categoría cuando no hay subcategoría: las reglas de las categorías de flujo mostraban esa celda vacía (RF-168a) | Reemplazada |
 | 1.81 | 16/10/2026 | El diálogo de configuración dice cuántas subcategorías viajan con las categorías (RF-210d) | Reemplazada |
-| 1.82 | 17/10/2026 | La Ficha médica se importa con el modo elegido y sus tarjetas dejan de mezclarse con las de fábrica (RF-210e, RF-210f, RNF-43) | **Vigente** |
+| 1.82 | 17/10/2026 | La Ficha médica se importa con el modo elegido y sus tarjetas dejan de mezclarse con las de fábrica (RF-210e, RF-210f, RNF-43) | Reemplazada |
+| 1.83 | 17/10/2026 | El resumen del import cuenta las subcategorías en su propia fila (RF-210d, RNF-43) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 
