@@ -503,8 +503,11 @@ function nombreDeOrigen(key) {
   return (p && p.nombre) || key;
 }
 
-// Cuántas cargas se recuerdan por origen en el panel de últimas cargas.
-const UPLOAD_HISTORY_MAX = 3;
+// Cuántas cargas se recuerdan por origen en el panel de últimas cargas. Diez y
+// no tres: un resumen bancario se carga mes a mes, así que tres entradas tapan
+// el trimestre y la pregunta que se le hace al panel —¿ya cargué este mes?— no
+// se puede contestar mirando sólo las últimas tres.
+const UPLOAD_HISTORY_MAX = 10;
 
 // Registra una carga en el historial del origen.
 //
@@ -5605,20 +5608,30 @@ function renderUploadHistoryPanel() {
 
   function formatearCarga(h) {
     const date = h.timestamp ? new Date(h.timestamp) : null;
-    // Con la hora además de la fecha: importando varias veces el mismo día
-    // —cosa habitual cuando se prueban rangos que se solapan— la fecha sola no
-    // permite distinguir qué carga fue la última.
+    // En la línea va sólo la fecha; la hora pasó al emergente cuando entró el
+    // período. Estaba para distinguir dos cargas del mismo día, y el mes que
+    // traía cada una lo distingue mejor: a igual fecha, "Abr 26" y "May 26"
+    // dicen qué se cargó, no sólo que fueron dos veces.
     // hour12:false fuerza 24 horas. Sin eso, es-AR devuelve "04:42 p. m.",
     // que además de largo choca con el resto de las horas del dashboard.
     const fechaStr = date
-      ? date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }) +
-        ' ' + date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
+      ? date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' })
       : '';
+    const horaStr = date
+      ? date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
+      : '';
+    // El período que se leyó del archivo. En la línea va abreviado —"May 26"—
+    // porque es lo único que entra al lado de la fecha y el conteo; el nombre
+    // completo y el año de cuatro cifras quedan en el emergente.
     let periodStr = '';
+    let periodCorto = '';
     if (h.year && h.month) {
       const monthLabel = (typeof MONTH_LABELS === 'object' && MONTH_LABELS[h.month])
         ? MONTH_LABELS[h.month] : h.month;
       periodStr = monthLabel + ' ' + h.year;
+      const corto = (typeof MONTH_SHORT === 'object' && MONTH_SHORT[h.month])
+        ? MONTH_SHORT[h.month] : String(h.month).slice(0, 3);
+      periodCorto = corto + ' ' + String(h.year).slice(-2);
     }
     // "50 (55)" = 50 movimientos guardados de 55 leídos del archivo. La
     // diferencia son los que ya existían y el dedup descartó.
@@ -5631,9 +5644,8 @@ function renderUploadHistoryPanel() {
       movStr = String(h.kept);
       if (typeof h.total === 'number' && h.total !== h.kept) movStr += ' (' + h.total + ')';
     }
-    // Todo en una línea: fecha y hora, separador, y el conteo. El período y el
-    // desglose completo van al tooltip — no entran sin partir la línea en dos,
-    // y el dato que se consulta de un vistazo es cuándo fue la última carga.
+    // Todo en una línea: cuándo se cargó, qué mes traía y cuántos quedaron. El
+    // desglose completo va al emergente.
     let conteoStr = '';
     if (typeof h.kept === 'number') {
       conteoStr = h.kept + ' guardados';
@@ -5641,6 +5653,7 @@ function renderUploadHistoryPanel() {
     }
     const tooltip = [
       periodStr,
+      (horaStr ? 'cargado a las ' + horaStr : ''),
       conteoStr,
       (h.skipped > 0 ? h.skipped + ' ya existente' + (h.skipped === 1 ? '' : 's') : '')
     ].filter(Boolean).join(' · ');
@@ -5648,6 +5661,7 @@ function renderUploadHistoryPanel() {
     return '<div class="uh-carga" title="' + escapeHtmlSafe(tooltip) + '">' +
       '<span class="uh-linea">' +
         '<span class="uh-fecha">' + escapeHtmlSafe(fechaStr) + '</span>' +
+        (periodCorto ? '<span class="uh-sep">·</span><span class="uh-periodo">' + escapeHtmlSafe(periodCorto) + '</span>' : '') +
         (movStr ? '<span class="uh-sep">·</span><span class="uh-mov">' + escapeHtmlSafe(movStr) + '</span>' : '') +
       '</span>' +
     '</div>';
@@ -17880,8 +17894,22 @@ function bindStatementFileImport() {
       drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('dragging'); });
     });
     drop.addEventListener('drop', function (e) {
-      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      if (f) procesar(f);
+      const sueltos = (e.dataTransfer && e.dataTransfer.files) || [];
+      const f = sueltos[0];
+      if (!f) return;
+      // Se lee uno por vez. Soltar varios leía el primero y descartaba el resto
+      // sin decir nada: el usuario veía "¡Importado!" y se quedaba con la idea
+      // de que habían entrado los cinco.
+      if (sueltos.length > 1) {
+        mostrar('warning', '<strong>Se lee un archivo por vez.</strong> De los ' + sueltos.length +
+          ' que soltaste se va a leer <strong>' + escapeHtmlSafe(f.name) + '</strong>; ' +
+          'los otros ' + (sueltos.length - 1) + ' quedaron afuera. Soltalos de a uno.');
+        // Un respiro antes de pisar el aviso con el resultado de la lectura, o
+        // el mensaje pasa tan rápido que es como no haberlo puesto.
+        setTimeout(function () { procesar(f); }, 2200);
+        return;
+      }
+      procesar(f);
     });
   }
   btn._bound = true;

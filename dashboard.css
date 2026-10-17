@@ -2854,6 +2854,10 @@ footer .eyebrow-sources {
 }
 .alert-box.error { background: #FCE8E4; border: 1px solid #E8A898; color: #8B2E1F; }
 .alert-box.success { background: #E4F2DC; border: 1px solid var(--green-2); color: #3F5F2A; }
+/* Aviso: lo que pasó no está mal pero no es lo que el usuario esperaba —soltar
+   cinco archivos y que se lea uno—. Misma fórmula que sus dos hermanos: fondo
+   pastel del color que corresponde, borde del token y texto oscuro encima. */
+.alert-box.warning { background: #FBF0D9; border: 1px solid var(--accent); color: #7A5415; }
 .alert-box strong { font-weight: 600; }
 
 .info-box {
@@ -4898,6 +4902,12 @@ body[data-exporting="true"] .section-card {
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   align-items: start;
+  /* Diez cargas por columna miden 204px (medido). El tope deja entrar esa
+     columna entera y acota el caso que sí crece sin techo: con un quinto
+     origen —una entidad que definió el usuario— el grid arma una segunda fila
+     y el modal se iría de una pantalla de 768px de alto. */
+  max-height: 210px;
+  overflow-y: auto;
 }
 .uh-col {
   display: flex;
@@ -4929,6 +4939,9 @@ body[data-exporting="true"] .section-card {
 }
 .uh-fecha { color: var(--ink); flex: 0 0 auto; }
 .uh-sep { color: var(--muted-2); flex: 0 0 auto; }
+/* El período leído del archivo. En el color del dato, como la fecha: es la
+   respuesta a "¿ya cargué este mes?", que es a lo que se viene al panel. */
+.uh-periodo { color: var(--ink); flex: 0 0 auto; }
 /* Si la ventana se angosta más de lo previsto, que el conteo se recorte con
    puntos suspensivos en vez de cortarse a mitad de un dígito. */
 .uh-mov {

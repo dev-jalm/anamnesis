@@ -646,6 +646,42 @@ function buildDemoSnapshot(mesesAtras) {
     });
 
   // ============================================================
+  // Historial de cargas por origen. Cada mes generado deja su carga, fechada
+  // unos días después de cerrado el mes —que es cuando uno baja el resumen—, y
+  // con parte de los movimientos descartados por repetidos, que es lo normal
+  // cuando los rangos se solapan. Los dos bancos tienen las diez que recuerda
+  // el panel; el efectivo, una sola carga manual.
+  // ============================================================
+  function historialDeCargas() {
+    const porOrigen = { 'MP': [], 'Galicia': [] };
+    // De atrás para adelante, para que el panel muestre primero la más nueva.
+    for (let k = 0; k < Math.min(N, 10); k++) {
+      const mesLeido = new Date(hoy.getFullYear(), hoy.getMonth() - k, 1);
+      // Se carga el 3 del mes siguiente, a media mañana.
+      const cargadoEl = new Date(mesLeido.getFullYear(), mesLeido.getMonth() + 1, 3, 10, entre(5, 55));
+      // El mes en curso todavía no cerró: su carga es de hace unos días.
+      const ts = Math.min(cargadoEl.getTime(), hoy.getTime() - 86400000 * (k === 0 ? 2 : 0));
+      ['MP', 'Galicia'].forEach(function (key) {
+        const total = entre(key === 'MP' ? 22 : 14, key === 'MP' ? 48 : 31);
+        const repetidos = (k % 3 === 0) ? entre(1, 4) : 0;
+        porOrigen[key].push({
+          timestamp: ts - (key === 'Galicia' ? 3600000 : 0),
+          year: mesLeido.getFullYear(),
+          month: DEMO_MESES[mesLeido.getMonth()],
+          kept: total - repetidos,
+          skipped: repetidos,
+          total: total
+        });
+      });
+    }
+    porOrigen['Efectivo'] = [{
+      timestamp: hoy.getTime() - 86400000 * 4,
+      kept: 6, skipped: 0, total: 6
+    }];
+    return porOrigen;
+  }
+
+  // ============================================================
   // Portafolios: agrupan los CEDEARs de Inversiones según para qué son. Dos
   // objetivos con plazo y tres activos sin asignar, para que la vista por
   // portafolio muestre a la vez los grupos y el renglón de lo que no tiene.
@@ -830,7 +866,11 @@ function buildDemoSnapshot(mesesAtras) {
     ],
     loadReminderDismissed: {},
     origins: DEMO_ORIGENES.slice(),
-    uploadHistoryByOrigin: {},
+    // Historial de cargas: un resumen por mes de cada banco, bajado a los pocos
+    // días de cerrado el mes, que es como se usa. Estaba vacío, y con el panel
+    // de últimas cargas escondido la demo no mostraba esa pantalla —ni el
+    // manual, que la documenta—. El efectivo va con una sola carga manual.
+    uploadHistoryByOrigin: historialDeCargas(),
     // Dos portafolios que reparten parte de los CEDEARs de Inversiones y dejan
     // el resto sin asignar, que es el caso más común: se agrupa lo que tiene un
     // destino pensado y lo demás queda suelto. Las fechas de plazo son futuras y

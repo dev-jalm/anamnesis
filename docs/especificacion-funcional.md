@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.83 |
+| **Versión** | 1.84 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -441,6 +441,8 @@ Tres vías, resueltas desde un único asistente.
 | RF-113 | Las plantillas definidas por el usuario se evalúan antes que las incorporadas, de modo que puedan sustituirlas si la entidad cambió su formato |
 | RF-114 | Debajo del área de carga se listan todos los formatos disponibles, incorporados y creados |
 | RF-115 | El sistema informa, por origen, la fecha de la última carga y la cantidad de movimientos guardados y leídos |
+| RF-115a | Se recuerdan las **diez cargas más recientes de cada origen**, y de cada una se informa **qué período traía el archivo** además de cuándo se cargó. Un resumen bancario se carga mes a mes: con tres entradas, un trimestre tapa todo lo anterior, y sin el período hay que abrir el archivo para saber si ese mes ya entró — que es la única pregunta que se le hace al panel. La hora de la carga y el desglose completo quedan en el emergente: en la línea no entran sin recortar el conteo |
+| RF-115b | El área de carga **lee un archivo por vez y lo dice cuando recibe varios**: soltar un puñado de resúmenes leía el primero y descartaba el resto sin avisar, y el mensaje de importación exitosa dejaba creer que habían entrado todos |
 | RF-116 | El sistema emite un recordatorio cuando un origen lleva tiempo sin actualizarse. El recordatorio puede descartarse y reaparece si la situación cambia |
 
 #### 4.9.2 Carga manual
@@ -1260,7 +1262,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.80 | 16/10/2026 | El listado de reglas informa la categoría cuando no hay subcategoría: las reglas de las categorías de flujo mostraban esa celda vacía (RF-168a) | Reemplazada |
 | 1.81 | 16/10/2026 | El diálogo de configuración dice cuántas subcategorías viajan con las categorías (RF-210d) | Reemplazada |
 | 1.82 | 17/10/2026 | La Ficha médica se importa con el modo elegido y sus tarjetas dejan de mezclarse con las de fábrica (RF-210e, RF-210f, RNF-43) | Reemplazada |
-| 1.83 | 17/10/2026 | El resumen del import cuenta las subcategorías en su propia fila (RF-210d, RNF-43) | **Vigente** |
+| 1.83 | 17/10/2026 | El resumen del import cuenta las subcategorías en su propia fila (RF-210d, RNF-43) | Reemplazada |
+| 1.84 | 17/10/2026 | Diez cargas por origen con el período de cada archivo, y aviso cuando se sueltan varios (RF-115a, RF-115b) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

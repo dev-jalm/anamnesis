@@ -91,7 +91,8 @@ window.MANUAL = {
       lista: [
         'Podés subir resúmenes que se solapen. Si cargás del 1 al 10 y después del 8 al 20, los movimientos repetidos se descartan solos.',
         'Y si entre una carga y otra corregiste la descripción, el monto o la fecha de un movimiento, se lo sigue reconociendo como el mismo: la app lo identifica por la clave que tenía en el archivo del que salió, no por lo que muestra la pantalla.',
-        'El panel ÚLTIMAS CARGAS guarda las tres más recientes de cada origen, con fecha, hora y cuántos movimientos quedaron sobre cuántos traía el archivo.'
+        'El panel ÚLTIMAS CARGAS guarda las diez más recientes de cada origen: la fecha, el mes que traía el archivo y cuántos movimientos quedaron sobre cuántos venían. Con el mes a la vista se contesta de un vistazo la pregunta por la que se mira el panel, que es si ese resumen ya se cargó. La hora de la carga y el desglose completo aparecen al apoyar el puntero.',
+        'Se lee un archivo por vez. Si soltás varios juntos sobre el recuadro, la app avisa cuál va a leer y cuántos quedaron afuera.'
       ]
     },
     {
