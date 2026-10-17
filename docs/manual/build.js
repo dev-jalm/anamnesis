@@ -362,6 +362,7 @@ window.MANUAL = {
         'La forma de pago que pone una regla pisa la que la app venía deduciendo de la descripción y del origen, igual que si la hubieras elegido a mano en el movimiento.'
       ],
       lista: [
+        'El número al principio de cada fila es el orden en que se evalúan: ante dos reglas que coinciden con el mismo movimiento gana la del número más chico. Las dos flechas lo cambian, y los grupos se ordenan por la prioridad de su primera regla, así el cambio se ve.',
         'El lápiz de cada fila abre la regla con todos sus campos, los mismos del alta. Se puede cambiar hasta lo que la regla hace: una que clasifica puede pasar a descartar, y al revés.',
         'APRENDER REGLAS revisa lo que clasificaste a mano en los últimos meses y propone reglas para los patrones que se repiten. Vos elegís cuáles crear.',
         'RE-APLICAR A TX EXISTENTES corre todas las reglas sobre los movimientos ya cargados.',

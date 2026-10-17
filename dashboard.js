@@ -8610,10 +8610,22 @@ function renderRulesList() {
     if (k === '__sin__') return 'Sin destino';
     return state.categoryLabels[k] || k;
   };
+  // Los grupos se ordenan por la PRIORIDAD de su primera regla, no por nombre.
+  // Lo que define este panel es qué regla gana, y con los grupos en orden
+  // alfabético ese orden no se veía por ningún lado: subir una regla cambiaba
+  // el archivo y la pantalla quedaba igual, así que el botón parecía roto.
+  // El grupo de descarte sigue yendo último: es el que borra cosas y conviene
+  // que no sea lo primero que se toca.
+  const prioridadDeGrupo = function (k) {
+    return groups[k].reduce(function (min, r) {
+      const i = rules.indexOf(r);
+      return (i >= 0 && i < min) ? i : min;
+    }, Infinity);
+  };
   const orderedCatKeys = Object.keys(groups).sort(function (a, b) {
     if (a === '__descartar__') return 1;
     if (b === '__descartar__') return -1;
-    return etiquetaGrupo(a).localeCompare(etiquetaGrupo(b));
+    return prioridadDeGrupo(a) - prioridadDeGrupo(b);
   });
 
   // Render: por cada categoría un header colapsable + (si está expandido) las filas
@@ -8685,6 +8697,11 @@ function renderRulesList() {
         '<button class="rule-row-enabler" data-action="toggle" title="' + (r.enabled === false ? 'Activar' : 'Desactivar') + '">' +
           '<i data-lucide="' + (r.enabled === false ? 'circle' : 'check-circle-2') + '" style="width:16px;height:16px;color:' + (r.enabled === false ? 'var(--muted)' : 'var(--green)') + '"></i>' +
         '</button>' +
+        // El número de orden: ante dos reglas que matchean la misma
+        // descripción gana la de número más chico. Sin este dato a la vista,
+        // la prioridad —que es de lo que trata esta pantalla— era invisible y
+        // el botón de subir no parecía hacer nada.
+        '<div class="rule-row-orden" title="Orden de evaluación: gana la primera que matchea">' + (realIdx + 1) + '</div>' +
         '<div class="rule-row-mt">' + mtLabel + '</div>' +
         '<div class="rule-row-pattern' + (r.matchType === 'regex' ? '' : ' rule-pattern-mayus') + '" title="' + escapeHtml(r.pattern) + '">' + escapeHtml(r.pattern) +
           (renombraA && r.categoria
@@ -8700,8 +8717,11 @@ function renderRulesList() {
         '<button class="rule-row-action" data-action="edit" title="Editar regla">' +
           '<i data-lucide="edit-2" style="width:14px;height:14px"></i>' +
         '</button>' +
-        '<button class="rule-row-action" data-action="up" title="Subir prioridad" ' + (realIdx === 0 ? 'disabled style="opacity:0.3;cursor:not-allowed"' : '') + '>' +
+        '<button class="rule-row-action" data-action="up" title="Subir prioridad: pasa a evaluarse antes" ' + (realIdx === 0 ? 'disabled style="opacity:0.3;cursor:not-allowed"' : '') + '>' +
           '<i data-lucide="chevron-up" style="width:14px;height:14px"></i>' +
+        '</button>' +
+        '<button class="rule-row-action" data-action="down" title="Bajar prioridad: pasa a evaluarse después" ' + (realIdx === rules.length - 1 ? 'disabled style="opacity:0.3;cursor:not-allowed"' : '') + '>' +
+          '<i data-lucide="chevron-down" style="width:14px;height:14px"></i>' +
         '</button>' +
         '<button class="rule-row-action danger" data-action="delete" title="Eliminar">' +
           '<i data-lucide="trash-2" style="width:14px;height:14px"></i>' +
@@ -8733,6 +8753,7 @@ function renderRulesList() {
         const action = btn.getAttribute('data-action');
         if (action === 'toggle') toggleRule(ruleId);
         else if (action === 'up') moveRuleUp(ruleId);
+        else if (action === 'down') moveRuleDown(ruleId);
         else if (action === 'edit') openRuleEditor(ruleId);
         else if (action === 'apply') applySingleRule(ruleId);
         else if (action === 'delete') deleteRule(ruleId);
@@ -8853,15 +8874,36 @@ function toggleRule(ruleId) {
   renderRulesList();
 }
 
+// Mover una regla cambia su lugar en el orden de evaluación, que es el orden
+// del array: gana la primera que matchea. El grupo al que pertenece la fila no
+// interviene — dos reglas compiten por matchear la misma descripción, no por
+// estar en la misma categoría.
 function moveRuleUp(ruleId) {
+  moverRegla(ruleId, -1);
+}
+
+function moveRuleDown(ruleId) {
+  moverRegla(ruleId, 1);
+}
+
+function moverRegla(ruleId, delta) {
   const rules = state.categoryRules || [];
   const idx = rules.findIndex(function (x) { return x.id === ruleId; });
-  if (idx <= 0) return;
+  const destino = idx + delta;
+  if (idx < 0 || destino < 0 || destino >= rules.length) return;
   const tmp = rules[idx];
-  rules[idx] = rules[idx - 1];
-  rules[idx - 1] = tmp;
+  rules[idx] = rules[destino];
+  rules[destino] = tmp;
   scheduleSave();
   renderRulesList();
+  // Dejar a la vista la regla que se movió: con los grupos ordenados por
+  // prioridad, un movimiento puede sacarla de donde estaba mirando el usuario.
+  const fila = document.querySelector('.rule-row[data-rule-id="' + ruleId + '"]');
+  if (fila) {
+    fila.scrollIntoView({ block: 'nearest' });
+    fila.classList.add('rule-row-movida');
+    setTimeout(function () { fila.classList.remove('rule-row-movida'); }, 700);
+  }
 }
 
 function deleteRule(ruleId) {

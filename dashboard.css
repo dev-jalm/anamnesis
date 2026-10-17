@@ -498,8 +498,10 @@ footer .eyebrow-sources {
      ancha que la Inter que usaban tres de ellas— los textos más largos miden
      "matchea regex" 85,8px, "Esporádico" 66 y "Transferencia" 85,8: de ahí 92,
      70 y 90, con un par de píxeles de aire. Unificar la tipografía sin rehacer
-     esta cuenta dejaba "Transferencia" recortada. */
-  grid-template-columns: 24px 92px 1fr 1fr 70px 90px 28px 28px 28px 28px;
+     esta cuenta dejaba "Transferencia" recortada.
+     La segunda columna es el número de orden; la última de 28px, el botón de
+     bajar prioridad. */
+  grid-template-columns: 24px 26px 92px 1fr 1fr 70px 90px 28px 28px 28px 28px 28px;
   /* Filas explícitas: primera fila para el contenido principal, segunda fila
      opcional para los chips de tags. */
   grid-template-rows: auto auto;
@@ -560,6 +562,22 @@ footer .eyebrow-sources {
 }
 .rule-row-cat {
   display: flex; align-items: center; gap: 6px;
+}
+/* El número de orden: mismo cuerpo y tipografía que el resto de la fila, en el
+   apagado de los rótulos porque es una referencia y no un dato de la regla. */
+.rule-row-orden {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted-2);
+  text-align: right;
+}
+/* Al mover una regla, su fila destella un momento: con los grupos ordenados
+   por prioridad el salto puede ser largo y, sin esto, no se sabe cuál se
+   movió. */
+.rule-row-movida {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+  transition: outline-color .7s ease-out;
 }
 .rule-row-action {
   background: transparent;
@@ -3127,22 +3145,24 @@ footer .eyebrow-sources {
 
 /* Hint inline al lado del nombre del label "Texto / patrón". Mantiene el mismo
    estilo monoespaciado del label pero más liviano y entre paréntesis. */
+/* La aclaración entre paréntesis es parte del rótulo y se escribe como el
+   rótulo: hereda su familia, su cuerpo, su espaciado y sus mayúsculas, y sólo
+   se separa con un espacio. Tenía los cuatro distintos —Inter, sin
+   espaciado, en minúscula— y en una misma fila convivían "RENOMBRAR A
+   (opcional)" y "PERIODICIDAD (OPCIONAL)", que son la misma cosa escrita de
+   dos maneras. Un solo criterio por pantalla, y éste es el de los rótulos. */
 .rule-label-hint {
-  font-family: 'Inter', system-ui, sans-serif;
-  text-transform: none;
-  letter-spacing: normal;
-  font-size: 10px;
-  color: var(--muted);
-  font-weight: 400;
   margin-left: 6px;
 }
+/* El punto y coma del ejemplo tampoco lleva tratamiento propio: dentro de un
+   rótulo en mayúsculas, un recuadro ámbar era un quinto estilo en la misma
+   línea. */
 .rule-label-hint code {
-  background: rgba(212, 162, 76, 0.15);
-  color: var(--accent);
-  padding: 1px 5px;
-  border-radius: 3px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: none;
+  padding: 0;
 }
 .rule-label-hint.hidden { display: none; }
 .cat-add-error {
@@ -5719,11 +5739,16 @@ body[data-exporting="true"] .section-card {
   font-weight: 600;
   color: var(--ink);
 }
+/* El contador del grupo es un rótulo más de la solapa y se escribe como los
+   demás: mismo espaciado y mayúsculas. Tenía un espaciado propio de 0,3px y
+   sin mayúsculas, que lo dejaba como el único texto en mono distinto de todos
+   los otros de esta pantalla. */
 .rules-group-count {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
   color: var(--muted-2);
-  letter-spacing: 0.3px;
   margin-left: auto;
 }
 .rules-group-body {

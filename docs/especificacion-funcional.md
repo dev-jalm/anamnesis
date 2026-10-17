@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.90 |
+| **Versión** | 1.91 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -518,6 +518,8 @@ Cinco pantallas.
 | RF-168 | Las reglas se agrupan visualmente. El grupo de reglas de descarte se presenta siempre visible, con independencia del filtro activo |
 | RF-168b | Las reglas que no clasifican se agrupan por lo que sí hacen —«Sólo renombrar», «Sólo forma de pago»—, nunca bajo una clave interna del sistema |
 | RF-168c | En el listado, **los cinco datos de una regla se presentan con la misma tipografía, cuerpo y color**: modo de coincidencia, patrón, destino, periodicidad y forma de pago. Con un estilo distinto por columna, una misma fila se leía como cinco cosas sin relación |
+| RF-168e | Cada regla del listado muestra su **número de orden de evaluación**, y el panel explica que ante dos reglas que coinciden gana la de número más chico. Sin ese dato a la vista la prioridad era invisible: las reglas se agrupan por categoría y mover una no cambiaba nada en pantalla, de modo que el control de subirla parecía no funcionar |
+| RF-168f | Los **grupos se ordenan por la prioridad** de su primera regla, no por nombre, y cada regla puede **subir y bajar** posiciones. El orden alfabético contradecía al propósito de la pantalla, que es decidir qué regla gana. La fila que se movió destaca un instante: un cambio de prioridad puede sacarla del grupo donde se la estaba mirando |
 | RF-168d | El patrón **se escribe, se guarda y se muestra en mayúsculas**: un solo criterio para el campo, el archivo y el listado. Normalizarlo no altera qué reconoce cada regla, porque la coincidencia ya compara ambos lados en minúsculas y sin acentos. Los patrones guardados antes se normalizan al abrir el archivo, de modo que no convivan dos formatos del mismo campo. **La expresión regular es la excepción**: no es texto sino código, y en mayúsculas significa otra cosa —`\d`, un dígito, pasa a `\D`, que es cualquier cosa menos un dígito—, así que se guarda y se muestra tal como se escribió |
 | RF-168a | Cada regla del listado informa **a dónde manda**: la subcategoría cuando la tiene y la categoría cuando no. Las categorías de flujo —Préstamo, Sueldo, Jubilación, Reserva— no tienen subcategorías, de modo que mostrar sólo la subcategoría dejaba a todas sus reglas con la celda vacía. Que el nombre esté también en el encabezado del grupo no alcanza: un encabezado se lee una vez y la fila se lee sola cuando se la busca con un filtro puesto |
 | RF-169 | La re-aplicación de reglas sobre movimientos ya cargados requiere confirmación explícita, indicando la cantidad exacta de movimientos que se eliminarían |
@@ -994,6 +996,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-06 | El ancho máximo de contenido es de 1800 px, con margen lateral de 40 px |
 | RNF-07 | Las columnas de encabezado y de detalle comparten definición de anchos. No se alinean por relleno |
 | RNF-18 | Un campo nuevo adopta la tipografía —familia, tamaño y peso— de los campos vecinos de la misma fila o formulario. No se elige por separado |
+| RNF-18g | **Los rótulos de una pantalla responden a un solo criterio**, y las aclaraciones entre paréntesis son parte del rótulo: se escriben con su misma familia, cuerpo, espaciado, caja y color. Una pantalla donde conviven «RENOMBRAR A (opcional)» y «PERIODICIDAD (OPCIONAL)» presenta la misma cosa de dos maneras y obliga a leer dos veces para comprobar que dicen lo mismo |
 | RNF-18a | **Un control nuevo no se presenta con el aspecto que le da el navegador.** Si existe un control gemelo —el mismo tipo de control, en la misma columna o en el mismo formulario— adopta su presentación completa: tipografía, fondo, borde, altos y estados de apuntado y foco, incluido cómo se ve cuando todavía no tiene valor. Un control sin presentación propia no se ve neutro: se ve ajeno, y la diferencia es la más visible de todas —fondo claro, control nativo— al lado de los que sí la tienen |
 | RNF-18d | **Las series de un gráfico se distinguen por color, y ese color se valida, no se elige a ojo.** La separación entre cada par se mide en los dos temas y tiene que superar el piso por debajo del cual dos tonos no se distinguen, con visión de color normal y con daltonismo. Si la paleta del producto no da para la cantidad de series que hace falta —y se comprueba, no se supone—, se buscan tonos que sí den respetando la saturación del resto de la aplicación y **sin tocar los dos colores que ya significan algo**: el verde de la ganancia y el rojo de la pérdida |
 | RNF-18e | **Un gráfico de varias series lleva el nombre de cada una escrito sobre la propia serie**, no sólo en una leyenda aparte. La leyenda al pie repitiendo lo que cada curva ya dice en su extremo gasta alto en decir dos veces lo mismo; el nombre va en el color de su serie, que es lo que ata el rótulo a la línea |
@@ -1281,7 +1284,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.87 | 17/10/2026 | Una regla puede fijar la forma de pago, en el alta y en la edición (RF-164a, RF-165, RF-167a, RF-167b, RF-168b, 5.4, RNF-43) | Reemplazada |
 | 1.88 | 17/10/2026 | El listado de movimientos deja de trabarse con 1.500 filas: el buscador espera, los formateadores se reusan y los iconos se dibujan sólo donde cambiaron (RNF-45, RNF-46, RNF-47) | Reemplazada |
 | 1.89 | 17/10/2026 | El alta de reglas se reacomoda en dos filas parejas y el listado presenta sus cinco datos con una sola tipografía (RF-168c) | Reemplazada |
-| 1.90 | 17/10/2026 | El patrón de una regla se guarda en mayúsculas, con la expresión regular como excepción (RF-168d, 5.4, RNF-43) | **Vigente** |
+| 1.90 | 17/10/2026 | El patrón de una regla se guarda en mayúsculas, con la expresión regular como excepción (RF-168d, 5.4, RNF-43) | Reemplazada |
+| 1.91 | 17/10/2026 | La prioridad de las reglas se ve y se puede cambiar, y los rótulos de la pantalla responden a un solo criterio (RF-168e, RF-168f, RNF-18g) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

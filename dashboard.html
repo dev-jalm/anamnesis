@@ -1557,9 +1557,9 @@
         <div class="rule-field" style="flex:1">
           <label class="rule-label">
             Texto / patrón
-            <span class="rule-label-hint" id="ruleEditPatternHint">(podés poner varias palabras separadas con <code>;</code>, la regla matchea si la descripción contiene cualquiera)</span>
+            <span class="rule-label-hint" id="ruleEditPatternHint">(varias, separadas con <code>;</code>)</span>
           </label>
-          <input type="text" id="ruleEditPatternInput" class="period-select rule-pattern-input" placeholder="ej: Carrefour;Dia;Sandy">
+          <input type="text" id="ruleEditPatternInput" class="period-select rule-pattern-input" placeholder="ej: Carrefour;Dia;Sandy" title="Podés poner varias palabras separadas con punto y coma: la regla matchea si la descripción contiene cualquiera de ellas.">
         </div>
       </div>
       <div class="rule-add-row">
@@ -2645,7 +2645,7 @@
     <div class="cat-tab-panel hidden" id="catTabRules">
       <div class="rules-intro">
         <p class="travel-intro">
-          Las reglas se aplican automáticamente al cargar movimientos. Se evalúan en orden y la primera que matchee define la categoría. Tienen prioridad sobre el aprendizaje automático y sobre lo que diga el LLM.
+          Las reglas se aplican automáticamente al cargar movimientos. Se evalúan en orden y la primera que matchee define la categoría: el número al principio de cada fila es ese orden, y las flechas lo cambian. Tienen prioridad sobre el aprendizaje automático y sobre lo que diga el LLM.
         </p>
       </div>
       <div class="rules-add-form">

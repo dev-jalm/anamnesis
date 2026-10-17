@@ -141,6 +141,19 @@ repetir.
 
 - **Controles gemelos comparten clase.** Nada de estilo inline caso por caso. Si
   dos botones hacen lo mismo en pantallas distintas, se ven igual.
+- **Los rótulos de una pantalla se escriben con UN solo criterio, aclaraciones
+  incluidas.** Todos en mayúsculas, todos con la misma familia, cuerpo,
+  espaciado y color — y lo que va entre paréntesis es parte del rótulo, no un
+  texto aparte: se escribe igual que él. En el alta de reglas convivían
+  "RENOMBRAR A (opcional)" en Inter minúscula y "PERIODICIDAD (OPCIONAL)" en
+  mono mayúscula, que son la misma cosa escrita de dos maneras, más un `;` con
+  recuadro ámbar como quinto estilo de la misma línea. **Esto ya se señaló una
+  vez y no se vuelve a señalar.**
+
+  Cómo se verifica antes de cerrar: recorrer los textos cortos de la pantalla,
+  agruparlos por `fontFamily + fontSize + letterSpacing + textTransform + color`
+  y contar los grupos. Tienen que ser los que se puedan nombrar —rótulo, dato,
+  y nada más—; si aparece un tercero, es un descuido, no una decisión.
 - **Un solo emergente para los datos.** Lo que explica un dato —un umbral
   superado, un porcentaje, un texto recortado— usa el emergente propio de la app
   (`data-tip-titulo` + `data-tip-detalle`, ver `bindTooltipSector`), nunca el
