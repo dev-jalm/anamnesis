@@ -365,6 +365,7 @@ window.MANUAL = {
         'El número al principio de cada fila es el orden en que se evalúan: ante dos reglas que coinciden con el mismo movimiento gana la del número más chico. Las dos flechas lo cambian, y los grupos se ordenan por la prioridad de su primera regla, así el cambio se ve.',
         'El lápiz de cada fila abre la regla con todos sus campos, los mismos del alta. Se puede cambiar hasta lo que la regla hace: una que clasifica puede pasar a descartar, y al revés.',
         'APRENDER REGLAS revisa lo que clasificaste a mano en los últimos meses y propone reglas para los patrones que se repiten. Vos elegís cuáles crear.',
+        'El botón de play de cada fila aplica esa regla sola a los movimientos ya cargados, sin tocar las demás. Si la regla descarta, los elimina: avisa cuántos son antes de hacerlo y cuántos se fueron después.',
         'RE-APLICAR A TX EXISTENTES corre todas las reglas sobre los movimientos ya cargados.',
         'Lo que no matchea ninguna regla lo resuelve un clasificador que aprende de tu propio historial. Cuando corregís una categoría a mano, esa corrección pasa a ser insumo del clasificador.'
       ]

@@ -1821,6 +1821,15 @@ footer .eyebrow-sources {
 .validation-issue-row.no-tx {
   grid-template-columns: 1fr;
 }
+/* El problema de una regla sí tiene a dónde llevar, así que recupera la
+   columna del botón y la fila entera se comporta como un enlace. */
+.validation-issue-row.no-tx.validation-issue-rule {
+  grid-template-columns: 1fr auto;
+  cursor: pointer;
+}
+.validation-issue-row.validation-issue-rule:hover {
+  background: rgba(212, 162, 76, 0.08);
+}
 .validation-summary-banner {
   padding: 12px 14px;
   background: rgba(212, 162, 76, 0.10);

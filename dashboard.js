@@ -9770,6 +9770,55 @@ function applySingleRule(ruleId) {
     }, function () {});
     return;
   }
+  // Una regla de descarte no clasifica: BORRA. Tiene su propio camino —el de
+  // clasificación le escribía a cada tx una categoría indefinida, que las
+  // dejaba sin categoría en vez de eliminarlas— y su propia confirmación, en
+  // tratamiento de advertencia y diciendo cuántos movimientos se van.
+  if (esReglaDescarte(rule)) {
+    appConfirm({
+      title: 'Descartar esos movimientos',
+      eyebrow: 'APLICAR REGLA DE DESCARTE',
+      message: 'La regla "' + rule.pattern + '" matchea ' + willMatch + ' movimiento(s) de los ' +
+        totalTx + ' cargados. Esta acción los ELIMINA del archivo. No se puede deshacer ' +
+        '(aunque el archivo se guarda con backup).',
+      cancelLabel: 'Cancelar',
+      confirmLabel: 'Eliminar ' + willMatch,
+      icon: 'trash-2',
+      danger: true
+    }, function (result) {
+      if (result !== true) return;
+      let borradas = 0;
+      Object.keys(state.transactionsByYear || {}).forEach(function (y) {
+        const yb = state.transactionsByYear[y];
+        if (!yb) return;
+        Object.keys(yb).forEach(function (m) {
+          const list = yb[m];
+          if (!Array.isArray(list)) return;
+          const conservadas = list.filter(function (t) {
+            const descarta = t && t.descripcion && matchCategoryRule(t.descripcion, rule);
+            if (descarta) borradas++;
+            return !descarta;
+          });
+          if (conservadas.length !== list.length) yb[m] = conservadas;
+        });
+      });
+      scheduleSave();
+      if (typeof renderAll === 'function') renderAll();
+      appConfirm({
+        title: 'Regla aplicada',
+        eyebrow: 'RESULTADO',
+        messageHtml: 'La regla descarta los movimientos que matchea.<br><br>' +
+          '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--muted-2);line-height:1.7">' +
+          '• <span style="color:var(--red)">Movimientos descartados: <strong>' + borradas + '</strong></span>' +
+          '</div>',
+        cancelLabel: null,
+        confirmLabel: 'OK',
+        icon: 'check-circle-2'
+      }, function () {});
+    });
+    return;
+  }
+
   // Resumen del destino de la regla para el modal
   const catLabel = state.categoryLabels[rule.categoria] || rule.categoria;
   const subLabel = (rule.subcategoria && state.subcategoryLabels[rule.categoria]
@@ -9787,7 +9836,7 @@ function applySingleRule(ruleId) {
     danger: false
   }, function (result) {
     if (result !== true) return;
-    let matched = 0, changedCat = 0, changedSub = 0, changedPeri = 0, changedPago = 0, addedTags = 0;
+    let matched = 0, changedCat = 0, changedSub = 0, changedPeri = 0, changedPago = 0, addedTags = 0, renombradas = 0;
     Object.keys(state.transactionsByYear || {}).forEach(function (y) {
       const yb = state.transactionsByYear[y];
       if (!yb) return;
@@ -9799,8 +9848,14 @@ function applySingleRule(ruleId) {
           const res = matchCategoryRule(t.descripcion, rule);
           if (!res) return;
           matched++;
+          // El renombre también es parte de aplicar la regla: faltaba, y una
+          // regla que sólo renombra no hacía nada desde este botón.
+          if (res.descripcionNueva && aplicarRenombreDeRegla(t, res.descripcionNueva)) renombradas++;
           if (res.formaPago && aplicarFormaDePagoDeRegla(t, res.formaPago)) changedPago++;
-          if (t.categoria !== res.categoria) { t.categoria = res.categoria; changedCat++; }
+          // Sólo si la regla clasifica. Una que sólo renombra o sólo fija la
+          // forma de pago no tiene categoría, y asignarla igual dejaba a la tx
+          // sin ninguna.
+          if (res.categoria && t.categoria !== res.categoria) { t.categoria = res.categoria; changedCat++; }
           if (res.subcategoria && t.subcategoria !== res.subcategoria) { t.subcategoria = res.subcategoria; changedSub++; }
           if (res.periodicidad && t.periodicidad !== res.periodicidad) { t.periodicidad = res.periodicidad; changedPeri++; }
           if (Array.isArray(res.tags) && res.tags.length > 0) {
@@ -9825,6 +9880,7 @@ function applySingleRule(ruleId) {
         '• Periodicidades cambiadas: <strong style="color:var(--ink)">' + changedPeri + '</strong><br>' +
         '• Formas de pago cambiadas: <strong style="color:var(--ink)">' + changedPago + '</strong><br>' +
         '• Etiquetas agregadas: <strong style="color:var(--ink)">' + addedTags + '</strong>' +
+        (renombradas > 0 ? '<br>• Descripciones reemplazadas: <strong style="color:var(--ink)">' + renombradas + '</strong>' : '') +
         '</div>',
       cancelLabel: null,
       confirmLabel: 'OK',
@@ -15376,7 +15432,7 @@ const VALIDATION_TYPE_META = {
   invalidMonto:   { label: 'Monto no numérico',                            icon: 'circle-dollar-sign', color: '#C8553D' },
   unknownCat:     { label: 'Categoría inexistente',                        icon: 'tag',         color: '#D4A24C' },
   unknownSub:     { label: 'Subcategoría inexistente',                     icon: 'tag',         color: '#D4A24C' },
-  ruleInvalid:    { label: 'Reglas sin pattern o categoría',               icon: 'zap-off',     color: '#D4A24C' },
+  ruleInvalid:    { label: 'Reglas que no se van a aplicar',               icon: 'zap-off',     color: '#D4A24C' },
   ruleBadMatchType: { label: 'Reglas con matchType desconocido',           icon: 'zap-off',     color: '#D4A24C' },
   ruleUnknownCat: { label: 'Reglas apuntando a categoría inexistente',     icon: 'zap-off',     color: '#D4A24C' },
   subClassRefBad: { label: 'Clasificación de subcategorías con refs rotas',icon: 'link-2-off',  color: '#D4A24C' },
@@ -15521,6 +15577,8 @@ function renderValidationReport() {
   body.querySelectorAll('.goto-btn').forEach(function (btn) {
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
+      const ruleId = btn.getAttribute('data-goto-rule');
+      if (ruleId) { goToRule(ruleId); return; }
       const txId = btn.getAttribute('data-tx-id');
       const year = parseInt(btn.getAttribute('data-tx-year'), 10);
       const month = btn.getAttribute('data-tx-month');
@@ -15528,12 +15586,67 @@ function renderValidationReport() {
       goToTransaction(txId, year, month, idx);
     });
   });
+  // La fila entera de una regla también lleva a la regla: el botón está, pero
+  // lo natural es hacer click sobre el problema que se está leyendo.
+  body.querySelectorAll('.validation-issue-rule').forEach(function (row) {
+    row.addEventListener('click', function () {
+      goToRule(row.getAttribute('data-rule-id'));
+    });
+  });
   if (window.lucide) lucide.createIcons();
+}
+
+// Abre Administración → Reglas con una regla a la vista: expande su grupo,
+// la lleva al centro de la lista y la destaca. Es el equivalente de
+// goToTransaction para los problemas que no son de un movimiento.
+function goToRule(ruleId) {
+  if (!ruleId) return;
+  closeValidationReport();
+  const regla = (state.categoryRules || []).find(function (r) { return r.id === ruleId; });
+  if (!regla) return;
+  openCategoriesModal();
+  setActiveCatTab('rules');
+  // Marcar la solapa como activa también en la barra, igual que un click.
+  Array.from(document.querySelectorAll('.cat-tab')).forEach(function (t) {
+    t.classList.toggle('active', t.getAttribute('data-tab') === 'rules');
+  });
+  // El grupo donde cayó la regla arranca colapsado: sin esto, se abre el panel
+  // en la solapa correcta y la regla sigue sin verse.
+  if (!catModalState.rulesCollapsed) catModalState.rulesCollapsed = {};
+  const catKey = esReglaDescarte(regla)
+    ? '__descartar__'
+    : (regla.categoria
+      || (descripcionDeRegla(regla) ? '__renombrar__'
+        : (regla.formaPago ? '__pago__' : '__sin__')));
+  catModalState.rulesCollapsed[catKey] = false;
+  renderRulesTab();
+  setTimeout(function () {
+    const fila = document.querySelector('.rule-row[data-rule-id="' + ruleId + '"]');
+    if (!fila) return;
+    fila.scrollIntoView({ block: 'center' });
+    fila.classList.add('rule-row-movida');
+    setTimeout(function () { fila.classList.remove('rule-row-movida'); }, 1500);
+  }, 80);
 }
 
 function renderValidationIssueRow(issue) {
   if (!issue.tx) {
-    // Issue sin tx asociada (regla, KPI, etc.)
+    // Los problemas de una regla llevan a esa regla: el reporte dice "Regla
+    // #62" y antes había que ir a buscarla contando filas en Administración.
+    // El índice se resuelve a id acá, mientras el reporte es fresco: después
+    // el usuario puede reordenar y el número ya no apuntaría a la misma.
+    const regla = (typeof issue.ruleIndex === 'number')
+      ? (state.categoryRules || [])[issue.ruleIndex] : null;
+    if (regla && regla.id) {
+      return '<div class="validation-issue-row no-tx validation-issue-rule" data-rule-id="' + escapeHtmlSafe(regla.id) + '" title="Ir a esta regla">' +
+        '<div class="problem">' + escapeHtmlSafe(issue.message) +
+          (regla.pattern ? ' · ' + escapeHtmlSafe(regla.pattern) : '') + '</div>' +
+        '<button class="goto-btn" data-goto-rule="' + escapeHtmlSafe(regla.id) + '">' +
+          '<i data-lucide="arrow-right" style="width:11px;height:11px"></i> IR A LA REGLA' +
+        '</button>' +
+      '</div>';
+    }
+    // Issue sin tx asociada (KPI, reserva, etc.)
     return '<div class="validation-issue-row no-tx"><div class="problem">' + escapeHtmlSafe(issue.message) + '</div></div>';
   }
   const tx = issue.tx;

@@ -2370,9 +2370,17 @@ function validateState(s) {
         issues.push({ type: 'ruleInvalid', severity: 'warning', message: 'Regla #' + i + ' no es un objeto', ruleIndex: i });
         return;
       }
-      if (!r.pattern || !r.categoria) {
+      // El criterio es el mismo que usa el motor (matchCategoryRule): una
+      // regla vale si hace ALGO —clasificar, descartar, renombrar o fijar la
+      // forma de pago—. Exigir categoría siempre marcaba como rotas a las de
+      // descarte, a las de sólo renombre y a las de sólo forma de pago, que
+      // funcionan perfectamente: el diagnóstico mandaba a revisar reglas sanas.
+      if (!r.pattern) {
         rulesInvalid++;
-        issues.push({ type: 'ruleInvalid', severity: 'warning', message: 'Regla #' + i + ' sin pattern o categoría', ruleIndex: i });
+        issues.push({ type: 'ruleInvalid', severity: 'warning', message: 'Regla #' + i + ' sin patrón: no puede matchear nada', ruleIndex: i });
+      } else if (!r.categoria && r.accion !== REGLA_DESCARTAR && !descripcionDeRegla(r) && !r.formaPago) {
+        rulesInvalid++;
+        issues.push({ type: 'ruleInvalid', severity: 'warning', message: 'Regla #' + i + ' no hace nada: no clasifica, no descarta, no renombra ni fija forma de pago', ruleIndex: i });
       }
       if (r.matchType && ['exact','starts','contains','regex'].indexOf(r.matchType) < 0) {
         const msg = 'Regla #' + i + ' tiene matchType desconocido: "' + r.matchType + '"';
@@ -2386,7 +2394,7 @@ function validateState(s) {
       }
     });
     if (rulesInvalid > 0) {
-      warnings.push(rulesInvalid + ' regla(s) sin pattern o categoría — no se aplicarán');
+      warnings.push(rulesInvalid + ' regla(s) que no se van a aplicar: sin patrón o sin ninguna acción');
     }
   }
 

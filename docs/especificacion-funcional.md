@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.91 |
+| **Versión** | 1.92 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -518,6 +518,9 @@ Cinco pantallas.
 | RF-168 | Las reglas se agrupan visualmente. El grupo de reglas de descarte se presenta siempre visible, con independencia del filtro activo |
 | RF-168b | Las reglas que no clasifican se agrupan por lo que sí hacen —«Sólo renombrar», «Sólo forma de pago»—, nunca bajo una clave interna del sistema |
 | RF-168c | En el listado, **los cinco datos de una regla se presentan con la misma tipografía, cuerpo y color**: modo de coincidencia, patrón, destino, periodicidad y forma de pago. Con un estilo distinto por columna, una misma fila se leía como cinco cosas sin relación |
+| RF-168g | Aplicar una regla **de descarte** a los movimientos ya cargados los **elimina**, con una confirmación en tratamiento de advertencia que dice cuántos son, y el resultado informa cuántos se descartaron. Antes esa acción recorría el camino de las reglas que clasifican: le asignaba a cada movimiento una categoría inexistente —los dejaba sin categoría— y no borraba ninguno. Aplicar una regla **también renombra**, si la regla renombra |
+| RF-168h | El **diagnóstico del archivo usa el mismo criterio de validez que el motor** (RF-165): marca una regla cuando no tiene patrón o cuando no ejecuta ninguna acción, y dice cuál de las dos cosas pasa. Exigir categoría siempre daba por rotas a las de descarte, a las de sólo renombre y a las de sólo forma de pago, que funcionan: el diagnóstico mandaba a revisar reglas sanas |
+| RF-168i | Cada problema de una regla en el diagnóstico **lleva a esa regla**: abre Administración en la solapa de reglas, despliega su grupo y la destaca. La identifica por su identificador, no por su número de orden, que cambia al reordenar |
 | RF-168e | Cada regla del listado muestra su **número de orden de evaluación**, y el panel explica que ante dos reglas que coinciden gana la de número más chico. Sin ese dato a la vista la prioridad era invisible: las reglas se agrupan por categoría y mover una no cambiaba nada en pantalla, de modo que el control de subirla parecía no funcionar |
 | RF-168f | Los **grupos se ordenan por la prioridad** de su primera regla, no por nombre, y cada regla puede **subir y bajar** posiciones. El orden alfabético contradecía al propósito de la pantalla, que es decidir qué regla gana. La fila que se movió destaca un instante: un cambio de prioridad puede sacarla del grupo donde se la estaba mirando |
 | RF-168d | El patrón **se escribe, se guarda y se muestra en mayúsculas**: un solo criterio para el campo, el archivo y el listado. Normalizarlo no altera qué reconoce cada regla, porque la coincidencia ya compara ambos lados en minúsculas y sin acentos. Los patrones guardados antes se normalizan al abrir el archivo, de modo que no convivan dos formatos del mismo campo. **La expresión regular es la excepción**: no es texto sino código, y en mayúsculas significa otra cosa —`\d`, un dígito, pasa a `\D`, que es cualquier cosa menos un dígito—, así que se guarda y se muestra tal como se escribió |
@@ -1045,7 +1048,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 526 pruebas en 65 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 531 pruebas en 66 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 | RNF-45 | **El buscador de movimientos espera a que se deje de escribir** antes de filtrar. Un listado de 1.500 movimientos se recalcula entero en cada pulsación: escribir una palabra de doce letras eran doce recálculos y un segundo y medio de pantalla trabada —medido—. La espera es de 160 ms, por debajo del umbral en que la respuesta deja de percibirse inmediata |
 | RNF-46 | **Lo que se usa muchas veces se construye una sola vez.** Los formateadores de número viven fuera de la función que los usa: crear uno cuesta 47 veces más que usarlo, y el formateo de montos llegó a ser más de la mitad del tiempo de cada pulsación. La misma regla vale para el dibujado de iconos, que se acota al elemento que cambió en lugar de recorrer la pantalla entera, y para las claves de ordenamiento, que se calculan una vez por fila y no dentro del comparador |
@@ -1285,7 +1288,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.88 | 17/10/2026 | El listado de movimientos deja de trabarse con 1.500 filas: el buscador espera, los formateadores se reusan y los iconos se dibujan sólo donde cambiaron (RNF-45, RNF-46, RNF-47) | Reemplazada |
 | 1.89 | 17/10/2026 | El alta de reglas se reacomoda en dos filas parejas y el listado presenta sus cinco datos con una sola tipografía (RF-168c) | Reemplazada |
 | 1.90 | 17/10/2026 | El patrón de una regla se guarda en mayúsculas, con la expresión regular como excepción (RF-168d, 5.4, RNF-43) | Reemplazada |
-| 1.91 | 17/10/2026 | La prioridad de las reglas se ve y se puede cambiar, y los rótulos de la pantalla responden a un solo criterio (RF-168e, RF-168f, RNF-18g) | **Vigente** |
+| 1.91 | 17/10/2026 | La prioridad de las reglas se ve y se puede cambiar, y los rótulos de la pantalla responden a un solo criterio (RF-168e, RF-168f, RNF-18g) | Reemplazada |
+| 1.92 | 17/10/2026 | Aplicar una regla de descarte descarta de verdad, el diagnóstico deja de marcar reglas sanas y cada problema lleva a su regla (RF-168g, RF-168h, RF-168i, RNF-43) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

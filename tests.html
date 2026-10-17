@@ -3273,6 +3273,48 @@ group('Reglas de descarte — movimientos que no entran', function () {
   });
 });
 
+group('Diagnóstico — qué regla está realmente rota', function () {
+  const base = { categoryLabels: { Alimentacion: 'Alimentación' }, transactionsByYear: {} };
+  const validar = (reglas) => {
+    const rep = validateState(Object.assign({}, base, { categoryRules: reglas }));
+    return (rep.issues || []).filter(function (i) { return i.type === 'ruleInvalid'; });
+  };
+
+  test('una regla de descarte NO está rota', function () {
+    // El validador exigía categoría siempre y mandaba a revisar reglas sanas.
+    assertEqual(validar([{ id: 'a', pattern: 'SALDO ANTERIOR', accion: REGLA_DESCARTAR, enabled: true }]).length, 0);
+  });
+  test('una regla que sólo renombra o sólo fija la forma de pago tampoco', function () {
+    assertEqual(validar([{ id: 'b', pattern: 'MERPAGO', descripcionNueva: 'Starbucks', enabled: true }]).length, 0);
+    assertEqual(validar([{ id: 'c', pattern: 'MERPAGO', formaPago: 'qr', enabled: true }]).length, 0);
+  });
+  test('sin patrón sí está rota, y lo dice', function () {
+    const r = validar([{ id: 'd', pattern: '', categoria: 'Alimentacion', enabled: true }]);
+    assertEqual(r.length, 1);
+    assert(/sin patrón/.test(r[0].message), 'el motivo tiene que ser el patrón: ' + r[0].message);
+  });
+  test('con patrón pero sin ninguna acción, también', function () {
+    const r = validar([{ id: 'e', pattern: 'ALGO', enabled: true }]);
+    assertEqual(r.length, 1);
+    assert(/no hace nada/.test(r[0].message), 'el motivo tiene que ser que no hace nada: ' + r[0].message);
+  });
+  test('el diagnóstico usa el mismo criterio que el motor', function () {
+    // Si el motor la ignora, el diagnóstico la marca; si el motor la aplica,
+    // el diagnóstico se calla. Esa es la única relación que tiene que haber.
+    [
+      { id: 'f', pattern: 'X', categoria: 'Alimentacion', enabled: true },
+      { id: 'g', pattern: 'X', accion: REGLA_DESCARTAR, enabled: true },
+      { id: 'h', pattern: 'X', formaPago: 'qr', enabled: true },
+      { id: 'i', pattern: 'X', descripcionNueva: 'Y', enabled: true },
+      { id: 'j', pattern: 'X', enabled: true }
+    ].forEach(function (regla) {
+      const laAplicaElMotor = matchCategoryRule('x', regla) !== null;
+      const laMarcaElDiagnostico = validar([regla]).length > 0;
+      assertEqual(laMarcaElDiagnostico, !laAplicaElMotor, 'desacuerdo en la regla ' + regla.id);
+    });
+  });
+});
+
 group('Reglas — el patrón se guarda en mayúsculas', function () {
   test('un patrón de texto se guarda en mayúsculas, sin espacios al borde', function () {
     assertEqual(normalizarPatronDeRegla('  Coto;Carrefour ', 'contains'), 'COTO;CARREFOUR');
