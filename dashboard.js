@@ -7356,13 +7356,19 @@ async function importarArchivoResumen(file) {
   const plantilla = detectarPlantilla(filas, plantillasDisponibles());
   if (!plantilla) {
     const conocidas = plantillasDisponibles().map(function (p) { return p.nombre; }).join(', ');
-    throw new Error('No reconocí el formato del archivo. Entidades configuradas: ' + conocidas +
-                    '. Podés agregar la tuya desde "Formatos de importación".');
+    const err = new Error('No reconocí el formato del archivo. Entidades configuradas: ' + conocidas +
+                          '. Podés agregar la tuya desde "Formatos de importación".');
+    // Marcado para que quien lee varios archivos de una pueda saltear éste y
+    // nombrar el motivo en el resumen, en vez de cortar toda la tanda.
+    err.code = 'formato_desconocido';
+    throw err;
   }
 
   const resultado = parseResumenConPlantilla(filas, plantilla);
   if (resultado.transactions.length === 0) {
-    throw new Error(resultado.errores[0] || 'El archivo no tenía movimientos para importar.');
+    const err = new Error(resultado.errores[0] || 'El archivo no tenía movimientos para importar.');
+    err.code = 'sin_movimientos';
+    throw err;
   }
 
   // Un resumen puede cruzar meses: se importa un lote por cada uno.
@@ -17804,86 +17810,176 @@ function bindStatementFileImport() {
     status.innerHTML = html;
   }
 
-  async function procesar(file) {
-    if (!file) return;
+  // Por qué un archivo no entró, dicho para quien lo soltó. El formato sin
+  // configurar es el caso que más se repite —el resumen de un banco que todavía
+  // no se dio de alta— y por eso tiene su propia frase, con el camino para
+  // resolverlo; el resto de los errores se cuentan como vinieron.
+  function motivoDeError(e) {
+    if (e && e.code === 'formato_desconocido') return 'no está configurada la estructura de su archivo';
+    if (e && e.code === 'sin_movimientos') return 'no tenía movimientos para importar';
+    return String((e && e.message) || e);
+  }
 
-    mostrar('', '<strong>Leyendo</strong> ' + escapeHtmlSafe(file.name) + '…');
+  // Lee un archivo y devuelve qué pasó, sin lanzar: en una tanda, que uno falle
+  // no puede dejar sin leer a los que venían atrás.
+  async function leerUno(file) {
     try {
-      const r = await importarArchivoResumen(file);
+      return { file: file, ok: true, r: await importarArchivoResumen(file) };
+    } catch (e) {
+      // El motivo corto rotula la línea de ese archivo en una tanda; el
+      // mensaje entero —que dice qué entidades hay y dónde se agrega una— es
+      // el que se muestra cuando el archivo era uno solo y no hay lista que
+      // leer antes.
+      return {
+        file: file, ok: false,
+        motivo: motivoDeError(e),
+        mensaje: String((e && e.message) || e),
+        code: e && e.code
+      };
+    }
+  }
+
+  // El mensaje de un solo archivo: el de siempre, con el detalle completo.
+  function resumenDeUno(r) {
+    const partes = [
+      '<strong>¡Importado!</strong> ' + r.origen + ' · ' + r.meses.join(', '),
+      r.leidas + ' movimiento' + (r.leidas === 1 ? '' : 's') + ' leído' + (r.leidas === 1 ? '' : 's')
+    ];
+    if (r.nuevas || r.omitidas) {
+      partes.push(r.nuevas + ' nuev' + (r.nuevas === 1 ? 'o' : 'os') +
+                  (r.omitidas ? ' · ' + r.omitidas + ' ya existente' + (r.omitidas === 1 ? '' : 's') : ''));
+    }
+    if (r.descartadas) {
+      partes.push('<span style="color:var(--muted)">' + r.descartadas + ' descartado' +
+                  (r.descartadas === 1 ? '' : 's') + ' por regla</span>');
+    }
+    if (r.renombradas) {
+      partes.push('<span style="color:var(--muted)">' + r.renombradas + ' renombrado' +
+                  (r.renombradas === 1 ? '' : 's') + '</span>');
+    }
+    if (r.internas) partes.push(r.internas + ' movimiento' + (r.internas === 1 ? '' : 's') + ' interno' + (r.internas === 1 ? '' : 's'));
+    if (r.errores.length) partes.push('<span style="color:var(--red)">' + r.errores.length + ' fila(s) con problemas</span>');
+    return partes.join(' · ');
+  }
+
+  // El de una tanda: una línea con el total y, debajo, los que no entraron con
+  // su motivo. Los que entraron no se enumeran —son los que el usuario esperaba
+  // que entraran—; lo que hay que leer son las excepciones.
+  function resumenDeTanda(resultados) {
+    const t = resumirTanda(resultados);
+    const fallados = resultados.filter(function (x) { return !x.ok; });
+    let html;
+    if (t.importados) {
       const partes = [
-        '<strong>¡Importado!</strong> ' + r.origen + ' · ' + r.meses.join(', '),
-        r.leidas + ' movimiento' + (r.leidas === 1 ? '' : 's') + ' leído' + (r.leidas === 1 ? '' : 's')
+        '<strong>¡Importados ' + t.importados + ' de ' + t.total + ' archivos!</strong> ' +
+          t.origenes.join(', ') + ' · ' + t.meses.join(', '),
+        t.leidas + ' movimientos leídos',
+        t.nuevas + ' nuev' + (t.nuevas === 1 ? 'o' : 'os') +
+          (t.omitidas ? ' · ' + t.omitidas + ' ya existente' + (t.omitidas === 1 ? '' : 's') : '')
       ];
-      if (r.nuevas || r.omitidas) {
-        partes.push(r.nuevas + ' nuev' + (r.nuevas === 1 ? 'o' : 'os') +
-                    (r.omitidas ? ' · ' + r.omitidas + ' ya existente' + (r.omitidas === 1 ? '' : 's') : ''));
+      html = partes.join(' · ');
+    } else {
+      html = '<strong>No se pudo leer ninguno de los ' + t.total + ' archivos.</strong>';
+    }
+    if (fallados.length) {
+      html += '<div style="margin-top:8px">' + fallados.map(function (x) {
+        return '<div><strong>' + escapeHtmlSafe(x.file.name) + '</strong> — ' +
+               escapeHtmlSafe(x.motivo) + '</div>';
+      }).join('') + '</div>';
+      // El camino para resolverlo va una sola vez al pie, no repetido en cada
+      // línea: si cayeron cinco resúmenes del mismo banco sin configurar, el
+      // motivo es el mismo cinco veces y la salida también.
+      if (fallados.some(function (x) { return x.code === 'formato_desconocido'; })) {
+        html += '<div style="margin-top:6px">Su formato se agrega desde ' +
+                '<strong>Formatos de importación</strong>, acá abajo.</div>';
       }
-      if (r.descartadas) {
-        partes.push('<span style="color:var(--muted)">' + r.descartadas + ' descartado' +
-                    (r.descartadas === 1 ? '' : 's') + ' por regla</span>');
+    }
+    return { html: html, clase: t.fallados ? (t.importados ? 'warning' : 'error') : 'success' };
+  }
+
+  // Guardado INMEDIATO, sin esperar el debounce de 800 ms de scheduleSave().
+  // Una importación mete decenas de movimientos de una: dejarlos esperando
+  // en memoria es la peor ventana posible para que se cierre la pestaña. Con
+  // una tanda se guarda UNA vez al final y no una por archivo.
+  //
+  // Puede fallar por permisos y no es un error de la app: Chrome NO persiste
+  // el permiso de escritura entre sesiones. Al reabrir, el handle se
+  // restaura desde IndexedDB pero su permiso queda en 'prompt' hasta que el
+  // usuario lo vuelva a conceder, y requestPermission() sólo funciona con un
+  // gesto del usuario. Ni el evento change del input sirve: la activación se
+  // consumió al abrir el selector de archivos.
+  //
+  // Por eso no se pide el permiso por adelantado ni se bloquea la
+  // importación: se importa igual y, si el guardado falla, se ofrece un
+  // botón. Ese click es el gesto que hace posible pedir el permiso.
+  async function guardarTrasImportar(cuantos) {
+    if (!driveHandle || window.DEMO_MODE) return;
+    if (await saveToFile(driveHandle)) return;
+    mostrar('error',
+      '<strong>Se importó, pero falta tu permiso para escribir el archivo.</strong> ' +
+      'Los ' + cuantos + ' movimientos están cargados en esta sesión. ' +
+      'Apretá el botón para autorizarlo y guardar.' +
+      '<div style="margin-top:10px"><button type="button" class="upload-btn" id="fileImportAuthBtn">' +
+      'AUTORIZAR Y GUARDAR</button></div>');
+    const authBtn = document.getElementById('fileImportAuthBtn');
+    if (!authBtn) return;
+    authBtn.addEventListener('click', async function () {
+      // Acá sí hay user activation: es un click directo del usuario.
+      if (await saveToFile(driveHandle)) {
+        mostrar('success', '<strong>Guardado.</strong> Los ' + cuantos +
+          ' movimientos quedaron guardados en el archivo.');
+      } else {
+        mostrar('error', '<strong>No se pudo guardar.</strong> Probá reconectar el ' +
+          'archivo desde el botón CONECTAR JSON del panel lateral.');
       }
-      if (r.renombradas) {
-        partes.push('<span style="color:var(--muted)">' + r.renombradas + ' renombrado' +
-                    (r.renombradas === 1 ? '' : 's') + '</span>');
-      }
-      if (r.internas) partes.push(r.internas + ' movimiento' + (r.internas === 1 ? '' : 's') + ' interno' + (r.internas === 1 ? '' : 's'));
-      if (r.errores.length) partes.push('<span style="color:var(--red)">' + r.errores.length + ' fila(s) con problemas</span>');
-      mostrar('success', partes.join(' · '));
+    });
+  }
+
+  // Lee uno o varios archivos. Van EN SERIE y no en paralelo: cada uno se
+  // mergea contra el estado que dejó el anterior, que es lo que hace que dos
+  // resúmenes con días en común no dupliquen esos movimientos.
+  async function procesar(files) {
+    const lista = Array.prototype.slice.call(files || []).filter(Boolean);
+    if (!lista.length) return;
+
+    const resultados = [];
+    for (let i = 0; i < lista.length; i++) {
+      mostrar('', '<strong>Leyendo</strong> ' + escapeHtmlSafe(lista[i].name) + '…' +
+        (lista.length > 1 ? ' <span style="color:var(--muted)">(' + (i + 1) + ' de ' + lista.length + ')</span>' : ''));
+      // Una pausa para que el navegador alcance a pintar el progreso: la
+      // lectura es sincrónica de punta a punta y, sin esto, la tanda entera se
+      // ve como una sola pantalla congelada. Va con setTimeout y no con
+      // requestAnimationFrame: en una pestaña en segundo plano el navegador no
+      // entrega cuadros, y la tanda quedaba detenida —verificado— hasta que el
+      // usuario volviera a mirarla.
+      await new Promise(function (r) { setTimeout(r, 0); });
+      resultados.push(await leerUno(lista[i]));
+    }
+
+    const ok = resultados.filter(function (x) { return x.ok; });
+    if (lista.length === 1) {
+      const unico = resultados[0];
+      if (unico.ok) mostrar('success', resumenDeUno(unico.r));
+      else mostrar('error', '<strong>Error:</strong> ' + escapeHtmlSafe(unico.mensaje));
+    } else {
+      const res = resumenDeTanda(resultados);
+      mostrar(res.clase, res.html);
+    }
+
+    if (ok.length) {
       // Recién ahora aparece Cerrar: ya hay algo hecho que cerrar.
       if (typeof mostrarCerrarModalCarga === 'function') mostrarCerrarModalCarga(true);
-
       initSelectors();
       renderAll();
       if (typeof renderMainMovements === 'function') renderMainMovements();
       if (typeof renderUploadHistoryPanel === 'function') renderUploadHistoryPanel();
-
-      // Guardado INMEDIATO, sin esperar el debounce de 800 ms de scheduleSave().
-      // Una importación mete decenas de movimientos de una: dejarlos esperando
-      // en memoria es la peor ventana posible para que se cierre la pestaña.
-      //
-      // Puede fallar por permisos y no es un error de la app: Chrome NO persiste
-      // el permiso de escritura entre sesiones. Al reabrir, el handle se
-      // restaura desde IndexedDB pero su permiso queda en 'prompt' hasta que el
-      // usuario lo vuelva a conceder, y requestPermission() sólo funciona con un
-      // gesto del usuario. Ni el evento change del input sirve: la activación se
-      // consumió al abrir el selector de archivos.
-      //
-      // Por eso no se pide el permiso por adelantado ni se bloquea la
-      // importación: se importa igual y, si el guardado falla, se ofrece un
-      // botón. Ese click es el gesto que hace posible pedir el permiso.
-      if (driveHandle && !window.DEMO_MODE) {
-        const guardado = await saveToFile(driveHandle);
-        if (!guardado) {
-          mostrar('error',
-            '<strong>Se importó, pero falta tu permiso para escribir el archivo.</strong> ' +
-            'Los ' + r.leidas + ' movimientos están cargados en esta sesión. ' +
-            'Apretá el botón para autorizarlo y guardar.' +
-            '<div style="margin-top:10px"><button type="button" class="upload-btn" id="fileImportAuthBtn">' +
-            'AUTORIZAR Y GUARDAR</button></div>');
-          const authBtn = document.getElementById('fileImportAuthBtn');
-          if (authBtn) {
-            authBtn.addEventListener('click', async function () {
-              // Acá sí hay user activation: es un click directo del usuario.
-              const ok = await saveToFile(driveHandle);
-              if (ok) {
-                mostrar('success', '<strong>Guardado.</strong> Los ' + r.leidas +
-                  ' movimientos quedaron guardados en el archivo.');
-              } else {
-                mostrar('error', '<strong>No se pudo guardar.</strong> Probá reconectar el ' +
-                  'archivo desde el botón CONECTAR JSON del panel lateral.');
-              }
-            });
-          }
-        }
-      }
-    } catch (e) {
-      mostrar('error', '<strong>Error:</strong> ' + escapeHtmlSafe(String(e && e.message || e)));
+      await guardarTrasImportar(ok.reduce(function (n, x) { return n + x.r.leidas; }, 0));
     }
     input.value = '';   // permitir volver a elegir el mismo archivo
   }
 
   btn.addEventListener('click', function () { input.click(); });
-  input.addEventListener('change', function () { procesar(input.files && input.files[0]); });
+  input.addEventListener('change', function () { procesar(input.files); });
 
   // Arrastrar y soltar sobre el recuadro
   if (drop) {
@@ -17894,22 +17990,7 @@ function bindStatementFileImport() {
       drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('dragging'); });
     });
     drop.addEventListener('drop', function (e) {
-      const sueltos = (e.dataTransfer && e.dataTransfer.files) || [];
-      const f = sueltos[0];
-      if (!f) return;
-      // Se lee uno por vez. Soltar varios leía el primero y descartaba el resto
-      // sin decir nada: el usuario veía "¡Importado!" y se quedaba con la idea
-      // de que habían entrado los cinco.
-      if (sueltos.length > 1) {
-        mostrar('warning', '<strong>Se lee un archivo por vez.</strong> De los ' + sueltos.length +
-          ' que soltaste se va a leer <strong>' + escapeHtmlSafe(f.name) + '</strong>; ' +
-          'los otros ' + (sueltos.length - 1) + ' quedaron afuera. Soltalos de a uno.');
-        // Un respiro antes de pisar el aviso con el resultado de la lectura, o
-        // el mensaje pasa tan rápido que es como no haberlo puesto.
-        setTimeout(function () { procesar(f); }, 2200);
-        return;
-      }
-      procesar(f);
+      procesar(e.dataTransfer && e.dataTransfer.files);
     });
   }
   btn._bound = true;

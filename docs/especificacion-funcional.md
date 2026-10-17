@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.84 |
+| **Versión** | 1.85 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -442,7 +442,8 @@ Tres vías, resueltas desde un único asistente.
 | RF-114 | Debajo del área de carga se listan todos los formatos disponibles, incorporados y creados |
 | RF-115 | El sistema informa, por origen, la fecha de la última carga y la cantidad de movimientos guardados y leídos |
 | RF-115a | Se recuerdan las **diez cargas más recientes de cada origen**, y de cada una se informa **qué período traía el archivo** además de cuándo se cargó. Un resumen bancario se carga mes a mes: con tres entradas, un trimestre tapa todo lo anterior, y sin el período hay que abrir el archivo para saber si ese mes ya entró — que es la única pregunta que se le hace al panel. La hora de la carga y el desglose completo quedan en el emergente: en la línea no entran sin recortar el conteo |
-| RF-115b | El área de carga **lee un archivo por vez y lo dice cuando recibe varios**: soltar un puñado de resúmenes leía el primero y descartaba el resto sin avisar, y el mensaje de importación exitosa dejaba creer que habían entrado todos |
+| RF-115b | El área de carga **acepta varios archivos a la vez**, elegidos o soltados juntos. Se leen **uno después del otro y no en paralelo**: cada uno se compara contra lo que dejó el anterior, que es lo que hace que dos resúmenes con días en común no dupliquen esos movimientos. Mientras corre se dice cuál se está leyendo y cuántos faltan, y el archivo se guarda una sola vez al final y no una por archivo |
+| RF-115c | **Un archivo que no se puede leer no corta la tanda**: se saltea, los demás entran, y el resumen final nombra cuáles quedaron afuera y por qué. El motivo más común —el resumen de una entidad que todavía no se dio de alta— se dice con esas palabras, *no está configurada la estructura de su archivo*, y el camino para resolverlo aparece una sola vez al pie aunque sean cinco archivos del mismo banco. Cuando el archivo era uno solo se muestra el mensaje completo del error, que ya nombra las entidades configuradas |
 | RF-116 | El sistema emite un recordatorio cuando un origen lleva tiempo sin actualizarse. El recordatorio puede descartarse y reaparece si la situación cambia |
 
 #### 4.9.2 Carga manual
@@ -1033,7 +1034,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 508 pruebas en 62 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 510 pruebas en 62 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 
 **Fundamento de RNF-40.** Requerimiento explícito del cliente: una herramienta personal destinada a seguir operativa dentro de cinco años no puede depender de una cadena de compilación cuyas dependencias se degradan en meses.
@@ -1263,7 +1264,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.81 | 16/10/2026 | El diálogo de configuración dice cuántas subcategorías viajan con las categorías (RF-210d) | Reemplazada |
 | 1.82 | 17/10/2026 | La Ficha médica se importa con el modo elegido y sus tarjetas dejan de mezclarse con las de fábrica (RF-210e, RF-210f, RNF-43) | Reemplazada |
 | 1.83 | 17/10/2026 | El resumen del import cuenta las subcategorías en su propia fila (RF-210d, RNF-43) | Reemplazada |
-| 1.84 | 17/10/2026 | Diez cargas por origen con el período de cada archivo, y aviso cuando se sueltan varios (RF-115a, RF-115b) | **Vigente** |
+| 1.84 | 17/10/2026 | Diez cargas por origen con el período de cada archivo, y aviso cuando se sueltan varios (RF-115a, RF-115b) | Reemplazada |
+| 1.85 | 17/10/2026 | Se cargan varios resúmenes de una, y el que no tiene su formato configurado se saltea con aviso (RF-115b, RF-115c, RNF-43) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

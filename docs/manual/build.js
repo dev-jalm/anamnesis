@@ -85,14 +85,15 @@ window.MANUAL = {
       img: '06-cargar-archivo',
       imgCap: 'Subida del resumen bancario y las últimas cargas por origen.',
       p: [
-        'Se entra desde Historia clínica, con el botón CARGAR MOVIMIENTOS de arriba a la derecha. Es la vía principal para que los datos lleguen a la app: subís el resumen tal como lo bajás del banco —CSV o Excel— y lo lee sola, sin convertirlo ni pegarlo en ningún lado. El texto debajo del recuadro enumera las entidades configuradas.',
+        'Se entra desde Historia clínica, con el botón CARGAR MOVIMIENTOS de arriba a la derecha. Es la vía principal para que los datos lleguen a la app: subís los resúmenes tal como los bajás del banco —CSV o Excel— y los lee solos, sin convertirlos ni pegarlos en ningún lado. El texto debajo del recuadro enumera las entidades configuradas.',
         'La app reconoce de qué banco es el archivo por su contenido, no por el nombre, así que no hay que elegir el origen de antemano. Si tu banco todavía no está configurado, se agrega desde Formatos de importación, que es la sección que sigue.'
       ],
       lista: [
         'Podés subir resúmenes que se solapen. Si cargás del 1 al 10 y después del 8 al 20, los movimientos repetidos se descartan solos.',
         'Y si entre una carga y otra corregiste la descripción, el monto o la fecha de un movimiento, se lo sigue reconociendo como el mismo: la app lo identifica por la clave que tenía en el archivo del que salió, no por lo que muestra la pantalla.',
         'El panel ÚLTIMAS CARGAS guarda las diez más recientes de cada origen: la fecha, el mes que traía el archivo y cuántos movimientos quedaron sobre cuántos venían. Con el mes a la vista se contesta de un vistazo la pregunta por la que se mira el panel, que es si ese resumen ya se cargó. La hora de la carga y el desglose completo aparecen al apoyar el puntero.',
-        'Se lee un archivo por vez. Si soltás varios juntos sobre el recuadro, la app avisa cuál va a leer y cuántos quedaron afuera.'
+        'Podés cargar varios resúmenes de una: elegilos juntos o soltalos todos sobre el recuadro. Se leen uno después del otro, así los que se solapan siguen descartando los repetidos, y al final un solo mensaje dice cuántos entraron.',
+        'Si alguno es de una entidad que todavía no configuraste, ese archivo se saltea y los demás entran igual. El mensaje lo nombra y dice que no está configurada la estructura de su archivo, que se agrega desde Formatos de importación.'
       ]
     },
     {

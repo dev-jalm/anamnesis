@@ -1239,6 +1239,34 @@ function deserializeTags(parsed, currentTags, mode) {
   throw new Error('Modo de import inválido: ' + mode);
 }
 
+// ----- IMPORTAR VARIOS ARCHIVOS DE UNA -----
+// Junta lo que dejó cada archivo de una tanda. Cada entrada es
+// { ok, r } o { ok: false, ... }, donde r es lo que devuelve la importación de
+// un archivo. Devuelve sólo números y listas: el mensaje lo arma la pantalla.
+//
+// Los orígenes y los meses se acumulan sin repetir y en el orden en que
+// aparecieron: tres resúmenes del mismo banco son un origen, no tres, y dos
+// archivos que cubren el mismo mes lo nombran una vez.
+function resumirTanda(resultados) {
+  const lista = Array.isArray(resultados) ? resultados : [];
+  const out = {
+    total: lista.length, importados: 0, fallados: 0,
+    origenes: [], meses: [], leidas: 0, nuevas: 0, omitidas: 0
+  };
+  lista.forEach(function (x) {
+    if (!x || !x.ok || !x.r) { out.fallados++; return; }
+    out.importados++;
+    if (x.r.origen && out.origenes.indexOf(x.r.origen) < 0) out.origenes.push(x.r.origen);
+    (x.r.meses || []).forEach(function (m) {
+      if (out.meses.indexOf(m) < 0) out.meses.push(m);
+    });
+    out.leidas += (x.r.leidas || 0);
+    out.nuevas += (x.r.nuevas || 0);
+    out.omitidas += (x.r.omitidas || 0);
+  });
+  return out;
+}
+
 // ----- FICHA MÉDICA: FUSIÓN POR MODO -----
 // El modo elegido en el diálogo de import vale para TODO lo que se importa, no
 // sólo para las reglas y las categorías. Las tarjetas KPI y los viajes son
@@ -3651,6 +3679,7 @@ if (typeof module !== 'undefined' && module.exports) {
     serializeTags, deserializeTags,
     serializeFullConfig, previewImport, PARAMS_CONFIG_KEYS,
     fusionarPorId, fusionarDict, fusionarFichaMedica,
+    resumirTanda,
     // reserva
     getReservaParams, getReservaAcumulado,
     // health score

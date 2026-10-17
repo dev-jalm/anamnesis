@@ -4903,10 +4903,12 @@ body[data-exporting="true"] .section-card {
   gap: 14px;
   align-items: start;
   /* Diez cargas por columna miden 204px (medido). El tope deja entrar esa
-     columna entera y acota el caso que sí crece sin techo: con un quinto
-     origen —una entidad que definió el usuario— el grid arma una segunda fila
-     y el modal se iría de una pantalla de 768px de alto. */
-  max-height: 210px;
+     columna entera y acota los dos casos que crecen sin techo: un quinto
+     origen —una entidad que definió el usuario—, que arma una segunda fila de
+     columnas, y el resumen de una tanda con varios archivos salteados, que
+     suma renglones abajo. La parte en vh es por el alto de pantalla: en una de
+     768px, con el panel en 210 el diálogo medía 770 y no entraba. */
+  max-height: min(210px, 22vh);
   overflow-y: auto;
 }
 .uh-col {
