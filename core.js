@@ -244,6 +244,21 @@ function escapeHtmlSafe(s) {
 //   -1234         → "-1.234"
 //   0             → "0"
 
+// Los formateadores se construyen una vez por combinación de decimales y se
+// guardan: construir un Intl.NumberFormat cuesta decenas de veces más que
+// usarlo, y esta función se llama una vez por celda en pantallas con miles de
+// filas.
+const _NF_AR_CACHE = {};
+function _nfAr(min, max) {
+  const k = min + '|' + max;
+  if (!_NF_AR_CACHE[k]) {
+    _NF_AR_CACHE[k] = new Intl.NumberFormat('es-AR', {
+      minimumFractionDigits: min, maximumFractionDigits: max
+    });
+  }
+  return _NF_AR_CACHE[k];
+}
+
 // Formatea un número en es-AR con separador de miles y, opcionalmente, decimales.
 // Si el valor es null/undefined/NaN devuelve string vacío.
 // Si decimals es null/undefined, intenta detectar si hay decimales en el número.
@@ -251,16 +266,11 @@ function formatNumberAr(value, decimals) {
   if (value === null || value === undefined || value === '') return '';
   const n = typeof value === 'number' ? value : parseFloat(value);
   if (!isFinite(n) || isNaN(n)) return '';
-  let opts;
   if (decimals !== undefined && decimals !== null) {
-    opts = { minimumFractionDigits: decimals, maximumFractionDigits: decimals };
-  } else {
-    // Detectar decimales: si el número es entero, sin decimales; sino hasta 2
-    opts = Number.isInteger(n)
-      ? { maximumFractionDigits: 0 }
-      : { maximumFractionDigits: 2 };
+    return _nfAr(decimals, decimals).format(n);
   }
-  return new Intl.NumberFormat('es-AR', opts).format(n);
+  // Detectar decimales: si el número es entero, sin decimales; sino hasta 2
+  return Number.isInteger(n) ? _nfAr(0, 0).format(n) : _nfAr(0, 2).format(n);
 }
 
 // Parsea un string con formato es-AR (o cualquier formato similar) a número.

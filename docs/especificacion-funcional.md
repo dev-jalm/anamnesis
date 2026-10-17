@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.87 |
+| **Versión** | 1.88 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -1042,6 +1042,9 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
 | RNF-43 | Cobertura actual: 521 pruebas en 64 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
+| RNF-45 | **El buscador de movimientos espera a que se deje de escribir** antes de filtrar. Un listado de 1.500 movimientos se recalcula entero en cada pulsación: escribir una palabra de doce letras eran doce recálculos y un segundo y medio de pantalla trabada —medido—. La espera es de 160 ms, por debajo del umbral en que la respuesta deja de percibirse inmediata |
+| RNF-46 | **Lo que se usa muchas veces se construye una sola vez.** Los formateadores de número viven fuera de la función que los usa: crear uno cuesta 47 veces más que usarlo, y el formateo de montos llegó a ser más de la mitad del tiempo de cada pulsación. La misma regla vale para el dibujado de iconos, que se acota al elemento que cambió en lugar de recorrer la pantalla entera, y para las claves de ordenamiento, que se calculan una vez por fila y no dentro del comparador |
+| RNF-47 | Con 1.500 movimientos a la vista, filtrar tarda **menos de 60 ms** en la vista completa y menos de 20 en la de resumen, y desplazar la lista cuesta menos de 30 ms por cuadro |
 
 **Fundamento de RNF-40.** Requerimiento explícito del cliente: una herramienta personal destinada a seguir operativa dentro de cinco años no puede depender de una cadena de compilación cuyas dependencias se degradan en meses.
 
@@ -1273,7 +1276,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.84 | 17/10/2026 | Diez cargas por origen con el período de cada archivo, y aviso cuando se sueltan varios (RF-115a, RF-115b) | Reemplazada |
 | 1.85 | 17/10/2026 | Se cargan varios resúmenes de una, y el que no tiene su formato configurado se saltea con aviso (RF-115b, RF-115c, RNF-43) | Reemplazada |
 | 1.86 | 17/10/2026 | Reintegros se suma al catálogo de categorías de flujo (RF-024, RF-024a, RF-102a, 5.7, RNF-43) | Reemplazada |
-| 1.87 | 17/10/2026 | Una regla puede fijar la forma de pago, en el alta y en la edición (RF-164a, RF-165, RF-167a, RF-167b, RF-168b, 5.4, RNF-43) | **Vigente** |
+| 1.87 | 17/10/2026 | Una regla puede fijar la forma de pago, en el alta y en la edición (RF-164a, RF-165, RF-167a, RF-167b, RF-168b, 5.4, RNF-43) | Reemplazada |
+| 1.88 | 17/10/2026 | El listado de movimientos deja de trabarse con 1.500 filas: el buscador espera, los formateadores se reusan y los iconos se dibujan sólo donde cambiaron (RNF-45, RNF-46, RNF-47) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

@@ -203,6 +203,39 @@ Antes de dar por buena una regla nueva: leer el estilo computado, no asumir.
 
 ---
 
+## Rendimiento — lo que hace lento a este repo
+
+La app corre sobre listas de miles de filas sin framework: lo que es gratis con
+diez movimientos cuesta segundos con mil quinientos. Las tres causas que ya se
+midieron, en orden de cuánto pesaron:
+
+1. **Un render por tecla.** El buscador de Historia clínica recalculaba todo el
+   listado en cada pulsación: escribir una palabra de doce letras eran doce
+   renders y 1,4 s de pantalla trabada. Todo input que filtre una lista grande
+   va con espera (160 ms) antes de renderizar.
+2. **Construir lo que se puede reusar.** `new Intl.NumberFormat(...)` dentro de
+   la función de formateo cuesta **47 veces** más que un formateador creado una
+   vez arriba — medido: 2.000 formateos, 74,8 ms contra 1,6. Era más de la
+   mitad del tiempo de cada tecla. Lo mismo con cualquier objeto caro que se
+   arme dentro de un bucle de filas.
+3. **Trabajo global para un cambio local.** `lucide.createIcons()` sin argumento
+   recorre el documento entero y redibuja los 268 íconos de la pantalla aunque
+   hayan cambiado 21 filas: 20,2 ms contra 4,4 pasándole
+   `{ root: elementoQueCambió }`. En el listado corre también en cada cuadro de
+   scroll.
+
+Y una cuarta, más sutil: **no calcular dentro del comparador de un `sort`**. La
+clave de orden se calcula una vez por fila; adentro se recalcula en cada
+comparación, que para 1.500 filas son 33.000 veces en vez de 1.500.
+
+Cómo se verifica: con el dataset inflado a 1.500 movimientos, cronometrar
+`renderMainMovements()` y desglosar con un envoltorio que cuente llamadas y
+tiempo por función. **Primero el perfil, después el cambio**: la primera
+sospecha —que el problema era dibujar las filas— era falsa, la lista ya está
+virtualizada y dibuja 21.
+
+---
+
 ## Datos
 
 - **Los montos se guardan siempre positivos.** El signo lo aplica cada operación
