@@ -2500,6 +2500,22 @@ group('Export / Import de configuración', function () {
     assertEqual(Object.keys(nuevos.budgetByYear).sort().join(','), '2026,2027');
   });
 
+  test('el import avisa que la Ficha médica trae presupuestos', function () {
+    // Un archivo nuevo, sin presupuesto, importando la configuración de otro:
+    // los presupuestos viajan dentro de la sección Ficha médica y aparecían
+    // sin que nada los hubiera anunciado.
+    assertEqual(contarMesesPresupuestados({ 2026: { enero: { Vivienda: 100 }, febrero: {} }, 2025: { diciembre: {} } }), 3);
+    assertEqual(contarMesesPresupuestados(null), 0);
+    const blob = serializeFullConfig({
+      kpiCardsConfig: [{ id: 'k1' }],
+      budgetByYear: { 2026: { enero: { Vivienda: 820000 }, febrero: { Vivienda: 820000 } } }
+    }, { fichaMedica: true });
+    const p = previewImport(blob, { kpiCardsConfig: [], budgetByYear: {} }, 'replace_all');
+    assertEqual(p.presupuestos.current, 0);
+    assertEqual(p.presupuestos.incoming, 2);
+    assertEqual(p.presupuestos.willHave, 2);
+  });
+
   test('previewImport — la Ficha médica anuncia lo que el modo va a dejar', function () {
     const blob = serializeFullConfig({
       kpiCardsConfig: [{ id: 'kpi_ingresos' }, { id: 'kpi_reservas' }]

@@ -1369,6 +1369,16 @@ function fusionarDict(actual, entrante, mode) {
   throw new Error('Modo de import inválido: ' + mode);
 }
 
+// Cuántos meses tienen presupuesto cargado, sumando todos los años. Es la
+// unidad en la que se cuenta el presupuesto en los diálogos: "presupuesto de
+// 10 meses" se entiende; la cantidad de importes, no.
+function contarMesesPresupuestados(budgetByYear) {
+  const b = budgetByYear || {};
+  return Object.keys(b).reduce(function (n, y) {
+    return n + Object.keys(b[y] || {}).length;
+  }, 0);
+}
+
 // Devuelve el bloque de Ficha médica ya fusionado contra el actual. Vive acá y
 // no en el dashboard para que el preview y la aplicación cuenten lo mismo: que
 // el resumen anuncie un número y el import deje otro fue justamente el reporte.
@@ -1577,6 +1587,13 @@ function previewImport(parsed, currentStateLike, mode) {
       const curCards = (cur.kpiCardsConfig || []).length;
       const after = fusionarFichaMedica(cur, incoming, mode);
       out.fichaMedica = { current: curCards, incoming: incomingCards, willHave: after.kpiCardsConfig.length };
+      // Los presupuestos van en la misma sección y son lo que más sorprende
+      // encontrar después de importar: se cuentan aparte, en meses.
+      out.presupuestos = {
+        current: contarMesesPresupuestados(cur.budgetByYear),
+        incoming: contarMesesPresupuestados(incoming.budgetByYear),
+        willHave: contarMesesPresupuestados(after.budgetByYear)
+      };
     }
   }
   return out;
@@ -3731,7 +3748,7 @@ if (typeof module !== 'undefined' && module.exports) {
     serializeCategories, deserializeCategories, contarSubcategorias,
     serializeTags, deserializeTags,
     serializeFullConfig, previewImport, PARAMS_CONFIG_KEYS,
-    fusionarPorId, fusionarDict, fusionarFichaMedica,
+    fusionarPorId, fusionarDict, fusionarFichaMedica, contarMesesPresupuestados,
     resumirTanda,
     // reserva
     getReservaParams, getReservaAcumulado,

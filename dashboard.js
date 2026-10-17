@@ -25856,7 +25856,11 @@ function refreshImportPreview() {
     subcategoryClassification: state.subcategoryClassification || {},
     tags: state.taglabels || {},   // mapear taglabels → tags para core.js
     params: state.params || {},
-    kpiCardsConfig: state.kpiCardsConfig || []
+    kpiCardsConfig: state.kpiCardsConfig || [],
+    // Para poder anunciar cuántos meses de presupuesto quedan después.
+    budgetByYear: state.budgetByYear || {},
+    travels: state.travels || [],
+    visibilityPrefs: state.visibilityPrefs || {}
   };
   let preview;
   try {
@@ -25879,8 +25883,13 @@ function refreshImportPreview() {
   if (preview.params) lines.push(fmtRow('Parámetros', preview.params));
   // La fila se llama por lo que cuenta: la sección Ficha médica lleva además la
   // visibilidad, los viajes y los presupuestos, y un "tenés 11 · archivo 14"
-  // sin unidad no se puede leer.
+  // sin unidad no se puede leer. Los presupuestos van en su propia fila: es lo
+  // que más sorprende encontrar después, porque no se parece a nada de lo que
+  // uno cree estar importando cuando tilda "Ficha médica".
   if (preview.fichaMedica) lines.push(fmtRow('Tarjetas KPI', preview.fichaMedica));
+  if (preview.presupuestos && (preview.presupuestos.current || preview.presupuestos.incoming)) {
+    lines.push(fmtRow('Presupuesto (meses)', preview.presupuestos));
+  }
   document.getElementById('importPreview').innerHTML = lines.join('');
 }
 function applyImportConfirm() {
@@ -26020,8 +26029,22 @@ function openFullConfigModal(mode) {
     const v = state.params && state.params[k];
     return v !== undefined && v !== null && v !== '';
   }).length;
-  // Ficha médica: el dato más visible son las tarjetas KPI.
+  // Ficha médica: el dato más visible son las tarjetas KPI, pero la sección
+  // lleva además los viajes y —lo que sorprende— los PRESUPUESTOS anuales.
+  // Con el tilde diciendo sólo "14 tarjetas KPI", importar la configuración en
+  // un archivo recién creado le metía presupuestos que nadie había cargado
+  // ahí, y no había forma de saber de dónde habían salido.
   const fmCount = (state.kpiCardsConfig || []).length;
+  const viajesCount = (state.travels || []).length;
+  let mesesPresupuestados = 0;
+  Object.keys(state.budgetByYear || {}).forEach(function (y) {
+    mesesPresupuestados += Object.keys(state.budgetByYear[y] || {}).length;
+  });
+  const fmPartes = [fmCount + ' tarjeta' + (fmCount === 1 ? '' : 's') + ' KPI'];
+  if (mesesPresupuestados > 0) {
+    fmPartes.push('presupuesto de ' + mesesPresupuestados + ' mes' + (mesesPresupuestados === 1 ? '' : 'es'));
+  }
+  if (viajesCount > 0) fmPartes.push(viajesCount + ' viaje' + (viajesCount === 1 ? '' : 's'));
 
   document.getElementById('fullCountRules').textContent = '(' + rCount + ' regla' + (rCount === 1 ? '' : 's') + ')';
   document.getElementById('fullCountCategories').textContent = '(' + cCount + ' categoría' + (cCount === 1 ? '' : 's')
@@ -26029,7 +26052,7 @@ function openFullConfigModal(mode) {
   document.getElementById('fullCountTags').textContent = '(' + tCount + ' etiqueta' + (tCount === 1 ? '' : 's') + ')';
   document.getElementById('fullCountParams').textContent = '(' + pCount + ' campo' + (pCount === 1 ? '' : 's') + ')';
   // La "s" del plural va en tarjeta, no en la sigla: eran "0 tarjeta KPIs".
-  document.getElementById('fullCountFichaMedica').textContent = '(' + fmCount + ' tarjeta' + (fmCount === 1 ? '' : 's') + ' KPI)';
+  document.getElementById('fullCountFichaMedica').textContent = '(' + fmPartes.join(' · ') + ')';
   // Default todos chequeados
   Array.from(document.querySelectorAll('.fullconfig-section input[type="checkbox"]')).forEach(function (cb) {
     cb.checked = true;
