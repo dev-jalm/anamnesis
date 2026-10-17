@@ -5808,10 +5808,24 @@ body[data-exporting="true"] .section-card {
   font-size: 13px;
   color: var(--ink);
 }
-.fullconfig-section-count {
+/* La unidad que acompaña al rótulo de una fila del resumen de import es el
+   mismo dato que el contador del selector de secciones —qué se está contando—,
+   así que comparte su declaración y no una propia. */
+.fullconfig-section-count,
+.import-preview-row .import-preview-unidad {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   color: var(--muted);
+}
+/* Separada del nombre de la sección. Sin opacidad: a 11px, bajarla la dejaba en
+   2,65 a 1 contra el fondo de la caja —medido— cuando el rótulo de al lado está
+   en 3,98. La diferencia de tipografía ya alcanza para distinguirla. */
+.import-preview-row .import-preview-unidad {
+  margin-left: 6px;
+  /* La caja de línea de la mono empujaba esta fila a 25,6px contra los 25,2 de
+     sus cuatro hermanas —heredar la del rótulo no alcanzaba, son métricas de
+     fuente distintas—. Ajustada al texto, entra en la línea sin estirarla. */
+  line-height: 1;
 }
 
 /* ===== Grilla unificada de Visualización (Completa + Resumen) ===== */

@@ -1229,6 +1229,77 @@ function deserializeTags(parsed, currentTags, mode) {
   throw new Error('Modo de import inválido: ' + mode);
 }
 
+// ----- FICHA MÉDICA: FUSIÓN POR MODO -----
+// El modo elegido en el diálogo de import vale para TODO lo que se importa, no
+// sólo para las reglas y las categorías. Las tarjetas KPI y los viajes son
+// arrays con id propio; la visibilidad de secciones y los presupuestos anuales
+// son diccionarios. Antes la Ficha médica pisaba siempre, cualquiera fuera el
+// modo: elegir "fusionar sin sobreescribir" —que promete que lo existente nunca
+// se toca— y perder las tarjetas propias es exactamente lo contrario.
+//
+// Un elemento entrante sin id no se puede emparejar con ninguno actual, así que
+// en los modos que conservan lo existente se agrega: es lo único que se puede
+// afirmar de él.
+function fusionarPorId(actuales, entrantes, mode) {
+  const cur = Array.isArray(actuales) ? actuales : [];
+  const inc = Array.isArray(entrantes) ? entrantes : [];
+  if (mode === 'replace_all') return inc.slice();
+  const posPorId = {};
+  cur.forEach(function (x, i) { if (x && x.id !== undefined && x.id !== null) posPorId[x.id] = i; });
+  function posDe(x) {
+    if (!x || x.id === undefined || x.id === null) return undefined;
+    return posPorId[x.id];
+  }
+  if (mode === 'replace_byid') {
+    const out = cur.slice();
+    inc.forEach(function (x) {
+      if (!x) return;
+      const i = posDe(x);
+      if (i === undefined) out.push(x); else out[i] = x;
+    });
+    return out;
+  }
+  if (mode === 'merge_new') {
+    const out = cur.slice();
+    inc.forEach(function (x) {
+      if (!x) return;
+      if (posDe(x) === undefined) out.push(x);
+    });
+    return out;
+  }
+  throw new Error('Modo de import inválido: ' + mode);
+}
+
+// La misma decisión para un diccionario plano { clave: valor }.
+function fusionarDict(actual, entrante, mode) {
+  const cur = actual || {};
+  const inc = entrante || {};
+  if (mode === 'replace_all') return Object.assign({}, inc);
+  if (mode === 'replace_byid') return Object.assign({}, cur, inc);
+  if (mode === 'merge_new') {
+    const out = Object.assign({}, cur);
+    Object.keys(inc).forEach(function (k) {
+      if (out[k] === undefined) out[k] = inc[k];
+    });
+    return out;
+  }
+  throw new Error('Modo de import inválido: ' + mode);
+}
+
+// Devuelve el bloque de Ficha médica ya fusionado contra el actual. Vive acá y
+// no en el dashboard para que el preview y la aplicación cuenten lo mismo: que
+// el resumen anuncie un número y el import deje otro fue justamente el reporte.
+function fusionarFichaMedica(actual, entrante, mode) {
+  const cur = actual || {};
+  const inc = entrante || {};
+  return {
+    kpiCardsConfig: fusionarPorId(cur.kpiCardsConfig, inc.kpiCardsConfig, mode),
+    travels: fusionarPorId(cur.travels, inc.travels, mode),
+    visibilityPrefs: fusionarDict(cur.visibilityPrefs, inc.visibilityPrefs, mode),
+    budgetByYear: fusionarDict(cur.budgetByYear, inc.budgetByYear, mode)
+  };
+}
+
 // ----- BLOB MAESTRO (full config) -----
 // Qué parámetros viajan en un export de configuración: los que el usuario
 // eligió, no los que la app averiguó. Queda afuera la cotización MEP —con sus
@@ -1403,11 +1474,14 @@ function previewImport(parsed, currentStateLike, mode) {
       out.params = { current: curCount, incoming: incomingCount, willHave: Object.keys(union).length };
     }
     if (parsed.sections.fichaMedica) {
-      // Preview: número de tarjetas KPI (la métrica más visible).
+      // Preview: número de tarjetas KPI (la métrica más visible). El "vas a
+      // tener" sale de la misma fusión que aplica el import, no de dar por
+      // sentado que se pisa: con "fusionar sin sobreescribir" no se pisa.
       const incoming = parsed.data.fichaMedica || {};
       const incomingCards = (incoming.kpiCardsConfig || []).length;
       const curCards = (cur.kpiCardsConfig || []).length;
-      out.fichaMedica = { current: curCards, incoming: incomingCards, willHave: incomingCards };
+      const after = fusionarFichaMedica(cur, incoming, mode);
+      out.fichaMedica = { current: curCards, incoming: incomingCards, willHave: after.kpiCardsConfig.length };
     }
   }
   return out;
@@ -3554,6 +3628,7 @@ if (typeof module !== 'undefined' && module.exports) {
     serializeCategories, deserializeCategories,
     serializeTags, deserializeTags,
     serializeFullConfig, previewImport, PARAMS_CONFIG_KEYS,
+    fusionarPorId, fusionarDict, fusionarFichaMedica,
     // reserva
     getReservaParams, getReservaAcumulado,
     // health score

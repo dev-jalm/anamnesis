@@ -2291,6 +2291,14 @@ const MAX_SCORE_LEFT_CARDS = 3;
 function ensureKpiCardsConfig() {
   if (!Array.isArray(state.kpiCardsConfig) || state.kpiCardsConfig.length === 0) {
     state.kpiCardsConfig = JSON.parse(JSON.stringify(DEFAULT_KPI_CARDS));
+    // Sembrar el default ES haber corrido las dos migraciones de acá abajo: las
+    // tarjetas son exactamente las de fábrica, con sus colores y con las tres de
+    // la columna del score. Sin estas marcas, un archivo de datos nuevo quedaba
+    // con las migraciones pendientes y la primera configuración que llegara
+    // —importada de un archivo, por ejemplo— se mezclaba con las de fábrica.
+    if (!state.params) state.params = {};
+    state.params.kpiPaletteMigrated = true;
+    state.params.scoreLeftCardsInitialized = true;
     return;
   }
   // Migración de colores: los KPIs default por id deben tener el accent
@@ -25482,7 +25490,10 @@ function refreshImportPreview() {
   if (preview.categories) lines.push(fmtRow('Categorías', preview.categories));
   if (preview.tags) lines.push(fmtRow('Etiquetas', preview.tags));
   if (preview.params) lines.push(fmtRow('Parámetros', preview.params));
-  if (preview.fichaMedica) lines.push(fmtRow('Ficha médica', preview.fichaMedica));
+  // La cuenta de Ficha médica es de tarjetas KPI —la sección lleva además la
+  // visibilidad, los viajes y los presupuestos—, así que el rótulo lo dice: un
+  // "tenés 11 · archivo 14" sin unidad no se puede leer.
+  if (preview.fichaMedica) lines.push(fmtRow('Ficha médica <span class="import-preview-unidad">tarjetas KPI</span>', preview.fichaMedica));
   document.getElementById('importPreview').innerHTML = lines.join('');
 }
 function applyImportConfirm() {
@@ -25538,23 +25549,40 @@ function applyImportConfirm() {
           }
         });
       }
-      // Ficha médica: PISA los bloques completos. Si el archivo trae
-      // kpiCardsConfig vacío, NO se pisa (default: solo pisamos si hay datos
-      // significativos) — esto evita un caso donde un archivo mal generado
-      // borre las tarjetas del usuario.
+      // Ficha médica: se fusiona con el modo elegido, igual que el resto de las
+      // secciones (fusionarFichaMedica en core.js, el mismo cálculo que usa el
+      // resumen previo). Un archivo que no trae ninguna tarjeta no borra las del
+      // usuario: ni siquiera en "reemplazar todo", porque un export sin tarjetas
+      // es un archivo mal generado y no una decisión de quedarse sin ninguna.
       if (parsed.sections && parsed.sections.fichaMedica && parsed.data.fichaMedica) {
         const fm = parsed.data.fichaMedica;
+        const fusion = fusionarFichaMedica({
+          kpiCardsConfig: state.kpiCardsConfig || [],
+          travels: state.travels || [],
+          visibilityPrefs: state.visibilityPrefs || {},
+          budgetByYear: state.budgetByYear || {}
+        }, fm, mode);
         if (Array.isArray(fm.kpiCardsConfig) && fm.kpiCardsConfig.length > 0) {
-          state.kpiCardsConfig = fm.kpiCardsConfig;
+          state.kpiCardsConfig = fusion.kpiCardsConfig;
+          // Las tarjetas que vienen de un archivo son una decisión tomada, no un
+          // state viejo que haya que migrar: hay que marcarlo o la próxima
+          // pasada de ensureKpiCardsConfig las "completa" con las tarjetas
+          // default de la columna del score que el archivo no traía y les pisa
+          // el color a las que comparten id con una default. Era la mezcla de
+          // tarjetas importadas y tarjetas de fábrica que se veía al importar
+          // sobre un archivo de datos recién creado.
+          if (!state.params) state.params = {};
+          state.params.kpiPaletteMigrated = true;
+          state.params.scoreLeftCardsInitialized = true;
         }
         if (fm.visibilityPrefs && typeof fm.visibilityPrefs === 'object') {
-          state.visibilityPrefs = fm.visibilityPrefs;
+          state.visibilityPrefs = fusion.visibilityPrefs;
         }
         if (Array.isArray(fm.travels)) {
-          state.travels = fm.travels;
+          state.travels = fusion.travels;
         }
         if (fm.budgetByYear && typeof fm.budgetByYear === 'object') {
-          state.budgetByYear = fm.budgetByYear;
+          state.budgetByYear = fusion.budgetByYear;
         }
       }
     }

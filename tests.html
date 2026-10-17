@@ -2391,6 +2391,72 @@ group('Export / Import de configuración', function () {
     assertEqual(p3.rules.willHave, 4);  // a (conservada), b, c (nuevas), old (conservada)
   });
 
+  test('fusionarPorId — el modo manda sobre un array con id propio', function () {
+    const actuales = [{ id: 'a', v: 1 }, { id: 'b', v: 1 }];
+    const entrantes = [{ id: 'b', v: 2 }, { id: 'c', v: 2 }];
+    const todo = fusionarPorId(actuales, entrantes, 'replace_all');
+    assertEqual(todo.length, 2);
+    assertEqual(todo.map(function (x) { return x.id; }).join(','), 'b,c');
+    const porId = fusionarPorId(actuales, entrantes, 'replace_byid');
+    assertEqual(porId.length, 3);                                  // a conservada, b pisada, c nueva
+    assertEqual(porId.find(function (x) { return x.id === 'b'; }).v, 2);
+    const nuevos = fusionarPorId(actuales, entrantes, 'merge_new');
+    assertEqual(nuevos.length, 3);
+    assertEqual(nuevos.find(function (x) { return x.id === 'b'; }).v, 1);  // lo existente NUNCA se toca
+  });
+
+  test('fusionarPorId — el primero del array se empareja igual que el resto', function () {
+    // Su posición es 0, que es falsy: buscarla sin comparar contra undefined
+    // duplicaba siempre el primer elemento.
+    const out = fusionarPorId([{ id: 'a', v: 1 }], [{ id: 'a', v: 2 }], 'replace_byid');
+    assertEqual(out.length, 1);
+    assertEqual(out[0].v, 2);
+  });
+
+  test('fusionarFichaMedica — las tarjetas importadas no se mezclan con las de fábrica', function () {
+    // El caso reportado: se importan tarjetas sobre un archivo nuevo y el
+    // resultado tiene que ser exactamente lo que trae el archivo.
+    const actual = { kpiCardsConfig: [{ id: 'kpi_ingresos' }, { id: 'kpi_saldo' }, { id: 'kpi_trading' }] };
+    const entrante = { kpiCardsConfig: [{ id: 'kpi_ingresos' }, { id: 'kpi_reservas' }] };
+    const r = fusionarFichaMedica(actual, entrante, 'replace_all');
+    assertEqual(r.kpiCardsConfig.length, 2);
+    assertEqual(r.kpiCardsConfig.map(function (c) { return c.id; }).join(','), 'kpi_ingresos,kpi_reservas');
+  });
+
+  test('fusionarFichaMedica — viajes, visibilidad y presupuestos siguen el mismo modo', function () {
+    const actual = {
+      travels: [{ id: 't1' }],
+      visibilityPrefs: { score: true },
+      budgetByYear: { 2026: { Alimentacion: 100 } }
+    };
+    const entrante = {
+      travels: [{ id: 't2' }],
+      visibilityPrefs: { score: false, liquido: true },
+      budgetByYear: { 2027: { Alimentacion: 200 } }
+    };
+    const todo = fusionarFichaMedica(actual, entrante, 'replace_all');
+    assertEqual(todo.travels.length, 1);
+    assertEqual(Object.keys(todo.visibilityPrefs).length, 2);
+    assertEqual(Object.keys(todo.budgetByYear).join(','), '2027');
+    const nuevos = fusionarFichaMedica(actual, entrante, 'merge_new');
+    assertEqual(nuevos.travels.length, 2);
+    assertEqual(nuevos.visibilityPrefs.score, true);   // lo existente no se pisa
+    assertEqual(Object.keys(nuevos.budgetByYear).sort().join(','), '2026,2027');
+  });
+
+  test('previewImport — la Ficha médica anuncia lo que el modo va a dejar', function () {
+    const blob = serializeFullConfig({
+      kpiCardsConfig: [{ id: 'kpi_ingresos' }, { id: 'kpi_reservas' }]
+    }, { fichaMedica: true });
+    const existing = { kpiCardsConfig: [{ id: 'kpi_ingresos' }, { id: 'kpi_saldo' }, { id: 'kpi_trading' }] };
+    assertEqual(previewImport(blob, existing, 'replace_all').fichaMedica.willHave, 2);
+    assertEqual(previewImport(blob, existing, 'replace_byid').fichaMedica.willHave, 4);
+    assertEqual(previewImport(blob, existing, 'merge_new').fichaMedica.willHave, 4);
+    const p = previewImport(blob, existing, 'replace_all').fichaMedica;
+    assertEqual(p.current, 3);
+    assertEqual(p.incoming, 2);
+  });
+
   test('deserialize* — rechaza tipo incorrecto', function () {
     let threw = false;
     try {
