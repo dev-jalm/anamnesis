@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.93 |
+| **Versión** | 1.94 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -138,6 +138,7 @@ Pantalla de listado y corrección de movimientos. **Tiene dos visualizaciones al
 | RF-020 | Un par de botones en el ángulo superior derecho alterna entre las vistas Resumen y Completa. La selección es excluyente |
 | RF-021 | El filtro TIPO CATEGORÍAS restringe qué se muestra a: Todas, Básicas, Discrecionales o De flujo. **Todas** comprende básicas + discrecionales, es decir la totalidad del gasto. **No incluye las categorías de flujo**, que se consultan con su propia opción |
 | RF-022 | El buscador filtra simultáneamente por fecha, descripción, importe, origen, categoría, periodicidad, forma de pago y etiqueta |
+| RF-022a | La **descripción de un movimiento se presenta en mayúsculas**, en las dos listas que la muestran. Es presentación: el texto guardado conserva lo que trajo el archivo o lo que escribió el usuario, porque ahí el original es el dato —a diferencia del patrón de una regla, que es un criterio de búsqueda y sí se normaliza al guardar— |
 | RF-023 | El totalizador inferior derecho muestra **Movimientos** cuando se listan gastos y **Flujo** cuando se listan movimientos de flujo. Nunca ambos a la vez |
 | RF-024 | Cuando se muestran categorías de flujo, el totalizador presenta un balance: `(Sueldo + Préstamo + Renta financiera + Reintegros) − (Reserva + Inversión + Trading + Jubilación + Devolución de capital + Pérdida financiera)`, conforme al catálogo de 5.7 |
 | RF-024a | **Reintegros** registra la plata que vuelve al bolsillo por un gasto ya hecho —lo que devuelve la prepaga, el caso que la motivó—. Es de flujo y no un ingreso: no es plata nueva. **Suma** en el balance y **no se descuenta del gasto que la originó**: el gasto de Salud sigue mostrando lo que se pagó, que es lo que salió del bolsillo ese mes, y la devolución se ve cuando llega, que casi nunca es el mismo mes. Restarla del gasto obligaría a emparejar cada devolución con su comprobante —trabajo manual— y dejaría dos meses mintiendo: uno con un gasto que no fue tan alto y otro con plata sin origen |
@@ -1291,7 +1292,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.90 | 17/10/2026 | El patrón de una regla se guarda en mayúsculas, con la expresión regular como excepción (RF-168d, 5.4, RNF-43) | Reemplazada |
 | 1.91 | 17/10/2026 | La prioridad de las reglas se ve y se puede cambiar, y los rótulos de la pantalla responden a un solo criterio (RF-168e, RF-168f, RNF-18g) | Reemplazada |
 | 1.92 | 17/10/2026 | Aplicar una regla de descarte descarta de verdad, el diagnóstico deja de marcar reglas sanas y cada problema lleva a su regla (RF-168g, RF-168h, RF-168i, RNF-43) | Reemplazada |
-| 1.93 | 17/10/2026 | El import de configuración avisa que la Ficha médica trae los presupuestos (RF-210g, RNF-43) | **Vigente** |
+| 1.93 | 17/10/2026 | El import de configuración avisa que la Ficha médica trae los presupuestos (RF-210g, RNF-43) | Reemplazada |
+| 1.94 | 17/10/2026 | La descripción de los movimientos se presenta en mayúsculas (RF-022a) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

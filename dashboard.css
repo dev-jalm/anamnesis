@@ -3728,9 +3728,16 @@ footer .eyebrow-sources {
 .cat-movement-fecha {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px; color: var(--muted-2);
-}  .cat-movement-desc {
+}  /* La descripción de un movimiento se muestra en mayúsculas. Es sólo
+   presentación: el texto guardado queda como lo trajo el archivo o como lo
+   escribió el usuario, porque ahí el original es el dato —a diferencia del
+   patrón de una regla, que es un criterio de búsqueda y sí se normaliza—.
+   Vale para las dos listas de movimientos, la de Historia clínica y la de la
+   solapa Movimientos de Administración: es el mismo dato en las dos. */
+.cat-movement-desc {
   font-size: 12px; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-transform: uppercase;
 }
 .cat-movement-monto {
   font-family: 'JetBrains Mono', monospace;
