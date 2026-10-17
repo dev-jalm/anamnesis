@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.85 |
+| **Versión** | 1.86 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -139,7 +139,8 @@ Pantalla de listado y corrección de movimientos. **Tiene dos visualizaciones al
 | RF-021 | El filtro TIPO CATEGORÍAS restringe qué se muestra a: Todas, Básicas, Discrecionales o De flujo. **Todas** comprende básicas + discrecionales, es decir la totalidad del gasto. **No incluye las categorías de flujo**, que se consultan con su propia opción |
 | RF-022 | El buscador filtra simultáneamente por fecha, descripción, importe, origen, categoría, periodicidad, forma de pago y etiqueta |
 | RF-023 | El totalizador inferior derecho muestra **Movimientos** cuando se listan gastos y **Flujo** cuando se listan movimientos de flujo. Nunca ambos a la vez |
-| RF-024 | Cuando se muestran categorías de flujo, el totalizador presenta un balance: `(Sueldo + Préstamo + Renta financiera) − (Reserva + Inversión + Trading + Jubilación + Devolución de capital + Pérdida financiera)`, conforme al catálogo de 5.7 |
+| RF-024 | Cuando se muestran categorías de flujo, el totalizador presenta un balance: `(Sueldo + Préstamo + Renta financiera + Reintegros) − (Reserva + Inversión + Trading + Jubilación + Devolución de capital + Pérdida financiera)`, conforme al catálogo de 5.7 |
+| RF-024a | **Reintegros** registra la plata que vuelve al bolsillo por un gasto ya hecho —lo que devuelve la prepaga, el caso que la motivó—. Es de flujo y no un ingreso: no es plata nueva. **Suma** en el balance y **no se descuenta del gasto que la originó**: el gasto de Salud sigue mostrando lo que se pagó, que es lo que salió del bolsillo ese mes, y la devolución se ve cuando llega, que casi nunca es el mismo mes. Restarla del gasto obligaría a emparejar cada devolución con su comprobante —trabajo manual— y dejaría dos meses mintiendo: uno con un gasto que no fue tan alto y otro con plata sin origen |
 | RF-025 | El botón CARGAR MOVIMIENTOS abre el asistente de importación |
 | RF-026 | El botón CSV descarga los movimientos actualmente filtrados |
 
@@ -416,6 +417,7 @@ Módulo de gestión de riesgo por operación apalancada.
 | RF-100 | Compara lo presupuestado contra lo efectivamente gastado, mes a mes y categoría por categoría |
 | RF-101 | Cada fila presenta su total anual y una línea de tendencia |
 | RF-102 | Las categorías de flujo no se totalizan por suma: su fila de cierre es un balance entre entradas y salidas |
+| RF-102a | En las categorías que **entran plata** —Sueldo, Renta financiera, Reintegros— y en los destinos voluntarios, cobrar o aportar **más** de lo presupuestado se marca como favorable; en los gastos y en Préstamo, como desfavorable. Renta financiera estaba fuera de esa lista y superar lo presupuestado se pintaba en rojo |
 | RF-103 | El nombre de cada categoría abre la carga de su presupuesto anual: una planilla con los doce meses del año seleccionado |
 | RF-104 | Cada mes de esa planilla exhibe junto al campo el importe realmente gastado en ese mes, o la indicación de que no hubo gasto. El presupuesto se decide contra el dato, no de memoria |
 | RF-105 | La planilla totaliza el presupuesto anual mientras se edita, antes de confirmar |
@@ -717,9 +719,9 @@ Qué compra pertenece a qué portafolio se registra **en la compra misma** (RF-0
 
 **Categorías discrecionales (7):** Entretenimiento, Indumentaria, Cuidado personal, Extras, Turismo, Membresías, Gastronomía.
 
-**Categorías de flujo (9):** Sueldo, Préstamo, Renta financiera, Reserva, Inversión, Trading, Jubilación, Devolución de capital, Pérdida financiera.
+**Categorías de flujo (10):** Sueldo, Préstamo, Renta financiera, Reintegros, Reserva, Inversión, Trading, Jubilación, Devolución de capital, Pérdida financiera.
 
-> **Suman** en el balance de flujo: Sueldo, Préstamo y Renta financiera. El resto resta. Renta financiera y Pérdida financiera las genera el sistema al vender un activo; no se cargan a mano.
+> **Suman** en el balance de flujo: Sueldo, Préstamo, Renta financiera y Reintegros. El resto resta. Renta financiera y Pérdida financiera las genera el sistema al vender un activo; no se cargan a mano.
 
 > La clasificación básica/discrecional de cada categoría es modificable por el usuario. Los tres conjuntos son ampliables.
 
@@ -1034,7 +1036,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 510 pruebas en 62 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 515 pruebas en 63 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 
 **Fundamento de RNF-40.** Requerimiento explícito del cliente: una herramienta personal destinada a seguir operativa dentro de cinco años no puede depender de una cadena de compilación cuyas dependencias se degradan en meses.
@@ -1265,7 +1267,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.82 | 17/10/2026 | La Ficha médica se importa con el modo elegido y sus tarjetas dejan de mezclarse con las de fábrica (RF-210e, RF-210f, RNF-43) | Reemplazada |
 | 1.83 | 17/10/2026 | El resumen del import cuenta las subcategorías en su propia fila (RF-210d, RNF-43) | Reemplazada |
 | 1.84 | 17/10/2026 | Diez cargas por origen con el período de cada archivo, y aviso cuando se sueltan varios (RF-115a, RF-115b) | Reemplazada |
-| 1.85 | 17/10/2026 | Se cargan varios resúmenes de una, y el que no tiene su formato configurado se saltea con aviso (RF-115b, RF-115c, RNF-43) | **Vigente** |
+| 1.85 | 17/10/2026 | Se cargan varios resúmenes de una, y el que no tiene su formato configurado se saltea con aviso (RF-115b, RF-115c, RNF-43) | Reemplazada |
+| 1.86 | 17/10/2026 | Reintegros se suma al catálogo de categorías de flujo (RF-024, RF-024a, RF-102a, 5.7, RNF-43) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

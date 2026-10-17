@@ -36,7 +36,22 @@
 // y contarlo también como aporte lo duplicaría. Estas tx existen para que el
 // resultado se vea en Historia clínica, Diagnóstico y Evolución, que trabajan
 // sobre transacciones y hasta ahora no se enteraban de una venta.
-const NON_EXPENSE_CATS = ['Reserva', 'Inversion', 'Trading', 'DevolucionCapital', 'Jubilacion', 'Sueldo', 'Prestamo', 'RentaFinanciera', 'PerdidaFinanciera'];
+// "Reintegro" es plata que vuelve al bolsillo por un gasto que ya se registró
+// —lo que devuelve la prepaga, típicamente—. Es de flujo y no un ingreso común:
+// no es plata nueva, es la devolución de parte de algo que ya salió. ENTRA en
+// el balance, y NO se descuenta del gasto que la originó: el gasto de Salud
+// sigue mostrando lo que se pagó, que es lo que efectivamente salió del
+// bolsillo ese mes, y el reintegro se ve por separado cuando llega —casi nunca
+// el mismo mes—. Restarlo del gasto obligaría a emparejar cada devolución con
+// su comprobante, que es trabajo manual, y dejaría dos meses mintiendo: uno
+// con un gasto que no fue tan alto y otro con plata que no se sabe de dónde.
+const NON_EXPENSE_CATS = ['Reserva', 'Inversion', 'Trading', 'DevolucionCapital', 'Jubilacion', 'Sueldo', 'Prestamo', 'Reintegro', 'RentaFinanciera', 'PerdidaFinanciera'];
+
+// De las de arriba, las que ENTRAN plata. El resto la saca, así que esta lista
+// es la que define el signo de cada categoría de flujo en el balance: una
+// categoría nueva que entre y no se declare acá va a restar por descarte, que
+// es exactamente como Devolución de capital quedó una vez fuera del balance.
+const FLOW_INCOME_CATS = ['Sueldo', 'Prestamo', 'RentaFinanciera', 'Reintegro'];
 
 // Categorías de flujo que NO se contabilizan en NINGÚN totalizador (balance,
 // KPIs, gasto total, score, sumas). Sirven para clasificar visualmente sin
@@ -833,7 +848,7 @@ function computeKpiOp(op, ctx) {
 // indicadores), nunca el cómputo del valor del KPI.
 
 // Categorías de flujo donde MÁS es mejor (entran al patrimonio o ahorro)
-const FLOW_CATS_HIGHER_BETTER = ['Sueldo', 'Inversion', 'Trading', 'Reserva', 'Jubilacion', 'RentaFinanciera'];
+const FLOW_CATS_HIGHER_BETTER = ['Sueldo', 'Inversion', 'Trading', 'Reserva', 'Jubilacion', 'RentaFinanciera', 'Reintegro'];
 // Categorías de flujo donde MENOS es mejor (deuda nueva, resultado negativo)
 const FLOW_CATS_LOWER_BETTER = ['Prestamo', 'PerdidaFinanciera'];
 
@@ -3629,7 +3644,7 @@ if (typeof module !== 'undefined' && module.exports) {
     parseResumenConPlantilla, detectarPlantilla, validarPlantilla,
     PLANTILLAS_BUILTIN,
     // constants
-    NON_EXPENSE_CATS, NON_COUNTABLE_FLOW_CATS, BASIC_CATS, DISCRETIONARY_CATS, MONTHS_ORDER, SCHEMA_VERSION,
+    NON_EXPENSE_CATS, FLOW_INCOME_CATS, NON_COUNTABLE_FLOW_CATS, BASIC_CATS, DISCRETIONARY_CATS, MONTHS_ORDER, SCHEMA_VERSION,
     MAX_LEN_DESCRIPCION, MAX_LEN_NOMBRE, recortarTexto,
     // precios por ticker y moneda
     claveTickerInfo, infoDeTicker,

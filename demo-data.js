@@ -298,8 +298,8 @@ const DEMO_ORIGENES = ['Mercado Pago', 'Banco Galicia', 'Efectivo'];
 // Categorías de flujo. Se declaran acá y no se toma NON_EXPENSE_CATS de core.js
 // para que el generador siga siendo autónomo (se usa también desde scripts que
 // no cargan core.js).
-const DEMO_CATS_FLUJO = ['Sueldo','Prestamo','Reserva','Inversion','Trading','Jubilacion','DevolucionCapital'];
-const DEMO_CATS_INGRESO = ['Sueldo','Prestamo'];
+const DEMO_CATS_FLUJO = ['Sueldo','Prestamo','Reserva','Inversion','Trading','Jubilacion','DevolucionCapital','Reintegro'];
+const DEMO_CATS_INGRESO = ['Sueldo','Prestamo','Reintegro'];
 
 // Saldo objetivo por trimestre de 2026, como fracción del ingreso del mes.
 // El saldo es ingresos − gastos − aportes de flujo.
@@ -414,6 +414,25 @@ function buildDemoSnapshot(mesesAtras) {
         });
       }
     });
+
+    // --- Reintegro de la prepaga ---
+    // No todos los meses: se pide cuando hay algo que reclamar y la plata
+    // vuelve semanas después. Es el caso para el que existe la categoría —plata
+    // que entra pero no es un ingreso nuevo— y en la demo hace falta para que
+    // la fila de Reintegros del flujo tenga algo que mostrar.
+    if (rnd() > 0.4) {
+      pushTx(anio, mes, {
+        id: nuevoId(),
+        fecha: fechaAR(anio, mesIdx, 8 + Math.floor(rnd() * 16)),
+        descripcion: elegir(['Reintegro OSDE', 'Reintegro consulta medica', 'Reintegro practicas', 'Reintegro kinesiologia']),
+        monto: Math.round(entre(14000, 62000) * factorGastos),
+        categoria: 'Reintegro',
+        subcategoria: null,
+        periodicidad: 'esporadico',
+        tags: null,
+        origen: 'Banco Galicia'
+      });
+    }
 
     // --- Aguinaldo (SAC): medio sueldo en junio y diciembre ---
     // Además de ser lo que corresponde en Argentina, resuelve un problema del

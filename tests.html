@@ -3349,7 +3349,7 @@ group('Categorías de flujo — qué entra, qué sale y qué no es gasto', funct
   // Reserva, Inversión, Trading y Jubilación son plata destinada a esos fines,
   // Devolución de capital es plata con la que se cancela deuda, y Pérdida
   // financiera es el resultado negativo de una venta: salen.
-  const ENTRAN = ['Sueldo', 'Prestamo', 'RentaFinanciera'];
+  const ENTRAN = ['Sueldo', 'Prestamo', 'RentaFinanciera', 'Reintegro'];
   const SALEN = ['Reserva', 'Inversion', 'Trading', 'Jubilacion', 'DevolucionCapital', 'PerdidaFinanciera'];
 
   test('todas las categorías de flujo están en NON_EXPENSE_CATS', function () {
@@ -3381,6 +3381,12 @@ group('Categorías de flujo — qué entra, qué sale y qué no es gasto', funct
       return ENTRAN.indexOf(c) < 0 && NON_COUNTABLE_FLOW_CATS.indexOf(c) < 0;
     });
     assertEqual(derivada.slice().sort().join(','), SALEN.slice().sort().join(','));
+  });
+  test('las que entran son exactamente las declaradas en FLOW_INCOME_CATS', function () {
+    // El código no mira la lista de este archivo sino FLOW_INCOME_CATS: si las
+    // dos se separan, este grupo de tests estaría verificando otra cosa que la
+    // que la app calcula.
+    assertEqual(FLOW_INCOME_CATS.slice().sort().join(','), ENTRAN.slice().sort().join(','));
   });
   test('Prestamo (flujo, entra) no se confunde con Deuda (gasto básico)', function () {
     // La cuota de un préstamo se parte en dos: el capital va a Devolución de
@@ -3748,6 +3754,37 @@ group('Resultado realizado — categorías de flujo de la venta', function () {
     ['RentaFinanciera', 'PerdidaFinanciera'].forEach(function (c) {
       assert(NON_COUNTABLE_FLOW_CATS.indexOf(c) < 0, c + ' tiene que contar en los totalizadores');
     });
+  });
+});
+
+group('Reintegros — la plata que vuelve de un gasto ya hecho', function () {
+  test('es categoría de flujo y no un gasto', function () {
+    assert(NON_EXPENSE_CATS.indexOf('Reintegro') >= 0, 'Reintegro debe ser de flujo');
+    assert(BASIC_CATS.indexOf('Reintegro') < 0, 'no es básica');
+    assert(DISCRETIONARY_CATS.indexOf('Reintegro') < 0, 'no es discrecional');
+    assertEqual(isNonExpenseCat('Reintegro'), true);
+    assertEqual(getCategoryClassification('Reintegro'), 'reserved');
+  });
+  test('entra plata: suma en el balance de flujo', function () {
+    // La lista de salida se deriva de NON_EXPENSE_CATS, así que una categoría
+    // que entra y no se declara como tal termina restando por descarte.
+    assert(FLOW_INCOME_CATS.indexOf('Reintegro') >= 0, 'tiene que estar entre las que entran');
+    assert(FLOW_CATS_HIGHER_BETTER.indexOf('Reintegro') >= 0, 'cobrar más es mejor');
+    assert(FLOW_CATS_LOWER_BETTER.indexOf('Reintegro') < 0, 'no va en el otro grupo');
+  });
+  test('cuenta en los totalizadores', function () {
+    assert(NON_COUNTABLE_FLOW_CATS.indexOf('Reintegro') < 0, 'no puede quedar fuera de las sumas');
+  });
+  test('no toca el gasto que la originó', function () {
+    // Un reintegro de la prepaga no baja el gasto de Salud: el gasto muestra
+    // lo que salió del bolsillo, y la devolución se ve cuando llega.
+    const tx = [
+      { categoria: 'Salud', subcategoria: 'Prepaga', monto: 187000 },
+      { categoria: 'Reintegro', subcategoria: null, monto: 40000 }
+    ];
+    const gasto = tx.filter(function (t) { return !isNonExpenseCat(t.categoria); })
+      .reduce(function (a, t) { return a + t.monto; }, 0);
+    assertEqual(gasto, 187000);
   });
 });
 

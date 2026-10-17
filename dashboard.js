@@ -19,15 +19,12 @@ const INITIAL_CATEGORY_LABELS = {
   // Categorías reservadas: no son gastos, no se eliminan, no se clasifican como básicas/discrecionales.
   // DevolucionCapital se incluye después de Trading (mismo orden que NON_EXPENSE_CATS en core.js).
   Reserva: 'Reserva', Inversion: 'Inversión', Trading: 'Trading', DevolucionCapital: 'Devolución de capital', Jubilacion: 'Jubilación', Sueldo: 'Sueldo', Prestamo: 'Préstamo',
-  RentaFinanciera: 'Renta financiera', PerdidaFinanciera: 'Pérdida financiera'
+  Reintegro: 'Reintegros', RentaFinanciera: 'Renta financiera', PerdidaFinanciera: 'Pérdida financiera'
 };
 
-// Categorías de flujo que ENTRAN plata. El resto la saca, así que definir esta
-// lista define el signo de cada una en el balance.
-//
-// Estaba escrita a mano en dos lugares distintos: agregar una categoría exigía
-// acordarse de los dos, y era cuestión de tiempo que se desincronizaran.
-const FLOW_INCOME_CATS = ['Sueldo', 'Prestamo', 'RentaFinanciera'];
+// FLOW_INCOME_CATS —las categorías de flujo que ENTRAN plata— vive en core.js,
+// al lado de NON_EXPENSE_CATS: las dos listas se leen juntas (lo que no entra,
+// sale) y separarlas era pedir que se desincronizaran. Acá sólo se usa.
 
 // La fórmula del balance de flujo, en UN solo lugar. Estaba escrita a mano en
 // tres textos distintos —el tooltip del totalizador, el de la tabla anual y los
@@ -35,8 +32,8 @@ const FLOW_INCOME_CATS = ['Sueldo', 'Prestamo', 'RentaFinanciera'];
 // capital entraba o no. Un tooltip que promete una cuenta que el código no hace
 // es peor que no tener tooltip.
 const FORMULA_BALANCE_FLUJO =
-  '(Sueldo + Préstamo + Renta financiera) − (Reserva + Inversión + Trading + Jubilación + Devolución de capital + Pérdida financiera). ' +
-  'Sueldo, Préstamo y Renta financiera entran plata; el resto la saca. Solo incluye categorías DE FLUJO — ' +
+  '(Sueldo + Préstamo + Renta financiera + Reintegros) − (Reserva + Inversión + Trading + Jubilación + Devolución de capital + Pérdida financiera). ' +
+  'Sueldo, Préstamo, Renta financiera y Reintegros entran plata; el resto la saca. Solo incluye categorías DE FLUJO — ' +
   'básicas y discrecionales quedan fuera.';
 
 const ICON_MAP = {
@@ -54,7 +51,7 @@ const ICON_MAP = {
   Turismo: 'plane',
   Membresias: 'badge-check',
   Gastronomia: 'utensils-crossed',
-  Reserva: 'piggy-bank', Inversion: 'line-chart', Trading: 'trending-up', DevolucionCapital: 'arrow-left-right', Jubilacion: 'briefcase', Sueldo: 'wallet', Prestamo: 'building-2', RentaFinanciera: 'coins', PerdidaFinanciera: 'trending-down'
+  Reserva: 'piggy-bank', Inversion: 'line-chart', Trading: 'trending-up', DevolucionCapital: 'arrow-left-right', Jubilacion: 'briefcase', Sueldo: 'wallet', Prestamo: 'building-2', Reintegro: 'undo-2', RentaFinanciera: 'coins', PerdidaFinanciera: 'trending-down'
 };
 
 // Categorías reservadas del sistema: NON_EXPENSE_CATS, BASIC_CATS, DISCRETIONARY_CATS
@@ -24101,7 +24098,7 @@ function renderMainBudget() {
   // semántica: primero ingresos (Sueldo, Prestamo), después destinos no-gasto
   // ordenados por compromiso (Jubilacion, Reserva primero como "ahorro
   // forzado", después Inversion y Trading como destinos voluntarios).
-  const FLOW_TABLE_ORDER = ['Sueldo', 'Prestamo', 'RentaFinanciera', 'Jubilacion', 'Reserva', 'Inversion', 'Trading', 'DevolucionCapital', 'PerdidaFinanciera'];
+  const FLOW_TABLE_ORDER = ['Sueldo', 'Prestamo', 'RentaFinanciera', 'Reintegro', 'Jubilacion', 'Reserva', 'Inversion', 'Trading', 'DevolucionCapital', 'PerdidaFinanciera'];
   const system = allCatsRaw.filter(function (c) { return isNonExpenseCat(c); })
     .sort(function (a, b) {
       const ia = FLOW_TABLE_ORDER.indexOf(a);
@@ -24140,7 +24137,10 @@ function renderMainBudget() {
   // Categorías donde "real > presupuesto" es FAVORABLE (semántica invertida):
   // ingresos al patrimonio + destinos voluntarios. Préstamo NO está acá: ahí
   // tomar más deuda que lo planeado sigue siendo desfavorable (rojo).
-  const FLOW_INVERT_SIGN_CATS = ['Sueldo', 'Inversion', 'Trading', 'Reserva', 'Jubilacion'];
+  // Renta financiera y Reintegros también entran plata, así que cobrar más de
+  // lo previsto es favorable; la primera se había quedado afuera y se pintaba
+  // en rojo cuando superaba lo presupuestado.
+  const FLOW_INVERT_SIGN_CATS = ['Sueldo', 'Inversion', 'Trading', 'Reserva', 'Jubilacion', 'RentaFinanciera', 'Reintegro'];
 
   // Devuelve la clase CSS de coloreo condicional para una celda individual
   // de categoría:
