@@ -25490,10 +25490,10 @@ function refreshImportPreview() {
   if (preview.categories) lines.push(fmtRow('Categorías', preview.categories));
   if (preview.tags) lines.push(fmtRow('Etiquetas', preview.tags));
   if (preview.params) lines.push(fmtRow('Parámetros', preview.params));
-  // La cuenta de Ficha médica es de tarjetas KPI —la sección lleva además la
-  // visibilidad, los viajes y los presupuestos—, así que el rótulo lo dice: un
-  // "tenés 11 · archivo 14" sin unidad no se puede leer.
-  if (preview.fichaMedica) lines.push(fmtRow('Ficha médica <span class="import-preview-unidad">tarjetas KPI</span>', preview.fichaMedica));
+  // La fila se llama por lo que cuenta: la sección Ficha médica lleva además la
+  // visibilidad, los viajes y los presupuestos, y un "tenés 11 · archivo 14"
+  // sin unidad no se puede leer.
+  if (preview.fichaMedica) lines.push(fmtRow('Tarjetas KPI', preview.fichaMedica));
   document.getElementById('importPreview').innerHTML = lines.join('');
 }
 function applyImportConfirm() {
