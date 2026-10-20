@@ -384,6 +384,26 @@ quedaba registro utilizable— y hubo que estimarlas. De acá en adelante no.
 
 ---
 
+## Qué documentación se actualiza con cada cambio
+
+**Sí, siempre:**
+
+- `docs/especificacion-funcional.md` — el requerimiento nuevo o modificado, su
+  número, la versión del documento y la fila de la bitácora de versiones.
+- `docs/bitacora-sesiones.md` — regenerada con el script (ver arriba).
+
+**No, salvo que el usuario lo pida expresamente:**
+
+- `docs/manual-de-usuario.pdf` y todo lo de `docs/manual/` —el texto de
+  `build.js`, las capturas, su README—.
+- El `README.md` del repo.
+
+Regla dada el 20/10/2026. La app cambia muchas veces por sesión y regenerar el
+manual en cada una es trabajo que el usuario no pidió: se actualiza cuando lo
+pide, de una sola vez.
+
+---
+
 ## Entregables
 
 Todo archivo generado —PDF, imagen, export, o el archivo modificado que el

@@ -7143,10 +7143,9 @@ body[data-exporting="true"] .section-card {
 .inv-plan-in:focus { outline: none; border-color: var(--accent); }
 .inv-plan-in::placeholder { color: var(--muted-2); opacity: .7; }
 select.inv-plan-in { cursor: pointer; }
-/* El botón COMPRAR del plan comparte esta declaración: es el mismo botón chico
+/* El botón AGREGAR AL PLAN comparte esta declaración: es el mismo botón chico
    de texto del panel de inversiones, así que no se escribe un bloque paralelo. */
-.inv-agrupar-btn,
-.inv-plan-btn {
+.inv-agrupar-btn {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   letter-spacing: 1.2px;
@@ -7159,12 +7158,7 @@ select.inv-plan-in { cursor: pointer; }
   cursor: pointer;
   transition: all .15s;
 }
-.inv-agrupar-btn:hover,
-.inv-plan-btn:hover { background: var(--accent); color: var(--on-accent, #1A1714); }
-/* Con el precio ya en el objetivo el botón es la acción del momento: pasa al
-   verde de la app, el mismo que marca la distancia "en precio". */
-.inv-plan-btn.listo { color: var(--green); border-color: var(--green); }
-.inv-plan-btn.listo:hover { background: var(--green); color: var(--on-accent, #1A1714); }
+.inv-agrupar-btn:hover { background: var(--accent); color: var(--on-accent, #1A1714); }
 
 /* ── Vista por portafolio en Concentración y Liquidado ────────────────── */
 /* El selector va al lado del título de la sección. Con la sección plegada se
@@ -7476,146 +7470,70 @@ select.inv-plan-in { cursor: pointer; }
   display: flex;
   flex-direction: column;
 }
-.inv-plan {
-  gap: 12px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11.5px;
-}
-/* El capital contra el que se reparte: el dato que hace legible la tabla. */
-.inv-plan-capital {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
-}
-.inv-plan-capital-lbl {
-  font-size: 10px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--muted-2);
-}
-.inv-plan-capital-val {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--ink);
-}
-.inv-plan-capital-sub {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 11px;
-  color: var(--muted);
-}
-.inv-plan-tabla {
-  width: 100%;
-  border-collapse: collapse;
-}
-.inv-plan-tabla th {
-  font-size: 10px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--muted-2);
-  font-weight: 400;
-  text-align: left;
-  padding: 0 8px 6px 0;
-  border-bottom: 1px solid var(--border);
-}
-.inv-plan-tabla th.num,
-.inv-plan-tabla td.num { text-align: right; }
-.inv-plan-tabla td {
-  padding: 7px 8px 7px 0;
-  border-bottom: 1px dashed var(--border);
-  color: var(--ink);
-}
-.inv-plan-tabla tr:last-child td { border-bottom: none; }
-.inv-plan-tk { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+/* Sin tipografía ni cuerpo propios: los pone la tabla, que es la de Activos. */
+.inv-plan { gap: 12px; }
+/* ── La tabla del plan ────────────────────────────────────────────────────
+   Es la tabla de Activos: comparte .investment-detail-table y
+   .investment-detail-grouped, de donde salen el cuerpo, los colores, el fondo
+   de los títulos, el padding de las celdas y el table-layout fijo. Acá va
+   SÓLO lo que esta tabla tiene y la otra no: la moneda al lado del ticker, la
+   nota de un ingreso, el equivalente en dólares y la marca de "en precio".
+   Una declaración propia de cuerpo, color o borde sería lo contrario de lo
+   que se busca. */
 .inv-plan-mon {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 9px;
+  font-weight: 400;
   letter-spacing: 1px;
   color: var(--muted-2);
+  margin-left: 6px;
+}
+/* Cuántos tramos tiene planificados el activo, al lado de su nombre: es la
+   misma aclaración entre tinta apagada que lleva la descripción en Activos. */
+.inv-plan-activo-ing {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 8px;
 }
 .inv-plan-nota {
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 10.5px;
   color: var(--muted);
-  max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: block;
+}
+/* Un ingreso sin nota igual necesita nombre en su columna. */
+.inv-plan-nota-vacia {
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  color: var(--muted-2);
 }
 /* El precio ya llegó a donde se lo esperaba: es la fila sobre la que hay que
    actuar, así que se marca con el verde de la app y no con un color propio. */
 .inv-plan-enprecio { color: var(--green); font-weight: 600; }
-/* El equivalente en dólares del monto, debajo del importe en pesos: mismo
-   tratamiento que el resto de los valores secundarios de las tablas. */
+/* El equivalente en dólares del monto, debajo del importe en pesos: el mismo
+   tratamiento que el porcentaje debajo de la ganancia en Activos. */
 .inv-plan-monto-alt {
   display: block;
-  font-size: 10px;
-  color: var(--muted-2);
+  font-size: 9px;
+  opacity: 0.75;
+  margin-top: 1px;
 }
-/* Dos acciones por ingreso —comprar y quitar— en una celda que no las parte.
-   El ancho lo pone el colgroup de la tabla; acá sólo que no se corten. */
-.inv-plan-acc {
-  text-align: right;
-  white-space: nowrap;
-}
-/* En línea con el botón: el de borrar es flex y, como bloque, se caía a un
-   renglón propio debajo de COMPRAR. */
-.inv-plan-acc .inv-delete-btn {
-  display: inline-flex;
-  vertical-align: middle;
-  margin-left: 6px;
-}
-.inv-plan-acc .inv-plan-btn { vertical-align: middle; }
-
-/* ── La fila de activo y sus ingresos ─────────────────────────────────────
-   Un mismo ticker puede planificarse en varios tramos, así que la tabla tiene
-   una fila por activo con el total reservado y, debajo, una fila por ingreso
-   que el chevron muestra u oculta. Es la misma mecánica que el detalle de
-   compras de Activos, y las dos clases de fila viven en la MISMA tabla: el
-   colgroup es uno solo y las columnas caen alineadas sin tocar paddings. */
-.inv-plan-activo-row > td {
-  border-bottom: 1px solid var(--border);
-  padding-top: 9px;
-  padding-bottom: 9px;
-}
-.inv-plan-toggle { padding-right: 0; }
-.inv-plan-activo-nom {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.inv-plan-activo-row .inv-plan-tk { font-weight: 600; }
-.inv-plan-activo-ing {
+/* Comprar es la acción opuesta a vender y comparte su dibujo: el mismo botón
+   de ícono del detalle de compras, en la misma celda y del mismo tamaño. Con
+   el precio ya en el objetivo pasa al verde, que es lo único que lo distingue
+   de su hermano. */
+.inv-plan-comprar:hover { color: var(--green) !important; }
+.inv-plan-comprar.listo { color: var(--green); }
+.inv-plan-vacio {
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 11px;
   color: var(--muted);
 }
-/* Las filas de ingreso se leen como lo que hay adentro del activo: mismo
-   cuerpo, tinta apagada y sin el borde sólido que cierra cada activo. */
-.inv-plan-ing-row > td {
-  border-bottom: 1px dashed var(--border);
-  color: var(--muted-2);
-}
-.inv-plan-ing-row:last-child > td { border-bottom: 1px solid var(--border); }
-.inv-plan-ing { color: var(--muted-2); }
-/* Un ingreso sin nota igual necesita nombre en su columna. */
-.inv-plan-nota-vacia {
-  text-transform: uppercase;
-  font-size: 10px;
-  letter-spacing: 1px;
-  color: var(--muted-2);
-}
-.inv-plan-total {
-  display: flex;
-  justify-content: flex-end;
-  font-size: 10px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-.inv-plan-total-ok { color: var(--muted-2); }
-.inv-plan-total-aviso { color: var(--red); }
 .inv-plan-vacio {
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 12px;
@@ -8970,13 +8888,19 @@ body:not(.sidebar-pinned) .main-tab-panel {
 .orden-activo .inv-orden-flecha { margin-left: 4px; }
 
 /* Header "BROKER/EXCHANGE" centrado dentro de su columna. */
-.investment-detail-table .inv-columns-header-row th:nth-child(2) {
+/* Las dos reglas que siguen son POSICIONALES y describen las columnas de la
+   tabla de activos: la segunda es Broker y la tercera Ticker. La tabla del
+   plan comparte las clases de esta pero no su orden de columnas —su segunda
+   es el activo y su tercera el % del capital—, así que queda afuera: el
+   centrado le centraba el título "ACTIVO" sobre valores alineados a la
+   izquierda y el sangrado le corría toda la columna del porcentaje. */
+.investment-detail-table:not(.inv-plan-tabla) .inv-columns-header-row th:nth-child(2) {
   text-align: center;
 }
 /* Espacio extra al inicio de la columna Ticker (padding-left más grande)
    para separar visualmente Broker/Exchange de Ticker. */
-.investment-detail-table th:nth-child(3),
-.investment-detail-table td:nth-child(3) {
+.investment-detail-table:not(.inv-plan-tabla) th:nth-child(3),
+.investment-detail-table:not(.inv-plan-tabla) td:nth-child(3) {
   padding-left: 14px;
 }
 

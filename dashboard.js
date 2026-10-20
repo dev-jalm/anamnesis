@@ -18533,6 +18533,14 @@ const ICONO_VENDER =
   'stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true">' +
   '<path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>';
 
+// Ejecutar una compra planificada, en el detalle del plan. Es la acción opuesta
+// a vender y por eso se dibuja igual: el mismo círculo del mismo tamaño, con un
+// más donde el otro lleva el tilde.
+const ICONO_COMPRAR =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true">' +
+  '<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>';
+
 function groupInvestmentEntriesByTicker(entries) {
   const groups = {};
   entries.forEach(function (e) {
@@ -21000,13 +21008,24 @@ function bloquePlanificacion(destinos, nombreCartera) {
   const totalPct = totalPctDePlan(filas);
 
   // El capital se dice siempre, con plan o sin él: es contra lo que se
-  // calculan los porcentajes y sin ese número la tabla no se puede leer.
+  // calculan los porcentajes y sin ese número la tabla no se puede leer. Va en
+  // la misma banda que encabeza la tabla de Activos —mismas clases, mismo
+  // fondo, los mismos separadores— porque es el mismo rango de información:
+  // lo que resume la tabla que viene abajo.
+  const sep = '<span class="inv-pf-sep">|</span>';
   const cabecera =
-    '<div class="inv-plan-capital">' +
-      '<span class="inv-plan-capital-lbl">Capital a repartir</span>' +
-      '<span class="inv-plan-capital-val">$' + fmt(Math.round(capital)) + '</span>' +
-      '<span class="inv-plan-capital-sub">el líquido de ' + escapeHtmlSafe(nombreCartera) +
-        ': lo aportado que todavía no está invertido</span>' +
+    '<div class="inv-currency-head-inner inv-pf-cab">' +
+      '<span class="inv-section-label">Capital a repartir</span>' +
+      '<span class="inv-pf-meta">(el líquido de ' + escapeHtmlSafe(nombreCartera) +
+        ': lo aportado que todavía no está invertido)</span>' +
+      sep +
+      '<span class="inv-pf-total">Total: $ ' + fmt(Math.round(capital)) + '</span>' +
+      sep +
+      '<span class="inv-section-count' + (totalPct > 100 ? ' is-over' : '') + '">' +
+        'Comprometido: ' + pctSinSigno(totalPct / 100) + (totalPct > 100 ? ' ⚠' : '') + '</span>' +
+      sep +
+      '<span class="inv-pf-gp">Sin asignar: ' +
+        (totalPct >= 100 ? '—' : pctSinSigno((100 - totalPct) / 100)) + '</span>' +
     '</div>';
 
   // Una fila por activo con el total reservado, que se despliega en sus
@@ -21045,8 +21064,22 @@ function bloquePlanificacion(destinos, nombreCartera) {
       const distTxt = (d.distancia === null)
         ? '—'
         : (d.enPrecio ? 'en precio' : 'baja ' + pctSinSigno(d.distancia));
-      return '<tr class="inv-plan-ing-row inv-detail-row' + ocultar + '" data-plan-id="' + escapeHtmlSafe(f.id) + '">' +
-        '<td></td>' +
+      // Las acciones de una fila de detalle van en la PRIMERA columna, como en
+      // el detalle de compras de Activos: ahí viven vender y borrar, y comprar
+      // es la cara opuesta de vender. Mismo tamaño, mismo lugar, mismo tilde
+      // en círculo invertido en un más.
+      return '<tr class="inv-entry-row inv-detail-row inv-plan-ing-row' + ocultar +
+          '" data-plan-id="' + escapeHtmlSafe(f.id) + '">' +
+        '<td class="inv-entry-actions">' +
+          '<button class="inv-delete-btn" data-plan-del="' + escapeHtmlSafe(f.id) + '" title="Quitar este ingreso del plan">' +
+            '<i data-lucide="trash-2" style="width:11px;height:11px"></i>' +
+          '</button>' +
+          '<button class="inv-delete-btn inv-plan-comprar' + (d.enPrecio ? ' listo' : '') +
+            '" data-plan-exec="' + escapeHtmlSafe(f.id) + '"' +
+            ' title="Registrar la compra de este ingreso' +
+              (nominales !== null ? ' — ' + fmtNominales(nominales) + ' nominales' : '') + '">' +
+            ICONO_COMPRAR + '</button>' +
+        '</td>' +
         '<td class="inv-plan-ing">' +
           (f.nota
             ? '<span class="inv-plan-nota" title="' + escapeHtmlSafe(f.nota) + '">' + escapeHtmlSafe(f.nota) + '</span>'
@@ -21065,92 +21098,95 @@ function bloquePlanificacion(destinos, nombreCartera) {
         '<td class="num">' + simbolo + ' ' + fmtPrecio(Number(f.precioObjetivo)) + '</td>' +
         // El precio actual es del activo y ya está en su fila: repetirlo igual
         // en cada ingreso sería la misma cifra tres veces en la misma columna.
-        '<td class="num"></td>' +
+        '<td class="num"><span class="inv-na">—</span></td>' +
         '<td class="num ' + (d.enPrecio ? 'inv-plan-enprecio' : '') + '">' + distTxt + '</td>' +
-        '<td class="num">' + (nominales === null ? '—' : fmtNominales(nominales)) + '</td>' +
-        '<td class="inv-plan-acc">' +
-          // Ejecutar el ingreso: abre el detalle de la compra y, si se
-          // confirma, la da de alta. El botón se destaca cuando el precio ya
-          // llegó, que es cuando hay que tocarlo.
-          '<button class="inv-plan-btn' + (d.enPrecio ? ' listo' : '') +
-            '" data-plan-exec="' + escapeHtmlSafe(f.id) + '" title="Registrar esta compra">' +
-            'COMPRAR' +
-          '</button>' +
-          // El mismo botón de borrar que el detalle de compras de Activos: en
-          // este panel ya existe y no se escribe otro.
-          '<button class="inv-delete-btn" data-plan-del="' + escapeHtmlSafe(f.id) + '" title="Quitar del plan">' +
-            '<i data-lucide="trash-2" style="width:11px;height:11px"></i>' +
-          '</button>' +
-        '</td>' +
+        '<td class="num">' + (nominales === null ? '<span class="inv-na">—</span>' : fmtNominales(nominales)) + '</td>' +
       '</tr>';
     }).join('');
 
-    // La fila del activo: lo mismo que dice un ingreso, pero del conjunto.
-    const banda = '<tr class="inv-plan-activo-row">' +
-      '<td class="inv-plan-toggle">' +
+    // Los títulos del detalle, como en Activos: sólo las columnas que cambian
+    // de significado al bajar un nivel. Las que dicen lo mismo van vacías.
+    const titulosDetalle = '<tr class="inv-entries-head inv-detail-row' + ocultar + '">' +
+      '<td></td>' +
+      '<td>Ingreso</td>' +
+      '<td class="num">% capital</td>' +
+      '<td class="num">Monto</td>' +
+      '<td class="num">Precio de entrada</td>' +
+      '<td></td>' +
+      '<td class="num">Distancia</td>' +
+      '<td class="num">Nominales</td>' +
+    '</tr>';
+
+    // La fila del activo: lo mismo que dice un ingreso, pero del conjunto. Es
+    // la fila de ticker de Activos y usa su clase, su chevron y su celda de
+    // controles.
+    const banda = '<tr class="inv-ticker-row inv-plan-activo-row">' +
+      '<td class="inv-ticker-toggle">' +
         '<button class="inv-toggle-btn" data-action="toggle-plan-activo" title="Ver los ingresos planificados">' +
           '<i data-lucide="chevron-right" style="width:13px;height:13px' +
             (abierto ? ';transform:rotate(90deg)' : '') + '"></i>' +
         '</button>' +
       '</td>' +
-      '<td class="inv-plan-activo-nom">' +
-        '<span class="inv-plan-tk">' + escapeHtmlSafe(g.ticker) +
-          '<span class="inv-plan-mon">' + escapeHtmlSafe(g.moneda) + '</span>' +
-        '</span>' +
+      '<td class="ticker">' + escapeHtmlSafe(g.ticker) +
+        '<span class="inv-plan-mon">' + escapeHtmlSafe(g.moneda) + '</span>' +
         '<span class="inv-plan-activo-ing">' + g.entradas.length +
           (g.entradas.length === 1 ? ' ingreso' : ' ingresos') + '</span>' +
       '</td>' +
       '<td class="num">' + pctSinSigno(pctTotal / 100) + '</td>' +
-      '<td class="num">' + (montoTotalArs === null ? '—' : '$' + fmt(Math.round(montoTotalArs))) + '</td>' +
+      '<td class="num">' + (montoTotalArs === null ? '<span class="inv-na">—</span>' : '$' + fmt(Math.round(montoTotalArs))) + '</td>' +
       // No hay UN precio de entrada del activo: cada tramo tiene el suyo.
       '<td class="num"><span class="inv-na">—</span></td>' +
-      '<td class="num">' + (pa === null ? '—' : simbolo + ' ' + fmtPrecio(pa)) + '</td>' +
+      '<td class="num">' + (pa === null ? '<span class="inv-na">—</span>' : simbolo + ' ' + fmtPrecio(pa)) + '</td>' +
       '<td class="num' + (enPrecio > 0 ? ' inv-plan-enprecio' : '') + '">' +
         (enPrecio > 0 ? enPrecio + ' en precio' : '<span class="inv-na">—</span>') + '</td>' +
-      '<td class="num">' + (hayNominales ? fmtNominales(nominalesTotal) : '—') + '</td>' +
-      '<td></td>' +
+      '<td class="num">' + (hayNominales ? fmtNominales(nominalesTotal) : '<span class="inv-na">—</span>') + '</td>' +
     '</tr>';
-    return banda + detalle;
+    return banda + titulosDetalle + detalle;
   }).join('');
 
-  const avisoPct = (totalPct > 100)
-    ? '<span class="inv-plan-total-aviso">' + pctSinSigno(totalPct / 100) + ' del capital: te pasaste de lo que hay</span>'
-    : '<span class="inv-plan-total-ok">' + pctSinSigno(totalPct / 100) + ' del capital comprometido' +
-      (totalPct < 100 ? ' · queda ' + pctSinSigno((100 - totalPct) / 100) + ' sin asignar' : '') + '</span>';
+  // La tabla es la misma de Activos: sus clases le dan el cuerpo, los colores,
+  // el fondo de los títulos, el padding de las celdas y el table-layout fijo
+  // que hace que el colgroup mande sobre los anchos.
+  const tabla =
+    '<table class="investment-detail-table investment-detail-grouped inv-plan-tabla">' +
+      // El ancho de cada columna se declara una sola vez: la fila del activo
+      // y las de sus ingresos lo heredan de acá.
+      '<colgroup>' +
+        '<col style="width:64px">' +   /* desplegar · en el detalle, quitar y comprar */
+        '<col>' +                      /* Activo · en el detalle, la nota del ingreso */
+        '<col style="width:84px">' +   /* % del capital */
+        '<col style="width:112px">' +  /* Monto */
+        '<col style="width:126px">' +  /* Precio de entrada */
+        '<col style="width:112px">' +  /* Precio actual · vacío en el detalle */
+        '<col style="width:104px">' +  /* Distancia */
+        '<col style="width:112px">' +  /* Nominales */
+      '</colgroup>' +
+      '<thead>' +
+        '<tr class="inv-currency-header-row">' +
+          '<th colspan="8">' + cabecera + '</th>' +
+        '</tr>' +
+        (filas.length === 0 ? '' :
+          '<tr class="inv-columns-header-row">' +
+            '<th></th>' +
+            '<th>Activo</th>' +
+            '<th class="num">% capital</th>' +
+            '<th class="num">Monto</th>' +
+            '<th class="num">Precio de entrada</th>' +
+            '<th class="num">Precio actual</th>' +
+            '<th class="num" title="Cuánto tiene que moverse el precio de hoy para llegar al de entrada">Distancia</th>' +
+            '<th class="num" title="Lo que compraría el monto a su precio de entrada">Nominales</th>' +
+          '</tr>') +
+      '</thead>' +
+      '<tbody>' +
+        (filas.length === 0
+          ? '<tr><td colspan="8" class="inv-plan-vacio">Todavía no planificaste ninguna compra en ' +
+            'esta cartera. Cargá arriba el activo, a qué precio querés entrar y qué parte del ' +
+            'capital le destinás.</td></tr>'
+          : grupos) +
+      '</tbody>' +
+    '</table>';
 
-  const tabla = filas.length === 0
-    ? '<div class="inv-plan-vacio">Todavía no planificaste ninguna compra en esta cartera. ' +
-      'Agregá abajo el activo, a qué precio querés entrar y qué parte del capital le destinás.</div>'
-    : '<table class="inv-plan-tabla">' +
-        // El ancho de cada columna se declara una sola vez: la fila del activo
-        // y las de sus ingresos lo heredan de acá.
-        '<colgroup>' +
-          '<col style="width:26px">' +
-          '<col>' +
-          '<col style="width:84px">' +
-          '<col style="width:112px">' +
-          '<col style="width:126px">' +
-          '<col style="width:112px">' +
-          '<col style="width:104px">' +
-          '<col style="width:112px">' +
-          '<col style="width:132px">' +
-        '</colgroup>' +
-        '<thead><tr>' +
-          '<th></th>' +
-          '<th>Activo</th>' +
-          '<th class="num">% capital</th>' +
-          '<th class="num">Monto</th>' +
-          '<th class="num">Precio de entrada</th>' +
-          '<th class="num">Precio actual</th>' +
-          '<th class="num">Distancia</th>' +
-          '<th class="num">Nominales</th>' +
-          '<th></th>' +
-        '</tr></thead>' +
-        '<tbody>' + grupos + '</tbody>' +
-      '</table>' +
-      '<div class="inv-plan-total">' + avisoPct + '</div>';
-
-  return '<div class="inv-plan">' + cabecera + tabla + '</div>';
+  return '<div class="inv-plan">' + tabla + '</div>';
 }
 
 // El alta de una línea del plan: los tres datos que la definen, más una nota.
