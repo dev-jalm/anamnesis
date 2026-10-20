@@ -190,18 +190,21 @@ window.MANUAL = {
       h: 'Planificación de compras',
       sub: '¿Qué voy a comprar y a qué precio?',
       img: '25-planificacion',
-      imgCap: 'El plan de Inversiones: tres activos con su precio de entrada, y el del medio ya en precio.',
+      imgCap: 'El plan de Inversiones: una fila por activo con lo que tiene reservado, desplegada en sus ingresos. El de KO ya está en precio y su botón de comprar aparece en verde.',
       p: [
         'Es la primera sección de Reserva, Inversiones y las Jubilaciones, y la única que mira hacia adelante: las otras cuatro cuentan lo que ya pasó. Acá anotás en qué activos pensás entrar antes de entrar, que es cuando se puede pensar con la cabeza fría.',
         'Cada línea lleva tres datos tuyos: el activo, el precio al que querés comprarlo y qué parte del capital le destinás. Con eso la tabla calcula el resto: cuánta plata es ese porcentaje, cuántos nominales comprarías a ese precio, y cuánto le falta al mercado para llegar a donde lo esperás. Cuando llega —o lo perfora— la línea queda marcada como en precio, en verde: es la que tenés que mirar.',
+        'Un mismo activo acepta varios ingresos, porque entrar escalonado en dos o tres precios es una forma de comprar. La tabla muestra una fila por activo con lo que tiene reservado en total, el precio de hoy, los nominales que sumarían todos sus tramos y cuántos ya están en precio; el chevron de la izquierda la despliega en un renglón por ingreso, cada uno con su porcentaje, su precio de entrada y su distancia.',
         'El capital que se reparte es el líquido de esa cartera, o sea lo que aportaste y todavía no invertiste, y está escrito arriba de la tabla para que sepas contra qué se calculan los porcentajes. Repartir sobre el total de la cartera sería asignar de nuevo la plata que ya está puesta en un activo.',
-        'Abajo del todo, cuánto del capital tenés comprometido y cuánto queda libre. Pasarte del 100% no está prohibido —podés estar planificando con plata que todavía no entró— pero te avisa.'
+        'Abajo del todo, cuánto del capital tenés comprometido y cuánto queda libre. Pasarte del 100% no está prohibido —podés estar planificando con plata que todavía no entró— pero te avisa.',
+        'Cuando decidís ejecutar un ingreso, el botón Comprar de su renglón te muestra la compra antes de hacerla: activo, fecha, broker, precio, nominales y total. Si confirmás, se da de alta igual que una carga manual y la línea sale del plan: el plan tiene lo que está pendiente y Activos lo que ya tenés. El capital a repartir baja por lo que acabás de invertir y los montos de los demás activos se recalculan sobre lo que queda.'
       ],
       lista: [
+        'La compra se registra al precio del mercado cuando hay uno cargado, no al que planificaste: el plan dice cuándo entrar, el precio lo pone el día. El diálogo te dice cuál de los dos está usando.',
+        'La compra que sale del plan queda sin portafolio asignado: se lo ponés desde la tabla de activos.',
         'Un activo en dólares muestra el monto en las dos monedas: en pesos, que es la moneda de tus aportes, y en dólares, que es la del precio de entrada.',
         'El plan es de la cartera, no del portafolio: a qué objetivo va a parar una compra se decide al registrarla.',
-        'Sin precio actual del activo, la distancia muestra un guión. El monto y los nominales se calculan igual: no dependen del mercado.',
-        'Planificar no compra nada. Cuando ejecutes la compra, se carga como siempre desde Cargar inversiones y aparece en Activos.'
+        'Sin precio actual del activo, la distancia muestra un guión. El monto y los nominales se calculan igual: no dependen del mercado.'
       ]
     },
     {

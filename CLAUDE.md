@@ -394,5 +394,10 @@ repo y mencionarlo. **Aplica también a las regeneraciones.**
 
 ## Autonomía
 
-Avanzar de corrido, sin pedir OK intermedio. Frenar solo ante lo irreversible
-(push, borrar datos) o ante lo que es decisión del usuario y no técnica.
+Avanzar de corrido, sin pedir OK intermedio. Frenar solo ante lo que es
+decisión del usuario y no técnica, o ante lo que destruye datos sin vuelta.
+
+**El push va siempre, sin que lo pidan**, al cerrar cada cambio terminado y
+verificado. El usuario prueba desde el sitio publicado, así que un commit sin
+pushear es trabajo que no puede ver. Deja de contar como "lo irreversible que
+necesita permiso": lo irreversible de verdad es borrarle datos.

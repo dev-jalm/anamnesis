@@ -1370,6 +1370,57 @@ function totalPctDePlan(filas) {
   }, 0);
 }
 
+// Un mismo activo puede planificarse en varios ingresos: entrar en tres tramos
+// a tres precios es una estrategia, no un error de carga. Se agrupa por
+// ticker+moneda —el mismo papel en pesos y en dólares son dos activos— y se
+// conserva el orden en que se cargó el primer ingreso de cada uno.
+function agruparPlanPorActivo(filas) {
+  const grupos = [];
+  const porClave = {};
+  (Array.isArray(filas) ? filas : []).forEach(function (f) {
+    if (!f || !f.ticker) return;
+    const clave = String(f.ticker) + '|' + (f.moneda === 'USD' ? 'USD' : 'ARS');
+    if (!porClave[clave]) {
+      porClave[clave] = { clave: clave, ticker: f.ticker, moneda: (f.moneda === 'USD' ? 'USD' : 'ARS'), entradas: [] };
+      grupos.push(porClave[clave]);
+    }
+    porClave[clave].entradas.push(f);
+  });
+  return grupos;
+}
+
+// La compra concreta que saldría de una línea del plan. Se calcula una sola vez
+// y la usan el diálogo de confirmación y el alta, para que lo que se confirma
+// sea exactamente lo que se guarda.
+//
+// El precio es el del MERCADO cuando hay uno cargado, no el planificado: el
+// plan dice cuándo entrar, el precio lo pone el día de la compra. Sin precio
+// actual queda el objetivo, que es el único número disponible.
+//
+// Unidades: `pctCapital` en escala 0-100, `capital` y `montoArs` en pesos, y
+// `precio`/`montoEnMoneda`/`cantidad` en la moneda del activo.
+function compraPlanificada(fila, capital, precioActual, mep) {
+  const pa = (precioActual === null || precioActual === undefined || precioActual === '')
+    ? null : Number(precioActual);
+  const usaMercado = pa !== null && isFinite(pa) && pa > 0;
+  const objetivo = Number(fila && fila.precioObjetivo);
+  const precio = usaMercado ? pa : ((isFinite(objetivo) && objetivo > 0) ? objetivo : 0);
+  const pct = Number(fila && fila.pctCapital);
+  const cap = (isFinite(capital) && capital > 0) ? capital : 0;
+  const montoArs = (isFinite(pct) && pct > 0) ? (cap * pct / 100) : 0;
+  const tc = (isFinite(mep) && mep > 0) ? mep : 1;
+  const esUsd = fila && fila.moneda === 'USD';
+  const montoEnMoneda = esUsd ? (montoArs / tc) : montoArs;
+  return {
+    precio: precio,
+    usaMercado: usaMercado,
+    precioObjetivo: (isFinite(objetivo) && objetivo > 0) ? objetivo : 0,
+    montoArs: montoArs,
+    montoEnMoneda: montoEnMoneda,
+    cantidad: precio > 0 ? (montoEnMoneda / precio) : 0
+  };
+}
+
 // ----- FICHA MÉDICA: FUSIÓN POR MODO -----
 // El modo elegido en el diálogo de import vale para TODO lo que se importa, no
 // sólo para las reglas y las categorías. Las tarjetas KPI y los viajes son
@@ -3808,7 +3859,7 @@ if (typeof module !== 'undefined' && module.exports) {
     serializeFullConfig, previewImport, PARAMS_CONFIG_KEYS,
     fusionarPorId, fusionarDict, fusionarFichaMedica, contarMesesPresupuestados,
     // planificación de compras
-    filaDePlan, totalPctDePlan,
+    filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
     resumirTanda,
     // reserva
     getReservaParams, getReservaAcumulado,

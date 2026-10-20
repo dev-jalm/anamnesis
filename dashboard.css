@@ -6431,7 +6431,12 @@ body[data-exporting="true"] .section-card {
    botones y nowrap en la celda. */
 .investment-detail-grouped .inv-ticker-toggle { white-space: nowrap; }
 .investment-detail-grouped .inv-ticker-toggle .inv-vender-btn { margin-left: 2px; }
-.investment-detail-grouped .inv-toggle-btn {
+/* El chevron que despliega un activo del plan comparte esta declaración: es el
+   mismo control y hace lo mismo. Sin agregarse acá salía con el estilo del
+   navegador —fondo gris claro, borde outset y flecha negra— al lado de uno
+   transparente en la misma pantalla. */
+.investment-detail-grouped .inv-toggle-btn,
+.inv-plan-activo-row .inv-toggle-btn {
   background: transparent;
   border: none;
   cursor: pointer;
@@ -6442,10 +6447,13 @@ body[data-exporting="true"] .section-card {
   justify-content: center;
 }
 .investment-detail-grouped .inv-toggle-btn i,
-.investment-detail-grouped .inv-toggle-btn svg {
+.investment-detail-grouped .inv-toggle-btn svg,
+.inv-plan-activo-row .inv-toggle-btn i,
+.inv-plan-activo-row .inv-toggle-btn svg {
   transition: transform 0.15s;
 }
-.investment-detail-grouped .inv-toggle-btn:hover { color: var(--accent); }
+.investment-detail-grouped .inv-toggle-btn:hover,
+.inv-plan-activo-row .inv-toggle-btn:hover { color: var(--accent); }
 
 .inv-desc-input,
 .inv-price-input,
@@ -6915,14 +6923,18 @@ body[data-exporting="true"] .section-card {
   color: var(--ink);
 }
 .inv-entry-actions { text-align: center; }
-.inv-entry-row .inv-delete-btn {
+/* El de quitar un ingreso del plan comparte esta declaración: es el mismo
+   botón de borrar del panel, con el mismo ícono y el mismo rojo al pasar. */
+.inv-entry-row .inv-delete-btn,
+.inv-plan-ing-row .inv-delete-btn {
   background: transparent;
   border: none;
   cursor: pointer;
   color: var(--muted-2);
   padding: 2px;
 }
-.inv-entry-row .inv-delete-btn:hover { color: var(--red); }
+.inv-entry-row .inv-delete-btn:hover,
+.inv-plan-ing-row .inv-delete-btn:hover { color: var(--red); }
 /* La última compra cierra el bloque con un borde más marcado. */
 .inv-entry-row:not(:has(+ .inv-entry-row)) > td {
   border-bottom: 1px solid var(--border);
@@ -7120,7 +7132,10 @@ body[data-exporting="true"] .section-card {
   border-radius: 5px;
   cursor: pointer;
 }
-.inv-agrupar-btn {
+/* El botón COMPRAR del plan comparte esta declaración: es el mismo botón chico
+   de texto del panel de inversiones, así que no se escribe un bloque paralelo. */
+.inv-agrupar-btn,
+.inv-plan-btn {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   letter-spacing: 1.2px;
@@ -7133,7 +7148,12 @@ body[data-exporting="true"] .section-card {
   cursor: pointer;
   transition: all .15s;
 }
-.inv-agrupar-btn:hover { background: var(--accent); color: var(--on-accent, #1A1714); }
+.inv-agrupar-btn:hover,
+.inv-plan-btn:hover { background: var(--accent); color: var(--on-accent, #1A1714); }
+/* Con el precio ya en el objetivo el botón es la acción del momento: pasa al
+   verde de la app, el mismo que marca la distancia "en precio". */
+.inv-plan-btn.listo { color: var(--green); border-color: var(--green); }
+.inv-plan-btn.listo:hover { background: var(--green); color: var(--on-accent, #1A1714); }
 
 /* ── Vista por portafolio en Concentración y Liquidado ────────────────── */
 /* El selector va al lado del título de la sección. Con la sección plegada se
@@ -7522,7 +7542,60 @@ body[data-exporting="true"] .section-card {
   font-size: 10px;
   color: var(--muted-2);
 }
-.inv-plan-acc { width: 28px; text-align: right; }
+/* Dos acciones por ingreso —comprar y quitar— en una celda que no las parte.
+   El ancho lo pone el colgroup de la tabla; acá sólo que no se corten. */
+.inv-plan-acc {
+  text-align: right;
+  white-space: nowrap;
+}
+/* En línea con el botón: el de borrar es flex y, como bloque, se caía a un
+   renglón propio debajo de COMPRAR. */
+.inv-plan-acc .inv-delete-btn {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+.inv-plan-acc .inv-plan-btn { vertical-align: middle; }
+
+/* ── La fila de activo y sus ingresos ─────────────────────────────────────
+   Un mismo ticker puede planificarse en varios tramos, así que la tabla tiene
+   una fila por activo con el total reservado y, debajo, una fila por ingreso
+   que el chevron muestra u oculta. Es la misma mecánica que el detalle de
+   compras de Activos, y las dos clases de fila viven en la MISMA tabla: el
+   colgroup es uno solo y las columnas caen alineadas sin tocar paddings. */
+.inv-plan-activo-row > td {
+  border-bottom: 1px solid var(--border);
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+.inv-plan-toggle { padding-right: 0; }
+.inv-plan-activo-nom {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.inv-plan-activo-row .inv-plan-tk { font-weight: 600; }
+.inv-plan-activo-ing {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 11px;
+  color: var(--muted);
+}
+/* Las filas de ingreso se leen como lo que hay adentro del activo: mismo
+   cuerpo, tinta apagada y sin el borde sólido que cierra cada activo. */
+.inv-plan-ing-row > td {
+  border-bottom: 1px dashed var(--border);
+  color: var(--muted-2);
+}
+.inv-plan-ing-row:last-child > td { border-bottom: 1px solid var(--border); }
+.inv-plan-ing { color: var(--muted-2); }
+/* Un ingreso sin nota igual necesita nombre en su columna. */
+.inv-plan-nota-vacia {
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--muted-2);
+}
 .inv-plan-total {
   display: flex;
   justify-content: flex-end;

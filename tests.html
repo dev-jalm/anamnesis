@@ -3331,6 +3331,60 @@ group('Planificación de compras', function () {
     assertEqual(totalPctDePlan([]), 0);
     assertEqual(totalPctDePlan(null), 0);
   });
+
+  test('varios ingresos del mismo activo caen en una sola banda', function () {
+    const g = agruparPlanPorActivo([
+      fila({ id: 'a', pctCapital: 18 }),
+      { id: 'b', ticker: 'KO', moneda: 'ARS', precioObjetivo: 100, pctCapital: 25 },
+      fila({ id: 'c', pctCapital: 12 })
+    ]);
+    assertEqual(g.length, 2);
+    assertEqual(g[0].ticker, 'GOOGL');
+    assertEqual(g[0].entradas.length, 2);
+    // El total reservado del activo es la suma de sus tramos.
+    assertEqual(totalPctDePlan(g[0].entradas), 30);
+    assertEqual(g[1].entradas.length, 1);
+  });
+  test('el mismo papel en pesos y en dólares son dos activos', function () {
+    const g = agruparPlanPorActivo([
+      fila({ id: 'a' }),
+      fila({ id: 'b', moneda: 'USD' })
+    ]);
+    assertEqual(g.length, 2);
+  });
+  test('una fila sin ticker no arma banda', function () {
+    assertEqual(agruparPlanPorActivo([{ id: 'x', pctCapital: 10 }]).length, 0);
+    assertEqual(agruparPlanPorActivo(null).length, 0);
+  });
+
+  test('la compra se arma al precio del mercado, no al planificado', function () {
+    const c = compraPlanificada(fila(), 1000000, 7815, 1000);
+    assertEqual(c.usaMercado, true);
+    assertEqual(c.precio, 7815);
+    assertEqual(c.precioObjetivo, 7190);
+    assertEqual(c.montoArs, 300000);
+    assertEqual(Math.round(c.cantidad * 10000) / 10000, Math.round(300000 / 7815 * 10000) / 10000);
+  });
+  test('sin precio actual se compra al precio planificado', function () {
+    const c = compraPlanificada(fila(), 1000000, null, 1000);
+    assertEqual(c.usaMercado, false);
+    assertEqual(c.precio, 7190);
+  });
+  test('un activo en dólares convierte el monto al MEP antes de contar nominales', function () {
+    const c = compraPlanificada(
+      { ticker: 'VOO', moneda: 'USD', precioObjetivo: 500, pctCapital: 80 }, 1000000, 600, 1250);
+    assertEqual(c.montoArs, 800000);
+    assertEqual(c.montoEnMoneda, 640);          // 800.000 / 1.250
+    assertEqual(Math.round(c.cantidad * 1e6) / 1e6, Math.round(640 / 600 * 1e6) / 1e6);
+  });
+  test('sin capital o sin precio la compra queda en cero, no en NaN', function () {
+    const sinCap = compraPlanificada(fila(), 0, 7815, 1000);
+    assertEqual(sinCap.montoArs, 0);
+    assertEqual(sinCap.cantidad, 0);
+    const sinPrecio = compraPlanificada({ ticker: 'X', moneda: 'ARS', pctCapital: 10 }, 1000000, null, 1000);
+    assertEqual(sinPrecio.precio, 0);
+    assertEqual(sinPrecio.cantidad, 0);
+  });
 });
 
 group('Diagnóstico — qué regla está realmente rota', function () {

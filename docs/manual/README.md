@@ -90,7 +90,7 @@ Qué muestra cada una:
 | `02-ficha-medica.png` | Score, tarjetas de indicadores y distribución del gasto |
 | `03-diagnostico.png` | Avisos, flujo trimestral y evolución anual |
 | `04-salud-financiera.png` | Cartera por destino, con tres activos liquidados |
-| `25-planificacion.png` | La sección Planificación de Inversiones: tres líneas de plan, una de ellas en precio |
+| `25-planificacion.png` | La sección Planificación de Inversiones: una fila por activo desplegada en sus ingresos, uno de ellos en precio |
 | `18-venta-activo.png` | La venta parcial de una compra |
 | `20-concentracion-sector.png` | La sección Concentración de Inversiones: sus dos gráficos, con una alerta cada uno |
 | `21-liquidado.png` | La sección Liquidado: ganancias y pérdidas en dos columnas, con el total cruzándolas |
@@ -122,6 +122,16 @@ respecto de su caja. En las capturas de la tabla de activos eso hace que la
 descripción y el precio actual se vean desalineados contra el resto de la fila.
 No es un bug del CSS —medido en el DOM, el input está centrado en su celda con
 desfase 0—: es cómo esa librería rasteriza los campos de formulario.
+
+**html2canvas y los chevrons.** Un ícono de lucide que la app rota con
+`transform: rotate(90deg)` —el chevron de un activo o un ticker desplegado— sale
+apuntando a cualquier lado menos al que corresponde, y la librería **lee el
+transform del elemento original, no del clon**, así que tocarlo en el `onclone`
+no sirve. Encima dibuja los paths **espejados en vertical**. La salida que
+funciona es modificar el DOM vivo antes de capturar y restaurarlo después:
+quitarle el `transform` al `<svg>` y escribirle el path del chevron **contrario**
+al que se quiere ver —`m18 15-6-6-6 6`, que es el de arriba, para que salga uno
+hacia abajo—. Así la captura muestra el mismo estado que la pantalla.
 
 Y otro: si el elemento capturado no tiene fondo propio, el PNG sale
 transparente, y en tema oscuro el texto claro queda invisible sobre el blanco

@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.95 |
+| **Versión** | 1.96 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -929,6 +929,10 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-212e | El plan informa **qué porcentaje del capital tiene comprometido** y cuánto queda sin asignar. Pasarse de 100 % no se impide —se puede estar planificando con plata que todavía no entró— pero se advierte |
 | RF-212f | Un activo en dólares muestra el monto en las dos monedas: en pesos, que es la moneda del capital, y en dólares, que es la del precio de entrada contra el que se calculan los nominales |
 | RF-212g | El plan es **de la cartera y no del portafolio**: la sección no ofrece la vista por portafolio, porque el objetivo al que se asigna una compra se elige al registrarla |
+| RF-212h | Un mismo activo admite **varios ingresos planificados**: entrar escalonado en tres precios es una estrategia, no una carga repetida. El plan se presenta con una **fila por activo** —el total del capital que tiene reservado, el precio de hoy, los nominales que sumarían sus tramos y cuántos de ellos ya están en precio— que **se despliega** en una fila por ingreso, cada una con su porcentaje, su precio de entrada y su distancia. Las dos clases de fila comparten la misma tabla, de modo que las columnas del detalle caen debajo de las del activo |
+| RF-212i | Cada ingreso planificado se puede **ejecutar desde el plan**: un botón muestra el detalle de la compra —activo, fecha, broker, precio, nominales y total— y, si se confirma, la da de alta igual que una carga manual. El botón se destaca cuando el precio ya llegó al objetivo, que es cuando hay algo que hacer |
+| RF-212j | La compra se registra al **precio del mercado** cuando hay uno cargado, no al planificado: el plan dice cuándo entrar, el precio lo pone el día de la compra. El diálogo informa cuál de los dos se está usando. Sin precio actual queda el objetivo, que es el único número disponible |
+| RF-212k | Ejecutado un ingreso, **su línea sale del plan**: el plan tiene lo que está pendiente y Activos lo que ya se tiene. El capital a repartir baja por lo que se acaba de invertir, y los montos de los demás activos se recalculan sobre el líquido que queda |
 | RF-211b | Los paneles que acumulan tenencias suman una sección plegable, **Rendimiento**, que responde cómo se comportó la cartera en el tiempo. Está en **Reserva, Inversiones y las Jubilaciones**: "¿cómo me fue?" no es una pregunta exclusiva de una cartera, y en una jubilación —que es de largo plazo— es justamente la que decide si conviene dejarla donde está. Sólo en Inversiones ofrece la vista por portafolio, porque los portafolios son de esa cartera y de ninguna otra; en el resto trabaja a nivel cartera. Trading queda afuera: no lista tenencias por ticker. Se presenta como sus hermanas —la misma banda de encabezado y la misma sangría del cuerpo—, de modo que las secciones del panel arrancan en una sola columna |
 | RF-211c | El rendimiento se informa de **dos maneras a la vez, porque son dos preguntas distintas**. El **retorno acumulado** encadena los retornos diarios y mide cómo se comportó el activo, con independencia de cuánto dinero había puesto en cada momento: es lo comparable contra un índice. La **TIR anualizada** pondera por el dinero y por el momento en que entró: es lo que le rindió al usuario. Que la TIR supere al retorno acumulado significa que los aportes cayeron en buen momento, y al revés |
 | RF-211d | La medición se hace **en dólares y sobre el precio del activo**: un CEDEAR se traduce a su subyacente por nominales ÷ ratio. Así no hace falta una serie de tipo de cambio —que sería una segunda fuente histórica, con su propio error— y el resultado responde "cómo se comportó lo que compré". La contracara se declara en la pantalla: el premio o descuento del CEDEAR contra su valor teórico queda afuera de la medición |
@@ -1057,7 +1061,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 539 pruebas en 67 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 546 pruebas en 67 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 | RNF-45 | **El buscador de movimientos espera a que se deje de escribir** antes de filtrar. Un listado de 1.500 movimientos se recalcula entero en cada pulsación: escribir una palabra de doce letras eran doce recálculos y un segundo y medio de pantalla trabada —medido—. La espera es de 160 ms, por debajo del umbral en que la respuesta deja de percibirse inmediata |
 | RNF-46 | **Lo que se usa muchas veces se construye una sola vez.** Los formateadores de número viven fuera de la función que los usa: crear uno cuesta 47 veces más que usarlo, y el formateo de montos llegó a ser más de la mitad del tiempo de cada pulsación. La misma regla vale para el dibujado de iconos, que se acota al elemento que cambió en lugar de recorrer la pantalla entera, y para las claves de ordenamiento, que se calculan una vez por fila y no dentro del comparador |
@@ -1301,7 +1305,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.92 | 17/10/2026 | Aplicar una regla de descarte descarta de verdad, el diagnóstico deja de marcar reglas sanas y cada problema lleva a su regla (RF-168g, RF-168h, RF-168i, RNF-43) | Reemplazada |
 | 1.93 | 17/10/2026 | El import de configuración avisa que la Ficha médica trae los presupuestos (RF-210g, RNF-43) | Reemplazada |
 | 1.94 | 17/10/2026 | La descripción de los movimientos se presenta en mayúsculas (RF-022a) | Reemplazada |
-| 1.95 | 17/10/2026 | Las carteras suman **Planificación** —qué comprar, a qué precio y con qué parte del capital— y sus cinco secciones pasan a seguir el ciclo de una posición (RF-212a a RF-212g, RNF-43) | **Vigente** |
+| 1.95 | 17/10/2026 | Las carteras suman **Planificación** —qué comprar, a qué precio y con qué parte del capital— y sus cinco secciones pasan a seguir el ciclo de una posición (RF-212a a RF-212g, RNF-43) | Reemplazada |
+| 1.96 | 20/10/2026 | Un activo admite varios ingresos planificados, que se agrupan en una fila por activo, y cada ingreso se ejecuta desde el plan (RF-212h, RF-212i, RF-212j, RF-212k, RNF-43) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

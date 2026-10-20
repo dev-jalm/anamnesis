@@ -940,7 +940,10 @@ function buildDemoSnapshot(mesesAtras) {
     // quedarían ridículos contra el mercado.
     planCompras: {
       inversiones: [
-        { id: 'plan_demo_1', ticker: 'GOOGL', moneda: 'ARS', precioObjetivo: precioPlan('GOOGL', 'ARS', 0.92), pctCapital: 30, nota: 'si corrige con el mercado' },
+        // GOOGL entra escalonado en dos tramos: es el caso que hace falta ver
+        // agrupado —un activo, dos ingresos y un total reservado—.
+        { id: 'plan_demo_1', ticker: 'GOOGL', moneda: 'ARS', precioObjetivo: precioPlan('GOOGL', 'ARS', 0.92), pctCapital: 18, nota: 'primer tramo, si corrige' },
+        { id: 'plan_demo_5', ticker: 'GOOGL', moneda: 'ARS', precioObjetivo: precioPlan('GOOGL', 'ARS', 0.84), pctCapital: 12, nota: 'segundo tramo, más abajo' },
         { id: 'plan_demo_2', ticker: 'KO', moneda: 'ARS', precioObjetivo: precioPlan('KO', 'ARS', 1.03), pctCapital: 25, nota: 'ya está en precio' },
         { id: 'plan_demo_3', ticker: 'JNJ', moneda: 'ARS', precioObjetivo: precioPlan('JNJ', 'ARS', 0.85), pctCapital: 20, nota: 'defensiva, para equilibrar' }
       ],

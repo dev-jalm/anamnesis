@@ -20889,6 +20889,109 @@ function borrarFilaDePlan(destinos, filaId) {
   }));
 }
 
+// El broker con el que ya se opera en esa cartera. Una compra que sale del plan
+// no pregunta por el broker —el plan no lo tiene— así que se usa el que más
+// aparece en las compras de la cartera, y el diálogo lo dice antes de confirmar.
+function brokerHabitual(destino) {
+  const cuenta = {};
+  (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
+    .forEach(function (e) {
+      if (e.destino !== destino || !e.broker) return;
+      cuenta[e.broker] = (cuenta[e.broker] || 0) + 1;
+    });
+  let mejor = null, max = 0;
+  Object.keys(cuenta).forEach(function (b) {
+    if (cuenta[b] > max) { max = cuenta[b]; mejor = b; }
+  });
+  return mejor || 'BALANZ';
+}
+
+// Todo lo que define la compra que saldría de una línea del plan. Se calcula
+// una sola vez y lo usan el diálogo y el alta, para que lo que se confirma sea
+// exactamente lo que se guarda.
+function compraDesdeElPlan(destinos, fila) {
+  const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+  const info = infoDeTicker(state.tickerInfo, fila.ticker, fila.moneda);
+  const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
+    ? Number(info.precioActual) : null;
+  const c = compraPlanificada(fila, liquidoDeDestino(destinos), pa, mep);
+  const d = new Date();
+  return {
+    ticker: fila.ticker, moneda: fila.moneda === 'USD' ? 'USD' : 'ARS',
+    precio: c.precio, usaMercado: c.usaMercado, precioObjetivo: c.precioObjetivo,
+    cantidad: c.cantidad, montoArs: c.montoArs, montoEnMoneda: c.montoEnMoneda,
+    destino: clavePlan(destinos), broker: brokerHabitual(clavePlan(destinos)),
+    fecha: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+      '-' + String(d.getDate()).padStart(2, '0')
+  };
+}
+
+// Ejecutar una línea del plan: muestra el detalle y, si se confirma, da de alta
+// la compra igual que la carga manual y saca la línea del plan. El plan tiene
+// lo pendiente; lo comprado vive en Activos.
+function ejecutarCompraDePlan(destinos, filaId) {
+  const fila = planDeCartera(destinos).find(function (f) { return f.id === filaId; });
+  if (!fila) return;
+  const c = compraDesdeElPlan(destinos, fila);
+  if (!(c.precio > 0) || !(c.cantidad > 0)) {
+    appAlert({
+      title: 'No hay con qué comprar',
+      message: 'Esta línea reserva $' + fmt(Math.round(c.montoArs)) + ' del capital y el precio es ' +
+        (c.precio > 0 ? 'válido' : 'cero') + '. Revisá el líquido de la cartera y el precio de entrada.',
+      danger: true
+    });
+    return;
+  }
+  const simbolo = c.moneda === 'USD' ? 'US$' : '$';
+  const detalle =
+    '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--muted-2);line-height:1.7">' +
+      '• Activo: <strong>' + escapeHtmlSafe(c.ticker) + '</strong> (' + escapeHtmlSafe(c.moneda) + ')<br>' +
+      '• Fecha: <strong>' + c.fecha + '</strong><br>' +
+      '• Broker: <strong>' + escapeHtmlSafe(c.broker) + '</strong><br>' +
+      '• Precio: <strong>' + simbolo + ' ' + fmtPrecio(c.precio) + '</strong>' +
+        (c.usaMercado
+          ? ' <span style="color:var(--muted)">(el del mercado; planificaste ' + simbolo + ' ' + fmtPrecio(c.precioObjetivo) + ')</span>'
+          : ' <span style="color:var(--muted)">(el planificado: no hay precio actual cargado)</span>') + '<br>' +
+      '• Nominales: <strong>' + fmtNominales(c.cantidad) + '</strong><br>' +
+      '• Total: <strong>' + simbolo + ' ' + fmtPrecio(c.montoEnMoneda) + '</strong>' +
+        (c.moneda === 'USD' ? ' <span style="color:var(--muted)">($' + fmt(Math.round(c.montoArs)) + ' al MEP)</span>' : '') +
+    '</div>';
+  appConfirm({
+    title: 'Registrar la compra de ' + c.ticker,
+    eyebrow: 'CONFIRMAR COMPRA',
+    messageHtml: 'Se da de alta esta compra igual que una carga manual y la línea sale del plan.<br><br>' + detalle,
+    summaryLabel: 'TENÉ EN CUENTA',
+    summaryText: admitePortafolios(c.destino)
+      ? 'La compra queda sin portafolio asignado: se le pone desde la tabla de activos.'
+      : 'Verificá precio y nominales contra el comprobante del broker antes de confirmar.',
+    confirmLabel: 'COMPRAR ' + fmtNominales(c.cantidad) + ' ' + c.ticker,
+    cancelLabel: 'Cancelar',
+    icon: 'shopping-cart'
+  }, function (ok) {
+    if (!ok) return;
+    if (!Array.isArray(state.investmentEntries)) state.investmentEntries = [];
+    const now = Date.now();
+    state.investmentEntries.push({
+      id: 'inv_' + now + '_' + Math.random().toString(36).slice(2, 8),
+      fecha: c.fecha,
+      broker: c.broker,
+      ticker: c.ticker,
+      cantidad: c.cantidad,
+      precio: c.precio,
+      total: c.cantidad * c.precio,
+      destino: c.destino,
+      moneda: c.moneda,
+      // El portafolio es de la compra, no del plan: el plan es de la cartera.
+      portafolio: undefined,
+      createdAt: now
+    });
+    borrarFilaDePlan(destinos, filaId);
+    registrarCargaEnHistorial('Inversion', { timestamp: now, kept: 1, skipped: 0, total: 1 });
+    scheduleSave();
+    if (typeof renderMainAssets === 'function') renderMainAssets();
+  });
+}
+
 // El cuerpo de la sección: la tabla del plan más el formulario de alta.
 function bloquePlanificacion(destinos, nombreCartera) {
   const filas = planDeCartera(destinos);
@@ -20906,51 +21009,108 @@ function bloquePlanificacion(destinos, nombreCartera) {
         ': lo aportado que todavía no está invertido</span>' +
     '</div>';
 
-  const filasHtml = filas.map(function (f) {
-    const info = infoDeTicker(state.tickerInfo, f.ticker, f.moneda);
+  // Una fila por activo con el total reservado, que se despliega en sus
+  // ingresos: un mismo ticker se puede planificar en varios tramos y lo que
+  // interesa de un vistazo es cuánto se le reserva en total. Es la misma
+  // mecánica que el detalle de compras de Activos —fila de cabecera, filas
+  // .inv-detail-row debajo y un chevron que las muestra— y por eso comparte
+  // una sola tabla con un solo colgroup: así las columnas del detalle caen
+  // debajo de las del activo sin alinear a ojo.
+  const grupos = agruparPlanPorActivo(filas).map(function (g) {
+    const info = infoDeTicker(state.tickerInfo, g.ticker, g.moneda);
     const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
       ? Number(info.precioActual) : null;
-    const d = filaDePlan(f, capital, pa);
-    const simbolo = f.moneda === 'USD' ? 'US$' : '$';
-    // El monto asignado sale del capital, que está en pesos; para un activo en
-    // dólares se muestra también cuántos dólares son, que es con lo que se
-    // compara el precio objetivo.
-    const montoArs = d.monto;
-    const montoEnMoneda = (montoArs !== null && f.moneda === 'USD') ? (montoArs / mep) : montoArs;
-    const nominales = (montoEnMoneda !== null && Number(f.precioObjetivo) > 0)
-      ? (montoEnMoneda / Number(f.precioObjetivo)) : null;
-    // Qué le falta al mercado para llegar al precio de entrada. Si ya está en
-    // el objetivo o por debajo, la compra se puede ejecutar: eso es lo que hay
-    // que ver de un vistazo, y por eso va marcado.
-    const distCls = d.enPrecio ? 'inv-plan-enprecio' : '';
-    const distTxt = (d.distancia === null)
-      ? '—'
-      : (d.enPrecio ? 'en precio' : 'baja ' + pctSinSigno(d.distancia));
-    return '<tr data-plan-id="' + escapeHtmlSafe(f.id) + '">' +
-      '<td class="inv-plan-tk">' + escapeHtmlSafe(f.ticker) +
-        '<span class="inv-plan-mon">' + escapeHtmlSafe(f.moneda) + '</span>' +
-        (f.nota ? '<span class="inv-plan-nota" title="' + escapeHtmlSafe(f.nota) + '">' + escapeHtmlSafe(f.nota) + '</span>' : '') +
-      '</td>' +
-      // pctCapital se guarda en escala 0-100 —es lo que se tipea— y las
-      // funciones de formateo de la app esperan una fracción.
-      '<td class="num">' + pctSinSigno(Number(f.pctCapital) / 100) + '</td>' +
-      // El capital está en pesos y el precio de un activo en dólares no: sin
-      // el equivalente, la fila mostraba un monto en $ al lado de un precio en
-      // US$ y los nominales salían de una cuenta que no estaba a la vista.
-      '<td class="num">' + (montoArs === null ? '—' : '$' + fmt(Math.round(montoArs))) +
-        (montoArs !== null && f.moneda === 'USD'
-          ? '<span class="inv-plan-monto-alt">US$ ' + fmtPrecio(montoEnMoneda) + '</span>' : '') +
-      '</td>' +
-      '<td class="num">' + simbolo + ' ' + fmtPrecio(Number(f.precioObjetivo)) + '</td>' +
-      '<td class="num">' + (d.precioActual === null ? '—' : simbolo + ' ' + fmtPrecio(d.precioActual)) + '</td>' +
-      '<td class="num ' + distCls + '">' + distTxt + '</td>' +
-      '<td class="num">' + (nominales === null ? '—' : fmtNominales(nominales)) + '</td>' +
-      '<td class="inv-plan-acc">' +
-        '<button class="rule-row-action danger" data-plan-del="' + escapeHtmlSafe(f.id) + '" title="Quitar del plan">' +
-          '<i data-lucide="trash-2" style="width:13px;height:13px"></i>' +
+    const simbolo = g.moneda === 'USD' ? 'US$' : '$';
+    const pctTotal = totalPctDePlan(g.entradas);
+    const montoTotalArs = capital > 0 ? capital * pctTotal / 100 : null;
+    // Cuántos de los ingresos de este activo ya están en precio: es lo que
+    // decide si el grupo merece atención sin abrirlo.
+    const enPrecio = g.entradas.filter(function (f) {
+      return filaDePlan(f, capital, pa).enPrecio;
+    }).length;
+
+    // Con un ingreso ya en precio el detalle arranca abierto: es el activo
+    // sobre el que hay algo para hacer hoy.
+    const abierto = enPrecio > 0;
+    const ocultar = abierto ? '' : ' hidden';
+    let nominalesTotal = 0, hayNominales = false;
+
+    const detalle = g.entradas.map(function (f) {
+      const d = filaDePlan(f, capital, pa);
+      const montoArs = d.monto;
+      const montoEnMoneda = (montoArs !== null && g.moneda === 'USD') ? (montoArs / mep) : montoArs;
+      const nominales = (montoEnMoneda !== null && Number(f.precioObjetivo) > 0)
+        ? (montoEnMoneda / Number(f.precioObjetivo)) : null;
+      if (nominales !== null) { nominalesTotal += nominales; hayNominales = true; }
+      const distTxt = (d.distancia === null)
+        ? '—'
+        : (d.enPrecio ? 'en precio' : 'baja ' + pctSinSigno(d.distancia));
+      return '<tr class="inv-plan-ing-row inv-detail-row' + ocultar + '" data-plan-id="' + escapeHtmlSafe(f.id) + '">' +
+        '<td></td>' +
+        '<td class="inv-plan-ing">' +
+          (f.nota
+            ? '<span class="inv-plan-nota" title="' + escapeHtmlSafe(f.nota) + '">' + escapeHtmlSafe(f.nota) + '</span>'
+            : '<span class="inv-plan-nota inv-plan-nota-vacia">ingreso</span>') +
+        '</td>' +
+        // pctCapital se guarda en escala 0-100 —es lo que se tipea— y las
+        // funciones de formateo de la app esperan una fracción.
+        '<td class="num">' + pctSinSigno(Number(f.pctCapital) / 100) + '</td>' +
+        // El capital está en pesos y el precio de un activo en dólares no: sin
+        // el equivalente, la fila mostraba un monto en $ al lado de un precio
+        // en US$ y los nominales salían de una cuenta que no estaba a la vista.
+        '<td class="num">' + (montoArs === null ? '—' : '$' + fmt(Math.round(montoArs))) +
+          (montoArs !== null && g.moneda === 'USD'
+            ? '<span class="inv-plan-monto-alt">US$ ' + fmtPrecio(montoEnMoneda) + '</span>' : '') +
+        '</td>' +
+        '<td class="num">' + simbolo + ' ' + fmtPrecio(Number(f.precioObjetivo)) + '</td>' +
+        // El precio actual es del activo y ya está en su fila: repetirlo igual
+        // en cada ingreso sería la misma cifra tres veces en la misma columna.
+        '<td class="num"></td>' +
+        '<td class="num ' + (d.enPrecio ? 'inv-plan-enprecio' : '') + '">' + distTxt + '</td>' +
+        '<td class="num">' + (nominales === null ? '—' : fmtNominales(nominales)) + '</td>' +
+        '<td class="inv-plan-acc">' +
+          // Ejecutar el ingreso: abre el detalle de la compra y, si se
+          // confirma, la da de alta. El botón se destaca cuando el precio ya
+          // llegó, que es cuando hay que tocarlo.
+          '<button class="inv-plan-btn' + (d.enPrecio ? ' listo' : '') +
+            '" data-plan-exec="' + escapeHtmlSafe(f.id) + '" title="Registrar esta compra">' +
+            'COMPRAR' +
+          '</button>' +
+          // El mismo botón de borrar que el detalle de compras de Activos: en
+          // este panel ya existe y no se escribe otro.
+          '<button class="inv-delete-btn" data-plan-del="' + escapeHtmlSafe(f.id) + '" title="Quitar del plan">' +
+            '<i data-lucide="trash-2" style="width:11px;height:11px"></i>' +
+          '</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+
+    // La fila del activo: lo mismo que dice un ingreso, pero del conjunto.
+    const banda = '<tr class="inv-plan-activo-row">' +
+      '<td class="inv-plan-toggle">' +
+        '<button class="inv-toggle-btn" data-action="toggle-plan-activo" title="Ver los ingresos planificados">' +
+          '<i data-lucide="chevron-right" style="width:13px;height:13px' +
+            (abierto ? ';transform:rotate(90deg)' : '') + '"></i>' +
         '</button>' +
       '</td>' +
+      '<td class="inv-plan-activo-nom">' +
+        '<span class="inv-plan-tk">' + escapeHtmlSafe(g.ticker) +
+          '<span class="inv-plan-mon">' + escapeHtmlSafe(g.moneda) + '</span>' +
+        '</span>' +
+        '<span class="inv-plan-activo-ing">' + g.entradas.length +
+          (g.entradas.length === 1 ? ' ingreso' : ' ingresos') + '</span>' +
+      '</td>' +
+      '<td class="num">' + pctSinSigno(pctTotal / 100) + '</td>' +
+      '<td class="num">' + (montoTotalArs === null ? '—' : '$' + fmt(Math.round(montoTotalArs))) + '</td>' +
+      // No hay UN precio de entrada del activo: cada tramo tiene el suyo.
+      '<td class="num"><span class="inv-na">—</span></td>' +
+      '<td class="num">' + (pa === null ? '—' : simbolo + ' ' + fmtPrecio(pa)) + '</td>' +
+      '<td class="num' + (enPrecio > 0 ? ' inv-plan-enprecio' : '') + '">' +
+        (enPrecio > 0 ? enPrecio + ' en precio' : '<span class="inv-na">—</span>') + '</td>' +
+      '<td class="num">' + (hayNominales ? fmtNominales(nominalesTotal) : '—') + '</td>' +
+      '<td></td>' +
     '</tr>';
+    return banda + detalle;
   }).join('');
 
   const avisoPct = (totalPct > 100)
@@ -20962,7 +21122,21 @@ function bloquePlanificacion(destinos, nombreCartera) {
     ? '<div class="inv-plan-vacio">Todavía no planificaste ninguna compra en esta cartera. ' +
       'Agregá abajo el activo, a qué precio querés entrar y qué parte del capital le destinás.</div>'
     : '<table class="inv-plan-tabla">' +
+        // El ancho de cada columna se declara una sola vez: la fila del activo
+        // y las de sus ingresos lo heredan de acá.
+        '<colgroup>' +
+          '<col style="width:26px">' +
+          '<col>' +
+          '<col style="width:84px">' +
+          '<col style="width:112px">' +
+          '<col style="width:126px">' +
+          '<col style="width:112px">' +
+          '<col style="width:104px">' +
+          '<col style="width:112px">' +
+          '<col style="width:132px">' +
+        '</colgroup>' +
         '<thead><tr>' +
+          '<th></th>' +
           '<th>Activo</th>' +
           '<th class="num">% capital</th>' +
           '<th class="num">Monto</th>' +
@@ -20972,7 +21146,7 @@ function bloquePlanificacion(destinos, nombreCartera) {
           '<th class="num">Nominales</th>' +
           '<th></th>' +
         '</tr></thead>' +
-        '<tbody>' + filasHtml + '</tbody>' +
+        '<tbody>' + grupos + '</tbody>' +
       '</table>' +
       '<div class="inv-plan-total">' + avisoPct + '</div>';
 
@@ -21036,13 +21210,47 @@ document.addEventListener('click', function (e) {
   }
   const del = e.target.closest && e.target.closest('[data-plan-del]');
   if (del) {
-    const cartera = del.closest('.investment-detail-panel');
-    const clave = cartera ? (cartera.className.match(/inv-panel-(\w+)/) || [])[1] : null;
+    const clave = carteraDelBoton(del);
     if (!clave) return;
     borrarFilaDePlan([clave], del.getAttribute('data-plan-del'));
     if (typeof renderMainAssets === 'function') renderMainAssets();
+    return;
+  }
+  const exec = e.target.closest && e.target.closest('[data-plan-exec]');
+  if (exec) {
+    const clave = carteraDelBoton(exec);
+    if (!clave) return;
+    ejecutarCompraDePlan([clave], exec.getAttribute('data-plan-exec'));
+    return;
+  }
+  // Desplegar los ingresos de un activo. Misma mecánica que el detalle de
+  // compras de Activos: las filas hermanas .inv-detail-row que siguen, hasta
+  // la próxima fila de activo. No se busca por selector global porque el mismo
+  // ticker puede estar planificado en dos carteras.
+  const tog = e.target.closest && e.target.closest('[data-action="toggle-plan-activo"]');
+  if (tog) {
+    const fila = tog.closest('.inv-plan-activo-row');
+    if (!fila) return;
+    const detalles = [];
+    let sib = fila.nextElementSibling;
+    while (sib && sib.classList.contains('inv-detail-row')) {
+      detalles.push(sib);
+      sib = sib.nextElementSibling;
+    }
+    if (!detalles.length) return;
+    const abierto = !detalles[0].classList.contains('hidden');
+    detalles.forEach(function (d) { d.classList.toggle('hidden', abierto); });
+    const icon = tog.querySelector('i, svg');
+    if (icon) icon.style.transform = abierto ? '' : 'rotate(90deg)';
   }
 });
+
+// A qué cartera pertenece un botón del plan: la clase del panel que lo contiene
+// es la misma clave con la que se guarda el plan (ver clavePlan).
+function carteraDelBoton(btn) {
+  const panel = btn.closest('.investment-detail-panel');
+  return panel ? ((panel.className.match(/inv-panel-([\w]+)/) || [])[1] || null) : null;
+}
 
 function bloquePlegableInv(titulo, bajada, contenido, clase, extraTitulo) {
   if (!contenido) return '';
