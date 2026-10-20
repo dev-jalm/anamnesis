@@ -7121,7 +7121,12 @@ body[data-exporting="true"] .section-card {
   text-transform: none;
 }
 .inv-agrupar-n { color: var(--accent); }
-.inv-agrupar-sel {
+/* Los campos del alta del plan comparten esta declaración: son controles de la
+   misma banda y tienen que verse igual. Un input sin CSS propio no sale
+   "neutro", sale con el estilo del navegador —fondo blanco, Arial— al lado de
+   un select en mono sobre fondo oscuro. */
+.inv-agrupar-sel,
+.inv-plan-in {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   height: 22px;
@@ -7132,6 +7137,12 @@ body[data-exporting="true"] .section-card {
   border-radius: 5px;
   cursor: pointer;
 }
+/* Un campo de texto se escribe, no se elige: cursor de texto y ancho libre
+   dentro de su columna. */
+.inv-plan-in { cursor: text; width: 100%; min-width: 0; }
+.inv-plan-in:focus { outline: none; border-color: var(--accent); }
+.inv-plan-in::placeholder { color: var(--muted-2); opacity: .7; }
+select.inv-plan-in { cursor: pointer; }
 /* El botón COMPRAR del plan comparte esta declaración: es el mismo botón chico
    de texto del panel de inversiones, así que no se escribe un bloque paralelo. */
 .inv-agrupar-btn,
@@ -7611,26 +7622,71 @@ body[data-exporting="true"] .section-card {
   color: var(--muted);
   padding: 6px 0 2px;
 }
-/* El alta usa los mismos campos que el resto de los formularios de la app
-   —.rule-field y .rule-label—, así que hereda su alto, su tipografía y sus
-   mayúsculas sin declarar nada propio. */
+/* ── El alta, en la banda de la sección ───────────────────────────────────
+   Vive al margen derecho del título, no en el cuerpo, así que se mide contra
+   los controles de banda de este panel —la barra de agrupar— y no contra los
+   formularios de alta de pantalla completa: 22px de alto, cuerpo 10 en mono.
+   El texto del botón iba cortado por el borde cuando era un .upload-btn de
+   pantalla completa metido en una fila flex. */
+.inv-fold-acciones {
+  /* Se comprime si hace falta —los campos envuelven, ver .inv-plan-alta— en
+     vez de empujar la banda más allá del borde de la pantalla. */
+  flex: 0 1 auto;
+  min-width: 0;
+  align-self: center;
+  /* El h4 que tiene al lado está en mayúsculas de título; esto es un
+     formulario y no hereda ese tratamiento. */
+  text-transform: none;
+  letter-spacing: normal;
+  /* El summary es clickeable entero; adentro de los controles el cursor dice
+     lo que hace cada uno. */
+  cursor: default;
+}
+/* Plegada, la sección esconde sus controles igual que su bajada: no hay plan a
+   la vista al que agregarle una línea. */
+.mesa-fold:not([open]) > summary .inv-fold-acciones { display: none; }
+/* 12px y no 8: cada rótulo ocupa el ancho entero de su campo, así que con el
+   gap chico "PRECIO DE ENTRADA" y "% DEL CAPITAL" se leían como un solo texto
+   corrido. */
 .inv-plan-alta {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px 12px;
   align-items: flex-end;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+  justify-content: flex-end;
 }
-.inv-plan-alta .rule-field { flex: 0 1 140px; min-width: 110px; }
-/* La nota es el único campo de texto libre, así que se queda con el resto del
-   ancho — pero con tope: sin él se estiraba hasta empujar el botón a dos
-   líneas en una pantalla ancha. */
-.inv-plan-alta .inv-plan-nota-campo { flex: 1 1 200px; max-width: 320px; }
-/* El botón no se achica ni parte su texto: el flex lo comprimía y "AGREGAR AL
-   PLAN" caía en dos renglones, dejándolo 20px más alto que los campos de al
-   lado. Es la misma trampa que los hijos de una columna flex. */
-.inv-plan-alta .upload-btn { flex: 0 0 auto; white-space: nowrap; }
+.inv-plan-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+/* El rótulo de un campo de banda se escribe igual que los demás rótulos de la
+   sección —la cabecera de la tabla, el capital y el total—: mono 10px, 1px de
+   espaciado, mayúsculas y muted-2. Con 9px era un cuarto dibujo por un solo
+   punto de diferencia, que es exactamente lo que no se hace. */
+.inv-plan-rot {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  white-space: nowrap;
+}
+/* El ancho de cada campo es el de su rótulo cuando el rótulo es más largo que
+   el dato: medido con scrollWidth, "PRECIO DE ENTRADA" pide 119px y
+   "% DEL CAPITAL" 91, y con menos el texto se desbordaba sobre el campo de al
+   lado sin que `getBoundingClientRect` lo acusara —la caja mide lo declarado,
+   no lo que se dibuja—. */
+.inv-plan-campo.es-ticker { width: 86px; }
+.inv-plan-campo.es-moneda { width: 68px; }
+.inv-plan-campo.es-precio { width: 120px; }
+.inv-plan-campo.es-pct { width: 92px; }
+/* La nota es el único campo de texto libre: se lleva el resto del ancho, con
+   tope para no empujar al botón a un segundo renglón en una pantalla ancha. */
+.inv-plan-campo.es-nota { flex: 1 1 140px; max-width: 210px; }
+/* El botón no se achica ni parte su texto. */
+.inv-plan-add { flex: 0 0 auto; white-space: nowrap; align-self: flex-end; }
 .inv-liq {
   gap: 10px;
   border-top: 1px solid var(--border);

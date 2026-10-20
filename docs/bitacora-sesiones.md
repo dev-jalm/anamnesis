@@ -7,11 +7,11 @@
 |---|---|
 | Última actualización | 20/10/2026 |
 | Primera interacción | 27/07/2026 18:26 |
-| Última interacción | 20/10/2026 16:59 |
+| Última interacción | 20/10/2026 18:14 |
 | Días con actividad | 44 |
-| Interacciones | 35532 |
+| Interacciones | 35848 |
 | Sesiones | 88 |
-| **Horas** | **139.1** |
+| **Horas** | **140.4** |
 | Corte entre sesiones | 90 minutos |
 
 ## Detalle
@@ -105,4 +105,4 @@
 | 85 | 17/10/2026 | 10:49 | 12:40 | 1.85 |
 | 86 | 17/10/2026 | 15:41 | 17:07 | 1.43 |
 | 87 | 17/10/2026 | 19:49 | 20:57 | 1.14 |
-| 88 | 20/10/2026 | 16:11 | 16:59 | 0.81 |
+| 88 | 20/10/2026 | 16:11 | 18:14 | 2.06 |

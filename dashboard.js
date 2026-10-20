@@ -21150,39 +21150,39 @@ function bloquePlanificacion(destinos, nombreCartera) {
       '</table>' +
       '<div class="inv-plan-total">' + avisoPct + '</div>';
 
-  // El alta: los tres datos que definen una línea del plan, más una nota.
-  const alta =
-    '<div class="inv-plan-alta" data-plan-cartera="' + escapeHtmlSafe(clavePlan(destinos)) + '">' +
-      '<div class="rule-field">' +
-        '<label class="rule-label">Activo</label>' +
-        '<input type="text" class="period-select inv-plan-in" data-plan-campo="ticker" maxlength="12" placeholder="ej: AAPL">' +
-      '</div>' +
-      '<div class="rule-field">' +
-        '<label class="rule-label">Moneda</label>' +
-        '<select class="period-select inv-plan-in" data-plan-campo="moneda">' +
-          '<option value="ARS">ARS</option><option value="USD">USD</option>' +
-        '</select>' +
-      '</div>' +
-      '<div class="rule-field">' +
-        '<label class="rule-label">Precio de entrada</label>' +
-        '<input type="text" inputmode="decimal" class="period-select inv-plan-in" data-plan-campo="precio" placeholder="ej: 1.250,50">' +
-      '</div>' +
-      '<div class="rule-field">' +
-        '<label class="rule-label">% del capital</label>' +
-        '<input type="text" inputmode="decimal" class="period-select inv-plan-in" data-plan-campo="pct" placeholder="ej: 20">' +
-      '</div>' +
-      '<div class="rule-field inv-plan-nota-campo">' +
-        '<label class="rule-label">Nota (opcional)</label>' +
-        '<input type="text" class="period-select inv-plan-in" data-plan-campo="nota" maxlength="40" placeholder="ej: si rompe soporte">' +
-      '</div>' +
-      '<div class="rule-field" style="align-self:flex-end">' +
-        '<button class="upload-btn" data-plan-add="' + escapeHtmlSafe(clavePlan(destinos)) + '">' +
-          '<i data-lucide="plus" style="width:14px;height:14px"></i> AGREGAR AL PLAN' +
-        '</button>' +
-      '</div>' +
-    '</div>';
+  return '<div class="inv-plan">' + cabecera + tabla + '</div>';
+}
 
-  return '<div class="inv-plan">' + cabecera + tabla + alta + '</div>';
+// El alta de una línea del plan: los tres datos que la definen, más una nota.
+// Vive en la banda de la sección y no en su cuerpo —ver bloquePlegableInv—, así
+// que usa los controles chicos del panel: los mismos 22px, la misma tipografía
+// y el mismo borde que el selector y el botón de la barra de agrupar.
+function altaDePlanHtml(destinos) {
+  const clave = escapeHtmlSafe(clavePlan(destinos));
+  const campo = function (rotulo, control, claseCampo) {
+    return '<span class="inv-plan-campo' + (claseCampo ? ' ' + claseCampo : '') + '">' +
+      '<label class="inv-plan-rot">' + rotulo + '</label>' + control +
+    '</span>';
+  };
+  return '<div class="inv-plan-alta" data-plan-cartera="' + clave + '">' +
+    campo('Activo',
+      '<input type="text" class="inv-plan-in" data-plan-campo="ticker" maxlength="12" placeholder="ej: AAPL">',
+      'es-ticker') +
+    campo('Moneda',
+      '<select class="inv-plan-in" data-plan-campo="moneda">' +
+        '<option value="ARS">ARS</option><option value="USD">USD</option>' +
+      '</select>', 'es-moneda') +
+    campo('Precio de entrada',
+      '<input type="text" inputmode="decimal" class="inv-plan-in" data-plan-campo="precio" placeholder="ej: 1.250,50">',
+      'es-precio') +
+    campo('% del capital',
+      '<input type="text" inputmode="decimal" class="inv-plan-in" data-plan-campo="pct" placeholder="ej: 20">',
+      'es-pct') +
+    campo('Nota (opcional)',
+      '<input type="text" class="inv-plan-in" data-plan-campo="nota" maxlength="40" placeholder="ej: si rompe soporte">',
+      'es-nota') +
+    '<button type="button" class="inv-agrupar-btn inv-plan-add" data-plan-add="' + clave + '">AGREGAR AL PLAN</button>' +
+  '</div>';
 }
 
 // Alta y borrado, por delegación: las filas se repintan enteras en cada
@@ -21252,7 +21252,7 @@ function carteraDelBoton(btn) {
   return panel ? ((panel.className.match(/inv-panel-([\w]+)/) || [])[1] || null) : null;
 }
 
-function bloquePlegableInv(titulo, bajada, contenido, clase, extraTitulo) {
+function bloquePlegableInv(titulo, bajada, contenido, clase, extraTitulo, acciones) {
   if (!contenido) return '';
   // data-fold identifica la sección entre re-renders, para poder devolverla
   // abierta si lo estaba (ver renderMainAssets).
@@ -21265,6 +21265,11 @@ function bloquePlegableInv(titulo, bajada, contenido, clase, extraTitulo) {
         '<h4 class="mesa-block-title">' + escapeHtmlSafe(titulo) + (extraTitulo || '') + '</h4>' +
         '<p class="mesa-block-sub">' + escapeHtmlSafe(bajada) + '</p>' +
       '</div>' +
+      // Los controles de la sección van en la banda, al margen derecho: el div
+      // del título lleva flex:1 y los empuja hasta ahí. Como la bajada, se
+      // esconden con la sección plegada —actúan sobre lo que está adentro— y
+      // es el mismo tratamiento que .mesa-actions en Trading.
+      (acciones ? '<div class="inv-fold-acciones">' + acciones + '</div>' : '') +
     '</summary>' +
     '<div class="mesa-fold-body">' + contenido + '</div>' +
   '</details>';
@@ -21278,6 +21283,10 @@ function bloquePlegableInv(titulo, bajada, contenido, clase, extraTitulo) {
 document.addEventListener('click', function (e) {
   const sum = e.target.closest && e.target.closest('.inv-fold > .mesa-fold-sum');
   if (!sum) return;
+  // Los controles de la banda actúan sobre la sección, no la pliegan: un click
+  // adentro del summary la abre o la cierra como efecto por omisión, y había
+  // que cancelarlo. Mismo remedio que .mesa-actions en Trading.
+  if (e.target.closest('.inv-fold-acciones')) { e.preventDefault(); return; }
   const antes = sum.getBoundingClientRect().top;
   // El toggle es la acción por omisión del click y corre después de este
   // handler, así que la corrección va en el frame siguiente.
@@ -22030,7 +22039,8 @@ function buildInvestmentDetailPanel(destinos, title) {
       (panelKey === 'trading' ? '' :
         bloquePlegableInv('Planificación',
           'En qué activos entrar, a qué precio y con qué parte del capital.',
-          bloquePlanificacion(destinos, title), 'inv-fold-plan') +
+          bloquePlanificacion(destinos, title), 'inv-fold-plan', '',
+          altaDePlanHtml(destinos)) +
         bloquePlegableInv('Activos', 'Las tenencias por ticker, con su detalle de compras.',
           buildCurrencyTable('ARS', arsTickers.length, arsRows) +
           buildCurrencyTable('USD', usdTickers.length, usdRows), 'inv-fold-activos') +

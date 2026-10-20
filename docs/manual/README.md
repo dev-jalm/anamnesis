@@ -90,7 +90,7 @@ Qué muestra cada una:
 | `02-ficha-medica.png` | Score, tarjetas de indicadores y distribución del gasto |
 | `03-diagnostico.png` | Avisos, flujo trimestral y evolución anual |
 | `04-salud-financiera.png` | Cartera por destino, con tres activos liquidados |
-| `25-planificacion.png` | La sección Planificación de Inversiones: una fila por activo desplegada en sus ingresos, uno de ellos en precio |
+| `25-planificacion.png` | La sección Planificación de Inversiones: el alta en la banda y una fila por activo desplegada en sus ingresos, uno de ellos en precio |
 | `18-venta-activo.png` | La venta parcial de una compra |
 | `20-concentracion-sector.png` | La sección Concentración de Inversiones: sus dos gráficos, con una alerta cada uno |
 | `21-liquidado.png` | La sección Liquidado: ganancias y pérdidas en dos columnas, con el total cruzándolas |
