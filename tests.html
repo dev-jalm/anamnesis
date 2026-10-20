@@ -3289,6 +3289,50 @@ group('Reglas de descarte — movimientos que no entran', function () {
   });
 });
 
+group('Planificación de compras', function () {
+  const fila = (extra) => Object.assign({ id: 'p1', ticker: 'GOOGL', moneda: 'ARS', precioObjetivo: 7190, pctCapital: 30 }, extra || {});
+
+  test('el monto es la parte del capital, y los nominales lo que compra a ese precio', function () {
+    const d = filaDePlan(fila(), 1000000, 7815);
+    assertEqual(d.monto, 300000);
+    assertEqual(Math.round(d.nominales * 10000) / 10000, Math.round(300000 / 7190 * 10000) / 10000);
+  });
+  test('la distancia es una fracción y dice cuánto tiene que BAJAR el precio', function () {
+    // El objetivo está 8% abajo del mercado: la fracción es negativa.
+    const d = filaDePlan(fila(), 1000000, 7815);
+    assertEqual(Math.round(d.distancia * 1000) / 1000, -0.08);
+    assertEqual(d.enPrecio, false);
+  });
+  test('cuando el mercado llega al objetivo, la fila queda en precio', function () {
+    assertEqual(filaDePlan(fila(), 1000000, 7190).enPrecio, true);   // justo
+    assertEqual(filaDePlan(fila(), 1000000, 6800).enPrecio, true);   // por debajo
+    assertEqual(filaDePlan(fila(), 1000000, 7191).enPrecio, false);
+  });
+  test('sin precio actual no se inventa una distancia', function () {
+    const d = filaDePlan(fila(), 1000000, null);
+    assertEqual(d.distancia, null);
+    assertEqual(d.precioActual, null);
+    assertEqual(d.enPrecio, false);
+    assertEqual(d.monto, 300000);   // el monto no depende del mercado
+  });
+  test('sin capital no hay monto ni nominales, y no da cero', function () {
+    const d = filaDePlan(fila(), 0, 7815);
+    assertEqual(d.monto, null);
+    assertEqual(d.nominales, null);
+  });
+  test('una fila incompleta no rompe la cuenta', function () {
+    assertEqual(filaDePlan({ pctCapital: 30 }, 1000000, 7815).nominales, null);
+    assertEqual(filaDePlan({ precioObjetivo: 100 }, 1000000, 7815).monto, null);
+    assertEqual(filaDePlan(null, 1000000, 7815).monto, null);
+  });
+  test('el total compromete sólo los porcentajes válidos', function () {
+    assertEqual(totalPctDePlan([{ pctCapital: 30 }, { pctCapital: 25 }, { pctCapital: 20 }]), 75);
+    assertEqual(totalPctDePlan([{ pctCapital: 30 }, { pctCapital: 'x' }, { pctCapital: -5 }, {}]), 30);
+    assertEqual(totalPctDePlan([]), 0);
+    assertEqual(totalPctDePlan(null), 0);
+  });
+});
+
 group('Diagnóstico — qué regla está realmente rota', function () {
   const base = { categoryLabels: { Alimentacion: 'Alimentación' }, transactionsByYear: {} };
   const validar = (reglas) => {

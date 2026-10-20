@@ -173,7 +173,9 @@ window.MANUAL = {
       imgCap: 'Los destinos en orden, con su líquido e invertido por moneda y tres activos ya liquidados.',
       p: [
         'Muestra el patrimonio repartido en cinco destinos, en este orden: Reserva, Inversiones, las dos Jubilaciones y Trading. El orden va del horizonte más corto al más largo, y deja Trading al final porque es el único que no agrupa tenencias sino operaciones: su detalle es la mesa, que tiene su propio apartado más adelante. Cada destino es un panel que se despliega.',
-        'Dentro de cada panel, los totales van separados por moneda —ARS, USD y el combinado— y distinguen el líquido (lo que destinaste y no invertiste) del invertido. El líquido figura en la fila ARS y en la combinada: tus aportes son en pesos. Variación compara lo invertido contra lo que vale hoy. El panel se abre en tres secciones plegables: Activos, Concentración y Liquidado —esta última con lo que ya vendiste, en verde lo ganado y en rojo lo perdido, una línea por venta—.',
+        'Dentro de cada panel, los totales van separados por moneda —ARS, USD y el combinado— y distinguen el líquido (lo que destinaste y no invertiste) del invertido. El líquido figura en la fila ARS y en la combinada: tus aportes son en pesos. Variación compara lo invertido contra lo que vale hoy.',
+        'El panel se abre en cinco secciones plegables, en el orden del ciclo de una posición: Planificación, Activos, Concentración, Rendimiento y Liquidado. Primero lo que vas a comprar, después lo que tenés y cómo quedó repartido, luego cómo te fue, y al final lo que ya vendiste —en verde lo ganado y en rojo lo perdido, una línea por venta—.',
+        'Planificación es la única que mira hacia adelante. Anotás el activo, a qué precio querés entrar y qué parte del capital le destinás, y la tabla te dice cuánta plata es, cuántos nominales comprarías a ese precio y cuánto le falta al mercado para llegar. Cuando llega, la línea queda marcada como en precio. El capital que se reparte es el líquido de esa cartera: lo que aportaste y todavía no invertiste. Abajo del todo, qué porcentaje tenés comprometido y cuánto queda libre.',
         'La tabla lista los activos que cargaste en Cargar inversiones, agrupados por ticker: nominales, precio promedio de compra, total invertido, precio actual, variación por nominal, total actualizado y ganancia o pérdida. Cada activo se despliega en sus compras individuales, de la más vieja a la más nueva, y cada compra muestra cómo le fue contra el precio de hoy: en verde si gana, en rojo si pierde. Junto a la fecha de cada compra, sus días en tenencia; si la vendiste entera, hasta la última venta.'
       ],
       lista: [
@@ -182,6 +184,24 @@ window.MANUAL = {
         'La cotización MEP está arriba a la derecha, junto a las solapas; su botón la actualiza desde dolarapi.com y el valor se puede escribir a mano, confirmando con Enter.',
         'Los tickers en dólares se derivan del CEDEAR en pesos, con su ratio y la cotización MEP.',
         'Sin precio actual, el rendimiento muestra un guión, no un cero: no hay con qué comparar.'
+      ]
+    },
+    {
+      h: 'Planificación de compras',
+      sub: '¿Qué voy a comprar y a qué precio?',
+      img: '25-planificacion',
+      imgCap: 'El plan de Inversiones: tres activos con su precio de entrada, y el del medio ya en precio.',
+      p: [
+        'Es la primera sección de Reserva, Inversiones y las Jubilaciones, y la única que mira hacia adelante: las otras cuatro cuentan lo que ya pasó. Acá anotás en qué activos pensás entrar antes de entrar, que es cuando se puede pensar con la cabeza fría.',
+        'Cada línea lleva tres datos tuyos: el activo, el precio al que querés comprarlo y qué parte del capital le destinás. Con eso la tabla calcula el resto: cuánta plata es ese porcentaje, cuántos nominales comprarías a ese precio, y cuánto le falta al mercado para llegar a donde lo esperás. Cuando llega —o lo perfora— la línea queda marcada como en precio, en verde: es la que tenés que mirar.',
+        'El capital que se reparte es el líquido de esa cartera, o sea lo que aportaste y todavía no invertiste, y está escrito arriba de la tabla para que sepas contra qué se calculan los porcentajes. Repartir sobre el total de la cartera sería asignar de nuevo la plata que ya está puesta en un activo.',
+        'Abajo del todo, cuánto del capital tenés comprometido y cuánto queda libre. Pasarte del 100% no está prohibido —podés estar planificando con plata que todavía no entró— pero te avisa.'
+      ],
+      lista: [
+        'Un activo en dólares muestra el monto en las dos monedas: en pesos, que es la moneda de tus aportes, y en dólares, que es la del precio de entrada.',
+        'El plan es de la cartera, no del portafolio: a qué objetivo va a parar una compra se decide al registrarla.',
+        'Sin precio actual del activo, la distancia muestra un guión. El monto y los nominales se calculan igual: no dependen del mercado.',
+        'Planificar no compra nada. Cuando ejecutes la compra, se carga como siempre desde Cargar inversiones y aparece en Activos.'
       ]
     },
     {

@@ -1312,6 +1312,64 @@ function resumirTanda(resultados) {
   return out;
 }
 
+// ============================================================
+// PLANIFICACIÓN DE COMPRAS
+// ============================================================
+// Antes de comprar, el plan: en qué activos se va a entrar, a qué precio y con
+// qué parte del capital. Es lo único de las carteras que mira hacia adelante
+// —Activos, Concentración, Rendimiento y Liquidado cuentan lo que ya pasó—, y
+// por eso va primero: se decide arriba y se ejecuta abajo.
+//
+// Una fila del plan: { id, ticker, moneda, precioObjetivo, pctCapital, nota }.
+// El capital es el LÍQUIDO de la cartera, que es la plata que hay para
+// invertir hoy; planificar sobre el total sería contar dos veces lo que ya
+// está puesto en un activo.
+
+// Lo que se deriva de una fila contra el capital y el precio de hoy. Devuelve
+// null en lo que no se puede calcular en vez de un cero: no es lo mismo "no
+// hay precio" que "cuesta cero".
+//
+// Unidades, que son dos y conviene no mezclarlas: `pctCapital` se guarda en
+// escala 0-100 porque es lo que el usuario escribe ("20"), y la `distancia`
+// que se devuelve es una FRACCIÓN (0,20 = 20%), como todos los porcentajes
+// calculados de la app, que es lo que esperan sus funciones de formateo.
+function filaDePlan(fila, capital, precioActual) {
+  const pct = Number(fila && fila.pctCapital);
+  const objetivo = Number(fila && fila.precioObjetivo);
+  const pctValido = isFinite(pct) && pct > 0;
+  const objValido = isFinite(objetivo) && objetivo > 0;
+  const cap = (isFinite(capital) && capital > 0) ? capital : 0;
+  const monto = (pctValido && cap > 0) ? (cap * pct / 100) : null;
+  const nominales = (monto !== null && objValido) ? (monto / objetivo) : null;
+  const pa = (precioActual === null || precioActual === undefined || precioActual === '')
+    ? null : Number(precioActual);
+  const hayPrecio = pa !== null && isFinite(pa) && pa > 0;
+  // Cuánto tiene que moverse el precio de hoy para llegar al objetivo, como
+  // fracción. Negativo = tiene que BAJAR, que es el caso normal de una compra
+  // planificada; positivo = el objetivo está por encima del mercado y la
+  // compra ya se podría ejecutar.
+  const distancia = (hayPrecio && objValido) ? ((objetivo - pa) / pa) : null;
+  return {
+    monto: monto,
+    nominales: nominales,
+    precioActual: hayPrecio ? pa : null,
+    distancia: distancia,
+    // "En precio" cuando el mercado ya está en el objetivo o por debajo: es el
+    // momento de ejecutar la compra que se había planificado.
+    enPrecio: (hayPrecio && objValido) ? (pa <= objetivo) : false
+  };
+}
+
+// El total de capital comprometido por un plan, en porcentaje. Pasarse de 100
+// no se bloquea —alguien puede estar planificando con plata que todavía no
+// entró— pero se avisa.
+function totalPctDePlan(filas) {
+  return (Array.isArray(filas) ? filas : []).reduce(function (a, f) {
+    const p = Number(f && f.pctCapital);
+    return a + (isFinite(p) && p > 0 ? p : 0);
+  }, 0);
+}
+
 // ----- FICHA MÉDICA: FUSIÓN POR MODO -----
 // El modo elegido en el diálogo de import vale para TODO lo que se importa, no
 // sólo para las reglas y las categorías. Las tarjetas KPI y los viajes son
@@ -3749,6 +3807,8 @@ if (typeof module !== 'undefined' && module.exports) {
     serializeTags, deserializeTags,
     serializeFullConfig, previewImport, PARAMS_CONFIG_KEYS,
     fusionarPorId, fusionarDict, fusionarFichaMedica, contarMesesPresupuestados,
+    // planificación de compras
+    filaDePlan, totalPctDePlan,
     resumirTanda,
     // reserva
     getReservaParams, getReservaAcumulado,

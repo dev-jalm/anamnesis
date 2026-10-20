@@ -380,6 +380,11 @@ const state = {
   // Reglas manuales de categorización: array de { id, pattern, matchType, categoria, subcategoria, periodicidad, enabled }
   // Se aplican ANTES del aprendizaje token-based. matchType: 'contains' | 'exact' | 'starts' | 'regex'
   categoryRules: [],
+  // Plan de compras por cartera: { inversiones: [fila], reserva: [...], jubilacion: [...] }
+  // Cada fila: { id, ticker, moneda, precioObjetivo, pctCapital, nota }. Es lo
+  // que se piensa comprar, no lo que se compró: las tenencias viven en
+  // investmentEntries.
+  planCompras: {},
   // Parámetros configurables del usuario
   params: {
     diasBajo: 50000, // umbral para "Días bajo $X" en saldo MP
@@ -15108,6 +15113,7 @@ function buildStateSnapshot() {
     taglabels: state.taglabels,
     paymentMethodOverrides: state.paymentMethodOverrides,
     categoryRules: state.categoryRules,
+    planCompras: state.planCompras,
     params: state.params,
     recurringDismissed: state.recurringDismissed,
     travels: state.travels,
@@ -15301,6 +15307,11 @@ function applyStateSnapshot(snap) {
     });
   }
   if (snap.params) state.params = Object.assign({}, state.params, snap.params);
+  // Se RESETEA si el snapshot no lo trae, igual que portafolios: un plan de
+  // compras es de su cartera y de su archivo. Sin esto, el de un archivo real
+  // sobrevive al modo demo y después se guarda en el archivo siguiente.
+  state.planCompras = (snap.planCompras && typeof snap.planCompras === 'object')
+    ? snap.planCompras : {};
   if (Array.isArray(snap.recurringDismissed)) state.recurringDismissed = snap.recurringDismissed;
   if (Array.isArray(snap.travels)) state.travels = snap.travels;
   // Se resetean si el snapshot no los trae, igual que trades: si no, los
@@ -20829,6 +20840,210 @@ function bloqueRendimiento(destinos, titulo) {
   return partes.join('');
 }
 
+// ============================================================
+// PLANIFICACIÓN DE COMPRAS
+// ============================================================
+// La única sección de una cartera que mira hacia adelante: en qué activos se
+// piensa entrar, a qué precio y con qué parte del capital. Por eso va primero
+// —se decide arriba y se ejecuta abajo— y por eso no tiene vista por
+// portafolio: un plan es de la cartera, y el portafolio al que va a parar cada
+// compra se elige al comprarla.
+//
+// El capital contra el que se calculan los porcentajes es el LÍQUIDO de la
+// cartera: la plata aportada que todavía no está puesta en ningún activo.
+// Sobre el total se estaría repartiendo de nuevo lo que ya tiene destino.
+
+// La clave con la que se guarda el plan de cada cartera.
+function clavePlan(destinos) {
+  return (destinos && destinos[0]) || 'default';
+}
+
+function planDeCartera(destinos) {
+  const p = (state.planCompras || {})[clavePlan(destinos)];
+  return Array.isArray(p) ? p : [];
+}
+
+function guardarPlanDeCartera(destinos, filas) {
+  if (!state.planCompras) state.planCompras = {};
+  state.planCompras[clavePlan(destinos)] = filas;
+  scheduleSave();
+}
+
+// Alta de una fila. Los valores vienen del formulario, ya parseados.
+function agregarFilaDePlan(destinos, datos) {
+  const filas = planDeCartera(destinos).slice();
+  filas.push({
+    id: 'plan_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    ticker: datos.ticker,
+    moneda: datos.moneda === 'USD' ? 'USD' : 'ARS',
+    precioObjetivo: datos.precioObjetivo,
+    pctCapital: datos.pctCapital,
+    nota: datos.nota || ''
+  });
+  guardarPlanDeCartera(destinos, filas);
+}
+
+function borrarFilaDePlan(destinos, filaId) {
+  guardarPlanDeCartera(destinos, planDeCartera(destinos).filter(function (f) {
+    return f.id !== filaId;
+  }));
+}
+
+// El cuerpo de la sección: la tabla del plan más el formulario de alta.
+function bloquePlanificacion(destinos, nombreCartera) {
+  const filas = planDeCartera(destinos);
+  const capital = liquidoDeDestino(destinos);
+  const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+  const totalPct = totalPctDePlan(filas);
+
+  // El capital se dice siempre, con plan o sin él: es contra lo que se
+  // calculan los porcentajes y sin ese número la tabla no se puede leer.
+  const cabecera =
+    '<div class="inv-plan-capital">' +
+      '<span class="inv-plan-capital-lbl">Capital a repartir</span>' +
+      '<span class="inv-plan-capital-val">$' + fmt(Math.round(capital)) + '</span>' +
+      '<span class="inv-plan-capital-sub">el líquido de ' + escapeHtmlSafe(nombreCartera) +
+        ': lo aportado que todavía no está invertido</span>' +
+    '</div>';
+
+  const filasHtml = filas.map(function (f) {
+    const info = infoDeTicker(state.tickerInfo, f.ticker, f.moneda);
+    const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
+      ? Number(info.precioActual) : null;
+    const d = filaDePlan(f, capital, pa);
+    const simbolo = f.moneda === 'USD' ? 'US$' : '$';
+    // El monto asignado sale del capital, que está en pesos; para un activo en
+    // dólares se muestra también cuántos dólares son, que es con lo que se
+    // compara el precio objetivo.
+    const montoArs = d.monto;
+    const montoEnMoneda = (montoArs !== null && f.moneda === 'USD') ? (montoArs / mep) : montoArs;
+    const nominales = (montoEnMoneda !== null && Number(f.precioObjetivo) > 0)
+      ? (montoEnMoneda / Number(f.precioObjetivo)) : null;
+    // Qué le falta al mercado para llegar al precio de entrada. Si ya está en
+    // el objetivo o por debajo, la compra se puede ejecutar: eso es lo que hay
+    // que ver de un vistazo, y por eso va marcado.
+    const distCls = d.enPrecio ? 'inv-plan-enprecio' : '';
+    const distTxt = (d.distancia === null)
+      ? '—'
+      : (d.enPrecio ? 'en precio' : 'baja ' + pctSinSigno(d.distancia));
+    return '<tr data-plan-id="' + escapeHtmlSafe(f.id) + '">' +
+      '<td class="inv-plan-tk">' + escapeHtmlSafe(f.ticker) +
+        '<span class="inv-plan-mon">' + escapeHtmlSafe(f.moneda) + '</span>' +
+        (f.nota ? '<span class="inv-plan-nota" title="' + escapeHtmlSafe(f.nota) + '">' + escapeHtmlSafe(f.nota) + '</span>' : '') +
+      '</td>' +
+      // pctCapital se guarda en escala 0-100 —es lo que se tipea— y las
+      // funciones de formateo de la app esperan una fracción.
+      '<td class="num">' + pctSinSigno(Number(f.pctCapital) / 100) + '</td>' +
+      // El capital está en pesos y el precio de un activo en dólares no: sin
+      // el equivalente, la fila mostraba un monto en $ al lado de un precio en
+      // US$ y los nominales salían de una cuenta que no estaba a la vista.
+      '<td class="num">' + (montoArs === null ? '—' : '$' + fmt(Math.round(montoArs))) +
+        (montoArs !== null && f.moneda === 'USD'
+          ? '<span class="inv-plan-monto-alt">US$ ' + fmtPrecio(montoEnMoneda) + '</span>' : '') +
+      '</td>' +
+      '<td class="num">' + simbolo + ' ' + fmtPrecio(Number(f.precioObjetivo)) + '</td>' +
+      '<td class="num">' + (d.precioActual === null ? '—' : simbolo + ' ' + fmtPrecio(d.precioActual)) + '</td>' +
+      '<td class="num ' + distCls + '">' + distTxt + '</td>' +
+      '<td class="num">' + (nominales === null ? '—' : fmtNominales(nominales)) + '</td>' +
+      '<td class="inv-plan-acc">' +
+        '<button class="rule-row-action danger" data-plan-del="' + escapeHtmlSafe(f.id) + '" title="Quitar del plan">' +
+          '<i data-lucide="trash-2" style="width:13px;height:13px"></i>' +
+        '</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+
+  const avisoPct = (totalPct > 100)
+    ? '<span class="inv-plan-total-aviso">' + pctSinSigno(totalPct / 100) + ' del capital: te pasaste de lo que hay</span>'
+    : '<span class="inv-plan-total-ok">' + pctSinSigno(totalPct / 100) + ' del capital comprometido' +
+      (totalPct < 100 ? ' · queda ' + pctSinSigno((100 - totalPct) / 100) + ' sin asignar' : '') + '</span>';
+
+  const tabla = filas.length === 0
+    ? '<div class="inv-plan-vacio">Todavía no planificaste ninguna compra en esta cartera. ' +
+      'Agregá abajo el activo, a qué precio querés entrar y qué parte del capital le destinás.</div>'
+    : '<table class="inv-plan-tabla">' +
+        '<thead><tr>' +
+          '<th>Activo</th>' +
+          '<th class="num">% capital</th>' +
+          '<th class="num">Monto</th>' +
+          '<th class="num">Precio de entrada</th>' +
+          '<th class="num">Precio actual</th>' +
+          '<th class="num">Distancia</th>' +
+          '<th class="num">Nominales</th>' +
+          '<th></th>' +
+        '</tr></thead>' +
+        '<tbody>' + filasHtml + '</tbody>' +
+      '</table>' +
+      '<div class="inv-plan-total">' + avisoPct + '</div>';
+
+  // El alta: los tres datos que definen una línea del plan, más una nota.
+  const alta =
+    '<div class="inv-plan-alta" data-plan-cartera="' + escapeHtmlSafe(clavePlan(destinos)) + '">' +
+      '<div class="rule-field">' +
+        '<label class="rule-label">Activo</label>' +
+        '<input type="text" class="period-select inv-plan-in" data-plan-campo="ticker" maxlength="12" placeholder="ej: AAPL">' +
+      '</div>' +
+      '<div class="rule-field">' +
+        '<label class="rule-label">Moneda</label>' +
+        '<select class="period-select inv-plan-in" data-plan-campo="moneda">' +
+          '<option value="ARS">ARS</option><option value="USD">USD</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="rule-field">' +
+        '<label class="rule-label">Precio de entrada</label>' +
+        '<input type="text" inputmode="decimal" class="period-select inv-plan-in" data-plan-campo="precio" placeholder="ej: 1.250,50">' +
+      '</div>' +
+      '<div class="rule-field">' +
+        '<label class="rule-label">% del capital</label>' +
+        '<input type="text" inputmode="decimal" class="period-select inv-plan-in" data-plan-campo="pct" placeholder="ej: 20">' +
+      '</div>' +
+      '<div class="rule-field inv-plan-nota-campo">' +
+        '<label class="rule-label">Nota (opcional)</label>' +
+        '<input type="text" class="period-select inv-plan-in" data-plan-campo="nota" maxlength="40" placeholder="ej: si rompe soporte">' +
+      '</div>' +
+      '<div class="rule-field" style="align-self:flex-end">' +
+        '<button class="upload-btn" data-plan-add="' + escapeHtmlSafe(clavePlan(destinos)) + '">' +
+          '<i data-lucide="plus" style="width:14px;height:14px"></i> AGREGAR AL PLAN' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+
+  return '<div class="inv-plan">' + cabecera + tabla + alta + '</div>';
+}
+
+// Alta y borrado, por delegación: las filas se repintan enteras en cada
+// render, así que no se bindea fila por fila.
+document.addEventListener('click', function (e) {
+  const add = e.target.closest && e.target.closest('[data-plan-add]');
+  if (add) {
+    const cont = add.closest('.inv-plan-alta');
+    const campo = function (k) {
+      const el = cont.querySelector('[data-plan-campo="' + k + '"]');
+      return el ? el.value.trim() : '';
+    };
+    const ticker = campo('ticker').toUpperCase();
+    const precio = parseAmount(campo('precio'));
+    const pct = parseAmount(campo('pct'));
+    if (!ticker) { appAlert('Decí en qué activo vas a entrar.'); return; }
+    if (!(precio > 0)) { appAlert('El precio de entrada tiene que ser mayor a cero.'); return; }
+    if (!(pct > 0)) { appAlert('El porcentaje del capital tiene que ser mayor a cero.'); return; }
+    agregarFilaDePlan([add.getAttribute('data-plan-add')], {
+      ticker: ticker, moneda: campo('moneda'), precioObjetivo: precio,
+      pctCapital: pct, nota: campo('nota')
+    });
+    if (typeof renderMainAssets === 'function') renderMainAssets();
+    return;
+  }
+  const del = e.target.closest && e.target.closest('[data-plan-del]');
+  if (del) {
+    const cartera = del.closest('.investment-detail-panel');
+    const clave = cartera ? (cartera.className.match(/inv-panel-(\w+)/) || [])[1] : null;
+    if (!clave) return;
+    borrarFilaDePlan([clave], del.getAttribute('data-plan-del'));
+    if (typeof renderMainAssets === 'function') renderMainAssets();
+  }
+});
+
 function bloquePlegableInv(titulo, bajada, contenido, clase, extraTitulo) {
   if (!contenido) return '';
   // data-fold identifica la sección entre re-renders, para poder devolverla
@@ -21593,30 +21808,37 @@ function buildInvestmentDetailPanel(destinos, title) {
       // es un viaje entrada->salida que cierra con un resultado definitivo.
       // Su detalle es el historial que inserta mesa-trading.js. Las demas
       // secciones (reserva, inversiones, jubilacion) siguen igual.
-      // Las tres secciones van plegables, con el mismo tratamiento que las de
+      // Las secciones van plegables, con el mismo tratamiento que las de
       // Trading: mismo triángulo, misma tipografía de título y arrancando
       // cerradas. Abiertas de entrada, una cartera con varios tickers medía
       // más de una pantalla y había que scrollear para llegar a cualquier cosa.
-      // El orden es de lo que más se mira a lo que menos: los activos primero.
+      //
+      // El orden sigue el ciclo de una posición. Primero PLANIFICACIÓN, que es
+      // lo único que mira hacia adelante: qué se va a comprar y a qué precio.
+      // Después ACTIVOS, lo que efectivamente se tiene, y CONCENTRACIÓN, cómo
+      // quedó repartido. RENDIMIENTO cuenta cómo le fue a eso que se tiene, y
+      // LIQUIDADO va último porque es lo que ya salió de la cartera: es
+      // historia cerrada y es lo que menos se consulta.
       (panelKey === 'trading' ? '' :
+        bloquePlegableInv('Planificación',
+          'En qué activos entrar, a qué precio y con qué parte del capital.',
+          bloquePlanificacion(destinos, title), 'inv-fold-plan') +
         bloquePlegableInv('Activos', 'Las tenencias por ticker, con su detalle de compras.',
           buildCurrencyTable('ARS', arsTickers.length, arsRows) +
           buildCurrencyTable('USD', usdTickers.length, usdRows), 'inv-fold-activos') +
         bloquePlegableInv('Concentración', 'Cuánto pesa cada sector y cada tipo de riesgo en la cartera.',
           buildSectorConcentrationBlock(destinos, title), '',
           vistaSeccionToggle((destinos[0] || '') + '|conc')) +
-        bloquePlegableInv('Liquidado', 'Lo que ya se vendió, separado en ganancias y pérdidas.',
-          liquidadoHtml, '',
-          vistaSeccionToggle((destinos[0] || '') + '|liq')) +
-        // Rendimiento va último: las tres de arriba cuentan cómo está la
-        // cartera hoy, y ésta cómo llegó hasta acá. Va en todas las carteras
-        // que tienen tenencias —la pregunta "¿cómo me fue?" no es exclusiva de
-        // Inversiones—, pero sólo a nivel cartera: el selector de vista se
-        // omite solo donde los portafolios no existen (vistaActivosToggle).
+        // Va en todas las carteras que tienen tenencias —la pregunta "¿cómo me
+        // fue?" no es exclusiva de Inversiones—, pero sólo a nivel cartera: el
+        // selector de vista se omite donde los portafolios no existen.
         bloquePlegableInv('Rendimiento',
           'Cómo se comportó en el tiempo: cuánto rindió y contra qué se compara.',
           bloqueRendimiento(destinos, title), '',
-          vistaSeccionToggle((destinos[0] || '') + '|rend'))) +
+          vistaSeccionToggle((destinos[0] || '') + '|rend')) +
+        bloquePlegableInv('Liquidado', 'Lo que ya se vendió, separado en ganancias y pérdidas.',
+          liquidadoHtml, '',
+          vistaSeccionToggle((destinos[0] || '') + '|liq'))) +
     '</div>' +
   '</details>';
 }

@@ -568,6 +568,18 @@ function buildDemoSnapshot(mesesAtras) {
     return Math.round(usd / ratio * DEMO_MEP);
   }
 
+  // El precio de entrada de una línea del plan: el precio de hoy por un
+  // factor. Menor a 1 es un objetivo de compra por debajo del mercado —lo
+  // habitual—; mayor a 1 deja la línea "en precio", que es el otro caso que
+  // la demostración tiene que mostrar.
+  function precioPlan(ticker, moneda, factor) {
+    const p = precioDemo(ticker, iso(hoy), moneda);
+    if (!(p > 0)) return null;
+    return moneda === 'USD'
+      ? Math.round(p * factor * 100) / 100
+      : Math.round(p * factor);
+  }
+
   DEMO_CARTERA.forEach(function (p, i) {
     const moneda = p.moneda || 'ARS';
     p.compras.forEach(function (c, j) {
@@ -920,6 +932,24 @@ function buildDemoSnapshot(mesesAtras) {
     // de últimas cargas escondido la demo no mostraba esa pantalla —ni el
     // manual, que la documenta—. El efectivo va con una sola carga manual.
     uploadHistoryByOrigin: historialDeCargas(),
+    // Plan de compras: lo que se piensa comprar y todavía no se compró. Los
+    // precios de entrada se derivan del precio real de cada activo —un
+    // descuento sobre el mercado, que es como se planifica una compra— salvo
+    // uno que queda por encima para que se vea la marca de "en precio".
+    // Puestos a mano envejecerían: las series se actualizan y los objetivos
+    // quedarían ridículos contra el mercado.
+    planCompras: {
+      inversiones: [
+        { id: 'plan_demo_1', ticker: 'GOOGL', moneda: 'ARS', precioObjetivo: precioPlan('GOOGL', 'ARS', 0.92), pctCapital: 30, nota: 'si corrige con el mercado' },
+        { id: 'plan_demo_2', ticker: 'KO', moneda: 'ARS', precioObjetivo: precioPlan('KO', 'ARS', 1.03), pctCapital: 25, nota: 'ya está en precio' },
+        { id: 'plan_demo_3', ticker: 'JNJ', moneda: 'ARS', precioObjetivo: precioPlan('JNJ', 'ARS', 0.85), pctCapital: 20, nota: 'defensiva, para equilibrar' }
+      ],
+      // La clave es el destino de la cartera, no la categoría: cada jubilación
+      // es una cartera propia y planifica por separado.
+      jubilacion_jalm: [
+        { id: 'plan_demo_4', ticker: 'VOO', moneda: 'USD', precioObjetivo: precioPlan('VOO', 'USD', 0.95), pctCapital: 80, nota: 'aporte del trimestre' }
+      ]
+    },
     // Dos portafolios que reparten parte de los CEDEARs de Inversiones y dejan
     // el resto sin asignar, que es el caso más común: se agrupa lo que tiene un
     // destino pensado y lo demás queda suelto. Las fechas de plazo son futuras y

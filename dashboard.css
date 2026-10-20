@@ -7039,6 +7039,7 @@ body[data-exporting="true"] .section-card {
    duplicado a dos píxeles del de la sección que los contiene. */
 .inv-fold .inv-conc-grid { border-top: none; }
 .inv-fold .inv-liq { border-top: none; padding-top: 0; }
+.inv-fold .inv-plan { padding-top: 0; }
 /* Las tablas iban a sangre mientras la concentración y lo liquidado arrancaban
    14px adentro: medido, las columnas de Activos empezaban en x=43 y las de
    Concentración en x=57. Los mismos 14px de los otros dos bloques, puestos
@@ -7434,12 +7435,129 @@ body[data-exporting="true"] .section-card {
    14px de sangría son los que ya tenía Liquidado, y Rendimiento los comparte
    para que sus tarjetas, sus gráficos y su nota no empiecen antes que el resto
    de la información. */
+/* Planificación comparte la caja de sus hermanas: la misma sangría de 14px con
+   la que arrancan Liquidado y Rendimiento, para que las cinco secciones del
+   panel empiecen en una sola columna. */
 .inv-liq,
-.inv-perf {
+.inv-perf,
+.inv-plan {
   padding: 12px 14px 14px;
   display: flex;
   flex-direction: column;
 }
+.inv-plan {
+  gap: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+}
+/* El capital contra el que se reparte: el dato que hace legible la tabla. */
+.inv-plan-capital {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.inv-plan-capital-lbl {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+.inv-plan-capital-val {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.inv-plan-capital-sub {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 11px;
+  color: var(--muted);
+}
+.inv-plan-tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+.inv-plan-tabla th {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  font-weight: 400;
+  text-align: left;
+  padding: 0 8px 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.inv-plan-tabla th.num,
+.inv-plan-tabla td.num { text-align: right; }
+.inv-plan-tabla td {
+  padding: 7px 8px 7px 0;
+  border-bottom: 1px dashed var(--border);
+  color: var(--ink);
+}
+.inv-plan-tabla tr:last-child td { border-bottom: none; }
+.inv-plan-tk { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.inv-plan-mon {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--muted-2);
+}
+.inv-plan-nota {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 10.5px;
+  color: var(--muted);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* El precio ya llegó a donde se lo esperaba: es la fila sobre la que hay que
+   actuar, así que se marca con el verde de la app y no con un color propio. */
+.inv-plan-enprecio { color: var(--green); font-weight: 600; }
+/* El equivalente en dólares del monto, debajo del importe en pesos: mismo
+   tratamiento que el resto de los valores secundarios de las tablas. */
+.inv-plan-monto-alt {
+  display: block;
+  font-size: 10px;
+  color: var(--muted-2);
+}
+.inv-plan-acc { width: 28px; text-align: right; }
+.inv-plan-total {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.inv-plan-total-ok { color: var(--muted-2); }
+.inv-plan-total-aviso { color: var(--red); }
+.inv-plan-vacio {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 6px 0 2px;
+}
+/* El alta usa los mismos campos que el resto de los formularios de la app
+   —.rule-field y .rule-label—, así que hereda su alto, su tipografía y sus
+   mayúsculas sin declarar nada propio. */
+.inv-plan-alta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.inv-plan-alta .rule-field { flex: 0 1 140px; min-width: 110px; }
+/* La nota es el único campo de texto libre, así que se queda con el resto del
+   ancho — pero con tope: sin él se estiraba hasta empujar el botón a dos
+   líneas en una pantalla ancha. */
+.inv-plan-alta .inv-plan-nota-campo { flex: 1 1 200px; max-width: 320px; }
+/* El botón no se achica ni parte su texto: el flex lo comprimía y "AGREGAR AL
+   PLAN" caía en dos renglones, dejándolo 20px más alto que los campos de al
+   lado. Es la misma trampa que los hijos de una columna flex. */
+.inv-plan-alta .upload-btn { flex: 0 0 auto; white-space: nowrap; }
 .inv-liq {
   gap: 10px;
   border-top: 1px solid var(--border);
