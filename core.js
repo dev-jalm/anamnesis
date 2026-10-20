@@ -1340,7 +1340,9 @@ function filaDePlan(fila, capital, precioActual) {
   const objValido = isFinite(objetivo) && objetivo > 0;
   const cap = (isFinite(capital) && capital > 0) ? capital : 0;
   const monto = (pctValido && cap > 0) ? (cap * pct / 100) : null;
-  const nominales = (monto !== null && objValido) ? (monto / objetivo) : null;
+  // Los nominales se truncan: no se compran fracciones de un papel, y
+  // redondear para arriba prometería una compra que el monto no paga.
+  const nominales = (monto !== null && objValido) ? Math.floor(monto / objetivo) : null;
   const pa = (precioActual === null || precioActual === undefined || precioActual === '')
     ? null : Number(precioActual);
   const hayPrecio = pa !== null && isFinite(pa) && pa > 0;
@@ -1411,13 +1413,19 @@ function compraPlanificada(fila, capital, precioActual, mep) {
   const tc = (isFinite(mep) && mep > 0) ? mep : 1;
   const esUsd = fila && fila.moneda === 'USD';
   const montoEnMoneda = esUsd ? (montoArs / tc) : montoArs;
+  // Nominales enteros hacia abajo, como en la tabla del plan: lo que se compra
+  // son papeles, no fracciones, y el sobrante vuelve al líquido.
+  const cantidad = precio > 0 ? Math.floor(montoEnMoneda / precio) : 0;
   return {
     precio: precio,
     usaMercado: usaMercado,
     precioObjetivo: (isFinite(objetivo) && objetivo > 0) ? objetivo : 0,
     montoArs: montoArs,
     montoEnMoneda: montoEnMoneda,
-    cantidad: precio > 0 ? (montoEnMoneda / precio) : 0
+    cantidad: cantidad,
+    // Lo que realmente sale del bolsillo: los nominales enteros a su precio.
+    // El monto reservado es el techo, no el importe de la operación.
+    total: cantidad * precio
   };
 }
 

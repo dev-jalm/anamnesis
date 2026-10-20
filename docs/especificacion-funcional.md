@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.98 |
+| **Versión** | 1.99 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -934,6 +934,8 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-212j | La compra se registra al **precio del mercado** cuando hay uno cargado, no al planificado: el plan dice cuándo entrar, el precio lo pone el día de la compra. El diálogo informa cuál de los dos se está usando. Sin precio actual queda el objetivo, que es el único número disponible |
 | RF-212k | Ejecutado un ingreso, **su línea sale del plan**: el plan tiene lo que está pendiente y Activos lo que ya se tiene. El capital a repartir baja por lo que se acaba de invertir, y los montos de los demás activos se recalculan sobre el líquido que queda |
 | RF-212l | Los controles para agregar una línea viven en la **banda de la sección**, al margen derecho del título, y no al pie de su cuerpo. Son controles de banda: comparten alto, tipografía y borde con los de la barra de agrupar, no con los formularios de alta de pantalla completa. Con la sección plegada **se ocultan**, igual que la bajada: no hay plan a la vista al que agregarle una línea |
+| RF-212n | Los nominales del plan son **enteros hacia abajo**: no se compran fracciones de un papel, y redondear para arriba prometería una compra que el monto reservado no paga. El total de la operación es el de esos nominales enteros a su precio, no el monto reservado: la diferencia vuelve al líquido, y el diálogo de confirmación la informa |
+| RF-212o | El alta de una línea del plan carga también la **descripción** y el **sector** del activo. Los dos son del ticker y no de la línea, así que se guardan donde los lee la cartera; cargarlos al planificar evita completarlos después, con la compra ya registrada. Vacíos no pisan lo que ya exista |
 | RF-212m | El plan se presenta con **la misma tabla que Activos**: la banda que la encabeza, los títulos de columna, el cuerpo de las cifras, el fondo y la barra de acento de las filas de detalle, el chevron que despliega y el lugar de los íconos de acción —la primera columna— son los de esa tabla y no una versión propia. Comprar un ingreso planificado es la acción opuesta a vender una tenencia y se dibuja igual: el mismo botón de ícono, en la misma celda, con un más donde el otro lleva el tilde |
 | RF-211b | Los paneles que acumulan tenencias suman una sección plegable, **Rendimiento**, que responde cómo se comportó la cartera en el tiempo. Está en **Reserva, Inversiones y las Jubilaciones**: "¿cómo me fue?" no es una pregunta exclusiva de una cartera, y en una jubilación —que es de largo plazo— es justamente la que decide si conviene dejarla donde está. Sólo en Inversiones ofrece la vista por portafolio, porque los portafolios son de esa cartera y de ninguna otra; en el resto trabaja a nivel cartera. Trading queda afuera: no lista tenencias por ticker. Se presenta como sus hermanas —la misma banda de encabezado y la misma sangría del cuerpo—, de modo que las secciones del panel arrancan en una sola columna |
 | RF-211c | El rendimiento se informa de **dos maneras a la vez, porque son dos preguntas distintas**. El **retorno acumulado** encadena los retornos diarios y mide cómo se comportó el activo, con independencia de cuánto dinero había puesto en cada momento: es lo comparable contra un índice. La **TIR anualizada** pondera por el dinero y por el momento en que entró: es lo que le rindió al usuario. Que la TIR supere al retorno acumulado significa que los aportes cayeron en buen momento, y al revés |
@@ -1063,7 +1065,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 546 pruebas en 67 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 548 pruebas en 67 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 | RNF-45 | **El buscador de movimientos espera a que se deje de escribir** antes de filtrar. Un listado de 1.500 movimientos se recalcula entero en cada pulsación: escribir una palabra de doce letras eran doce recálculos y un segundo y medio de pantalla trabada —medido—. La espera es de 160 ms, por debajo del umbral en que la respuesta deja de percibirse inmediata |
 | RNF-46 | **Lo que se usa muchas veces se construye una sola vez.** Los formateadores de número viven fuera de la función que los usa: crear uno cuesta 47 veces más que usarlo, y el formateo de montos llegó a ser más de la mitad del tiempo de cada pulsación. La misma regla vale para el dibujado de iconos, que se acota al elemento que cambió en lugar de recorrer la pantalla entera, y para las claves de ordenamiento, que se calculan una vez por fila y no dentro del comparador |
@@ -1310,7 +1312,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.95 | 17/10/2026 | Las carteras suman **Planificación** —qué comprar, a qué precio y con qué parte del capital— y sus cinco secciones pasan a seguir el ciclo de una posición (RF-212a a RF-212g, RNF-43) | Reemplazada |
 | 1.96 | 20/10/2026 | Un activo admite varios ingresos planificados, que se agrupan en una fila por activo, y cada ingreso se ejecuta desde el plan (RF-212h, RF-212i, RF-212j, RF-212k, RNF-43) | Reemplazada |
 | 1.97 | 20/10/2026 | El alta de una línea del plan pasa a la banda de la sección, con los controles chicos del panel, y se oculta con la sección plegada (RF-212l) | Reemplazada |
-| 1.98 | 20/10/2026 | El plan se dibuja con la tabla de Activos: su banda, sus títulos, sus filas de detalle y sus íconos en la primera columna (RF-212m) | **Vigente** |
+| 1.98 | 20/10/2026 | El plan se dibuja con la tabla de Activos: su banda, sus títulos, sus filas de detalle y sus íconos en la primera columna (RF-212m) | Reemplazada |
+| 1.99 | 20/10/2026 | Los nominales del plan son enteros hacia abajo y el alta carga descripción y sector del activo (RF-212n, RF-212o, RNF-43) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

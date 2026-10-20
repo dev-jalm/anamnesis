@@ -7046,7 +7046,9 @@ body[data-exporting="true"] .section-card {
    .mesa-fold > summary y .mesa-fold:not([open]) > summary, esta última con más
    especificidad, así que una regla propia ahí no aplica nunca. Y va sobre el
    div y no sobre .inv-fold para que el cuerpo —las tablas— siga a sangre. */
-.inv-fold > summary > div { padding-left: 34px; }
+/* Sólo el primero: el summary puede llevar un segundo div con los controles
+   de la sección (.inv-fold-acciones) y esos 34px lo corrían a él también. */
+.inv-fold > summary > div:first-of-type { padding-left: 34px; }
 /* Estos dos bloques traían su propio borde superior, que ahora quedaba
    duplicado a dos píxeles del de la sección que los contiene. */
 .inv-fold .inv-conc-grid { border-top: none; }
@@ -7480,6 +7482,11 @@ select.inv-plan-in { cursor: pointer; }
    nota de un ingreso, el equivalente en dólares y la marca de "en precio".
    Una declaración propia de cuerpo, color o borde sería lo contrario de lo
    que se busca. */
+/* La banda del plan toma el alto de la que encabeza la tabla de Activos. Allá
+   lo fija el selector Activos/Portafolio, que mide 35 y es el elemento más
+   alto de su fila; acá no hay un control que lo imponga, así que se escribe.
+   Sin esto la banda del plan medía 32 contra las 51 de aquélla. */
+.inv-plan-tabla .inv-currency-head-inner { min-height: 35px; }
 .inv-plan-mon {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9px;
@@ -7487,6 +7494,15 @@ select.inv-plan-in { cursor: pointer; }
   letter-spacing: 1px;
   color: var(--muted-2);
   margin-left: 6px;
+}
+/* La descripción del ticker al lado de su sigla: la misma tinta y el mismo
+   cuerpo que lleva en la tabla de activos. */
+.inv-plan-desc {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--ink);
+  margin-left: 10px;
 }
 /* Cuántos tramos tiene planificados el activo, al lado de su nombre: es la
    misma aclaración entre tinta apagada que lleva la descripción en Activos. */
@@ -7552,6 +7568,10 @@ select.inv-plan-in { cursor: pointer; }
   flex: 0 1 auto;
   min-width: 0;
   align-self: center;
+  /* Los mismos 14px con los que el cuerpo de la sección separa su tabla del
+     borde del panel: medido, la tabla termina en 1412 y sin esto el botón
+     llegaba hasta 1426, pegado al borde. */
+  padding-right: 14px;
   /* El h4 que tiene al lado está en mayúsculas de título; esto es un
      formulario y no hereda ese tratamiento. */
   text-transform: none;
@@ -7597,6 +7617,11 @@ select.inv-plan-in { cursor: pointer; }
    lado sin que `getBoundingClientRect` lo acusara —la caja mide lo declarado,
    no lo que se dibuja—. */
 .inv-plan-campo.es-ticker { width: 86px; }
+.inv-plan-campo.es-desc { width: 150px; }
+/* El sector sale de una lista fija y su opción más larga es "CONSUMO
+   DISCRECIONAL": el select la recorta como el de la tabla de activos, que
+   tampoco le da el ancho completo. */
+.inv-plan-campo.es-sector { width: 134px; }
 .inv-plan-campo.es-moneda { width: 68px; }
 .inv-plan-campo.es-precio { width: 120px; }
 .inv-plan-campo.es-pct { width: 92px; }

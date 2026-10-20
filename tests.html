@@ -3295,7 +3295,17 @@ group('Planificación de compras', function () {
   test('el monto es la parte del capital, y los nominales lo que compra a ese precio', function () {
     const d = filaDePlan(fila(), 1000000, 7815);
     assertEqual(d.monto, 300000);
-    assertEqual(Math.round(d.nominales * 10000) / 10000, Math.round(300000 / 7190 * 10000) / 10000);
+    // 300.000 / 7.190 = 41,7246…: se trunca, no se redondea. Con 42 la compra
+    // costaría más de lo reservado.
+    assertEqual(d.nominales, 41);
+  });
+  test('los nominales son enteros hacia abajo, nunca fraccionarios', function () {
+    // 35,68 papeles no existen: son 35.
+    assertEqual(filaDePlan({ precioObjetivo: 100, pctCapital: 100 }, 3568, 100).nominales, 35);
+    // Justo en el entero, no pierde uno.
+    assertEqual(filaDePlan({ precioObjetivo: 100, pctCapital: 100 }, 3600, 100).nominales, 36);
+    // El monto no alcanza ni para uno: cero, y la compra no se puede ejecutar.
+    assertEqual(filaDePlan({ precioObjetivo: 100, pctCapital: 100 }, 80, 100).nominales, 0);
   });
   test('la distancia es una fracción y dice cuánto tiene que BAJAR el precio', function () {
     // El objetivo está 8% abajo del mercado: la fracción es negativa.
@@ -3363,7 +3373,14 @@ group('Planificación de compras', function () {
     assertEqual(c.precio, 7815);
     assertEqual(c.precioObjetivo, 7190);
     assertEqual(c.montoArs, 300000);
-    assertEqual(Math.round(c.cantidad * 10000) / 10000, Math.round(300000 / 7815 * 10000) / 10000);
+    assertEqual(c.cantidad, 38);              // 300.000 / 7.815 = 38,38…
+  });
+  test('el total de la compra es el de los nominales enteros, no el reservado', function () {
+    const c = compraPlanificada(fila(), 1000000, 7815, 1000);
+    // 38 × 7.815 = 296.970: los 3.030 que sobran del monto reservado vuelven
+    // al líquido en vez de inventar una fracción de papel.
+    assertEqual(c.total, 296970);
+    assertEqual(c.montoEnMoneda, 300000);
   });
   test('sin precio actual se compra al precio planificado', function () {
     const c = compraPlanificada(fila(), 1000000, null, 1000);
@@ -3375,7 +3392,8 @@ group('Planificación de compras', function () {
       { ticker: 'VOO', moneda: 'USD', precioObjetivo: 500, pctCapital: 80 }, 1000000, 600, 1250);
     assertEqual(c.montoArs, 800000);
     assertEqual(c.montoEnMoneda, 640);          // 800.000 / 1.250
-    assertEqual(Math.round(c.cantidad * 1e6) / 1e6, Math.round(640 / 600 * 1e6) / 1e6);
+    assertEqual(c.cantidad, 1);                 // 640 / 600 = 1,06…
+    assertEqual(c.total, 600);
   });
   test('sin capital o sin precio la compra queda en cero, no en NaN', function () {
     const sinCap = compraPlanificada(fila(), 0, 7815, 1000);

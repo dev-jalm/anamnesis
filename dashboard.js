@@ -20928,6 +20928,7 @@ function compraDesdeElPlan(destinos, fila) {
     ticker: fila.ticker, moneda: fila.moneda === 'USD' ? 'USD' : 'ARS',
     precio: c.precio, usaMercado: c.usaMercado, precioObjetivo: c.precioObjetivo,
     cantidad: c.cantidad, montoArs: c.montoArs, montoEnMoneda: c.montoEnMoneda,
+    total: c.total,
     destino: clavePlan(destinos), broker: brokerHabitual(clavePlan(destinos)),
     fecha: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
       '-' + String(d.getDate()).padStart(2, '0')
@@ -20960,9 +20961,14 @@ function ejecutarCompraDePlan(destinos, filaId) {
         (c.usaMercado
           ? ' <span style="color:var(--muted)">(el del mercado; planificaste ' + simbolo + ' ' + fmtPrecio(c.precioObjetivo) + ')</span>'
           : ' <span style="color:var(--muted)">(el planificado: no hay precio actual cargado)</span>') + '<br>' +
-      '• Nominales: <strong>' + fmtNominales(c.cantidad) + '</strong><br>' +
-      '• Total: <strong>' + simbolo + ' ' + fmtPrecio(c.montoEnMoneda) + '</strong>' +
-        (c.moneda === 'USD' ? ' <span style="color:var(--muted)">($' + fmt(Math.round(c.montoArs)) + ' al MEP)</span>' : '') +
+      '• Nominales: <strong>' + fmtNominales(c.cantidad) + '</strong>' +
+        ' <span style="color:var(--muted)">(enteros: no se compran fracciones)</span><br>' +
+      // El total es el de la operación —nominales enteros por su precio—, no
+      // el monto que la línea tenía reservado: la diferencia vuelve al líquido.
+      '• Total: <strong>' + simbolo + ' ' + fmtPrecio(c.total) + '</strong>' +
+        (c.total < c.montoEnMoneda - 0.005
+          ? ' <span style="color:var(--muted)">(de ' + simbolo + ' ' + fmtPrecio(c.montoEnMoneda) +
+            ' reservados; el resto queda líquido)</span>' : '') +
     '</div>';
   appConfirm({
     title: 'Registrar la compra de ' + c.ticker,
@@ -20986,7 +20992,7 @@ function ejecutarCompraDePlan(destinos, filaId) {
       ticker: c.ticker,
       cantidad: c.cantidad,
       precio: c.precio,
-      total: c.cantidad * c.precio,
+      total: c.total,
       destino: c.destino,
       moneda: c.moneda,
       // El portafolio es de la compra, no del plan: el plan es de la cartera.
@@ -21058,8 +21064,9 @@ function bloquePlanificacion(destinos, nombreCartera) {
       const d = filaDePlan(f, capital, pa);
       const montoArs = d.monto;
       const montoEnMoneda = (montoArs !== null && g.moneda === 'USD') ? (montoArs / mep) : montoArs;
+      // Enteros hacia abajo: no se compran fracciones de un papel.
       const nominales = (montoEnMoneda !== null && Number(f.precioObjetivo) > 0)
-        ? (montoEnMoneda / Number(f.precioObjetivo)) : null;
+        ? Math.floor(montoEnMoneda / Number(f.precioObjetivo)) : null;
       if (nominales !== null) { nominalesTotal += nominales; hayNominales = true; }
       const distTxt = (d.distancia === null)
         ? '—'
@@ -21129,6 +21136,10 @@ function bloquePlanificacion(destinos, nombreCartera) {
       '</td>' +
       '<td class="ticker">' + escapeHtmlSafe(g.ticker) +
         '<span class="inv-plan-mon">' + escapeHtmlSafe(g.moneda) + '</span>' +
+        // La descripción del ticker, si está cargada: el plan se lee por
+        // nombre y no sólo por sigla, igual que la tabla de activos.
+        (info.descripcion
+          ? '<span class="inv-plan-desc">' + escapeHtmlSafe(info.descripcion) + '</span>' : '') +
         '<span class="inv-plan-activo-ing">' + g.entradas.length +
           (g.entradas.length === 1 ? ' ingreso' : ' ingresos') + '</span>' +
       '</td>' +
@@ -21204,6 +21215,16 @@ function altaDePlanHtml(destinos) {
     campo('Activo',
       '<input type="text" class="inv-plan-in" data-plan-campo="ticker" maxlength="12" placeholder="ej: AAPL">',
       'es-ticker') +
+    // La descripción y el sector son del TICKER y no de la línea del plan: van
+    // a tickerInfo, que es donde los lee la tabla de activos. Cargarlos acá
+    // evita tener que completarlos después, cuando la compra ya se registró, y
+    // de paso el plan se lee por nombre y no sólo por sigla.
+    campo('Descripción',
+      '<input type="text" class="inv-plan-in" data-plan-campo="descripcion" maxlength="60" placeholder="ej: APPLE INC.">',
+      'es-desc') +
+    campo('Sector',
+      '<select class="inv-plan-in" data-plan-campo="sector">' + opcionesSector('', true) + '</select>',
+      'es-sector') +
     campo('Moneda',
       '<select class="inv-plan-in" data-plan-campo="moneda">' +
         '<option value="ARS">ARS</option><option value="USD">USD</option>' +
@@ -21237,10 +21258,26 @@ document.addEventListener('click', function (e) {
     if (!ticker) { appAlert('Decí en qué activo vas a entrar.'); return; }
     if (!(precio > 0)) { appAlert('El precio de entrada tiene que ser mayor a cero.'); return; }
     if (!(pct > 0)) { appAlert('El porcentaje del capital tiene que ser mayor a cero.'); return; }
+    const moneda = campo('moneda') === 'USD' ? 'USD' : 'ARS';
     agregarFilaDePlan([add.getAttribute('data-plan-add')], {
-      ticker: ticker, moneda: campo('moneda'), precioObjetivo: precio,
+      ticker: ticker, moneda: moneda, precioObjetivo: precio,
       pctCapital: pct, nota: campo('nota')
     });
+    // La descripción y el sector son del ticker: se guardan donde los lee la
+    // cartera, no dentro de la línea del plan. Vacíos no pisan lo que ya haya
+    // —el listado de BYMA o lo que se haya cargado antes—.
+    const descripcion = campo('descripcion');
+    if (descripcion) {
+      if (!state.tickerInfo) state.tickerInfo = {};
+      const k = claveTickerInfo(ticker, moneda);
+      if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
+      state.tickerInfo[k].descripcion = descripcion;
+      state.tickerInfo[k].moneda = moneda;
+      state.tickerInfo[k].lastUpdate = state.tickerInfo[k].lastUpdate || new Date().toISOString();
+      scheduleSave();
+    }
+    const sector = campo('sector');
+    if (sector) guardarSectorManual(ticker, moneda, sector);
     if (typeof renderMainAssets === 'function') renderMainAssets();
     return;
   }
