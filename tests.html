@@ -2479,41 +2479,49 @@ group('Export / Import de configuración', function () {
     assertEqual(r.kpiCardsConfig.map(function (c) { return c.id; }).join(','), 'kpi_ingresos,kpi_reservas');
   });
 
-  test('fusionarFichaMedica — viajes, visibilidad y presupuestos siguen el mismo modo', function () {
-    const actual = {
-      travels: [{ id: 't1' }],
-      visibilityPrefs: { score: true },
-      budgetByYear: { 2026: { Alimentacion: 100 } }
-    };
-    const entrante = {
-      travels: [{ id: 't2' }],
-      visibilityPrefs: { score: false, liquido: true },
-      budgetByYear: { 2027: { Alimentacion: 200 } }
-    };
+  test('fusionarFichaMedica — viajes y visibilidad siguen el mismo modo', function () {
+    const actual = { travels: [{ id: 't1' }], visibilityPrefs: { score: true } };
+    const entrante = { travels: [{ id: 't2' }], visibilityPrefs: { score: false, liquido: true } };
     const todo = fusionarFichaMedica(actual, entrante, 'replace_all');
     assertEqual(todo.travels.length, 1);
     assertEqual(Object.keys(todo.visibilityPrefs).length, 2);
-    assertEqual(Object.keys(todo.budgetByYear).join(','), '2027');
     const nuevos = fusionarFichaMedica(actual, entrante, 'merge_new');
     assertEqual(nuevos.travels.length, 2);
     assertEqual(nuevos.visibilityPrefs.score, true);   // lo existente no se pisa
-    assertEqual(Object.keys(nuevos.budgetByYear).sort().join(','), '2026,2027');
+    // El presupuesto ya no viaja con las tarjetas: tiene su propia sección.
+    assertEqual(todo.budgetByYear, undefined);
   });
 
-  test('el import avisa que la Ficha médica trae presupuestos', function () {
-    // Un archivo nuevo, sin presupuesto, importando la configuración de otro:
-    // los presupuestos viajan dentro de la sección Ficha médica y aparecían
-    // sin que nada los hubiera anunciado.
+  test('fusionarPresupuestos — los años siguen el modo elegido', function () {
+    const actual = { budgetByYear: { 2026: { Alimentacion: 100 } } };
+    const entrante = { budgetByYear: { 2027: { Alimentacion: 200 } } };
+    assertEqual(Object.keys(fusionarPresupuestos(actual, entrante, 'replace_all').budgetByYear).join(','), '2027');
+    assertEqual(Object.keys(fusionarPresupuestos(actual, entrante, 'merge_new').budgetByYear).sort().join(','), '2026,2027');
+  });
+
+  test('el presupuesto se exporta e importa aparte de las tarjetas', function () {
     assertEqual(contarMesesPresupuestados({ 2026: { enero: { Vivienda: 100 }, febrero: {} }, 2025: { diciembre: {} } }), 3);
     assertEqual(contarMesesPresupuestados(null), 0);
-    const blob = serializeFullConfig({
+    const stateLike = {
       kpiCardsConfig: [{ id: 'k1' }],
       budgetByYear: { 2026: { enero: { Vivienda: 820000 }, febrero: { Vivienda: 820000 } } }
-    }, { fichaMedica: true });
-    const p = previewImport(blob, { kpiCardsConfig: [], budgetByYear: {} }, 'replace_all');
+    };
+    // Las dos secciones marcadas: cada una en su lugar del archivo.
+    const ambas = serializeFullConfig(stateLike, { fichaMedica: true, presupuestos: true });
+    assertEqual(ambas.data.fichaMedica.budgetByYear, undefined);
+    assertEqual(Object.keys(ambas.data.presupuestos.budgetByYear).join(','), '2026');
+    const p = previewImport(ambas, { kpiCardsConfig: [], budgetByYear: {} }, 'replace_all');
     assertEqual(p.presupuestos.current, 0);
     assertEqual(p.presupuestos.incoming, 2);
     assertEqual(p.presupuestos.willHave, 2);
+    // Sólo las tarjetas: el presupuesto no viaja ni se anuncia.
+    const soloKpi = serializeFullConfig(stateLike, { fichaMedica: true });
+    assertEqual(soloKpi.sections.presupuestos, undefined);
+    assertEqual(previewImport(soloKpi, { kpiCardsConfig: [] }, 'replace_all').presupuestos, undefined);
+    // Sólo el presupuesto: viaja sin arrastrar las tarjetas.
+    const soloPres = serializeFullConfig(stateLike, { presupuestos: true });
+    assertEqual(soloPres.sections.fichaMedica, undefined);
+    assertEqual(previewImport(soloPres, { budgetByYear: {} }, 'replace_all').presupuestos.incoming, 2);
   });
 
   test('previewImport — la Ficha médica anuncia lo que el modo va a dejar', function () {

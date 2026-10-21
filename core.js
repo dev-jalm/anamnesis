@@ -1505,9 +1505,16 @@ function fusionarFichaMedica(actual, entrante, mode) {
   return {
     kpiCardsConfig: fusionarPorId(cur.kpiCardsConfig, inc.kpiCardsConfig, mode),
     travels: fusionarPorId(cur.travels, inc.travels, mode),
-    visibilityPrefs: fusionarDict(cur.visibilityPrefs, inc.visibilityPrefs, mode),
-    budgetByYear: fusionarDict(cur.budgetByYear, inc.budgetByYear, mode)
+    visibilityPrefs: fusionarDict(cur.visibilityPrefs, inc.visibilityPrefs, mode)
   };
+}
+
+// Los presupuestos anuales viajan en su propia sección: son lo que más
+// sorprende encontrar después de importar —números que nadie cargó en ese
+// archivo— y el usuario tiene que poder dejarlos afuera sin perder las
+// tarjetas, o traerlos sin tocar nada más.
+function fusionarPresupuestos(actual, entrante, mode) {
+  return { budgetByYear: fusionarDict((actual || {}).budgetByYear, (entrante || {}).budgetByYear, mode) };
 }
 
 // ----- BLOB MAESTRO (full config) -----
@@ -1585,18 +1592,24 @@ function serializeFullConfig(stateLike, sections) {
       if (p[k] !== undefined) out.data.params[k] = p[k];
     });
   }
-  // Ficha médica: configuración de la solapa Ficha médica — tarjetas KPI
-  // (orden, colores, qué muestra cada una), preferencias de visibilidad de
-  // secciones, viajes/eventos activos, y presupuestos anuales por categoría
-  // (que son config explícita del usuario, no datos derivados).
+  // Tarjetas KPI: cómo se ve la solapa Ficha médica — las tarjetas (orden,
+  // colores, qué muestra cada una), qué secciones están visibles y los
+  // viajes/eventos activos.
   if (sections.fichaMedica) {
     out.sections.fichaMedica = true;
     out.data.fichaMedica = {
       kpiCardsConfig: stateLike.kpiCardsConfig || [],
       visibilityPrefs: stateLike.visibilityPrefs || {},
-      travels: stateLike.travels || [],
-      budgetByYear: stateLike.budgetByYear || {}
+      travels: stateLike.travels || []
     };
+  }
+  // Presupuesto: los presupuestos anuales por categoría, que son config
+  // explícita del usuario y no datos derivados. Van en su propia sección y no
+  // adentro de la anterior: llevarse las tarjetas de otro archivo no debería
+  // arrastrar los números con los que ese archivo se compara.
+  if (sections.presupuestos) {
+    out.sections.presupuestos = true;
+    out.data.presupuestos = { budgetByYear: stateLike.budgetByYear || {} };
   }
   return out;
 }
@@ -1704,8 +1717,12 @@ function previewImport(parsed, currentStateLike, mode) {
       const curCards = (cur.kpiCardsConfig || []).length;
       const after = fusionarFichaMedica(cur, incoming, mode);
       out.fichaMedica = { current: curCards, incoming: incomingCards, willHave: after.kpiCardsConfig.length };
-      // Los presupuestos van en la misma sección y son lo que más sorprende
-      // encontrar después de importar: se cuentan aparte, en meses.
+    }
+    // Los presupuestos se cuentan en meses y en su propia fila: es la sección
+    // cuyo contenido más sorprende encontrar después de importar.
+    if (parsed.sections.presupuestos) {
+      const incoming = parsed.data.presupuestos || {};
+      const after = fusionarPresupuestos(cur, incoming, mode);
       out.presupuestos = {
         current: contarMesesPresupuestados(cur.budgetByYear),
         incoming: contarMesesPresupuestados(incoming.budgetByYear),
@@ -3865,7 +3882,8 @@ if (typeof module !== 'undefined' && module.exports) {
     serializeCategories, deserializeCategories, contarSubcategorias,
     serializeTags, deserializeTags,
     serializeFullConfig, previewImport, PARAMS_CONFIG_KEYS,
-    fusionarPorId, fusionarDict, fusionarFichaMedica, contarMesesPresupuestados,
+    fusionarPorId, fusionarDict, fusionarFichaMedica, fusionarPresupuestos,
+    contarMesesPresupuestados,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
     resumirTanda,

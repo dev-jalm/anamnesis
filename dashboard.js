@@ -26686,15 +26686,10 @@ function refreshImportPreview() {
   if (preview.subcategories) lines.push(fmtRow('Subcategorías', preview.subcategories));
   if (preview.tags) lines.push(fmtRow('Etiquetas', preview.tags));
   if (preview.params) lines.push(fmtRow('Parámetros', preview.params));
-  // La fila se llama por lo que cuenta: la sección Ficha médica lleva además la
-  // visibilidad, los viajes y los presupuestos, y un "tenés 11 · archivo 14"
-  // sin unidad no se puede leer. Los presupuestos van en su propia fila: es lo
-  // que más sorprende encontrar después, porque no se parece a nada de lo que
-  // uno cree estar importando cuando tilda "Ficha médica".
+  // Una fila por sección, con la unidad escrita: un "tenés 11 · archivo 14"
+  // sin unidad no se puede leer.
   if (preview.fichaMedica) lines.push(fmtRow('Tarjetas KPI', preview.fichaMedica));
-  if (preview.presupuestos && (preview.presupuestos.current || preview.presupuestos.incoming)) {
-    lines.push(fmtRow('Presupuesto (meses)', preview.presupuestos));
-  }
+  if (preview.presupuestos) lines.push(fmtRow('Presupuesto (meses)', preview.presupuestos));
   document.getElementById('importPreview').innerHTML = lines.join('');
 }
 function applyImportConfirm() {
@@ -26760,8 +26755,7 @@ function applyImportConfirm() {
         const fusion = fusionarFichaMedica({
           kpiCardsConfig: state.kpiCardsConfig || [],
           travels: state.travels || [],
-          visibilityPrefs: state.visibilityPrefs || {},
-          budgetByYear: state.budgetByYear || {}
+          visibilityPrefs: state.visibilityPrefs || {}
         }, fm, mode);
         if (Array.isArray(fm.kpiCardsConfig) && fm.kpiCardsConfig.length > 0) {
           state.kpiCardsConfig = fusion.kpiCardsConfig;
@@ -26782,8 +26776,15 @@ function applyImportConfirm() {
         if (Array.isArray(fm.travels)) {
           state.travels = fusion.travels;
         }
-        if (fm.budgetByYear && typeof fm.budgetByYear === 'object') {
-          state.budgetByYear = fusion.budgetByYear;
+      }
+      // Presupuesto: su propia sección y su propia fusión. Separado de las
+      // tarjetas, porque traerse la Ficha médica de otro archivo no tiene por
+      // qué traerse los números contra los que ese archivo se compara.
+      if (parsed.sections && parsed.sections.presupuestos && parsed.data.presupuestos) {
+        const pr = parsed.data.presupuestos;
+        if (pr.budgetByYear && typeof pr.budgetByYear === 'object') {
+          state.budgetByYear = fusionarPresupuestos(
+            { budgetByYear: state.budgetByYear || {} }, pr, mode).budgetByYear;
         }
       }
     }
@@ -26834,22 +26835,19 @@ function openFullConfigModal(mode) {
     const v = state.params && state.params[k];
     return v !== undefined && v !== null && v !== '';
   }).length;
-  // Ficha médica: el dato más visible son las tarjetas KPI, pero la sección
-  // lleva además los viajes y —lo que sorprende— los PRESUPUESTOS anuales.
-  // Con el tilde diciendo sólo "14 tarjetas KPI", importar la configuración en
-  // un archivo recién creado le metía presupuestos que nadie había cargado
-  // ahí, y no había forma de saber de dónde habían salido.
+  // Tarjetas KPI: con ellas viajan la visibilidad de las secciones de Ficha
+  // médica y los viajes, así que el subtítulo los nombra. Un tilde tiene que
+  // decir todo lo que se lleva: cuando decía sólo "14 tarjetas KPI", importar
+  // la configuración en un archivo recién creado le metía además presupuestos
+  // que nadie había cargado ahí.
   const fmCount = (state.kpiCardsConfig || []).length;
   const viajesCount = (state.travels || []).length;
-  let mesesPresupuestados = 0;
-  Object.keys(state.budgetByYear || {}).forEach(function (y) {
-    mesesPresupuestados += Object.keys(state.budgetByYear[y] || {}).length;
-  });
+  const visCount = Object.keys(state.visibilityPrefs || {}).length;
   const fmPartes = [fmCount + ' tarjeta' + (fmCount === 1 ? '' : 's') + ' KPI'];
-  if (mesesPresupuestados > 0) {
-    fmPartes.push('presupuesto de ' + mesesPresupuestados + ' mes' + (mesesPresupuestados === 1 ? '' : 'es'));
-  }
+  if (visCount > 0) fmPartes.push('visibilidad de secciones');
   if (viajesCount > 0) fmPartes.push(viajesCount + ' viaje' + (viajesCount === 1 ? '' : 's'));
+  // Presupuesto: su propia sección, contada en meses cargados.
+  const mesesPresupuestados = contarMesesPresupuestados(state.budgetByYear);
 
   document.getElementById('fullCountRules').textContent = '(' + rCount + ' regla' + (rCount === 1 ? '' : 's') + ')';
   document.getElementById('fullCountCategories').textContent = '(' + cCount + ' categoría' + (cCount === 1 ? '' : 's')
@@ -26858,6 +26856,10 @@ function openFullConfigModal(mode) {
   document.getElementById('fullCountParams').textContent = '(' + pCount + ' campo' + (pCount === 1 ? '' : 's') + ')';
   // La "s" del plural va en tarjeta, no en la sigla: eran "0 tarjeta KPIs".
   document.getElementById('fullCountFichaMedica').textContent = '(' + fmPartes.join(' · ') + ')';
+  document.getElementById('fullCountPresupuestos').textContent = '(' +
+    (mesesPresupuestados === 0
+      ? 'sin meses cargados'
+      : mesesPresupuestados + ' mes' + (mesesPresupuestados === 1 ? '' : 'es')) + ')';
   // Default todos chequeados
   Array.from(document.querySelectorAll('.fullconfig-section input[type="checkbox"]')).forEach(function (cb) {
     cb.checked = true;
@@ -26877,7 +26879,8 @@ function getFullConfigSelections() {
 }
 function doFullConfigConfirm() {
   const sections = getFullConfigSelections();
-  if (!sections.rules && !sections.categories && !sections.tags && !sections.params && !sections.fichaMedica) {
+  if (!sections.rules && !sections.categories && !sections.tags && !sections.params &&
+      !sections.fichaMedica && !sections.presupuestos) {
     appAlert('Marcá al menos una sección.');
     return;
   }
@@ -26941,6 +26944,10 @@ function doFullConfigConfirm() {
       if (sections.fichaMedica && parsed.sections && parsed.sections.fichaMedica) {
         filteredParsed.sections.fichaMedica = true;
         filteredParsed.data.fichaMedica = parsed.data.fichaMedica;
+      }
+      if (sections.presupuestos && parsed.sections && parsed.sections.presupuestos) {
+        filteredParsed.sections.presupuestos = true;
+        filteredParsed.data.presupuestos = parsed.data.presupuestos;
       }
       importConfirmState.parsed = filteredParsed;
       importConfirmState.kind = 'full';
