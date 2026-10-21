@@ -7264,7 +7264,20 @@ select.inv-plan-in { cursor: pointer; }
 /* La barra separadora no compite con los datos que separa, pero se ve: con
    var(--border) —medido, #2F2A24 sobre la banda— no se distinguía del fondo y
    la línea quedaba sin las divisiones que la ordenan. */
-.inv-pf-sep { color: var(--muted); font-weight: 400; }
+/* El separador entre el número de una sección y su nombre comparte esta
+   declaración: es la misma barra con la que la app separa datos en una línea. */
+.inv-pf-sep,
+.inv-fold-sep { color: var(--muted); font-weight: 400; }
+/* El número de orden de una sección del panel. En mono, porque es un número, y
+   apagado: ordena la lectura sin competir con el nombre. */
+.inv-fold-nro {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted);
+  margin-right: 7px;
+}
+.inv-fold-sep { margin-right: 7px; }
 /* Demasiados activos para un objetivo: el conteo lo señala. */
 .inv-section-count.is-over { color: var(--red); }
 

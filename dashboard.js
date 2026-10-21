@@ -20919,42 +20919,79 @@ function brokerHabitual(destino) {
   return mejor || 'BALANZ';
 }
 
-// Todo lo que define la compra que saldría de una línea del plan. Se calcula
-// una sola vez y lo usan el diálogo y el alta, para que lo que se confirma sea
-// exactamente lo que se guarda.
-function compraDesdeElPlan(destinos, fila) {
+// Todo lo que define la compra que saldría de UNA O VARIAS líneas del plan. Se
+// calcula una sola vez y lo usan el diálogo y el alta, para que lo que se
+// confirma sea exactamente lo que se guarda.
+//
+// Con varias líneas —comprar el activo entero de una— se suman sus porcentajes
+// y el precio es el del mercado: no hay un objetivo único que respetar, porque
+// cada tramo tenía el suyo. Sin precio actual cargado se usa el promedio de
+// esos objetivos ponderado por el peso de cada tramo, que es lo más cercano a
+// lo que el plan decía.
+function compraDesdeElPlan(destinos, filas) {
+  const lista = Array.isArray(filas) ? filas : [filas];
+  const base = lista[0];
   const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
-  const info = infoDeTicker(state.tickerInfo, fila.ticker, fila.moneda);
+  const info = infoDeTicker(state.tickerInfo, base.ticker, base.moneda);
   const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
     ? Number(info.precioActual) : null;
-  const c = compraPlanificada(fila, liquidoDeDestino(destinos), pa, mep);
+  const pctTotal = totalPctDePlan(lista);
+  const objetivoPonderado = pctTotal > 0
+    ? lista.reduce(function (a, f) {
+        return a + Number(f.precioObjetivo || 0) * Number(f.pctCapital || 0);
+      }, 0) / pctTotal
+    : 0;
+  const c = compraPlanificada(
+    { moneda: base.moneda, precioObjetivo: objetivoPonderado, pctCapital: pctTotal },
+    liquidoDeDestino(destinos), pa, mep);
   const d = new Date();
+  // El broker y el portafolio que se eligieron al planificar. Con varios
+  // tramos vale el del primero que lo haya elegido: el diálogo lo muestra y se
+  // puede cambiar ahí mismo.
+  const conBroker = lista.find(function (f) { return f.broker; });
+  const conPf = lista.find(function (f) { return f.portafolio; });
   return {
-    ticker: fila.ticker, moneda: fila.moneda === 'USD' ? 'USD' : 'ARS',
+    ticker: base.ticker, moneda: base.moneda === 'USD' ? 'USD' : 'ARS',
     precio: c.precio, usaMercado: c.usaMercado, precioObjetivo: c.precioObjetivo,
     cantidad: c.cantidad, montoArs: c.montoArs, montoEnMoneda: c.montoEnMoneda,
     total: c.total,
     destino: clavePlan(destinos),
-    // El broker y el portafolio que se eligieron al planificar; sin eso, el
-    // broker cae en el que más se usa en la cartera.
-    broker: fila.broker || brokerHabitual(clavePlan(destinos)),
-    portafolio: fila.portafolio || '',
+    tramos: lista.length,
+    broker: (conBroker && conBroker.broker) || brokerHabitual(clavePlan(destinos)),
+    portafolio: (conPf && conPf.portafolio) || '',
     fecha: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
       '-' + String(d.getDate()).padStart(2, '0')
   };
 }
 
-// Ejecutar una línea del plan: muestra el detalle y, si se confirma, da de alta
-// la compra igual que la carga manual y saca la línea del plan. El plan tiene
-// lo pendiente; lo comprado vive en Activos.
+// Ejecutar UN ingreso del plan, desde su fila de detalle.
 function ejecutarCompraDePlan(destinos, filaId) {
   const fila = planDeCartera(destinos).find(function (f) { return f.id === filaId; });
   if (!fila) return;
-  const c = compraDesdeElPlan(destinos, fila);
+  comprarDelPlan(destinos, [fila]);
+}
+
+// Ejecutar TODOS los ingresos planificados de un activo, desde su fila
+// general. Es la contraparte de vender un ticker entero desde la fila de
+// Activos: si se compra todo de una vez, es una sola operación y no tres.
+function ejecutarCompraTotalDePlan(destinos, clave) {
+  const filas = agruparPlanPorActivo(planDeCartera(destinos))
+    .filter(function (g) { return g.clave === clave; })
+    .map(function (g) { return g.entradas; })[0];
+  if (!filas || !filas.length) return;
+  comprarDelPlan(destinos, filas);
+}
+
+// El diálogo de compra y el alta. Recibe las líneas del plan que se ejecutan:
+// una sola desde el detalle, todas las del activo desde su fila general. El
+// plan tiene lo pendiente; lo comprado vive en Activos.
+function comprarDelPlan(destinos, filas) {
+  const c = compraDesdeElPlan(destinos, filas);
   if (!(c.precio > 0) || !(c.cantidad > 0)) {
     appAlert({
       title: 'No hay con qué comprar',
-      message: 'Esta línea reserva $' + fmt(Math.round(c.montoArs)) + ' del capital y el precio es ' +
+      message: (c.tramos > 1 ? 'Estos ' + c.tramos + ' ingresos reservan ' : 'Esta línea reserva ') +
+        simboloMoneda('ARS') + ' ' + fmt(Math.round(c.montoArs)) + ' del capital y el precio es ' +
         (c.precio > 0 ? 'válido' : 'cero') + '. Revisá el líquido de la cartera y el precio de entrada.',
       danger: true
     });
@@ -21007,16 +21044,20 @@ function ejecutarCompraDePlan(destinos, filaId) {
         '<span class="compra-total-val" data-compra-total>' + simboloMoneda(c.moneda) + ' ' + fmtPrecio(c.total) + '</span>' +
       '</div>' +
     '</div>';
-  const nota = c.usaMercado
+  const nota = (c.usaMercado
     ? 'El precio propuesto es el del mercado; planificaste ' + simboloMoneda(c.moneda) + ' ' +
-      fmtPrecio(c.precioObjetivo) + '. Los nominales son los que entran en el monto reservado, enteros.'
+      fmtPrecio(c.precioObjetivo) +
+      (c.tramos > 1 ? ' entre los ' + c.tramos + ' ingresos, ponderado por lo que reserva cada uno' : '') +
+      '. Los nominales son los que entran en el monto reservado, enteros.'
     : 'No hay precio actual cargado para este activo, así que el precio propuesto es el que planificaste. ' +
-      'Corregilo con el de la operación antes de registrarla.';
+      'Corregilo con el de la operación antes de registrarla.') +
+    (c.tramos > 1 ? ' Se registra UNA compra por el total y los ' + c.tramos +
+      ' ingresos salen del plan.' : '');
   appConfirm({
-    title: 'Registrar la compra de ' + c.ticker,
+    title: (c.tramos > 1 ? 'Registrar la compra entera de ' : 'Registrar la compra de ') + c.ticker,
     eyebrow: 'CONFIRMAR COMPRA',
     messageHtml: 'Revisá los datos antes de registrarla: se da de alta igual que una carga manual ' +
-      'y la línea sale del plan.<br><br>' + detalle,
+      'y ' + (c.tramos > 1 ? 'las líneas salen' : 'la línea sale') + ' del plan.<br><br>' + detalle,
     summaryLabel: 'TENÉ EN CUENTA',
     summaryText: nota,
     confirmLabel: 'REGISTRAR LA COMPRA',
@@ -21056,7 +21097,10 @@ function ejecutarCompraDePlan(destinos, filaId) {
       portafolio: (admitePortafolios(c.destino) && pf) ? pf : undefined,
       createdAt: now
     });
-    borrarFilaDePlan(destinos, filaId);
+    // Salen del plan todas las líneas que se acaban de ejecutar.
+    const ids = {};
+    (Array.isArray(filas) ? filas : [filas]).forEach(function (f) { ids[f.id] = true; });
+    guardarPlanDeCartera(destinos, planDeCartera(destinos).filter(function (f) { return !ids[f.id]; }));
     registrarCargaEnHistorial('Inversion', { timestamp: now, kept: 1, skipped: 0, total: 1 });
     scheduleSave();
     if (typeof renderMainAssets === 'function') renderMainAssets();
@@ -21258,6 +21302,14 @@ function bloquePlanificacion(destinos, nombreCartera) {
           '<i data-lucide="chevron-right" style="width:13px;height:13px' +
             (abierto ? ';transform:rotate(90deg)' : '') + '"></i>' +
         '</button>' +
+        // Comprar el activo ENTERO, con todos sus tramos en una operación. Es
+        // la contraparte de vender un ticker entero desde la fila de Activos,
+        // y va en el mismo lugar: al lado del chevron.
+        '<button class="inv-delete-btn inv-plan-comprar' + (enPrecio > 0 ? ' listo' : '') +
+          '" data-plan-exec-todo="' + escapeHtmlSafe(g.clave) + '"' +
+          ' title="Comprar todo: ' + (hayNominales ? fmtNominales(nominalesTotal) + ' nominales en ' : '') +
+          g.entradas.length + (g.entradas.length === 1 ? ' ingreso' : ' ingresos') + '">' +
+          ICONO_COMPRAR + '</button>' +
       '</td>' +
       celdaBroker +
       celdaPf +
@@ -21467,6 +21519,13 @@ document.addEventListener('click', function (e) {
     ejecutarCompraDePlan([clave], exec.getAttribute('data-plan-exec'));
     return;
   }
+  const execTodo = e.target.closest && e.target.closest('[data-plan-exec-todo]');
+  if (execTodo) {
+    const clave = carteraDelBoton(execTodo);
+    if (!clave) return;
+    ejecutarCompraTotalDePlan([clave], execTodo.getAttribute('data-plan-exec-todo'));
+    return;
+  }
   // Desplegar los ingresos de un activo. Misma mecánica que el detalle de
   // compras de Activos: las filas hermanas .inv-detail-row que siguen, hasta
   // la próxima fila de activo. No se busca por selector global porque el mismo
@@ -21496,17 +21555,21 @@ function carteraDelBoton(btn) {
   return panel ? ((panel.className.match(/inv-panel-([\w]+)/) || [])[1] || null) : null;
 }
 
-function bloquePlegableInv(titulo, bajada, contenido, clase, extraTitulo, acciones) {
+function bloquePlegableInv(titulo, bajada, contenido, clase, extraTitulo, acciones, nro) {
   if (!contenido) return '';
-  // data-fold identifica la sección entre re-renders, para poder devolverla
-  // abierta si lo estaba (ver renderMainAssets).
+  // El número va en el título y NO en data-fold: ese atributo identifica la
+  // sección entre re-renders —para devolverla abierta si lo estaba, ver
+  // renderMainAssets— y con el número adentro, reordenar las secciones le
+  // perdería el estado a todas.
   return '<details class="mesa-fold inv-fold' + (clase ? ' ' + clase : '') + '"' +
       ' data-fold="' + escapeHtmlSafe(titulo) + '">' +
     '<summary class="mesa-fold-sum">' +
       '<div>' +
         // El selector de vista va al lado del título, no adentro del cuerpo:
         // con la sección plegada se oculta, como la bajada.
-        '<h4 class="mesa-block-title">' + escapeHtmlSafe(titulo) + (extraTitulo || '') + '</h4>' +
+        '<h4 class="mesa-block-title">' +
+          (nro ? '<span class="inv-fold-nro">' + nro + '</span><span class="inv-fold-sep">|</span>' : '') +
+          escapeHtmlSafe(titulo) + (extraTitulo || '') + '</h4>' +
         '<p class="mesa-block-sub">' + escapeHtmlSafe(bajada) + '</p>' +
       '</div>' +
       // Los controles de la sección van en la banda, al margen derecho: el div
@@ -22280,27 +22343,29 @@ function buildInvestmentDetailPanel(destinos, title) {
       // quedó repartido. RENDIMIENTO cuenta cómo le fue a eso que se tiene, y
       // LIQUIDADO va último porque es lo que ya salió de la cartera: es
       // historia cerrada y es lo que menos se consulta.
+      // Las cinco van numeradas: el número dice en qué paso del ciclo está
+      // cada una y hace explícito que el orden no es alfabético ni casual.
       (panelKey === 'trading' ? '' :
         bloquePlegableInv('Planificación',
           'En qué activos entrar, a qué precio y con qué parte del capital.',
           bloquePlanificacion(destinos, title), 'inv-fold-plan', '',
-          altaDePlanHtml(destinos)) +
+          altaDePlanHtml(destinos), 1) +
         bloquePlegableInv('Activos', 'Las tenencias por ticker, con su detalle de compras.',
           buildCurrencyTable('ARS', arsTickers.length, arsRows) +
-          buildCurrencyTable('USD', usdTickers.length, usdRows), 'inv-fold-activos') +
+          buildCurrencyTable('USD', usdTickers.length, usdRows), 'inv-fold-activos', '', '', 2) +
         bloquePlegableInv('Concentración', 'Cuánto pesa cada sector y cada tipo de riesgo en la cartera.',
           buildSectorConcentrationBlock(destinos, title), '',
-          vistaSeccionToggle((destinos[0] || '') + '|conc')) +
+          vistaSeccionToggle((destinos[0] || '') + '|conc'), '', 3) +
         // Va en todas las carteras que tienen tenencias —la pregunta "¿cómo me
         // fue?" no es exclusiva de Inversiones—, pero sólo a nivel cartera: el
         // selector de vista se omite donde los portafolios no existen.
         bloquePlegableInv('Rendimiento',
           'Cómo se comportó en el tiempo: cuánto rindió y contra qué se compara.',
           bloqueRendimiento(destinos, title), '',
-          vistaSeccionToggle((destinos[0] || '') + '|rend')) +
+          vistaSeccionToggle((destinos[0] || '') + '|rend'), '', 4) +
         bloquePlegableInv('Liquidado', 'Lo que ya se vendió, separado en ganancias y pérdidas.',
           liquidadoHtml, '',
-          vistaSeccionToggle((destinos[0] || '') + '|liq'))) +
+          vistaSeccionToggle((destinos[0] || '') + '|liq'), '', 5)) +
     '</div>' +
   '</details>';
 }
