@@ -942,15 +942,15 @@ function buildDemoSnapshot(mesesAtras) {
       inversiones: [
         // GOOGL entra escalonado en dos tramos: es el caso que hace falta ver
         // agrupado —un activo, dos ingresos y un total reservado—.
-        { id: 'plan_demo_1', ticker: 'GOOGL', moneda: 'ARS', precioObjetivo: precioPlan('GOOGL', 'ARS', 0.92), pctCapital: 18, nota: 'primer tramo, si corrige' },
-        { id: 'plan_demo_5', ticker: 'GOOGL', moneda: 'ARS', precioObjetivo: precioPlan('GOOGL', 'ARS', 0.84), pctCapital: 12, nota: 'segundo tramo, más abajo' },
-        { id: 'plan_demo_2', ticker: 'KO', moneda: 'ARS', precioObjetivo: precioPlan('KO', 'ARS', 1.03), pctCapital: 25, nota: 'ya está en precio' },
-        { id: 'plan_demo_3', ticker: 'JNJ', moneda: 'ARS', precioObjetivo: precioPlan('JNJ', 'ARS', 0.85), pctCapital: 20, nota: 'defensiva, para equilibrar' }
+        { id: 'plan_demo_1', ticker: 'GOOGL', moneda: 'ARS', precioObjetivo: precioPlan('GOOGL', 'ARS', 0.92), pctCapital: 18, broker: 'NEXO', portafolio: '', nota: 'PRIMER TRAMO, SI CORRIGE' },
+        { id: 'plan_demo_5', ticker: 'GOOGL', moneda: 'ARS', precioObjetivo: precioPlan('GOOGL', 'ARS', 0.84), pctCapital: 12, broker: 'NEXO', portafolio: '', nota: 'SEGUNDO TRAMO, MÁS ABAJO' },
+        { id: 'plan_demo_2', ticker: 'KO', moneda: 'ARS', precioObjetivo: precioPlan('KO', 'ARS', 1.03), pctCapital: 25, broker: 'BALANZ', portafolio: '', nota: 'YA ESTÁ EN PRECIO' },
+        { id: 'plan_demo_3', ticker: 'JNJ', moneda: 'ARS', precioObjetivo: precioPlan('JNJ', 'ARS', 0.85), pctCapital: 20, broker: '', portafolio: '', nota: 'DEFENSIVA, PARA EQUILIBRAR' }
       ],
       // La clave es el destino de la cartera, no la categoría: cada jubilación
       // es una cartera propia y planifica por separado.
       jubilacion_jalm: [
-        { id: 'plan_demo_4', ticker: 'VOO', moneda: 'USD', precioObjetivo: precioPlan('VOO', 'USD', 0.95), pctCapital: 80, nota: 'aporte del trimestre' }
+        { id: 'plan_demo_4', ticker: 'VOO', moneda: 'USD', precioObjetivo: precioPlan('VOO', 'USD', 0.95), pctCapital: 80, broker: 'BALANZ', portafolio: '', nota: 'APORTE DEL TRIMESTRE' }
       ]
     },
     // Dos portafolios que reparten parte de los CEDEARs de Inversiones y dejan

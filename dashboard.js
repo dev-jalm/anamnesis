@@ -20886,6 +20886,11 @@ function agregarFilaDePlan(destinos, datos) {
     moneda: datos.moneda === 'USD' ? 'USD' : 'ARS',
     precioObjetivo: datos.precioObjetivo,
     pctCapital: datos.pctCapital,
+    // De la compra que saldrá de esta línea, no del plan en sí. Vacíos valen:
+    // el broker cae en el habitual de la cartera y la compra queda sin
+    // portafolio asignado.
+    broker: datos.broker || '',
+    portafolio: datos.portafolio || '',
     nota: datos.nota || ''
   });
   guardarPlanDeCartera(destinos, filas);
@@ -20929,7 +20934,11 @@ function compraDesdeElPlan(destinos, fila) {
     precio: c.precio, usaMercado: c.usaMercado, precioObjetivo: c.precioObjetivo,
     cantidad: c.cantidad, montoArs: c.montoArs, montoEnMoneda: c.montoEnMoneda,
     total: c.total,
-    destino: clavePlan(destinos), broker: brokerHabitual(clavePlan(destinos)),
+    destino: clavePlan(destinos),
+    // El broker y el portafolio que se eligieron al planificar; sin eso, el
+    // broker cae en el que más se usa en la cartera.
+    broker: fila.broker || brokerHabitual(clavePlan(destinos)),
+    portafolio: fila.portafolio || '',
     fecha: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
       '-' + String(d.getDate()).padStart(2, '0')
   };
@@ -20951,52 +20960,100 @@ function ejecutarCompraDePlan(destinos, filaId) {
     });
     return;
   }
-  const simbolo = c.moneda === 'USD' ? 'US$' : '$';
+  // El diálogo es un FORMULARIO, no un resumen: lo que el plan propone es un
+  // punto de partida —el precio del mercado, los nominales que entran en el
+  // monto reservado, el broker de la cartera— y la operación real puede haber
+  // salido distinta. Todo se puede corregir antes de registrarla, y el total
+  // se recalcula solo (ver el listener de [data-compra-campo]).
+  const campo = function (rotulo, control, ancho) {
+    return '<label class="compra-campo' + (ancho ? ' ' + ancho : '') + '">' +
+      '<span class="compra-rot">' + rotulo + '</span>' + control +
+    '</label>';
+  };
   const detalle =
-    '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--muted-2);line-height:1.7">' +
-      '• Activo: <strong>' + escapeHtmlSafe(c.ticker) + '</strong> (' + escapeHtmlSafe(c.moneda) + ')<br>' +
-      '• Fecha: <strong>' + c.fecha + '</strong><br>' +
-      '• Broker: <strong>' + escapeHtmlSafe(c.broker) + '</strong><br>' +
-      '• Precio: <strong>' + simbolo + ' ' + fmtPrecio(c.precio) + '</strong>' +
-        (c.usaMercado
-          ? ' <span style="color:var(--muted)">(el del mercado; planificaste ' + simbolo + ' ' + fmtPrecio(c.precioObjetivo) + ')</span>'
-          : ' <span style="color:var(--muted)">(el planificado: no hay precio actual cargado)</span>') + '<br>' +
-      '• Nominales: <strong>' + fmtNominales(c.cantidad) + '</strong>' +
-        ' <span style="color:var(--muted)">(enteros: no se compran fracciones)</span><br>' +
-      // El total es el de la operación —nominales enteros por su precio—, no
-      // el monto que la línea tenía reservado: la diferencia vuelve al líquido.
-      '• Total: <strong>' + simbolo + ' ' + fmtPrecio(c.total) + '</strong>' +
-        (c.total < c.montoEnMoneda - 0.005
-          ? ' <span style="color:var(--muted)">(de ' + simbolo + ' ' + fmtPrecio(c.montoEnMoneda) +
-            ' reservados; el resto queda líquido)</span>' : '') +
+    '<div class="compra-form" data-compra-moneda="' + escapeHtmlSafe(c.moneda) + '">' +
+      campo('Activo', '<input type="text" class="inv-plan-in" data-compra-campo="ticker" ' +
+        'maxlength="12" value="' + escapeHtmlSafe(c.ticker) + '">') +
+      campo('Fecha', '<input type="date" class="inv-plan-in" data-compra-campo="fecha" ' +
+        'value="' + escapeHtmlSafe(c.fecha) + '">') +
+      campo('Moneda', '<select class="inv-plan-in" data-compra-campo="moneda">' +
+        ['ARS', 'USD'].map(function (m) {
+          return '<option value="' + m + '"' + (c.moneda === m ? ' selected' : '') + '>' + m + '</option>';
+        }).join('') + '</select>') +
+      campo('Broker', '<select class="inv-plan-in" data-compra-campo="broker">' +
+        BROKER_OPTIONS.map(function (b) {
+          return '<option value="' + b.key + '"' + (c.broker === b.key ? ' selected' : '') + '>' +
+            escapeHtmlSafe(b.label) + '</option>';
+        }).join('') + '</select>') +
+      (admitePortafolios(c.destino)
+        ? campo('Portafolio', '<select class="inv-plan-in" data-compra-campo="portafolio">' +
+            '<option value="">— SIN ASIGNAR —</option>' +
+            portafolios().slice().sort(function (a, b) {
+              return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es');
+            }).map(function (p) {
+              return '<option value="' + escapeHtmlSafe(p.id) + '"' +
+                (c.portafolio === p.id ? ' selected' : '') + '>' + escapeHtmlSafe(p.nombre) + '</option>';
+            }).join('') + '</select>', 'es-ancho')
+        : '') +
+      campo('Precio', '<input type="text" inputmode="decimal" class="inv-plan-in" ' +
+        'data-compra-campo="precio" value="' + escapeHtmlSafe(fmtPrecio(c.precio)) + '">') +
+      campo('Nominales', '<input type="text" inputmode="decimal" class="inv-plan-in" ' +
+        'data-compra-campo="cantidad" value="' + escapeHtmlSafe(fmtNominales(c.cantidad)) + '">') +
+      // El total no se escribe: es el producto de los dos de arriba y se
+      // recalcula en cada tecla. Que fuera editable abriría la puerta a
+      // guardar un total que no es nominales × precio.
+      '<div class="compra-total">' +
+        '<span class="compra-rot">Total</span>' +
+        '<span class="compra-total-val" data-compra-total>' + simboloMoneda(c.moneda) + ' ' + fmtPrecio(c.total) + '</span>' +
+      '</div>' +
     '</div>';
+  const nota = c.usaMercado
+    ? 'El precio propuesto es el del mercado; planificaste ' + simboloMoneda(c.moneda) + ' ' +
+      fmtPrecio(c.precioObjetivo) + '. Los nominales son los que entran en el monto reservado, enteros.'
+    : 'No hay precio actual cargado para este activo, así que el precio propuesto es el que planificaste. ' +
+      'Corregilo con el de la operación antes de registrarla.';
   appConfirm({
     title: 'Registrar la compra de ' + c.ticker,
     eyebrow: 'CONFIRMAR COMPRA',
-    messageHtml: 'Se da de alta esta compra igual que una carga manual y la línea sale del plan.<br><br>' + detalle,
+    messageHtml: 'Revisá los datos antes de registrarla: se da de alta igual que una carga manual ' +
+      'y la línea sale del plan.<br><br>' + detalle,
     summaryLabel: 'TENÉ EN CUENTA',
-    summaryText: admitePortafolios(c.destino)
-      ? 'La compra queda sin portafolio asignado: se le pone desde la tabla de activos.'
-      : 'Verificá precio y nominales contra el comprobante del broker antes de confirmar.',
-    confirmLabel: 'COMPRAR ' + fmtNominales(c.cantidad) + ' ' + c.ticker,
+    summaryText: nota,
+    confirmLabel: 'REGISTRAR LA COMPRA',
     cancelLabel: 'Cancelar',
     icon: 'shopping-cart'
   }, function (ok) {
     if (!ok) return;
+    // Lo que se guarda es lo que quedó en el formulario, no lo que propuso el
+    // plan: el diálogo todavía está en el DOM cuando corre este callback.
+    const form = document.querySelector('.compra-form');
+    const val = function (k) {
+      const el = form && form.querySelector('[data-compra-campo="' + k + '"]');
+      return el ? el.value.trim() : '';
+    };
+    const ticker = (val('ticker') || c.ticker).toUpperCase();
+    const moneda = val('moneda') === 'USD' ? 'USD' : 'ARS';
+    const precio = parseAmount(val('precio'));
+    const cantidad = parseAmount(val('cantidad'));
+    if (!ticker) { appAlert('Falta el activo.'); return; }
+    if (!(precio > 0)) { appAlert('El precio de la compra tiene que ser mayor a cero.'); return; }
+    if (!(cantidad > 0)) { appAlert('Los nominales tienen que ser más que cero.'); return; }
     if (!Array.isArray(state.investmentEntries)) state.investmentEntries = [];
     const now = Date.now();
+    const pf = val('portafolio');
     state.investmentEntries.push({
       id: 'inv_' + now + '_' + Math.random().toString(36).slice(2, 8),
-      fecha: c.fecha,
-      broker: c.broker,
-      ticker: c.ticker,
-      cantidad: c.cantidad,
-      precio: c.precio,
-      total: c.total,
+      fecha: val('fecha') || c.fecha,
+      broker: val('broker') || c.broker,
+      ticker: ticker,
+      cantidad: cantidad,
+      precio: precio,
+      total: cantidad * precio,
       destino: c.destino,
-      moneda: c.moneda,
-      // El portafolio es de la compra, no del plan: el plan es de la cartera.
-      portafolio: undefined,
+      moneda: moneda,
+      // El portafolio es de la compra: viene de la línea del plan si se eligió
+      // al planificar, y se puede cambiar acá.
+      portafolio: (admitePortafolios(c.destino) && pf) ? pf : undefined,
       createdAt: now
     });
     borrarFilaDePlan(destinos, filaId);
@@ -21005,6 +21062,32 @@ function ejecutarCompraDePlan(destinos, filaId) {
     if (typeof renderMainAssets === 'function') renderMainAssets();
   });
 }
+
+// El símbolo de una moneda, en un solo lugar: lo usan el plan y el diálogo de
+// compra, y estaban calculándolo cada uno por su cuenta.
+function simboloMoneda(m) { return m === 'USD' ? 'US$' : '$'; }
+
+// El total del diálogo de compra es nominales × precio y se recalcula en cada
+// tecla: un total que no siga a sus factores es un número que miente.
+document.addEventListener('input', function (e) {
+  const campo = e.target.closest && e.target.closest('[data-compra-campo]');
+  if (!campo) return;
+  const form = campo.closest('.compra-form');
+  if (!form) return;
+  const num = function (k) {
+    const el = form.querySelector('[data-compra-campo="' + k + '"]');
+    return el ? parseAmount(el.value.trim()) : 0;
+  };
+  const mon = form.querySelector('[data-compra-campo="moneda"]');
+  const out = form.querySelector('[data-compra-total]');
+  if (out) out.textContent = simboloMoneda(mon ? mon.value : 'ARS') + ' ' + fmtPrecio(num('cantidad') * num('precio'));
+});
+// El selector de moneda no dispara `input` en todos los navegadores: su cambio
+// también tiene que repintar el símbolo del total.
+document.addEventListener('change', function (e) {
+  const campo = e.target.closest && e.target.closest('[data-compra-campo="moneda"]');
+  if (campo) campo.dispatchEvent(new Event('input', { bubbles: true }));
+});
 
 // El cuerpo de la sección: la tabla del plan más el formulario de alta.
 function bloquePlanificacion(destinos, nombreCartera) {
@@ -21092,6 +21175,13 @@ function bloquePlanificacion(destinos, nombreCartera) {
             ? '<span class="inv-plan-nota" title="' + escapeHtmlSafe(f.nota) + '">' + escapeHtmlSafe(f.nota) + '</span>'
             : '<span class="inv-plan-nota inv-plan-nota-vacia">ingreso</span>') +
         '</td>' +
+        // Descripción y sector son del activo y están en su fila: acá bajan el
+        // broker y el portafolio, que sí son de cada compra.
+        '<td>' + (f.broker ? escapeHtmlSafe(brokerLabel(f.broker)) : '<span class="inv-na">—</span>') + '</td>' +
+        '<td>' + (f.portafolio
+          ? escapeHtmlSafe((portafolios().find(function (p) { return p.id === f.portafolio; }) || {}).nombre || '—')
+          : '<span class="inv-na">—</span>') + '</td>' +
+        '<td></td>' +
         // pctCapital se guarda en escala 0-100 —es lo que se tipea— y las
         // funciones de formateo de la app esperan una fracción.
         '<td class="num">' + pctSinSigno(Number(f.pctCapital) / 100) + '</td>' +
@@ -21116,10 +21206,13 @@ function bloquePlanificacion(destinos, nombreCartera) {
     const titulosDetalle = '<tr class="inv-entries-head inv-detail-row' + ocultar + '">' +
       '<td></td>' +
       '<td>Ingreso</td>' +
+      '<td>Broker</td>' +
+      '<td>Portafolio</td>' +
+      '<td></td>' +   /* Moneda: es del activo, no del ingreso */
       '<td class="num">% capital</td>' +
       '<td class="num">Monto</td>' +
       '<td class="num">Precio de entrada</td>' +
-      '<td></td>' +
+      '<td></td>' +   /* Precio actual: es del activo */
       '<td class="num">Distancia</td>' +
       '<td class="num">Nominales</td>' +
     '</tr>';
@@ -21135,14 +21228,18 @@ function bloquePlanificacion(destinos, nombreCartera) {
         '</button>' +
       '</td>' +
       '<td class="ticker">' + escapeHtmlSafe(g.ticker) +
-        '<span class="inv-plan-mon">' + escapeHtmlSafe(g.moneda) + '</span>' +
-        // La descripción del ticker, si está cargada: el plan se lee por
-        // nombre y no sólo por sigla, igual que la tabla de activos.
-        (info.descripcion
-          ? '<span class="inv-plan-desc">' + escapeHtmlSafe(info.descripcion) + '</span>' : '') +
         '<span class="inv-plan-activo-ing">' + g.entradas.length +
           (g.entradas.length === 1 ? ' ingreso' : ' ingresos') + '</span>' +
       '</td>' +
+      // Descripción, sector y moneda del activo, en el mismo orden que en la
+      // tabla de Activos: el nombre, de qué sector es y en qué moneda cotiza.
+      '<td class="inv-plan-desc">' +
+        (info.descripcion ? escapeHtmlSafe(info.descripcion) : '<span class="inv-na">—</span>') + '</td>' +
+      '<td class="inv-plan-sector">' +
+        (sectorDeTenencia(g.ticker, g.moneda).sector
+          ? escapeHtmlSafe(etiquetaSector(sectorDeTenencia(g.ticker, g.moneda).sector))
+          : '<span class="inv-na">—</span>') + '</td>' +
+      '<td class="inv-plan-mon-cell">' + escapeHtmlSafe(g.moneda) + '</td>' +
       '<td class="num">' + pctSinSigno(pctTotal / 100) + '</td>' +
       '<td class="num">' + (montoTotalArs === null ? '<span class="inv-na">—</span>' : '$' + fmt(Math.round(montoTotalArs))) + '</td>' +
       // No hay UN precio de entrada del activo: cada tramo tiene el suyo.
@@ -21164,7 +21261,12 @@ function bloquePlanificacion(destinos, nombreCartera) {
       // y las de sus ingresos lo heredan de acá.
       '<colgroup>' +
         '<col style="width:64px">' +   /* desplegar · en el detalle, quitar y comprar */
-        '<col>' +                      /* Activo · en el detalle, la nota del ingreso */
+        '<col style="width:150px">' +  /* Activo · en el detalle, la nota del ingreso */
+        '<col>' +                      /* Descripción · en el detalle, el broker */
+        /* Sector: el mismo ancho que su columna en la tabla de activos, donde
+           el valor sale de la misma lista y la opción más larga es la misma. */
+        '<col style="width:172px">' +  /* Sector · en el detalle, el portafolio */
+        '<col style="width:70px">' +   /* Moneda · vacía en el detalle */
         '<col style="width:84px">' +   /* % del capital */
         '<col style="width:112px">' +  /* Monto */
         '<col style="width:126px">' +  /* Precio de entrada */
@@ -21174,12 +21276,15 @@ function bloquePlanificacion(destinos, nombreCartera) {
       '</colgroup>' +
       '<thead>' +
         '<tr class="inv-currency-header-row">' +
-          '<th colspan="8">' + cabecera + '</th>' +
+          '<th colspan="11">' + cabecera + '</th>' +
         '</tr>' +
         (filas.length === 0 ? '' :
           '<tr class="inv-columns-header-row">' +
             '<th></th>' +
             '<th>Activo</th>' +
+            '<th>Descripción</th>' +
+            '<th>Sector</th>' +
+            '<th>Moneda</th>' +
             '<th class="num">% capital</th>' +
             '<th class="num">Monto</th>' +
             '<th class="num">Precio de entrada</th>' +
@@ -21190,7 +21295,7 @@ function bloquePlanificacion(destinos, nombreCartera) {
       '</thead>' +
       '<tbody>' +
         (filas.length === 0
-          ? '<tr><td colspan="8" class="inv-plan-vacio">Todavía no planificaste ninguna compra en ' +
+          ? '<tr><td colspan="11" class="inv-plan-vacio">Todavía no planificaste ninguna compra en ' +
             'esta cartera. Cargá arriba el activo, a qué precio querés entrar y qué parte del ' +
             'capital le destinás.</td></tr>'
           : grupos) +
@@ -21211,16 +21316,19 @@ function altaDePlanHtml(destinos) {
       '<label class="inv-plan-rot">' + rotulo + '</label>' + control +
     '</span>';
   };
+  // El orden es el de las columnas de la tabla: activo, descripción, sector,
+  // moneda, y después los números. Lo que se carga y lo que se lee se recorren
+  // igual.
   return '<div class="inv-plan-alta" data-plan-cartera="' + clave + '">' +
     campo('Activo',
-      '<input type="text" class="inv-plan-in" data-plan-campo="ticker" maxlength="12" placeholder="ej: AAPL">',
+      '<input type="text" class="inv-plan-in" data-plan-campo="ticker" maxlength="12" placeholder="EJ: AAPL">',
       'es-ticker') +
     // La descripción y el sector son del TICKER y no de la línea del plan: van
     // a tickerInfo, que es donde los lee la tabla de activos. Cargarlos acá
     // evita tener que completarlos después, cuando la compra ya se registró, y
     // de paso el plan se lee por nombre y no sólo por sigla.
     campo('Descripción',
-      '<input type="text" class="inv-plan-in" data-plan-campo="descripcion" maxlength="60" placeholder="ej: APPLE INC.">',
+      '<input type="text" class="inv-plan-in" data-plan-campo="descripcion" maxlength="60" placeholder="EJ: APPLE INC.">',
       'es-desc') +
     campo('Sector',
       '<select class="inv-plan-in" data-plan-campo="sector">' + opcionesSector('', true) + '</select>',
@@ -21229,14 +21337,37 @@ function altaDePlanHtml(destinos) {
       '<select class="inv-plan-in" data-plan-campo="moneda">' +
         '<option value="ARS">ARS</option><option value="USD">USD</option>' +
       '</select>', 'es-moneda') +
-    campo('Precio de entrada',
-      '<input type="text" inputmode="decimal" class="inv-plan-in" data-plan-campo="precio" placeholder="ej: 1.250,50">',
-      'es-precio') +
     campo('% del capital',
-      '<input type="text" inputmode="decimal" class="inv-plan-in" data-plan-campo="pct" placeholder="ej: 20">',
+      '<input type="text" inputmode="decimal" class="inv-plan-in" data-plan-campo="pct" placeholder="EJ: 20">',
       'es-pct') +
+    campo('Precio de entrada',
+      '<input type="text" inputmode="decimal" class="inv-plan-in" data-plan-campo="precio" placeholder="EJ: 1.250,50">',
+      'es-precio') +
+    // Broker y portafolio son de la COMPRA, no del plan, pero se eligen acá
+    // para no tener que completarlos al ejecutar: son los dos datos que el
+    // plan no podía saber y que el diálogo tenía que adivinar. Vacíos siguen
+    // valiendo: el broker cae en el que más se usa en la cartera y la compra
+    // queda sin portafolio.
+    campo('Broker',
+      '<select class="inv-plan-in" data-plan-campo="broker">' +
+        '<option value="">— EL HABITUAL —</option>' +
+        BROKER_OPTIONS.map(function (b) {
+          return '<option value="' + b.key + '">' + escapeHtmlSafe(b.label) + '</option>';
+        }).join('') +
+      '</select>', 'es-broker') +
+    (admitePortafolios(clavePlan(destinos))
+      ? campo('Portafolio',
+          '<select class="inv-plan-in" data-plan-campo="portafolio">' +
+            '<option value="">— SIN ASIGNAR —</option>' +
+            portafolios().slice().sort(function (a, b) {
+              return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es');
+            }).map(function (p) {
+              return '<option value="' + escapeHtmlSafe(p.id) + '">' + escapeHtmlSafe(p.nombre) + '</option>';
+            }).join('') +
+          '</select>', 'es-pf')
+      : '') +
     campo('Nota (opcional)',
-      '<input type="text" class="inv-plan-in" data-plan-campo="nota" maxlength="40" placeholder="ej: si rompe soporte">',
+      '<input type="text" class="inv-plan-in" data-plan-campo="nota" maxlength="40" placeholder="EJ: SI ROMPE SOPORTE">',
       'es-nota') +
     '<button type="button" class="inv-agrupar-btn inv-plan-add" data-plan-add="' + clave + '">AGREGAR AL PLAN</button>' +
   '</div>';
@@ -21261,12 +21392,15 @@ document.addEventListener('click', function (e) {
     const moneda = campo('moneda') === 'USD' ? 'USD' : 'ARS';
     agregarFilaDePlan([add.getAttribute('data-plan-add')], {
       ticker: ticker, moneda: moneda, precioObjetivo: precio,
-      pctCapital: pct, nota: campo('nota')
+      pctCapital: pct, broker: campo('broker'), portafolio: campo('portafolio'),
+      // En mayúsculas, como el patrón de una regla: lo que se escribe, lo que
+      // se guarda y lo que se muestra son el mismo texto.
+      nota: campo('nota').toLocaleUpperCase('es-AR')
     });
     // La descripción y el sector son del ticker: se guardan donde los lee la
     // cartera, no dentro de la línea del plan. Vacíos no pisan lo que ya haya
     // —el listado de BYMA o lo que se haya cargado antes—.
-    const descripcion = campo('descripcion');
+    const descripcion = campo('descripcion').toLocaleUpperCase('es-AR');
     if (descripcion) {
       if (!state.tickerInfo) state.tickerInfo = {};
       const k = claveTickerInfo(ticker, moneda);

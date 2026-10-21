@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.99 |
+| **Versión** | 1.100 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -935,6 +935,8 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-212k | Ejecutado un ingreso, **su línea sale del plan**: el plan tiene lo que está pendiente y Activos lo que ya se tiene. El capital a repartir baja por lo que se acaba de invertir, y los montos de los demás activos se recalculan sobre el líquido que queda |
 | RF-212l | Los controles para agregar una línea viven en la **banda de la sección**, al margen derecho del título, y no al pie de su cuerpo. Son controles de banda: comparten alto, tipografía y borde con los de la barra de agrupar, no con los formularios de alta de pantalla completa. Con la sección plegada **se ocultan**, igual que la bajada: no hay plan a la vista al que agregarle una línea |
 | RF-212n | Los nominales del plan son **enteros hacia abajo**: no se compran fracciones de un papel, y redondear para arriba prometería una compra que el monto reservado no paga. El total de la operación es el de esos nominales enteros a su precio, no el monto reservado: la diferencia vuelve al líquido, y el diálogo de confirmación la informa |
+| RF-212p | El alta carga además el **broker** y el **portafolio** con los que se registrará la compra. Los dos son opcionales: sin broker se usa el que más aparece en esa cartera, y sin portafolio la compra queda sin asignar. El portafolio sólo se ofrece donde los portafolios existen. Los campos del alta se escriben **en mayúsculas**, como sus rótulos y como el patrón de una regla, y el orden —activo, descripción, sector, moneda, % del capital, precio de entrada, broker, portafolio, nota— es el de las columnas de la tabla |
+| RF-212q | El diálogo que registra una compra planificada es un **formulario y no un resumen**: activo, fecha, moneda, broker, portafolio, precio y nominales se pueden corregir antes de confirmar, porque lo que el plan propone es un punto de partida y la operación real pudo salir distinta. El **total se recalcula** con cada cambio y no se edita: es siempre nominales × precio |
 | RF-212o | El alta de una línea del plan carga también la **descripción** y el **sector** del activo. Los dos son del ticker y no de la línea, así que se guardan donde los lee la cartera; cargarlos al planificar evita completarlos después, con la compra ya registrada. Vacíos no pisan lo que ya exista |
 | RF-212m | El plan se presenta con **la misma tabla que Activos**: la banda que la encabeza, los títulos de columna, el cuerpo de las cifras, el fondo y la barra de acento de las filas de detalle, el chevron que despliega y el lugar de los íconos de acción —la primera columna— son los de esa tabla y no una versión propia. Comprar un ingreso planificado es la acción opuesta a vender una tenencia y se dibuja igual: el mismo botón de ícono, en la misma celda, con un más donde el otro lleva el tilde |
 | RF-211b | Los paneles que acumulan tenencias suman una sección plegable, **Rendimiento**, que responde cómo se comportó la cartera en el tiempo. Está en **Reserva, Inversiones y las Jubilaciones**: "¿cómo me fue?" no es una pregunta exclusiva de una cartera, y en una jubilación —que es de largo plazo— es justamente la que decide si conviene dejarla donde está. Sólo en Inversiones ofrece la vista por portafolio, porque los portafolios son de esa cartera y de ninguna otra; en el resto trabaja a nivel cartera. Trading queda afuera: no lista tenencias por ticker. Se presenta como sus hermanas —la misma banda de encabezado y la misma sangría del cuerpo—, de modo que las secciones del panel arrancan en una sola columna |
@@ -1313,7 +1315,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.96 | 20/10/2026 | Un activo admite varios ingresos planificados, que se agrupan en una fila por activo, y cada ingreso se ejecuta desde el plan (RF-212h, RF-212i, RF-212j, RF-212k, RNF-43) | Reemplazada |
 | 1.97 | 20/10/2026 | El alta de una línea del plan pasa a la banda de la sección, con los controles chicos del panel, y se oculta con la sección plegada (RF-212l) | Reemplazada |
 | 1.98 | 20/10/2026 | El plan se dibuja con la tabla de Activos: su banda, sus títulos, sus filas de detalle y sus íconos en la primera columna (RF-212m) | Reemplazada |
-| 1.99 | 20/10/2026 | Los nominales del plan son enteros hacia abajo y el alta carga descripción y sector del activo (RF-212n, RF-212o, RNF-43) | **Vigente** |
+| 1.99 | 20/10/2026 | Los nominales del plan son enteros hacia abajo y el alta carga descripción y sector del activo (RF-212n, RF-212o, RNF-43) | Reemplazada |
+| 1.100 | 20/10/2026 | El alta del plan suma broker y portafolio, la tabla sus columnas, y el diálogo de compra pasa a ser editable (RF-212p, RF-212q) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

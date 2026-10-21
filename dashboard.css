@@ -7140,8 +7140,15 @@ body[data-exporting="true"] .section-card {
   cursor: pointer;
 }
 /* Un campo de texto se escribe, no se elige: cursor de texto y ancho libre
-   dentro de su columna. */
-.inv-plan-in { cursor: text; width: 100%; min-width: 0; }
+   dentro de su columna. En mayúsculas —lo escrito y el ejemplo—, como el
+   patrón de una regla y como los rótulos que tiene encima: en una misma
+   línea no conviven dos criterios de escritura. */
+.inv-plan-in {
+  cursor: text;
+  width: 100%;
+  min-width: 0;
+  text-transform: uppercase;
+}
 .inv-plan-in:focus { outline: none; border-color: var(--accent); }
 .inv-plan-in::placeholder { color: var(--muted-2); opacity: .7; }
 select.inv-plan-in { cursor: pointer; }
@@ -7495,14 +7502,68 @@ select.inv-plan-in { cursor: pointer; }
   color: var(--muted-2);
   margin-left: 6px;
 }
-/* La descripción del ticker al lado de su sigla: la misma tinta y el mismo
-   cuerpo que lleva en la tabla de activos. */
-.inv-plan-desc {
+/* La descripción y el sector del activo: la misma tinta y el mismo cuerpo que
+   llevan en la tabla de activos, donde viven en un input y en un select. */
+.inv-plan-desc,
+.inv-plan-sector {
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--ink);
-  margin-left: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* En mayúsculas, como en la tabla de activos: el dato guardado puede venir
+     capitalizado —"Alphabet Inc."— y ahí se muestra "ALPHABET INC.". */
+  text-transform: uppercase;
+}
+.inv-plan-sector { text-transform: uppercase; font-size: 10px; letter-spacing: .5px; }
+.inv-plan-mon-cell {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--muted-2);
+}
+
+/* ── El formulario del diálogo de compra ──────────────────────────────────
+   El diálogo no resume la compra: la deja corregir antes de registrarla. Usa
+   los mismos campos chicos que el alta del plan, para que cargar y confirmar
+   se vean igual. */
+.compra-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  align-items: flex-end;
+  margin-top: 4px;
+}
+.compra-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 112px;
+  min-width: 0;
+}
+.compra-campo.es-ancho { width: 164px; }
+.compra-rot {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  white-space: nowrap;
+}
+/* El total cierra la fila y no es un campo: se lee, no se escribe. */
+.compra-total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: auto;
+  text-align: right;
+}
+.compra-total-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 22px;
 }
 /* Cuántos tramos tiene planificados el activo, al lado de su nombre: es la
    misma aclaración entre tinta apagada que lleva la descripción en Activos. */
@@ -7618,13 +7679,15 @@ select.inv-plan-in { cursor: pointer; }
    no lo que se dibuja—. */
 .inv-plan-campo.es-ticker { width: 86px; }
 .inv-plan-campo.es-desc { width: 150px; }
-/* El sector sale de una lista fija y su opción más larga es "CONSUMO
-   DISCRECIONAL": el select la recorta como el de la tabla de activos, que
-   tampoco le da el ancho completo. */
-.inv-plan-campo.es-sector { width: 134px; }
+/* El mismo ancho que la columna Sector de la tabla de activos: el valor sale
+   de la misma lista, con la misma opción más larga. Allá son 172 de columna
+   menos los 10+10 de padding de la celda. */
+.inv-plan-campo.es-sector { width: 152px; }
 .inv-plan-campo.es-moneda { width: 68px; }
 .inv-plan-campo.es-precio { width: 120px; }
 .inv-plan-campo.es-pct { width: 92px; }
+.inv-plan-campo.es-broker { width: 118px; }
+.inv-plan-campo.es-pf { width: 128px; }
 /* La nota es el único campo de texto libre: se lleva el resto del ancho, con
    tope para no empujar al botón a un segundo renglón en una pantalla ancha. */
 .inv-plan-campo.es-nota { flex: 1 1 140px; max-width: 210px; }
