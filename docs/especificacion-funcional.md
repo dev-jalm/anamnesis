@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.102 |
+| **Versión** | 1.103 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -938,6 +938,8 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-212p | El alta carga además el **broker** y el **portafolio** con los que se registrará la compra. Los dos son opcionales: sin broker se usa el que más aparece en esa cartera, y sin portafolio la compra queda sin asignar. El portafolio sólo se ofrece donde los portafolios existen. Los campos del alta se escriben **en mayúsculas**, como sus rótulos y como el patrón de una regla, y el orden —activo, descripción, sector, moneda, % del capital, precio de entrada, broker, portafolio, nota— es el de las columnas de la tabla |
 | RF-212q | El diálogo que registra una compra planificada es un **formulario y no un resumen**: activo, fecha, moneda, broker, portafolio, precio y nominales se pueden corregir antes de confirmar, porque lo que el plan propone es un punto de partida y la operación real pudo salir distinta. El **total se recalcula** con cada cambio y no se edita: es siempre nominales × precio |
 | RF-212o | El alta de una línea del plan carga también la **descripción** y el **sector** del activo. Los dos son del ticker y no de la línea, así que se guardan donde los lee la cartera; cargarlos al planificar evita completarlos después, con la compra ya registrada. Vacíos no pisan lo que ya exista |
+| RF-212u | El plan trata la **moneda como la trata Activos**: no es una columna sino una tabla, "Activos planificados en ARS" y "Activos planificados en USD", cada una con su banda y su conteo. El capital a repartir es uno solo —está en pesos— y por eso lo informan las dos; lo que cambia entre ellas es cuánto le compromete cada una |
+| RF-212v | El plan ofrece las mismas **dos vistas** que Activos, con el mismo selector: por cartera, con una banda que la encabeza, y por **portafolio**, con un bloque por objetivo y el grupo sin asignar al final. Cada banda informa el capital, lo comprometido por ese grupo y lo que queda. La vista se ofrece sólo donde los portafolios existen |
 | RF-212s | Un activo planificado se puede comprar **entero desde su fila**, con todos sus tramos en una sola operación, además de tramo por tramo desde el detalle. Es la contraparte de vender un ticker completo desde la fila de Activos, y el botón va en el mismo lugar. El precio propuesto es el del mercado y los nominales los que entran en el monto reservado por el conjunto; sin precio actual cargado se usa el promedio de los precios de entrada **ponderado por lo que reserva cada tramo**, porque no hay un objetivo único que respetar. Se registra una compra por el total y las líneas ejecutadas salen del plan |
 | RF-212t | Las cinco secciones de un panel de cartera llevan **su número de orden delante del nombre** —"1 \| Planificación"—: el orden sigue el ciclo de una posición y el número lo hace explícito, en vez de dejarlo como una coincidencia de la lista |
 | RF-212r | "El mismo criterio" significa **los mismos controles**, no un dibujo parecido: la descripción del activo en el plan es el mismo campo de texto de la tabla de activos y su sector el mismo selector, de modo que comparten tipografía, cuerpo, peso, color y el alto que le dan a la fila, y se editan desde los dos lados. El orden de las columnas es el de aquella tabla —dónde está el activo, qué es, y después los números— y el símbolo de moneda se separa del importe con un espacio en todas las columnas |
@@ -1321,7 +1323,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.99 | 20/10/2026 | Los nominales del plan son enteros hacia abajo y el alta carga descripción y sector del activo (RF-212n, RF-212o, RNF-43) | Reemplazada |
 | 1.100 | 20/10/2026 | El alta del plan suma broker y portafolio, la tabla sus columnas, y el diálogo de compra pasa a ser editable (RF-212p, RF-212q) | Reemplazada |
 | 1.101 | 20/10/2026 | La tabla del plan usa los controles de la de Activos y su orden de columnas: misma tipografía, mismo color y mismo alto de fila (RF-212r) | Reemplazada |
-| 1.102 | 20/10/2026 | Un activo planificado se compra entero desde su fila, y las secciones del panel van numeradas (RF-212s, RF-212t) | **Vigente** |
+| 1.102 | 20/10/2026 | Un activo planificado se compra entero desde su fila, y las secciones del panel van numeradas (RF-212s, RF-212t) | Reemplazada |
+| 1.103 | 21/10/2026 | El plan separa las monedas en dos tablas y suma la vista por portafolio, como Activos (RF-212u, RF-212v) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

@@ -21133,33 +21133,33 @@ document.addEventListener('change', function (e) {
   if (campo) campo.dispatchEvent(new Event('input', { bubbles: true }));
 });
 
-// El cuerpo de la sección: la tabla del plan más el formulario de alta.
+// La banda que resume un conjunto de líneas del plan: la cartera entera en la
+// vista Activos, cada portafolio en la vista Portafolio. Usa las mismas clases
+// y los mismos separadores que la banda de cartera de la tabla de Activos, y
+// dice lo mismo que ella traducido al plan: contra qué capital se reparte,
+// cuánto se comprometió y cuánto queda libre.
+function cabeceraPlanHtml(rotulo, meta, capital, pct) {
+  const sep = '<span class="inv-pf-sep">|</span>';
+  return '<div class="inv-currency-head-inner inv-pf-cab">' +
+    '<span class="inv-section-label">' + escapeHtmlSafe(rotulo) + '</span>' +
+    (meta ? '<span class="inv-pf-meta">(' + escapeHtmlSafe(meta) + ')</span>' : '') +
+    sep +
+    '<span class="inv-pf-total">Capital: ' + simboloMoneda('ARS') + ' ' + fmt(Math.round(capital)) + '</span>' +
+    sep +
+    '<span class="inv-section-count' + (pct > 100 ? ' is-over' : '') + '">' +
+      'Comprometido: ' + pctSinSigno(pct / 100) + (pct > 100 ? ' ⚠' : '') + '</span>' +
+    sep +
+    '<span class="inv-pf-gp">Sin asignar: ' +
+      (pct >= 100 ? '—' : pctSinSigno((100 - pct) / 100)) + '</span>' +
+  '</div>';
+}
+
+// El cuerpo de la sección: una tabla por moneda, como en Activos, y el
+// formulario de alta —que vive en la banda de la sección, no acá—.
 function bloquePlanificacion(destinos, nombreCartera) {
   const filas = planDeCartera(destinos);
   const capital = liquidoDeDestino(destinos);
   const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
-  const totalPct = totalPctDePlan(filas);
-
-  // El capital se dice siempre, con plan o sin él: es contra lo que se
-  // calculan los porcentajes y sin ese número la tabla no se puede leer. Va en
-  // la misma banda que encabeza la tabla de Activos —mismas clases, mismo
-  // fondo, los mismos separadores— porque es el mismo rango de información:
-  // lo que resume la tabla que viene abajo.
-  const sep = '<span class="inv-pf-sep">|</span>';
-  const cabecera =
-    '<div class="inv-currency-head-inner inv-pf-cab">' +
-      '<span class="inv-section-label">Capital a repartir</span>' +
-      '<span class="inv-pf-meta">(el líquido de ' + escapeHtmlSafe(nombreCartera) +
-        ': lo aportado que todavía no está invertido)</span>' +
-      sep +
-      '<span class="inv-pf-total">Total: ' + simboloMoneda('ARS') + ' ' + fmt(Math.round(capital)) + '</span>' +
-      sep +
-      '<span class="inv-section-count' + (totalPct > 100 ? ' is-over' : '') + '">' +
-        'Comprometido: ' + pctSinSigno(totalPct / 100) + (totalPct > 100 ? ' ⚠' : '') + '</span>' +
-      sep +
-      '<span class="inv-pf-gp">Sin asignar: ' +
-        (totalPct >= 100 ? '—' : pctSinSigno((100 - totalPct) / 100)) + '</span>' +
-    '</div>';
 
   // Una fila por activo con el total reservado, que se despliega en sus
   // ingresos: un mismo ticker se puede planificar en varios tramos y lo que
@@ -21168,7 +21168,7 @@ function bloquePlanificacion(destinos, nombreCartera) {
   // .inv-detail-row debajo y un chevron que las muestra— y por eso comparte
   // una sola tabla con un solo colgroup: así las columnas del detalle caen
   // debajo de las del activo sin alinear a ojo.
-  const grupos = agruparPlanPorActivo(filas).map(function (g) {
+  const filasDeActivo = function (lista) { return agruparPlanPorActivo(lista).map(function (g) {
     const info = infoDeTicker(state.tickerInfo, g.ticker, g.moneda);
     const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
       ? Number(info.precioActual) : null;
@@ -21228,7 +21228,6 @@ function bloquePlanificacion(destinos, nombreCartera) {
             : '<span class="inv-plan-nota inv-plan-nota-vacia">ingreso</span>') +
         '</td>' +
         '<td></td>' +   /* Sector: del activo */
-        '<td></td>' +   /* Moneda: del activo */
         // pctCapital se guarda en escala 0-100 —es lo que se tipea— y las
         // funciones de formateo de la app esperan una fracción.
         '<td class="num">' + pctSinSigno(Number(f.pctCapital) / 100) + '</td>' +
@@ -21254,7 +21253,7 @@ function bloquePlanificacion(destinos, nombreCartera) {
     const titulosDetalle = '<tr class="inv-entries-head inv-detail-row' + ocultar + '">' +
       '<td></td><td></td><td></td><td></td>' +
       '<td>Ingreso</td>' +
-      '<td></td><td></td>' +
+      '<td></td>' +
       '<td class="num">% capital</td>' +
       '<td class="num">Nominales</td>' +
       '<td class="num">Precio de entrada</td>' +
@@ -21318,7 +21317,6 @@ function bloquePlanificacion(destinos, nombreCartera) {
         '" data-moneda="' + escapeHtmlSafe(g.moneda) + '" value="' +
         escapeHtmlSafe(info.descripcion || '').replace(/"/g, '&quot;') + '" placeholder="EJ: APPLE INC."></td>' +
       celdaSectorTicker(g.ticker, g.moneda) +
-      '<td class="inv-plan-mon-cell">' + escapeHtmlSafe(g.moneda) + '</td>' +
       '<td class="num">' + pctSinSigno(pctTotal / 100) + '</td>' +
       '<td class="num">' + (hayNominales ? fmtNominales(nominalesTotal) : '<span class="inv-na">—</span>') + '</td>' +
       // No hay UN precio de entrada del activo: cada tramo tiene el suyo.
@@ -21330,66 +21328,124 @@ function bloquePlanificacion(destinos, nombreCartera) {
         (enPrecio > 0 ? enPrecio + ' en precio' : '<span class="inv-na">—</span>') + '</td>' +
     '</tr>';
     return banda + titulosDetalle + detalle;
-  }).join('');
+  }).join(''); };
 
-  // La tabla es la misma de Activos: sus clases le dan el cuerpo, los colores,
-  // el fondo de los títulos, el padding de las celdas y el table-layout fijo
-  // que hace que el colgroup mande sobre los anchos.
-  const tabla =
-    '<table class="investment-detail-table investment-detail-grouped inv-plan-tabla">' +
-      // El ancho de cada columna se declara una sola vez: la fila del activo
-      // y las de sus ingresos lo heredan de acá.
+  // Una tabla por moneda, como en Activos: lo planificado en pesos y lo
+  // planificado en dólares no se mezclan en una columna, se separan en dos
+  // tablas con su propia banda. El capital es uno solo —está en pesos— y por
+  // eso lo repiten las dos: lo que cambia es cuánto le compromete cada una.
+  const tablaDeMoneda = function (moneda) {
+    const deMoneda = filas.filter(function (f) {
+      return (f.moneda === 'USD' ? 'USD' : 'ARS') === moneda;
+    });
+    if (!deMoneda.length) return '';
+    const claveTabla = (destinos[0] || '') + '|plan' + moneda;
+    const nActivos = agruparPlanPorActivo(deMoneda).length;
+    // La vista por portafolio existe sólo donde los portafolios existen, y
+    // entonces el cuerpo se parte en un bloque por objetivo. Cada bloque lleva
+    // su banda con el capital y lo que ese objetivo compromete.
+    const porPortafolio = admitePortafolios(destinos) && vistaDeTabla(claveTabla) === 'portafolio';
+    let cuerpo;
+    if (porPortafolio) {
+      const vistos = {};
+      const orden = [];
+      deMoneda.forEach(function (f) {
+        const id = f.portafolio || '__sin__';
+        if (!vistos[id]) { vistos[id] = []; orden.push(id); }
+        vistos[id].push(f);
+      });
+      // El grupo sin asignar va último: es el resto, no un objetivo.
+      orden.sort(function (a, b) { return (a === '__sin__') - (b === '__sin__'); });
+      cuerpo = orden.map(function (id, i) {
+        const lista = vistos[id];
+        const p = id === '__sin__' ? null : (portafolios().find(function (x) { return x.id === id; }) || null);
+        const rotulo = p ? ('Portafolio n° ' + (i + 1) + ': ' + p.nombre) : 'Sin portafolio';
+        const meta = p
+          ? [p.objetivo || '', p.plazo ? 'plazo ' + p.plazo.split('-').reverse().join('/') : '']
+            .filter(Boolean).join(' · ')
+          : 'Líneas que todavía no asignaste a ningún portafolio.';
+        return '<tr class="inv-currency-header-row inv-pf-head">' +
+            '<td colspan="12">' +
+              cabeceraPlanHtml(rotulo, meta, capital, totalPctDePlan(lista)) +
+            '</td>' +
+          '</tr>' + filasDeActivo(lista);
+      }).join('');
+    } else {
+      cuerpo = '<tr class="inv-currency-header-row inv-pf-head">' +
+          '<td colspan="12">' +
+            cabeceraPlanHtml('Cartera', 'el líquido de ' + nombreCartera +
+              ': lo aportado que todavía no está invertido', capital, totalPctDePlan(deMoneda)) +
+          '</td>' +
+        '</tr>' + filasDeActivo(deMoneda);
+    }
+    // La tabla es la misma de Activos: sus clases le dan el cuerpo, los
+    // colores, el fondo de los títulos, el padding de las celdas y el
+    // table-layout fijo que hace que el colgroup mande sobre los anchos.
+    return '<table class="investment-detail-table investment-detail-grouped inv-plan-tabla">' +
       // Las columnas siguen el orden de la tabla de activos: dónde está —el
-      // broker, el portafolio—, qué es —ticker, descripción, sector, moneda—
-      // y recién después los números, con el mismo orden que allá: el peso,
-      // los nominales, el precio unitario, el total y el precio de hoy.
+      // broker, el portafolio—, qué es —ticker, descripción, sector— y recién
+      // después los números, con el mismo orden que allá: el peso, los
+      // nominales, el precio unitario, el total y el precio de hoy.
       // Los anchos de las columnas que las dos tablas comparten son los de
-      // Activos: Broker 94, Descripción 195, Sector 172. Las trece suman el
+      // Activos: Broker 94, Descripción 195, Sector 172. Las doce suman el
       // ancho de la tabla, como allá, así que ninguna se come el resto.
       '<colgroup>' +
         '<col style="width:40px">' +   /* desplegar · en el detalle, quitar y comprar */
         '<col style="width:94px">' +   /* Broker */
-        '<col style="width:110px">' +  /* Portafolio */
-        '<col style="width:100px">' +  /* Ticker */
+        '<col style="width:120px">' +  /* Portafolio */
+        '<col style="width:104px">' +  /* Ticker */
         '<col style="width:195px">' +  /* Descripción · en el detalle, la nota */
         '<col style="width:172px">' +  /* Sector */
-        '<col style="width:56px">' +   /* Moneda */
-        '<col style="width:76px">' +   /* % del capital */
-        '<col style="width:86px">' +   /* Nominales */
-        '<col style="width:112px">' +  /* Precio de entrada */
-        '<col style="width:104px">' +  /* Monto */
-        '<col style="width:104px">' +  /* Precio actual */
-        '<col style="width:106px">' +  /* Distancia */
+        '<col style="width:82px">' +   /* % del capital */
+        '<col style="width:90px">' +   /* Nominales */
+        '<col style="width:118px">' +  /* Precio de entrada */
+        '<col style="width:110px">' +  /* Monto */
+        '<col style="width:110px">' +  /* Precio actual */
+        '<col style="width:112px">' +  /* Distancia */
       '</colgroup>' +
       '<thead>' +
+        // La banda de la tabla dice qué hay en ella y en qué moneda, igual que
+        // "ACTIVOS COMPRADOS EN ARS", con el selector de vista al lado.
         '<tr class="inv-currency-header-row">' +
-          '<th colspan="13">' + cabecera + '</th>' +
+          '<th colspan="12">' +
+            '<div class="inv-currency-head-inner">' +
+              '<span class="inv-section-label">Activos planificados en ' + moneda + '</span>' +
+              '<span class="inv-section-count">' + nActivos +
+                (nActivos === 1 ? ' activo' : ' activos') + '</span>' +
+              vistaActivosToggle(claveTabla) +
+            '</div>' +
+          '</th>' +
         '</tr>' +
-        (filas.length === 0 ? '' :
-          '<tr class="inv-columns-header-row">' +
-            '<th></th>' +
-            '<th>Broker / Exchange</th>' +
-            '<th>Portafolio</th>' +
-            '<th>Ticker</th>' +
-            '<th>Descripción</th>' +
-            '<th>Sector</th>' +
-            '<th>Moneda</th>' +
-            '<th class="num">% capital</th>' +
-            '<th class="num" title="Lo que compraría el monto a su precio de entrada">Nominales</th>' +
-            '<th class="num">Precio de entrada</th>' +
-            '<th class="num">Monto</th>' +
-            '<th class="num">Precio actual</th>' +
-            '<th class="num" title="Cuánto tiene que moverse el precio de hoy para llegar al de entrada">Distancia</th>' +
-          '</tr>') +
+        '<tr class="inv-columns-header-row">' +
+          '<th></th>' +
+          '<th>Broker / Exchange</th>' +
+          '<th>Portafolio</th>' +
+          '<th>Ticker</th>' +
+          '<th>Descripción</th>' +
+          '<th>Sector</th>' +
+          '<th class="num">% capital</th>' +
+          '<th class="num" title="Lo que compraría el monto a su precio de entrada">Nominales</th>' +
+          '<th class="num">Precio de entrada</th>' +
+          '<th class="num">Monto</th>' +
+          '<th class="num">Precio actual</th>' +
+          '<th class="num" title="Cuánto tiene que moverse el precio de hoy para llegar al de entrada">Distancia</th>' +
+        '</tr>' +
       '</thead>' +
-      '<tbody>' +
-        (filas.length === 0
-          ? '<tr><td colspan="13" class="inv-plan-vacio">Todavía no planificaste ninguna compra en ' +
-            'esta cartera. Cargá arriba el activo, a qué precio querés entrar y qué parte del ' +
-            'capital le destinás.</td></tr>'
-          : grupos) +
-      '</tbody>' +
+      '<tbody>' + cuerpo + '</tbody>' +
     '</table>';
+  };
+
+  const tabla = filas.length === 0
+    ? '<table class="investment-detail-table investment-detail-grouped inv-plan-tabla">' +
+        '<thead><tr class="inv-currency-header-row"><th>' +
+          cabeceraPlanHtml('Cartera', 'el líquido de ' + nombreCartera +
+            ': lo aportado que todavía no está invertido', capital, 0) +
+        '</th></tr></thead>' +
+        '<tbody><tr><td class="inv-plan-vacio">Todavía no planificaste ninguna compra en esta ' +
+          'cartera. Cargá arriba el activo, a qué precio querés entrar y qué parte del capital ' +
+          'le destinás.</td></tr></tbody>' +
+      '</table>'
+    : tablaDeMoneda('ARS') + tablaDeMoneda('USD');
 
   return '<div class="inv-plan">' + tabla + '</div>';
 }
