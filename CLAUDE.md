@@ -138,6 +138,22 @@ repetir.
 > estilo computado del control nuevo y el del vecino y comparar `fontFamily`,
 > `fontSize`, `fontWeight`, `backgroundColor`, `borderColor` y alto. Si alguno
 > difiere sin un motivo que se pueda escribir en un comentario, está mal.
+>
+> **"El mismo estilo" quiere decir el mismo control, no un dibujo parecido.**
+> Si en la pantalla de referencia el dato vive en un `<input>` o en un
+> `<select>`, el dato nuevo va en ESE input o en ESE select, con su clase. Un
+> `<span>` que lo imita nunca termina igual: la descripción del plan salió en
+> Inter 11 blanca mientras la de Activos —que es un `.inv-desc-input`— va en
+> JetBrains Mono 11 semibold ámbar, y encima la fila quedó 2px más baja porque
+> el control que la estiraba no estaba. Reusar el control arregla la
+> tipografía, el color, el alto y de paso lo hace editable en los dos lados.
+>
+> **Y se compara la MISMA pieza, no una parecida.** Medir "la primera celda
+> `.num` de cada tabla" no sirve si en una es el % y en la otra la ganancia:
+> es la medición correcta con el rótulo equivocado, que ya tiene su apartado
+> en [Verificación](#medir-bien-no-es-saber-qué-se-midió). Se arma la lista de
+> pares —ticker contra ticker, descripción contra descripción, fila contra
+> fila— y se comparan de a uno. Esto se señaló dos veces: no hay una tercera.
 
 - **Controles gemelos comparten clase.** Nada de estilo inline caso por caso. Si
   dos botones hacen lo mismo en pantallas distintas, se ven igual.

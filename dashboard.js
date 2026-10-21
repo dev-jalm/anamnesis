@@ -21108,7 +21108,7 @@ function bloquePlanificacion(destinos, nombreCartera) {
       '<span class="inv-pf-meta">(el líquido de ' + escapeHtmlSafe(nombreCartera) +
         ': lo aportado que todavía no está invertido)</span>' +
       sep +
-      '<span class="inv-pf-total">Total: $ ' + fmt(Math.round(capital)) + '</span>' +
+      '<span class="inv-pf-total">Total: ' + simboloMoneda('ARS') + ' ' + fmt(Math.round(capital)) + '</span>' +
       sep +
       '<span class="inv-section-count' + (totalPct > 100 ? ' is-over' : '') + '">' +
         'Comprometido: ' + pctSinSigno(totalPct / 100) + (totalPct > 100 ? ' ⚠' : '') + '</span>' +
@@ -21170,56 +21170,88 @@ function bloquePlanificacion(destinos, nombreCartera) {
               (nominales !== null ? ' — ' + fmtNominales(nominales) + ' nominales' : '') + '">' +
             ICONO_COMPRAR + '</button>' +
         '</td>' +
+        // Broker y portafolio son del ACTIVO y están en su fila, igual que en
+        // Activos: acá van vacíos y la columna del ticker lleva la nota, que
+        // es lo único que distingue a un ingreso de otro.
+        '<td></td>' +   /* Broker: del activo */
+        '<td></td>' +   /* Portafolio: del activo */
+        '<td></td>' +   /* Ticker: del activo */
+        // La nota va bajo Descripción: describe este ingreso como la
+        // descripción describe al activo, y es la columna que tiene el ancho.
         '<td class="inv-plan-ing">' +
           (f.nota
             ? '<span class="inv-plan-nota" title="' + escapeHtmlSafe(f.nota) + '">' + escapeHtmlSafe(f.nota) + '</span>'
             : '<span class="inv-plan-nota inv-plan-nota-vacia">ingreso</span>') +
         '</td>' +
-        // Descripción y sector son del activo y están en su fila: acá bajan el
-        // broker y el portafolio, que sí son de cada compra.
-        '<td>' + (f.broker ? escapeHtmlSafe(brokerLabel(f.broker)) : '<span class="inv-na">—</span>') + '</td>' +
-        '<td>' + (f.portafolio
-          ? escapeHtmlSafe((portafolios().find(function (p) { return p.id === f.portafolio; }) || {}).nombre || '—')
-          : '<span class="inv-na">—</span>') + '</td>' +
-        '<td></td>' +
+        '<td></td>' +   /* Sector: del activo */
+        '<td></td>' +   /* Moneda: del activo */
         // pctCapital se guarda en escala 0-100 —es lo que se tipea— y las
         // funciones de formateo de la app esperan una fracción.
         '<td class="num">' + pctSinSigno(Number(f.pctCapital) / 100) + '</td>' +
+        '<td class="num">' + (nominales === null ? '<span class="inv-na">—</span>' : fmtNominales(nominales)) + '</td>' +
+        '<td class="num">' + simbolo + ' ' + fmtPrecio(Number(f.precioObjetivo)) + '</td>' +
         // El capital está en pesos y el precio de un activo en dólares no: sin
         // el equivalente, la fila mostraba un monto en $ al lado de un precio
         // en US$ y los nominales salían de una cuenta que no estaba a la vista.
-        '<td class="num">' + (montoArs === null ? '—' : '$' + fmt(Math.round(montoArs))) +
+        '<td class="num">' + (montoArs === null ? '<span class="inv-na">—</span>'
+          : simboloMoneda('ARS') + ' ' + fmt(Math.round(montoArs))) +
           (montoArs !== null && g.moneda === 'USD'
             ? '<span class="inv-plan-monto-alt">US$ ' + fmtPrecio(montoEnMoneda) + '</span>' : '') +
         '</td>' +
-        '<td class="num">' + simbolo + ' ' + fmtPrecio(Number(f.precioObjetivo)) + '</td>' +
         // El precio actual es del activo y ya está en su fila: repetirlo igual
         // en cada ingreso sería la misma cifra tres veces en la misma columna.
-        '<td class="num"><span class="inv-na">—</span></td>' +
+        '<td class="num"></td>' +
         '<td class="num ' + (d.enPrecio ? 'inv-plan-enprecio' : '') + '">' + distTxt + '</td>' +
-        '<td class="num">' + (nominales === null ? '<span class="inv-na">—</span>' : fmtNominales(nominales)) + '</td>' +
       '</tr>';
     }).join('');
 
     // Los títulos del detalle, como en Activos: sólo las columnas que cambian
     // de significado al bajar un nivel. Las que dicen lo mismo van vacías.
     const titulosDetalle = '<tr class="inv-entries-head inv-detail-row' + ocultar + '">' +
-      '<td></td>' +
+      '<td></td><td></td><td></td><td></td>' +
       '<td>Ingreso</td>' +
-      '<td>Broker</td>' +
-      '<td>Portafolio</td>' +
-      '<td></td>' +   /* Moneda: es del activo, no del ingreso */
+      '<td></td><td></td>' +
       '<td class="num">% capital</td>' +
-      '<td class="num">Monto</td>' +
-      '<td class="num">Precio de entrada</td>' +
-      '<td></td>' +   /* Precio actual: es del activo */
-      '<td class="num">Distancia</td>' +
       '<td class="num">Nominales</td>' +
+      '<td class="num">Precio de entrada</td>' +
+      '<td class="num">Monto</td>' +
+      '<td></td>' +
+      '<td class="num">Distancia</td>' +
     '</tr>';
 
+    // El broker del activo: uno solo si todos sus ingresos coinciden, MULTI si
+    // no. Es la misma resolución que hace la tabla de activos con las compras
+    // de un ticker, y por eso usa su celda.
+    const brokerSet = {};
+    g.entradas.forEach(function (f) { if (f.broker) brokerSet[f.broker] = true; });
+    const brokers = Object.keys(brokerSet);
+    const celdaBroker = brokers.length === 0
+      ? '<td class="broker-cell"><span class="inv-na">—</span></td>'
+      : (brokers.length === 1
+        ? '<td class="broker-cell" title="' + escapeHtmlSafe(brokerLabel(brokers[0])) + '">' +
+          escapeHtmlSafe(brokerLabel(brokers[0])) + '</td>'
+        : '<td class="broker-cell" title="Múltiples brokers: ' +
+          escapeHtmlSafe(brokers.map(brokerLabel).join(', ')) + '">MULTI</td>');
+    const pfSet = {};
+    g.entradas.forEach(function (f) { if (f.portafolio) pfSet[f.portafolio] = true; });
+    const pfs = Object.keys(pfSet);
+    const nombrePf = function (id) {
+      return (portafolios().find(function (p) { return p.id === id; }) || {}).nombre || '—';
+    };
+    const celdaPf = !admitePortafolios(destinos) ? '<td></td>'
+      : (pfs.length === 0
+        ? '<td class="broker-cell"><span class="inv-na">—</span></td>'
+        : (pfs.length === 1
+          ? '<td class="broker-cell" title="' + escapeHtmlSafe(nombrePf(pfs[0])) + '">' +
+            escapeHtmlSafe(nombrePf(pfs[0])) + '</td>'
+          : '<td class="broker-cell" title="Varios portafolios: ' +
+            escapeHtmlSafe(pfs.map(nombrePf).join(', ')) + '">VARIOS</td>'));
+
     // La fila del activo: lo mismo que dice un ingreso, pero del conjunto. Es
-    // la fila de ticker de Activos y usa su clase, su chevron y su celda de
-    // controles.
+    // la fila de ticker de Activos, con sus clases, su chevron, su celda de
+    // broker y —para la descripción y el sector— sus mismos controles: el
+    // campo de texto y el selector, que son los que les dan su tipografía, su
+    // color y el alto de la fila.
     const banda = '<tr class="inv-ticker-row inv-plan-activo-row">' +
       '<td class="inv-ticker-toggle">' +
         '<button class="inv-toggle-btn" data-action="toggle-plan-activo" title="Ver los ingresos planificados">' +
@@ -21227,27 +21259,23 @@ function bloquePlanificacion(destinos, nombreCartera) {
             (abierto ? ';transform:rotate(90deg)' : '') + '"></i>' +
         '</button>' +
       '</td>' +
-      '<td class="ticker">' + escapeHtmlSafe(g.ticker) +
-        '<span class="inv-plan-activo-ing">' + g.entradas.length +
-          (g.entradas.length === 1 ? ' ingreso' : ' ingresos') + '</span>' +
-      '</td>' +
-      // Descripción, sector y moneda del activo, en el mismo orden que en la
-      // tabla de Activos: el nombre, de qué sector es y en qué moneda cotiza.
-      '<td class="inv-plan-desc">' +
-        (info.descripcion ? escapeHtmlSafe(info.descripcion) : '<span class="inv-na">—</span>') + '</td>' +
-      '<td class="inv-plan-sector">' +
-        (sectorDeTenencia(g.ticker, g.moneda).sector
-          ? escapeHtmlSafe(etiquetaSector(sectorDeTenencia(g.ticker, g.moneda).sector))
-          : '<span class="inv-na">—</span>') + '</td>' +
+      celdaBroker +
+      celdaPf +
+      '<td class="ticker">' + escapeHtmlSafe(g.ticker) + '</td>' +
+      '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(g.ticker) +
+        '" data-moneda="' + escapeHtmlSafe(g.moneda) + '" value="' +
+        escapeHtmlSafe(info.descripcion || '').replace(/"/g, '&quot;') + '" placeholder="EJ: APPLE INC."></td>' +
+      celdaSectorTicker(g.ticker, g.moneda) +
       '<td class="inv-plan-mon-cell">' + escapeHtmlSafe(g.moneda) + '</td>' +
       '<td class="num">' + pctSinSigno(pctTotal / 100) + '</td>' +
-      '<td class="num">' + (montoTotalArs === null ? '<span class="inv-na">—</span>' : '$' + fmt(Math.round(montoTotalArs))) + '</td>' +
+      '<td class="num">' + (hayNominales ? fmtNominales(nominalesTotal) : '<span class="inv-na">—</span>') + '</td>' +
       // No hay UN precio de entrada del activo: cada tramo tiene el suyo.
       '<td class="num"><span class="inv-na">—</span></td>' +
+      '<td class="num">' + (montoTotalArs === null ? '<span class="inv-na">—</span>'
+        : simboloMoneda('ARS') + ' ' + fmt(Math.round(montoTotalArs))) + '</td>' +
       '<td class="num">' + (pa === null ? '<span class="inv-na">—</span>' : simbolo + ' ' + fmtPrecio(pa)) + '</td>' +
       '<td class="num' + (enPrecio > 0 ? ' inv-plan-enprecio' : '') + '">' +
         (enPrecio > 0 ? enPrecio + ' en precio' : '<span class="inv-na">—</span>') + '</td>' +
-      '<td class="num">' + (hayNominales ? fmtNominales(nominalesTotal) : '<span class="inv-na">—</span>') + '</td>' +
     '</tr>';
     return banda + titulosDetalle + detalle;
   }).join('');
@@ -21259,43 +21287,52 @@ function bloquePlanificacion(destinos, nombreCartera) {
     '<table class="investment-detail-table investment-detail-grouped inv-plan-tabla">' +
       // El ancho de cada columna se declara una sola vez: la fila del activo
       // y las de sus ingresos lo heredan de acá.
+      // Las columnas siguen el orden de la tabla de activos: dónde está —el
+      // broker, el portafolio—, qué es —ticker, descripción, sector, moneda—
+      // y recién después los números, con el mismo orden que allá: el peso,
+      // los nominales, el precio unitario, el total y el precio de hoy.
+      // Los anchos de las columnas que las dos tablas comparten son los de
+      // Activos: Broker 94, Descripción 195, Sector 172. Las trece suman el
+      // ancho de la tabla, como allá, así que ninguna se come el resto.
       '<colgroup>' +
-        '<col style="width:64px">' +   /* desplegar · en el detalle, quitar y comprar */
-        '<col style="width:150px">' +  /* Activo · en el detalle, la nota del ingreso */
-        '<col>' +                      /* Descripción · en el detalle, el broker */
-        /* Sector: el mismo ancho que su columna en la tabla de activos, donde
-           el valor sale de la misma lista y la opción más larga es la misma. */
-        '<col style="width:172px">' +  /* Sector · en el detalle, el portafolio */
-        '<col style="width:70px">' +   /* Moneda · vacía en el detalle */
-        '<col style="width:84px">' +   /* % del capital */
-        '<col style="width:112px">' +  /* Monto */
-        '<col style="width:126px">' +  /* Precio de entrada */
-        '<col style="width:112px">' +  /* Precio actual · vacío en el detalle */
-        '<col style="width:104px">' +  /* Distancia */
-        '<col style="width:112px">' +  /* Nominales */
+        '<col style="width:40px">' +   /* desplegar · en el detalle, quitar y comprar */
+        '<col style="width:94px">' +   /* Broker */
+        '<col style="width:110px">' +  /* Portafolio */
+        '<col style="width:100px">' +  /* Ticker */
+        '<col style="width:195px">' +  /* Descripción · en el detalle, la nota */
+        '<col style="width:172px">' +  /* Sector */
+        '<col style="width:56px">' +   /* Moneda */
+        '<col style="width:76px">' +   /* % del capital */
+        '<col style="width:86px">' +   /* Nominales */
+        '<col style="width:112px">' +  /* Precio de entrada */
+        '<col style="width:104px">' +  /* Monto */
+        '<col style="width:104px">' +  /* Precio actual */
+        '<col style="width:106px">' +  /* Distancia */
       '</colgroup>' +
       '<thead>' +
         '<tr class="inv-currency-header-row">' +
-          '<th colspan="11">' + cabecera + '</th>' +
+          '<th colspan="13">' + cabecera + '</th>' +
         '</tr>' +
         (filas.length === 0 ? '' :
           '<tr class="inv-columns-header-row">' +
             '<th></th>' +
-            '<th>Activo</th>' +
+            '<th>Broker / Exchange</th>' +
+            '<th>Portafolio</th>' +
+            '<th>Ticker</th>' +
             '<th>Descripción</th>' +
             '<th>Sector</th>' +
             '<th>Moneda</th>' +
             '<th class="num">% capital</th>' +
-            '<th class="num">Monto</th>' +
+            '<th class="num" title="Lo que compraría el monto a su precio de entrada">Nominales</th>' +
             '<th class="num">Precio de entrada</th>' +
+            '<th class="num">Monto</th>' +
             '<th class="num">Precio actual</th>' +
             '<th class="num" title="Cuánto tiene que moverse el precio de hoy para llegar al de entrada">Distancia</th>' +
-            '<th class="num" title="Lo que compraría el monto a su precio de entrada">Nominales</th>' +
           '</tr>') +
       '</thead>' +
       '<tbody>' +
         (filas.length === 0
-          ? '<tr><td colspan="11" class="inv-plan-vacio">Todavía no planificaste ninguna compra en ' +
+          ? '<tr><td colspan="13" class="inv-plan-vacio">Todavía no planificaste ninguna compra en ' +
             'esta cartera. Cargá arriba el activo, a qué precio querés entrar y qué parte del ' +
             'capital le destinás.</td></tr>'
           : grupos) +
