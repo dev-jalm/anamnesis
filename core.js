@@ -1550,6 +1550,23 @@ const PARAMS_CONFIG_KEYS = [
   'reservaStart'
 ];
 
+// Un archivo de configuración leído se normaliza al formato vigente antes de
+// que lo mire nadie más: el presupuesto es una sección propia, y en los
+// archivos exportados antes venía adentro de la de tarjetas. No es una capa de
+// compatibilidad —el modelo interno es uno solo y el export escribe sólo el
+// formato nuevo—, es leer un archivo que ya existe en el disco del usuario:
+// sin esto, su presupuesto no se anunciaba en el resumen y tampoco se
+// importaba, en silencio.
+function normalizarConfigImportada(parsed) {
+  if (!parsed || parsed.type !== 'full' || !parsed.sections || !parsed.data) return parsed;
+  const fm = parsed.data.fichaMedica;
+  if (!fm || !fm.budgetByYear || parsed.sections.presupuestos) return parsed;
+  parsed.sections.presupuestos = true;
+  parsed.data.presupuestos = { budgetByYear: fm.budgetByYear };
+  delete fm.budgetByYear;
+  return parsed;
+}
+
 // Combina todo en un solo archivo con flags por sección.
 function serializeFullConfig(stateLike, sections) {
   // sections = { rules, categories, tags, params, fichaMedica }
@@ -3883,7 +3900,7 @@ if (typeof module !== 'undefined' && module.exports) {
     serializeTags, deserializeTags,
     serializeFullConfig, previewImport, PARAMS_CONFIG_KEYS,
     fusionarPorId, fusionarDict, fusionarFichaMedica, fusionarPresupuestos,
-    contarMesesPresupuestados,
+    normalizarConfigImportada, contarMesesPresupuestados,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
     resumirTanda,

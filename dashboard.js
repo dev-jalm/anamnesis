@@ -26553,8 +26553,9 @@ function pickJsonFile(callback) {
     const reader = new FileReader();
     reader.onload = function () {
       try {
-        const parsed = JSON.parse(reader.result);
-        callback(null, parsed);
+        // Normalizado al formato vigente en el único punto por el que entran
+        // los archivos: de acá para abajo nadie tiene que saber que hubo otro.
+        callback(null, normalizarConfigImportada(JSON.parse(reader.result)));
       } catch (e) {
         callback(new Error('El archivo no es un JSON válido'), null);
       }

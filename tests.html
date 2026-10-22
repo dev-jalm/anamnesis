@@ -2492,6 +2492,29 @@ group('Export / Import de configuración', function () {
     assertEqual(todo.budgetByYear, undefined);
   });
 
+  test('un archivo con el presupuesto adentro de las tarjetas se lee igual', function () {
+    // Los exportados antes de que el presupuesto fuera su propia sección: sin
+    // normalizar, el resumen no lo anunciaba y el import lo perdía en silencio.
+    const viejo = { type: 'full', sections: { fichaMedica: true },
+      data: { fichaMedica: { kpiCardsConfig: [{ id: 'k1' }],
+        budgetByYear: { 2026: { enero: { Vivienda: 100 }, febrero: { Vivienda: 100 } } } } } };
+    const n = normalizarConfigImportada(viejo);
+    assertEqual(n.sections.presupuestos, true);
+    assertEqual(n.data.fichaMedica.budgetByYear, undefined);
+    const p = previewImport(n, { kpiCardsConfig: [], budgetByYear: {} }, 'replace_byid');
+    assertEqual(p.presupuestos.incoming, 2);
+    assertEqual(p.fichaMedica.incoming, 1);
+    // Un archivo ya en el formato nuevo no se toca.
+    const nuevo = { type: 'full', sections: { presupuestos: true },
+      data: { presupuestos: { budgetByYear: { 2026: { enero: {} } } } } };
+    assertEqual(normalizarConfigImportada(nuevo).data.presupuestos.budgetByYear[2026].enero !== undefined, true);
+    // Y uno sin presupuesto en ningún lado tampoco inventa la sección.
+    const sinPres = { type: 'full', sections: { fichaMedica: true },
+      data: { fichaMedica: { kpiCardsConfig: [] } } };
+    assertEqual(normalizarConfigImportada(sinPres).sections.presupuestos, undefined);
+    assertEqual(normalizarConfigImportada(null), null);
+  });
+
   test('fusionarPresupuestos — los años siguen el modo elegido', function () {
     const actual = { budgetByYear: { 2026: { Alimentacion: 100 } } };
     const entrante = { budgetByYear: { 2027: { Alimentacion: 200 } } };

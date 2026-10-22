@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.104 |
+| **Versión** | 1.105 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -962,6 +962,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-211o | La sección presenta la **matriz de correlación** entre los activos de la cartera. Tener diez activos no es estar diversificado si los diez suben y bajan el mismo día: la matriz es lo que distingue una cartera repartida de la misma apuesta escrita diez veces. Cada celda informa el valor y, al consultarla, qué significa; al pie va el promedio de los pares —sin la diagonal, que vale siempre 1 y sólo inflaría la cifra— con su lectura en una línea |
 | RF-211p | Una correlación **no se informa como cero cuando no se puede medir**: sin varianza o sin ruedas suficientes no hay correlación, y un cero diría "no se mueven juntos" sobre algo que no se pudo comparar |
 | RF-211q | Una cartera de un solo activo **no tiene matriz**: no hay pares que medir, y la sección lo resuelve dándole el ancho entero a la curva en vez de dejar medio renglón vacío |
+| RF-210h | Un archivo de configuración se **normaliza al leerlo**: los exportados antes de que el presupuesto fuera su propia sección lo traen adentro de la de tarjetas, y se mueve a la suya al abrirlos. No es compatibilidad hacia atrás —el modelo es uno solo y el export escribe sólo el formato vigente—, es leer un archivo que ya existe en el disco del usuario: sin eso su presupuesto no se anunciaba en el resumen y tampoco se importaba, en silencio. El tilde manda igual: destildado, el presupuesto del archivo viejo queda afuera |
 | RF-210g | El **presupuesto es una sección propia**, con su tilde y su fila en el resumen previo, contada en meses. Viajaba adentro de la Ficha médica: importar la configuración en un archivo recién creado dejaba presupuestos que nadie había cargado ahí, y el usuario los descubría en la comparación contra lo real, varios pasos después. Separado, llevarse las tarjetas de otro archivo no arrastra los números contra los que ese archivo se compara, y traerse el presupuesto no toca nada más |
 | RF-210d | El diálogo **nombra lo que cada tilde se lleva**, no sólo su título. La sección de categorías arrastra además el **color, la clasificación y las subcategorías** de cada una —con su propia clasificación—, así que el contador dice cuántas categorías y cuántas subcategorías viajan. Un tilde que dice "Categorías (26)" sobre un archivo que también lleva 65 subcategorías obliga a abrir el JSON para saber qué se está guardando. Por el mismo motivo las **subcategorías son una fila propia del resumen previo**, con su cuenta actual, la del archivo y la que va a quedar: son la mayoría de lo que entra y el modo de importación las afecta igual que a las categorías |
 | RF-210e | El **modo de importación elegido vale para todas las secciones**, también para las tarjetas KPI y el presupuesto: las tarjetas, los viajes, la visibilidad de secciones y los presupuestos anuales se fusionan igual que las reglas y las categorías. "Fusionar sin sobreescribir" promete que lo existente nunca se toca, y una sección que pise igual lo convierte en un botón que miente. En el resumen previo esa fila se llama **Tarjetas KPI**, que es lo que cuenta —la sección lleva además la visibilidad y los viajes—, y el número que anuncia sale del mismo cálculo que aplica el import. Un archivo sin ninguna tarjeta no deja al usuario sin tarjetas ni siquiera en "reemplazar todo": es un archivo mal generado, no la decisión de quedarse sin ninguna |
@@ -1072,7 +1073,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 549 pruebas en 67 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 550 pruebas en 67 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 | RNF-45 | **El buscador de movimientos espera a que se deje de escribir** antes de filtrar. Un listado de 1.500 movimientos se recalcula entero en cada pulsación: escribir una palabra de doce letras eran doce recálculos y un segundo y medio de pantalla trabada —medido—. La espera es de 160 ms, por debajo del umbral en que la respuesta deja de percibirse inmediata |
 | RNF-46 | **Lo que se usa muchas veces se construye una sola vez.** Los formateadores de número viven fuera de la función que los usa: crear uno cuesta 47 veces más que usarlo, y el formateo de montos llegó a ser más de la mitad del tiempo de cada pulsación. La misma regla vale para el dibujado de iconos, que se acota al elemento que cambió en lugar de recorrer la pantalla entera, y para las claves de ordenamiento, que se calculan una vez por fila y no dentro del comparador |
@@ -1325,7 +1326,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.101 | 20/10/2026 | La tabla del plan usa los controles de la de Activos y su orden de columnas: misma tipografía, mismo color y mismo alto de fila (RF-212r) | Reemplazada |
 | 1.102 | 20/10/2026 | Un activo planificado se compra entero desde su fila, y las secciones del panel van numeradas (RF-212s, RF-212t) | Reemplazada |
 | 1.103 | 21/10/2026 | El plan separa las monedas en dos tablas y suma la vista por portafolio, como Activos (RF-212u, RF-212v) | Reemplazada |
-| 1.104 | 21/10/2026 | El presupuesto se exporta e importa como sección propia, separado de las tarjetas KPI (RF-210a, RF-210e, RF-210g, RNF-43) | **Vigente** |
+| 1.104 | 21/10/2026 | El presupuesto se exporta e importa como sección propia, separado de las tarjetas KPI (RF-210a, RF-210e, RF-210g, RNF-43) | Reemplazada |
+| 1.105 | 22/10/2026 | Un archivo exportado con el presupuesto adentro de las tarjetas se lee igual: se normaliza al abrirlo (RF-210h, RNF-43) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 
