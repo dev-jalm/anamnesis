@@ -6570,6 +6570,19 @@ body[data-exporting="true"] .section-card {
   color: var(--tooltip-accent);
   white-space: nowrap;
 }
+/* La línea que tiene que destacar —el puntaje del activo—: negrita, en la
+   tipografía de los números y con el color de su lectura. Sin lectura favorable
+   ni desfavorable va en el color del texto, que ya se distingue del detalle
+   porque éste va atenuado. */
+.sector-tip-destacado {
+  margin-top: 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tooltip-text);
+}
+.sector-tip-destacado.pos { color: var(--tooltip-pos); }
+.sector-tip-destacado.neg { color: var(--tooltip-neg); }
 .sector-tip-detalle {
   margin-top: 5px;
   font-family: 'Inter', system-ui;

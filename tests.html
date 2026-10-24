@@ -1609,7 +1609,6 @@ group('fundamentales de Finviz', function () {
     const l = corto({ recom: 1.5, targetPrice: 120, price: 100 });
     assertEqual(l.texto, 'consenso favorable');
     assertEqual(l.tono, 'pos');
-    assertEqual(l.confianza, 'baja');
     assertEqual(l.lecturas.length, 2);
   });
   test('corto plazo: desfavorable en el caso opuesto, dividido si se contradicen y neutro si ninguna se inclina', function () {

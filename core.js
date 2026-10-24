@@ -2340,10 +2340,10 @@ function puntajeContraSector(datos, referencias, ahora) {
 //     hasta su precio objetivo, leídos con las mismas convenciones de siempre;
 //   · los eventos: cuándo publica su próximo balance, un día en que el precio
 //     suele moverse más.
-// No usa indicadores técnicos. Va siempre con confianza baja: el consenso de los
-// analistas tiende al optimismo y su precio objetivo es a un año, no a seis
-// meses. Es una lectura de qué espera el consenso y qué eventos se vienen, no una
-// recomendación.
+// No usa indicadores técnicos. Tiene un límite que el emergente de la pantalla
+// dice: el consenso de los analistas tiende al optimismo y su precio objetivo es
+// a un año, no a seis meses. Es una lectura de qué espera el consenso y qué
+// eventos se vienen, no una recomendación.
 //
 // El consenso es favorable si ninguna de sus dos lecturas es desfavorable y
 // alguna es favorable, desfavorable en el caso opuesto, dividido si se
@@ -2369,7 +2369,7 @@ function lecturaCortoPlazo(datos, ahora) {
     eventos = r.dias < 0 ? 'último balance hace ' + (-r.dias) + (r.dias === -1 ? ' día' : ' días')
       : (r.dias === 0 ? 'resultados hoy' : (r.dias === 1 ? 'resultados mañana' : 'resultados en ' + r.dias + ' días'));
   }
-  return { texto: texto, tono: tono, eventos: eventos, inminentes: inminentes, confianza: 'baja', lecturas: lecturas };
+  return { texto: texto, tono: tono, eventos: eventos, inminentes: inminentes, lecturas: lecturas };
 }
 
 // Los datos listos para mostrar: grupos con sus filas ya formateadas y

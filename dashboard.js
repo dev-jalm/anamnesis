@@ -18677,8 +18677,8 @@ function tooltipSector(s, prefix, etiquetaDe, soloLectores) {
     tip = document.createElement('div');
     tip.className = 'sector-tip hidden';
     tip.setAttribute('role', 'tooltip');
-    tip.innerHTML = '<div class="sector-tip-titulo"></div><div class="sector-tip-detalle"></div>' +
-      '<div class="sector-tip-filas hidden"></div>';
+    tip.innerHTML = '<div class="sector-tip-titulo"></div><div class="sector-tip-destacado hidden"></div>' +
+      '<div class="sector-tip-detalle"></div><div class="sector-tip-filas hidden"></div>';
     document.body.appendChild(tip);
   }
   // Los datos en filas, para el tooltip que lleva más que una frase. Vienen en
@@ -18726,6 +18726,13 @@ function tooltipSector(s, prefix, etiquetaDe, soloLectores) {
     if (!el) return;
     if (!tip) crear();
     tip.querySelector('.sector-tip-titulo').textContent = el.getAttribute('data-tip-titulo');
+    // Una línea que tiene que destacar, debajo del título: en negrita y con el
+    // color de su lectura (verde, rojo o neutro). Opcional.
+    const dest = el.getAttribute('data-tip-destacado') || '';
+    const destEl = tip.querySelector('.sector-tip-destacado');
+    destEl.textContent = dest;
+    destEl.className = 'sector-tip-destacado' + (dest ? '' : ' hidden') +
+      (dest && el.getAttribute('data-tip-destacado-tono') ? ' ' + el.getAttribute('data-tip-destacado-tono') : '');
     const det = el.getAttribute('data-tip-detalle') || '';
     const detEl = tip.querySelector('.sector-tip-detalle');
     detEl.textContent = det;
@@ -21227,16 +21234,22 @@ function botonFundamentalesHtml(ticker, moneda) {
   const dias = diasDeAntiguedad(f.fecha);
   const vieja = dias !== null && dias > FUNDAMENTALES_DIAS_VIGENTE;
   const cuando = new Date(f.fecha).toLocaleDateString('es-AR');
+  // La invitación a abrir la ficha va en la primera línea, junto a la fecha de la
+  // consulta, separada por una barra.
   const lineas = ['Finviz · ' + cuando +
-    (dias ? ' (hace ' + dias + (dias === 1 ? ' día)' : ' días)') : '')];
+    (dias ? ' (hace ' + dias + (dias === 1 ? ' día)' : ' días)') : '') + ' | Clic para ver la ficha completa.'];
   if (vieja) lineas.push('Pasó más de una semana: conviene actualizar.');
   lineas.push(f.referencias ? 'Comparado con el sector ' + f.referencias.sector + '.' : 'Sin comparar con el sector.');
-  const pt = puntajeContraSector(f.datos, f.referencias);
-  if (pt) lineas.push('Puntaje frente al sector: ' + pt.general + '/100 · ' + pt.lectura.texto + '.');
   const cp = lecturaCortoPlazo(f.datos);
-  if (cp) lineas.push('3 y 6 meses (confianza ' + cp.confianza + '): ' + cp.texto + (cp.eventos ? ' · ' + cp.eventos : '') + '.');
+  if (cp) lineas.push('3 y 6 meses: ' + cp.texto + (cp.eventos ? ' · ' + cp.eventos : '') + '.');
   if (f.faltan && f.faltan.length) lineas.push(textoDeFaltantes(f.faltan));
-  lineas.push('Clic para ver la ficha completa.');
+  // El puntaje no va entre las líneas: el emergente lo destaca, en negrita y con
+  // el color de su lectura, justo debajo del título.
+  const pt = puntajeContraSector(f.datos, f.referencias);
+  const destacado = pt
+    ? ' data-tip-destacado="' + escapeHtmlSafe('Puntaje frente al sector: ' + pt.general + '/100 · ' + pt.lectura.texto) + '"' +
+      ' data-tip-destacado-tono="' + pt.lectura.tono + '"'
+    : '';
   // Al emergente sólo viajan el rótulo, el valor y la lectura: la definición y
   // las referencias de cada dato son de la ficha, y repetidas en el atributo de
   // cada botón de la pantalla harían pesar el HTML sin que se vean.
@@ -21247,7 +21260,7 @@ function botonFundamentalesHtml(ticker, moneda) {
     };
   });
   return '<button type="button" class="inv-delete-btn inv-plan-fund listo' + (vieja ? ' vieja' : '') + '"' +
-    base + tipAttrs(ticker + ' · fundamentales', lineas.join('\n')) +
+    base + tipAttrs(ticker + ' · fundamentales', lineas.join('\n')) + destacado +
     ' data-tip-filas="' + escapeHtmlSafe(JSON.stringify(filas)) + '"' +
     ' aria-label="Fundamentales de ' + escapeHtmlSafe(ticker) + '">' + ICONO_FUNDAMENTALES + '</button>';
 }
@@ -21408,13 +21421,13 @@ function textoDeCalculoDelPuntaje(pt) {
 }
 
 // Cómo se arma la lectura de 3 y 6 meses, para el emergente de su bloque. Dice
-// de dónde sale, que no mira indicadores técnicos y por qué va con confianza baja.
+// de dónde sale, que no mira indicadores técnicos y qué límites tiene.
 function textoDeCalculoDelCortoPlazo(l) {
   return [
     l.lecturas.map(function (x) { return x.rotulo + ': ' + x.lectura.texto; }).join(' · ') + '.',
     l.eventos ? 'Eventos: ' + l.eventos + (l.inminentes ? ' (inminentes: el precio suele moverse más alrededor de esa fecha)' : '') + '.' : '',
     'A 3 y 6 meses los fundamentales casi no anticipan el precio, así que acá no se califican: se lee qué espera el consenso de los analistas y qué eventos se vienen. No usa indicadores técnicos.',
-    'Confianza baja: la recomendación de los analistas tiende al optimismo y su precio objetivo es a un año. No es una recomendación de inversión.'
+    'La recomendación de los analistas tiende al optimismo y su precio objetivo es a un año. No es una recomendación de inversión.'
   ].filter(Boolean).join('\n');
 }
 
@@ -21443,7 +21456,7 @@ function renderPuntajeFundamentales(f) {
     : '';
   const cortoHtml = cp
     ? '<div class="fund-pt-corto"' + tipAttrs('Corto plazo · cómo se lee', textoDeCalculoDelCortoPlazo(cp)) + '>' +
-        '<span class="fund-pt-tit">3 y 6 meses · confianza ' + cp.confianza + '</span>' +
+        '<span class="fund-pt-tit">3 y 6 meses</span>' +
         '<span class="fund-pt-lect' + clase(cp.tono) + '">' + escapeHtmlSafe(cp.texto) + '</span>' +
         (cp.eventos ? '<span class="fund-pt-base">' + escapeHtmlSafe(cp.eventos) + '</span>' : '') +
       '</div>'
