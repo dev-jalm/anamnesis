@@ -5,6 +5,10 @@
 // Worker corre en el mismo sitio que la app —ver wrangler.jsonc—, así que la
 // app le pide a su propio origen y no hay nada que configurar ni bloquear.
 //
+// Se publica de dos maneras, según dónde corra el sitio: en Cloudflare Pages lo
+// atiende functions/api/fundamentales.js, que lo envuelve; en Workers con
+// assets, el "main" de wrangler.jsonc.
+//
 // Hace lo mínimo: valida el ticker, pide la página y devuelve sólo la tabla de
 // datos. NO interpreta los valores: eso vive en core.js
 // (fundamentalesDeFinviz), donde tiene tests y se corrige sin redesplegar.

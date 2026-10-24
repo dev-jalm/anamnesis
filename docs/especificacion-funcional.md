@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.106 |
+| **Versión** | 1.107 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -881,7 +881,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | INT-06 | OKX | `https://www.okx.com/api/v5/market/tickers?instType=SPOT` | Precio de las tenencias en cripto | 10 s |
 | INT-07 | Finviz, por el intermediario del propio sitio | `/api/fundamentales?t={símbolo}` → `https://finviz.com/quote.ashx?t={símbolo}` | Fundamentales de un activo planificado (RF-212w a RF-212z) | 15 s |
 
-**INT-07.** El navegador no puede leer Finviz directamente —su respuesta no admite lecturas desde otro origen (CORS)—, así que la aplicación le pide la ficha a un intermediario que corre en el mismo sitio (`worker/fundamentales.mjs`, un Worker de Cloudflare atendido antes que los archivos estáticos sólo para `/api/*`). El intermediario **no tiene estado ni guarda datos**: valida que el símbolo sea alfanumérico (con un punto o guion para las clases, como `BRK-B`), pide la página, devuelve únicamente su tabla de datos y la conserva en caché **seis horas**. Lo único que recibe es un símbolo bursátil. **No interpreta los valores**: eso lo hace la aplicación, que puede corregirse sin volver a desplegar el intermediario. Abierta desde un archivo local, la aplicación no tiene a quién pedirle y lo informa.
+**INT-07.** El navegador no puede leer Finviz directamente —su respuesta no admite lecturas desde otro origen (CORS)—, así que la aplicación le pide la ficha a un intermediario que corre en el mismo sitio (`worker/fundamentales.mjs`). En Cloudflare Pages lo atiende una Pages Function (`functions/api/fundamentales.js`, que lo envuelve); en Workers con assets, el `main` de `wrangler.jsonc`, atendido antes que los archivos estáticos sólo para `/api/*`. El intermediario **no tiene estado ni guarda datos**: valida que el símbolo sea alfanumérico (con un punto o guion para las clases, como `BRK-B`), pide la página, devuelve únicamente su tabla de datos y la conserva en caché **seis horas**. Lo único que recibe es un símbolo bursátil. **No interpreta los valores**: eso lo hace la aplicación, que puede corregirse sin volver a desplegar el intermediario. Abierta desde un archivo local, la aplicación no tiene a quién pedirle y lo informa.
 
 **Requerimientos transversales de integración**
 
@@ -1338,7 +1338,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.103 | 21/10/2026 | El plan separa las monedas en dos tablas y suma la vista por portafolio, como Activos (RF-212u, RF-212v) | Reemplazada |
 | 1.104 | 21/10/2026 | El presupuesto se exporta e importa como sección propia, separado de las tarjetas KPI (RF-210a, RF-210e, RF-210g, RNF-43) | Reemplazada |
 | 1.105 | 22/10/2026 | Un archivo exportado con el presupuesto adentro de las tarjetas se lee igual: se normaliza al abrirlo (RF-210h, RNF-43) | Reemplazada |
-| 1.106 | 24/10/2026 | Los activos del plan traen sus fundamentales de Finviz a pedido, con un emergente que los muestra agrupados (RF-212w a RF-212z, INT-07, 5.3). El intermediario de INT-07 es el primer código de servidor del producto: se precisan RNF-31 y OBJ-1 («no existe backend de datos»), RF-202 y RNF-43 | **Vigente** |
+| 1.106 | 24/10/2026 | Los activos del plan traen sus fundamentales de Finviz a pedido, con un emergente que los muestra agrupados (RF-212w a RF-212z, INT-07, 5.3). El intermediario de INT-07 es el primer código de servidor del producto: se precisan RNF-31 y OBJ-1 («no existe backend de datos»), RF-202 y RNF-43 | Reemplazada |
+| 1.107 | 24/10/2026 | El intermediario de INT-07 también se publica como Pages Function: el sitio corre en Cloudflare Pages, que no ejecuta el `main` de `wrangler.jsonc`, y la primera versión devolvía la página de inicio en vez de la ficha | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

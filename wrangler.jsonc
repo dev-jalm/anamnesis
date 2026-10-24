@@ -5,6 +5,10 @@
   // nuevas de Cloudflare ya no ofrecen el flujo de Pages: al importar un
   // repositorio, el panel lleva directamente a Workers.
   //
+  // En Cloudflare Pages este archivo no corre código: ahí lo hace la carpeta
+  // functions/, que envuelve el mismo Worker. Quedan las dos para que
+  // funcione en cualquiera de los dos modos de publicación.
+  //
   // Un único Worker, y sólo para /api/*: trae los datos de Finviz, que el
   // navegador no puede pedir directo (CORS). Todo lo demás son archivos de
   // "assets". No hay build step — el proyecto es HTML, CSS y JS planos, así
