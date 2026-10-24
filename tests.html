@@ -1185,23 +1185,43 @@ group('fundamentales de Finviz', function () {
       '</div></td><td class="snapshot-td2" align="left" style="">' +
       '<div class="snapshot-td-content">' + valor + '</div></td></tr>';
   };
-  const pagina = function (extra) {
+  // Una ficha completa, como la de una empresa que paga dividendo. `cambios`
+  // pisa el valor de una etiqueta; `extra` agrega filas al final.
+  const pagina = function (cambios, extra) {
+    const v = Object.assign({
+      'Market Cap': '<b>5074.76B</b>', 'Beta': '<b>1.08</b>', 'Earnings': '<b>Nov 02 AMC</b>',
+      'P/E': '<b>39.86</b>', 'Forward P/E': '<b>36.24</b>',
+      'PEG': '<b><span class="color-text is-negative">2.88</span></b>',
+      'P/FCF': '<b>37.13</b>', 'EV/EBITDA': '<b>30.34</b>',
+      'ROIC': '<b>72.08%</b>', 'Oper. Margin': '<b>33.17%</b>', 'Gross Margin': '<b>48.65%</b>',
+      'Profit Margin': '<b><span class="color-text is-negative">27.62%</span></b>',
+      'Sales past 3/5Y': '<b>1.81% 8.71%</b>', 'Sales Y/Y TTM': '<b>-3.10%</b>',
+      'EPS past 3/5Y': '<b>6.89% 17.91%</b>', 'EPS this Y': '<b>18.43%</b>',
+      'EPS next 5Y': '<b>12.58%</b>',
+      'Debt/Eq': '<b><span>0.78</span></b>', 'LT Debt/Eq': '<b>0.66</b>',
+      'Quick Ratio': '<b>0.93</b>', 'Current Ratio': '<b>1.00</b>',
+      'Target Price': '<a href="stock?t=AAPL"><b><span class="color-text">1,335.44</span></b></a>',
+      'Recom': '<a href="stock?t=AAPL"><b>2.20</b></a>', 'Price': '<b>347.73</b>',
+      '52W High': '<b>348.36 -0.18%</b>', '52W Low': '<b>243.42 42.85%</b>',
+      'SMA200': '<b>18.11%</b>', 'RSI (14)': '<b>63.91</b>',
+      'Dividend TTM': '<b>1.06 (0.30%)</b>', 'Payout': '<b>13.66%</b>',
+      'Dividend Gr. 3/5Y': '<b>4.26% 4.98%</b>'
+    }, cambios || {});
+    // "EPS next Y" va DOS veces —la estimación en dólares y el crecimiento—,
+    // y a propósito entre medio de otras filas.
     return '<table class="js-snapshot-table snapshot-table2">' +
-      fila('P/E', '<b>39.86</b>') +
-      fila('Forward P/E', '<b>36.24</b>') +
-      fila('PEG', '<b><span class="color-text is-negative">2.88</span></b>') +
-      fila('EPS next 5Y', '<b>12.58%</b>') +
-      fila('Gross Margin', '<b>48.65%</b>') +
-      fila('Profit Margin', '<b><span class="color-text is-negative">27.62%</span></b>') +
-      fila('Sales Y/Y TTM', '<b>-3.10%</b>') +
-      fila('Debt/Eq', '<b><span>0.78</span></b>') +
-      fila('LT Debt/Eq', '<b>0.66</b>') +
-      fila('Quick Ratio', '<b>0.93</b>') +
-      fila('Current Ratio', '<b>1.00</b>') +
-      fila('Target Price', '<a href="stock?t=AAPL"><b><span class="color-text">1,335.44</span></b></a>', true) +
+      fila('EPS next Y', '<b>9.60</b>') +
+      Object.keys(v).map(function (k) {
+        return fila(k, v[k], k === 'Target Price' || k === 'Recom');
+      }).join('') +
+      fila('EPS next Y', '<b>8.61%</b>') +
       (extra || '') + '</table>';
   };
-  test('lee los once datos por su etiqueta, con o sin span y enlace', function () {
+  const campos = function () {
+    return FUNDAMENTALES_CAMPOS.filter(function (c) { return !c.calculado && !c.condicional; });
+  };
+
+  test('lee los once datos originales por su etiqueta, con o sin span y enlace', function () {
     const r = fundamentalesDeFinviz(pagina());
     assertEqual(r.datos.forwardPE, 36.24);
     assertEqual(r.datos.peg, 2.88);
@@ -1215,50 +1235,181 @@ group('fundamentales de Finviz', function () {
     assertEqual(r.faltan.length, 0);
     assert(r.hayDatos, 'hay datos');
   });
+  test('lee los datos agregados: valuación, calidad, precio y analistas', function () {
+    const d = fundamentalesDeFinviz(pagina()).datos;
+    assertEqual(d.pe, 39.86);
+    assertEqual(d.pfcf, 37.13);
+    assertEqual(d.evEbitda, 30.34);
+    assertEqual(d.roic, 72.08);
+    assertEqual(d.operMargin, 33.17);
+    assertEqual(d.beta, 1.08);
+    assertEqual(d.recom, 2.2);
+    assertEqual(d.price, 347.73);
+    assertEqual(d.sma200, 18.11);
+    assertEqual(d.rsi, 63.91);
+    assertEqual(d.epsThisY, 18.43);
+  });
   test('un negativo conserva el signo y los miles pierden la coma', function () {
     const r = fundamentalesDeFinviz(pagina());
     assertEqual(r.datos.salesYoY, -3.1);
     assertEqual(r.datos.targetPrice, 1335.44);
   });
+  test('"EPS next Y" aparece dos veces: se toma el crecimiento, venga en el orden que venga', function () {
+    assertEqual(fundamentalesDeFinviz(pagina()).datos.epsNextY, 8.61);
+    // Con las dos filas al revés sigue siendo el porcentaje, no los 9,60 de la estimación.
+    const alReves = '<table class="js-snapshot-table">' + fila('EPS next Y', '<b>8.61%</b>') +
+      fila('EPS next Y', '<b>9.60</b>') + '</table>';
+    assertEqual(fundamentalesDeFinviz(alReves).datos.epsNextY, 8.61);
+  });
+  test('una celda con dos números se reparte entre dos campos', function () {
+    const d = fundamentalesDeFinviz(pagina()).datos;
+    assertEqual(d.epsPast3Y, 6.89);
+    assertEqual(d.epsPast5Y, 17.91);
+    assertEqual(d.salesPast3Y, 1.81);
+    assertEqual(d.salesPast5Y, 8.71);
+    assertEqual(d.dist52High, -0.18);
+    assertEqual(d.dist52Low, 42.85);
+    assertEqual(d.divGrowth3Y, 4.26);
+    assertEqual(d.divGrowth5Y, 4.98);
+  });
+  test('el rendimiento por dividendo se lee entre paréntesis', function () {
+    assertEqual(fundamentalesDeFinviz(pagina()).datos.divYield, 0.3);
+  });
+  test('la capitalización respeta el sufijo: T, B, M y K', function () {
+    const cap = function (t) { return fundamentalesDeFinviz(pagina({ 'Market Cap': '<b>' + t + '</b>' })).datos.marketCap; };
+    assertEqual(cap('5074.76B'), 5074760000000);
+    assertEqual(cap('1.2T'), 1200000000000);
+    assertEqual(cap('850.5M'), 850500000);
+    assertEqual(cap('300K'), 300000);
+  });
   test('un dato que Finviz no tiene queda en null y se cuenta como faltante', function () {
-    const html = pagina().replace('<b>48.65%</b>', '<b>-</b>');
-    const r = fundamentalesDeFinviz(html);
+    const r = fundamentalesDeFinviz(pagina({ 'Gross Margin': '<b>-</b>' }));
     assertEqual(r.datos.grossMargin, null);
     assertEqual(r.faltan.length, 1);
     assertEqual(r.faltan[0], 'Margen bruto');
     assert(r.hayDatos, 'los demas siguen');
   });
   test('una etiqueta que no esta tampoco se inventa', function () {
-    const html = pagina().replace('Quick Ratio', 'Otra cosa');
+    const html = pagina().split('Quick Ratio').join('Otra cosa');
     assertEqual(fundamentalesDeFinviz(html).datos.quickRatio, null);
   });
-  test('Debt/Eq no se confunde con LT Debt/Eq', function () {
+  test('Debt/Eq no se confunde con LT Debt/Eq, ni P/E con Forward P/E', function () {
     const r = fundamentalesDeFinviz(pagina());
     assert(r.datos.debtEq !== r.datos.ltDebtEq, 'son filas distintas');
+    assert(r.datos.pe !== r.datos.forwardPE, 'son filas distintas');
   });
   test('sin ninguna fila reconocible no hay datos', function () {
     const r = fundamentalesDeFinviz('<html><body>Just a moment...</body></html>');
     assert(!r.hayDatos, 'no hay datos');
-    assertEqual(r.faltan.length, 11);
+    assertEqual(r.faltan.length, campos().length);
     assert(!fundamentalesDeFinviz(undefined).hayDatos, 'tampoco con undefined');
   });
-  test('para mostrar: agrupa, formatea en es-AR y colorea el crecimiento', function () {
-    const g = fundamentalesParaMostrar(fundamentalesDeFinviz(pagina()).datos);
-    assertEqual(g.map(function (x) { return x.grupo; }).join('|'),
-      'Valuación|Crecimiento|Márgenes|Deuda y liquidez|Analistas');
+  test('el bloque de dividendos de quien no paga no cuenta como dato perdido', function () {
+    const sinDiv = pagina({ 'Dividend TTM': '<b>-</b>', 'Payout': '<b>-</b>', 'Dividend Gr. 3/5Y': '<b>- -</b>' });
+    const r = fundamentalesDeFinviz(sinDiv);
+    assertEqual(r.datos.divYield, null);
+    assertEqual(r.faltan.length, 0);
+    const nombres = fundamentalesParaMostrar(r.datos, { completo: true }).map(function (g) { return g.grupo; });
+    assert(nombres.indexOf('Dividendos') < 0, 'no se muestra el bloque');
+    const paga = fundamentalesParaMostrar(fundamentalesDeFinviz(pagina()).datos, { completo: true })
+      .map(function (g) { return g.grupo; });
+    assert(paga.indexOf('Dividendos') >= 0, 'si paga, se muestra');
+  });
+  test('próximos resultados: días que faltan y momento del día', function () {
+    const ahora = new Date(2026, 9, 24, 12).getTime();   // 24/10/2026
+    const r = resultadosDe('Nov 02 AMC', ahora);
+    assertEqual(r.dias, 9);
+    assertEqual(r.momento, 'AMC');
+    assertEqual(resultadosDe('Oct 27 BMO', ahora).dias, 3);
+    assertEqual(resultadosDe('Oct 24', ahora).dias, 0);
+    assertEqual(resultadosDe('Oct 24', ahora).momento, null);
+  });
+  test('próximos resultados: sin año, una fecha vieja es la del año que viene', function () {
+    const ahora = new Date(2026, 11, 20, 12).getTime();  // 20/12/2026
+    const r = resultadosDe('Jan 15 BMO', ahora);
+    assertEqual(r.fecha.getFullYear(), 2027);
+    assertEqual(r.dias, 26);
+    // Una fecha de hace pocos días sigue siendo de este año: acaba de pasar.
+    assertEqual(resultadosDe('Dec 17 AMC', ahora).dias, -3);
+    assertEqual(resultadosDe('basura', ahora), null);
+    assertEqual(resultadosDe(undefined, ahora), null);
+  });
+  test('próximos resultados: el texto, resumido y completo', function () {
+    const ahora = new Date(2026, 9, 24, 12).getTime();
+    assertEqual(fundamentalesTextoDeResultados('Nov 02 AMC', ahora, false), '02/11 · en 9 días');
+    assertEqual(fundamentalesTextoDeResultados('Nov 02 AMC', ahora, true),
+      '02/11/2026 · después del cierre · en 9 días');
+    assertEqual(fundamentalesTextoDeResultados('Oct 25 BMO', ahora, true),
+      '25/10/2026 · antes de la apertura · mañana');
+    assertEqual(fundamentalesTextoDeResultados('Oct 24', ahora, false), '24/10 · hoy');
+    assertEqual(fundamentalesTextoDeResultados('basura', ahora, false), '—');
+  });
+  test('calculados: el potencial hasta el objetivo y la diferencia de EPS', function () {
+    const c = fundamentalesCalculados({ targetPrice: 335.44, price: 347.73, epsNext5Y: 12.58, epsPast5Y: 17.91 });
+    assert(Math.abs(c.potencial - (-3.5343)) < 0.001, 'potencial ' + c.potencial);
+    assert(Math.abs(c.deltaEps - (-5.33)) < 0.0001, 'delta ' + c.deltaEps);
+  });
+  test('calculados: sin uno de los dos números no se calcula', function () {
+    assertEqual(fundamentalesCalculados({ targetPrice: 100 }).potencial, null);
+    assertEqual(fundamentalesCalculados({ targetPrice: 100, price: 0 }).potencial, null);
+    assertEqual(fundamentalesCalculados({ epsNext5Y: 5 }).deltaEps, null);
+    assertEqual(fundamentalesCalculados(undefined).potencial, null);
+  });
+  test('para mostrar el resumen: lleva los once originales y deja el resto para la ficha', function () {
+    const g = fundamentalesParaMostrar(fundamentalesDeFinviz(pagina()).datos, { ahora: new Date(2026, 9, 24, 12).getTime() });
     const todas = [].concat.apply([], g.map(function (x) { return x.filas; }));
-    assertEqual(todas.length, 11);
+    const rotulos = todas.map(function (f) { return f.rotulo; });
+    ['Forward P/E', 'PEG', 'EPS próx. 5 años', 'Margen bruto', 'Margen neto', 'Ventas a/a (TTM)',
+     'Deuda / patrimonio', 'Deuda LP / patrimonio', 'Quick Ratio', 'Current Ratio', 'Precio objetivo']
+      .forEach(function (r) { assert(rotulos.indexOf(r) >= 0, 'falta en el resumen: ' + r); });
+    assert(rotulos.indexOf('Próximos resultados') >= 0, 'resultados');
+    assert(rotulos.indexOf('Potencial hasta el objetivo') >= 0, 'potencial');
+    assert(rotulos.indexOf('Beta') < 0, 'la beta es de la ficha');
+    assert(rotulos.indexOf('RSI (14)') < 0, 'el RSI es de la ficha');
+    assertEqual(g.map(function (x) { return x.grupo; }).join('|'),
+      'Contexto|Valuación|Calidad del negocio|Crecimiento|Deuda y liquidez|Analistas|Precio hoy');
+  });
+  test('para mostrar la ficha: todo, agrupado, con lo que mide cada dato', function () {
+    const g = fundamentalesParaMostrar(fundamentalesDeFinviz(pagina()).datos, { completo: true, ahora: new Date(2026, 9, 24, 12).getTime() });
+    assertEqual(g.map(function (x) { return x.grupo; }).join('|'),
+      'Contexto|Valuación|Calidad del negocio|Crecimiento|Deuda y liquidez|Analistas|Precio hoy|Dividendos');
+    const todas = [].concat.apply([], g.map(function (x) { return x.filas; }));
+    assert(todas.every(function (f) { return f.mide && f.mide.length > 10; }), 'cada fila dice qué mide');
     const por = function (r) { return todas.find(function (f) { return f.rotulo === r; }); };
     assertEqual(por('Forward P/E').texto, '36,24');
     assertEqual(por('Margen bruto').texto, '48,65%');
     assertEqual(por('Precio objetivo').texto, 'US$ 1.335,44');
+    assertEqual(por('Capitalización').texto, 'US$ 5.075 mil M');
+    assertEqual(por('Distancia al máximo de 52 sem.').texto, '−0,18%');
+    assertEqual(por('Distancia al mínimo de 52 sem.').texto, '+42,85%');
+    assertEqual(por('EPS: próx. 5 años vs últimos 5').texto, '−5,3 pp');
+    assertEqual(por('Próximos resultados').texto, '02/11/2026 · después del cierre · en 9 días');
+  });
+  test('para mostrar: el crecimiento se pinta por su signo y el resto no', function () {
+    // Objetivo por debajo del precio de 347,73: el potencial es negativo.
+    const g = fundamentalesParaMostrar(fundamentalesDeFinviz(pagina({ 'Target Price': '<b>300.00</b>' })).datos, { completo: true });
+    const todas = [].concat.apply([], g.map(function (x) { return x.filas; }));
+    const por = function (r) { return todas.find(function (f) { return f.rotulo === r; }); };
     assertEqual(por('EPS próx. 5 años').tono, 'pos');
     assertEqual(por('Ventas a/a (TTM)').tono, 'neg');
+    assertEqual(por('Potencial hasta el objetivo').tono, 'neg');
+    assertEqual(por('Potencial hasta el objetivo').texto, '−13,73%');
     assertEqual(por('Margen bruto').tono, '');
+    assertEqual(por('Distancia a la media de 200 días').tono, '');
   });
   test('para mostrar: un dato sin valor sale como guion', function () {
-    const g = fundamentalesParaMostrar({ forwardPE: null });
-    assertEqual(g[0].filas[0].texto, '—');
+    // Con algún dato en el grupo, el que falta se ve como guion.
+    const g = fundamentalesParaMostrar({ forwardPE: null, peg: 2.88 });
+    const fila = [].concat.apply([], g.map(function (x) { return x.filas; }))
+      .find(function (f) { return f.rotulo === 'Forward P/E'; });
+    assertEqual(fila.texto, '—');
+  });
+  test('para mostrar: un grupo sin ningún dato no se muestra', function () {
+    // Lo que trae una ficha de ETF: sin P/E, márgenes ni deuda.
+    const etf = { beta: 1.01, price: 759.97, rsi: 42.1, divYield: 1, divGrowth5Y: 5.05 };
+    const nombres = fundamentalesParaMostrar(etf, { completo: true }).map(function (g) { return g.grupo; });
+    assertEqual(nombres.join('|'), 'Contexto|Precio hoy|Dividendos');
+    assertEqual(fundamentalesParaMostrar({}, { completo: true }).length, 0);
   });
   test('antiguedad en dias enteros; sin fecha valida, null', function () {
     const ahora = Date.parse('2026-10-24T12:00:00Z');

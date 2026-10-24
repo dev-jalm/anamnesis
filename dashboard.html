@@ -1668,6 +1668,30 @@
   </div>
 </div>
 
+<!-- FICHA DE FUNDAMENTALES de un activo del plan (Salud financiera → Planificación).
+     El tooltip del ícono es el resumen; esto es el detalle. Se abre desde el
+     panel y no desde otro diálogo, así que va en la capa base. -->
+<div class="modal-overlay hidden" id="fundamentalesOverlay">
+  <div class="modal-card fund-card">
+    <div class="modal-header">
+      <div>
+        <div class="modal-eyebrow">FUNDAMENTALES · FINVIZ</div>
+        <h2 id="fundTitulo">—</h2>
+        <div class="medical-period mono" id="fundSubtitulo"></div>
+      </div>
+      <button class="modal-close" id="fundCloseBtn">
+        <i data-lucide="x" style="width:20px;height:20px"></i>
+      </button>
+    </div>
+    <div class="alert-box" id="fundAviso"></div>
+    <div id="fundCuerpo" class="fund-cuerpo"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="fundCerrarBtn">Cerrar</button>
+      <button class="upload-btn" id="fundActualizarBtn">ACTUALIZAR</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CONFIRMACIÓN GENÉRICO (reusable) -->
 <!--
   Reemplaza window.confirm() en toda la app. Se usa así:

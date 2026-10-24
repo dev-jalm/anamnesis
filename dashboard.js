@@ -21220,19 +21220,28 @@ function botonFundamentalesHtml(ticker, moneda) {
   const lineas = ['Finviz · ' + cuando +
     (dias ? ' (hace ' + dias + (dias === 1 ? ' día)' : ' días)') : '')];
   if (vieja) lineas.push('Pasó más de una semana: conviene actualizar.');
-  if (f.faltan && f.faltan.length) lineas.push('Sin dato en Finviz: ' + f.faltan.join(', ') + '.');
-  lineas.push('Clic para actualizar.');
+  if (f.faltan && f.faltan.length) lineas.push(textoDeFaltantes(f.faltan));
+  lineas.push('Clic para ver la ficha completa.');
   return '<button type="button" class="inv-delete-btn inv-plan-fund listo' + (vieja ? ' vieja' : '') + '"' +
     base + tipAttrs(ticker + ' · fundamentales', lineas.join('\n')) +
     ' data-tip-filas="' + escapeHtmlSafe(JSON.stringify(fundamentalesParaMostrar(f.datos))) + '"' +
     ' aria-label="Fundamentales de ' + escapeHtmlSafe(ticker) + '">' + ICONO_FUNDAMENTALES + '</button>';
 }
 
+// Lo que Finviz no tiene, dicho en una línea. Con muchos faltantes —un ETF no
+// tiene P/E ni márgenes— la lista sería más larga que la ficha: se cuenta.
+function textoDeFaltantes(faltan) {
+  // Con " · " y no con coma: varios rótulos ya llevan una ("EPS, últimos 3 años").
+  if (faltan.length <= 4) return 'Sin dato en Finviz: ' + faltan.join(' · ') + '.';
+  const total = FUNDAMENTALES_CAMPOS.filter(function (c) { return !c.calculado && !c.condicional; }).length;
+  return 'Sin dato en Finviz: ' + faltan.length + ' de ' + total + '.';
+}
+
 const _fundamentalesEnVuelo = {};
 
-function traerFundamentales(btn) {
-  const ticker = btn.getAttribute('data-plan-fund');
-  const moneda = btn.getAttribute('data-moneda') === 'USD' ? 'USD' : 'ARS';
+// `btn` es el ícono de la fila y puede faltar: la ficha también actualiza, y ahí
+// no hay ícono que poner a pulsar.
+function traerFundamentales(ticker, moneda, btn) {
   const k = claveTickerInfo(ticker, moneda);
   if (_fundamentalesEnVuelo[k]) return;
   const avisar = function (mensaje) {
@@ -21244,7 +21253,8 @@ function traerFundamentales(btn) {
     return;
   }
   _fundamentalesEnVuelo[k] = true;
-  btn.classList.add('cargando');
+  if (btn) btn.classList.add('cargando');
+  fichaFundamentalesEnCurso(true);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(function () { controller.abort(); }, 15000);
@@ -21277,8 +21287,93 @@ function traerFundamentales(btn) {
       clearTimeout(timeoutId);
       delete _fundamentalesEnVuelo[k];
       if (typeof renderMainAssets === 'function') renderMainAssets();
+      fichaFundamentalesEnCurso(false);
+      renderFichaFundamentales();
     });
 }
+
+// ─── La ficha completa ───
+// El tooltip es el resumen; esto es el detalle: todos los datos, agrupados, cada
+// uno con lo que mide. Se abre con un clic en el ícono del activo y desde acá
+// se actualiza, así que el ícono con datos no tiene que hacer las dos cosas.
+const fichaFundamentales = { ticker: null, moneda: null };
+
+function abrirFichaFundamentales(ticker, moneda) {
+  const ov = document.getElementById('fundamentalesOverlay');
+  if (!ov) return;
+  fichaFundamentales.ticker = ticker;
+  fichaFundamentales.moneda = moneda === 'USD' ? 'USD' : 'ARS';
+  ov.classList.remove('hidden');
+  renderFichaFundamentales();
+}
+
+function cerrarFichaFundamentales() {
+  const ov = document.getElementById('fundamentalesOverlay');
+  if (ov) ov.classList.add('hidden');
+  fichaFundamentales.ticker = null;
+}
+
+// El botón de actualizar mientras la consulta está en vuelo.
+function fichaFundamentalesEnCurso(enCurso) {
+  const b = document.getElementById('fundActualizarBtn');
+  if (!b) return;
+  b.disabled = !!enCurso;
+  b.textContent = enCurso ? 'ACTUALIZANDO…' : 'ACTUALIZAR';
+}
+
+function renderFichaFundamentales() {
+  const ov = document.getElementById('fundamentalesOverlay');
+  if (!ov || ov.classList.contains('hidden') || !fichaFundamentales.ticker) return;
+  const ticker = fichaFundamentales.ticker, moneda = fichaFundamentales.moneda;
+  const info = infoDeTicker(state.tickerInfo, ticker, moneda);
+  const f = info.fundamentales;
+  // Si los datos desaparecieron mientras estaba abierta (otro archivo, otro
+  // modo), no hay ficha que mostrar.
+  if (!f || !f.datos) { cerrarFichaFundamentales(); return; }
+
+  document.getElementById('fundTitulo').textContent = ticker;
+  document.getElementById('fundSubtitulo').textContent =
+    [info.descripcion || '', 'plan en ' + moneda].filter(Boolean).join(' · ');
+
+  const dias = diasDeAntiguedad(f.fecha);
+  const vieja = dias !== null && dias > FUNDAMENTALES_DIAS_VIGENTE;
+  const aviso = document.getElementById('fundAviso');
+  aviso.className = 'alert-box ' + (vieja ? 'warning' : 'success');
+  aviso.textContent = [
+    'Datos de Finviz del ' + new Date(f.fecha).toLocaleDateString('es-AR') +
+      (dias ? ' (hace ' + dias + (dias === 1 ? ' día).' : ' días).') : ' (de hoy).'),
+    vieja ? 'Pasó más de una semana: conviene actualizar.' : '',
+    f.faltan && f.faltan.length ? textoDeFaltantes(f.faltan) : ''
+  ].filter(Boolean).join(' ');
+
+  const grupos = fundamentalesParaMostrar(f.datos, { completo: true });
+  document.getElementById('fundCuerpo').innerHTML = grupos.map(function (g) {
+    return '<details class="fund-grupo" open>' +
+      '<summary>' + escapeHtmlSafe(g.grupo) + '</summary>' +
+      g.filas.map(function (r) {
+        return '<div class="fund-fila">' +
+          '<span class="fund-rot">' + escapeHtmlSafe(r.rotulo) + '</span>' +
+          '<span class="fund-val' + (r.tono ? ' ' + r.tono : '') + '">' + escapeHtmlSafe(r.texto) + '</span>' +
+          '<span class="fund-mide">' + escapeHtmlSafe(r.mide || '') + '</span>' +
+        '</div>';
+      }).join('') +
+    '</details>';
+  }).join('');
+  fichaFundamentalesEnCurso(!!_fundamentalesEnVuelo[claveTickerInfo(ticker, moneda)]);
+}
+
+(function bindFichaFundamentales() {
+  const ov = document.getElementById('fundamentalesOverlay');
+  if (!ov) return;
+  document.getElementById('fundCloseBtn').addEventListener('click', cerrarFichaFundamentales);
+  document.getElementById('fundCerrarBtn').addEventListener('click', cerrarFichaFundamentales);
+  document.getElementById('fundActualizarBtn').addEventListener('click', function () {
+    if (fichaFundamentales.ticker) traerFundamentales(fichaFundamentales.ticker, fichaFundamentales.moneda, null);
+  });
+  // Clic fuera de la tarjeta: la cuarta vía de cierre de todo diálogo. El
+  // Escape lo resuelve el handler global.
+  ov.addEventListener('click', function (e) { if (e.target === ov) cerrarFichaFundamentales(); });
+})();
 
 // El cuerpo de la sección: una tabla por moneda, como en Activos, y el
 // formulario de alta —que vive en la banda de la sección, no acá—.
@@ -21686,8 +21781,16 @@ document.addEventListener('click', function (e) {
     if (typeof renderMainAssets === 'function') renderMainAssets();
     return;
   }
+  // Con datos, el ícono abre la ficha —y desde ella se actualiza—; sin datos,
+  // los trae.
   const fund = e.target.closest && e.target.closest('[data-plan-fund]');
-  if (fund) { traerFundamentales(fund); return; }
+  if (fund) {
+    const tk = fund.getAttribute('data-plan-fund');
+    const mon = fund.getAttribute('data-moneda') === 'USD' ? 'USD' : 'ARS';
+    if (infoDeTicker(state.tickerInfo, tk, mon).fundamentales) abrirFichaFundamentales(tk, mon);
+    else traerFundamentales(tk, mon, fund);
+    return;
+  }
   const del = e.target.closest && e.target.closest('[data-plan-del]');
   if (del) {
     const clave = carteraDelBoton(del);

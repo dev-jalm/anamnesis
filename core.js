@@ -1838,31 +1838,146 @@ function infoDeTicker(tickerInfo, ticker, moneda) {
 // ============================================================
 // FUNDAMENTALES DE UN ACTIVO (Finviz)
 // ============================================================
-// Los once datos que se miran antes de entrar a una posición, tal como los
-// rotula Finviz. `etiqueta` es el texto exacto de su tabla: es la clave con la
-// que se los busca, y por eso se lee la etiqueta y no la posición — Finviz
-// agrega y reordena filas sin avisar. `tipo` dice cómo se muestra: ratio (dos
-// decimales), pct (dos decimales y %) o precio (en dólares, que es como lo da).
-// Los grupos son los del tooltip: lo que se lee junto se agrupa junto.
+// Los datos que se miran antes de entrar a una posición, tal como los rotula
+// Finviz. `etiqueta` es el texto exacto de su tabla: es la clave con la que se
+// los busca, y por eso se lee la etiqueta y no la posición — Finviz agrega y
+// reordena filas sin avisar.
+//
+// Tres particularidades de esa tabla que los campos resuelven:
+//   · `parte`: algunas celdas llevan dos números ("EPS past 3/5Y" = "6.89%
+//     17.91%", "52W High" = "348.36 -0.18%"). Cada número es un campo, con su
+//     posición dentro de la celda.
+//   · `forma: 'pct'`: "EPS next Y" aparece DOS veces, como estimación en
+//     dólares y como crecimiento en %. Se elige por la forma del valor y no
+//     por el orden en que vengan.
+//   · `condicional`: el bloque de dividendos sólo existe si la empresa paga.
+//     Que falte ahí no es un dato perdido y no se informa como tal.
+// `calculado` no sale de Finviz sino de los demás datos (fundamentalesCalculados).
+//
+// `tipo` dice cómo se muestra: ratio (dos decimales), pct (con %), pctS (con %
+// y signo explícito, para distancias), precio (US$), monto (US$ abreviado) o
+// fecha. `signo` pinta el valor: positivo en verde, negativo en rojo. `resumen`
+// marca lo que entra en el tooltip; la ficha completa lleva todo. `mide` es la
+// definición de una línea de lo que el dato mide, sin juzgarlo.
 const FUNDAMENTALES_CAMPOS = [
-  { k: 'forwardPE',    etiqueta: 'Forward P/E',   rotulo: 'Forward P/E',        tipo: 'ratio',  grupo: 'Valuación' },
-  { k: 'peg',          etiqueta: 'PEG',           rotulo: 'PEG',                tipo: 'ratio',  grupo: 'Valuación' },
-  { k: 'epsNext5Y',    etiqueta: 'EPS next 5Y',   rotulo: 'EPS próx. 5 años',   tipo: 'pct',    grupo: 'Crecimiento', signo: true },
-  { k: 'salesYoY',     etiqueta: 'Sales Y/Y TTM', rotulo: 'Ventas a/a (TTM)',   tipo: 'pct',    grupo: 'Crecimiento', signo: true },
-  { k: 'grossMargin',  etiqueta: 'Gross Margin',  rotulo: 'Margen bruto',       tipo: 'pct',    grupo: 'Márgenes' },
-  { k: 'profitMargin', etiqueta: 'Profit Margin', rotulo: 'Margen neto',        tipo: 'pct',    grupo: 'Márgenes' },
-  { k: 'debtEq',       etiqueta: 'Debt/Eq',       rotulo: 'Deuda / patrimonio', tipo: 'ratio',  grupo: 'Deuda y liquidez' },
-  { k: 'ltDebtEq',     etiqueta: 'LT Debt/Eq',    rotulo: 'Deuda LP / patrimonio', tipo: 'ratio', grupo: 'Deuda y liquidez' },
-  { k: 'quickRatio',   etiqueta: 'Quick Ratio',   rotulo: 'Quick Ratio',        tipo: 'ratio',  grupo: 'Deuda y liquidez' },
-  { k: 'currentRatio', etiqueta: 'Current Ratio', rotulo: 'Current Ratio',      tipo: 'ratio',  grupo: 'Deuda y liquidez' },
-  { k: 'targetPrice',  etiqueta: 'Target Price',  rotulo: 'Precio objetivo',    tipo: 'precio', grupo: 'Analistas' }
+  // — Contexto —
+  { k: 'marketCap', etiqueta: 'Market Cap', rotulo: 'Capitalización', tipo: 'monto', grupo: 'Contexto',
+    mide: 'Lo que vale la empresa entera en la bolsa: precio por cantidad de acciones. Marca su tamaño.' },
+  { k: 'beta', etiqueta: 'Beta', rotulo: 'Beta', tipo: 'ratio', grupo: 'Contexto',
+    mide: 'Cuánto se mueve la acción respecto del mercado. 1 es igual que el mercado; más de 1, se mueve más; menos de 1, menos.' },
+  { k: 'earnings', etiqueta: 'Earnings', rotulo: 'Próximos resultados', tipo: 'fecha', grupo: 'Contexto', resumen: true,
+    mide: 'Cuándo publica su próximo balance trimestral. Alrededor de esa fecha el precio suele moverse más.' },
+  // — Valuación —
+  { k: 'pe', etiqueta: 'P/E', rotulo: 'P/E (últimos 12 meses)', tipo: 'ratio', grupo: 'Valuación',
+    mide: 'Cuántas veces las ganancias del último año se paga por la acción.' },
+  { k: 'forwardPE', etiqueta: 'Forward P/E', rotulo: 'Forward P/E', tipo: 'ratio', grupo: 'Valuación', resumen: true,
+    mide: 'Lo mismo, sobre las ganancias estimadas del próximo año fiscal. Contra el P/E de arriba, muestra qué crecimiento está descontando el precio.' },
+  { k: 'peg', etiqueta: 'PEG', rotulo: 'PEG', tipo: 'ratio', grupo: 'Valuación', resumen: true,
+    mide: 'El P/E dividido por el crecimiento esperado de las ganancias: intenta medir si el precio acompaña al crecimiento.' },
+  { k: 'pfcf', etiqueta: 'P/FCF', rotulo: 'P/FCF', tipo: 'ratio', grupo: 'Valuación', resumen: true,
+    mide: 'Cuántas veces el flujo de caja libre del último año se paga por la acción. Mide caja, no ganancia contable.' },
+  { k: 'evEbitda', etiqueta: 'EV/EBITDA', rotulo: 'EV/EBITDA', tipo: 'ratio', grupo: 'Valuación',
+    mide: 'El valor de la empresa con su deuda incluida, sobre su resultado operativo. Permite comparar empresas con distinto endeudamiento.' },
+  // — Calidad del negocio —
+  { k: 'roic', etiqueta: 'ROIC', rotulo: 'ROIC', tipo: 'pct', grupo: 'Calidad del negocio', resumen: true,
+    mide: 'Cuánto rinde la empresa sobre el capital que tiene invertido, deuda incluida.' },
+  { k: 'operMargin', etiqueta: 'Oper. Margin', rotulo: 'Margen operativo', tipo: 'pct', grupo: 'Calidad del negocio',
+    mide: 'De cada peso vendido, cuánto queda después de los costos de operar el negocio y antes de intereses e impuestos.' },
+  { k: 'grossMargin', etiqueta: 'Gross Margin', rotulo: 'Margen bruto', tipo: 'pct', grupo: 'Calidad del negocio', resumen: true,
+    mide: 'De cada peso vendido, cuánto queda después del costo directo de lo vendido.' },
+  { k: 'profitMargin', etiqueta: 'Profit Margin', rotulo: 'Margen neto', tipo: 'pct', grupo: 'Calidad del negocio', resumen: true,
+    mide: 'De cada peso vendido, cuánto queda como ganancia final.' },
+  // — Crecimiento —
+  { k: 'salesPast3Y', etiqueta: 'Sales past 3/5Y', parte: 0, rotulo: 'Ventas, últimos 3 años', tipo: 'pct', signo: true, grupo: 'Crecimiento',
+    mide: 'Crecimiento anual promedio de las ventas en los últimos 3 años.' },
+  { k: 'salesPast5Y', etiqueta: 'Sales past 3/5Y', parte: 1, rotulo: 'Ventas, últimos 5 años', tipo: 'pct', signo: true, grupo: 'Crecimiento',
+    mide: 'Crecimiento anual promedio de las ventas en los últimos 5 años.' },
+  { k: 'salesYoY', etiqueta: 'Sales Y/Y TTM', rotulo: 'Ventas a/a (TTM)', tipo: 'pct', signo: true, grupo: 'Crecimiento', resumen: true,
+    mide: 'Cuánto crecieron las ventas de los últimos 12 meses contra los 12 anteriores.' },
+  { k: 'epsPast3Y', etiqueta: 'EPS past 3/5Y', parte: 0, rotulo: 'EPS, últimos 3 años', tipo: 'pct', signo: true, grupo: 'Crecimiento',
+    mide: 'Crecimiento anual promedio de la ganancia por acción en los últimos 3 años.' },
+  { k: 'epsPast5Y', etiqueta: 'EPS past 3/5Y', parte: 1, rotulo: 'EPS, últimos 5 años', tipo: 'pct', signo: true, grupo: 'Crecimiento', resumen: true,
+    mide: 'Crecimiento anual promedio de la ganancia por acción en los últimos 5 años.' },
+  { k: 'epsThisY', etiqueta: 'EPS this Y', rotulo: 'EPS, este año', tipo: 'pct', signo: true, grupo: 'Crecimiento',
+    mide: 'Crecimiento estimado de la ganancia por acción del año fiscal en curso.' },
+  { k: 'epsNextY', etiqueta: 'EPS next Y', forma: 'pct', rotulo: 'EPS, próximo año', tipo: 'pct', signo: true, grupo: 'Crecimiento',
+    mide: 'Crecimiento estimado de la ganancia por acción del año fiscal que viene.' },
+  { k: 'epsNext5Y', etiqueta: 'EPS next 5Y', rotulo: 'EPS próx. 5 años', tipo: 'pct', signo: true, grupo: 'Crecimiento', resumen: true,
+    mide: 'Crecimiento anual de la ganancia por acción que los analistas estiman para los próximos 5 años.' },
+  { k: 'deltaEps', calculado: true, rotulo: 'EPS: próx. 5 años vs últimos 5', tipo: 'pp', grupo: 'Crecimiento',
+    mide: 'La diferencia, en puntos porcentuales, entre el crecimiento estimado y el que realmente hubo. Calculado.' },
+  // — Deuda y liquidez —
+  { k: 'debtEq', etiqueta: 'Debt/Eq', rotulo: 'Deuda / patrimonio', tipo: 'ratio', grupo: 'Deuda y liquidez', resumen: true,
+    mide: 'La deuda total contra el patrimonio de los accionistas.' },
+  { k: 'ltDebtEq', etiqueta: 'LT Debt/Eq', rotulo: 'Deuda LP / patrimonio', tipo: 'ratio', grupo: 'Deuda y liquidez', resumen: true,
+    mide: 'Sólo la deuda de largo plazo contra el patrimonio.' },
+  { k: 'quickRatio', etiqueta: 'Quick Ratio', rotulo: 'Quick Ratio', tipo: 'ratio', grupo: 'Deuda y liquidez', resumen: true,
+    mide: 'Si lo más líquido que tiene (sin contar inventarios) alcanza para pagar lo que vence en el año. Menos de 1 es que no alcanza.' },
+  { k: 'currentRatio', etiqueta: 'Current Ratio', rotulo: 'Current Ratio', tipo: 'ratio', grupo: 'Deuda y liquidez', resumen: true,
+    mide: 'Lo mismo contando todo el activo corriente, inventarios incluidos.' },
+  // — Analistas —
+  { k: 'targetPrice', etiqueta: 'Target Price', rotulo: 'Precio objetivo', tipo: 'precio', grupo: 'Analistas', resumen: true,
+    mide: 'El promedio de los precios que estiman los analistas a un año. Es una opinión, no una predicción.' },
+  { k: 'potencial', calculado: true, rotulo: 'Potencial hasta el objetivo', tipo: 'pctS', signo: true, grupo: 'Analistas', resumen: true,
+    mide: 'Cuánto tendría que moverse el precio de hoy para llegar al objetivo de los analistas. Calculado.' },
+  { k: 'recom', etiqueta: 'Recom', rotulo: 'Recomendación (1 a 5)', tipo: 'ratio', grupo: 'Analistas', resumen: true,
+    mide: 'El promedio de las recomendaciones de los analistas: 1 es comprar, 3 mantener, 5 vender.' },
+  // — Precio hoy —
+  { k: 'price', etiqueta: 'Price', rotulo: 'Precio en Finviz', tipo: 'precio', grupo: 'Precio hoy',
+    mide: 'La última cotización que muestra Finviz, en dólares.' },
+  { k: 'dist52High', etiqueta: '52W High', parte: 1, rotulo: 'Distancia al máximo de 52 sem.', tipo: 'pctS', grupo: 'Precio hoy', resumen: true,
+    mide: 'Cuánto está el precio por debajo (−) del máximo del último año.' },
+  { k: 'dist52Low', etiqueta: '52W Low', parte: 1, rotulo: 'Distancia al mínimo de 52 sem.', tipo: 'pctS', grupo: 'Precio hoy',
+    mide: 'Cuánto está el precio por encima (+) del mínimo del último año.' },
+  { k: 'sma200', etiqueta: 'SMA200', rotulo: 'Distancia a la media de 200 días', tipo: 'pctS', grupo: 'Precio hoy',
+    mide: 'Cuánto está el precio por encima (+) o por debajo (−) de su promedio de los últimos 200 días: la tendencia de fondo.' },
+  { k: 'rsi', etiqueta: 'RSI (14)', rotulo: 'RSI (14)', tipo: 'ratio', grupo: 'Precio hoy',
+    mide: 'Un indicador de 0 a 100 de qué tan fuerte subió o bajó el precio en las últimas dos semanas. Se suele leer por encima de 70 como recalentado y por debajo de 30 como castigado.' },
+  // — Dividendos: sólo si la empresa paga —
+  { k: 'divYield', etiqueta: 'Dividend TTM', parte: 1, rotulo: 'Rendimiento por dividendo', tipo: 'pct', grupo: 'Dividendos', condicional: true,
+    mide: 'Lo que pagó en dividendos en el último año, como porcentaje del precio.' },
+  { k: 'payout', etiqueta: 'Payout', rotulo: 'Payout', tipo: 'pct', grupo: 'Dividendos', condicional: true,
+    mide: 'Qué parte de la ganancia reparte como dividendo. Cuanto más alto, menos margen le queda.' },
+  { k: 'divGrowth3Y', etiqueta: 'Dividend Gr. 3/5Y', parte: 0, rotulo: 'Dividendo, últimos 3 años', tipo: 'pct', signo: true, grupo: 'Dividendos', condicional: true,
+    mide: 'Crecimiento anual promedio del dividendo en los últimos 3 años.' },
+  { k: 'divGrowth5Y', etiqueta: 'Dividend Gr. 3/5Y', parte: 1, rotulo: 'Dividendo, últimos 5 años', tipo: 'pct', signo: true, grupo: 'Dividendos', condicional: true,
+    mide: 'Crecimiento anual promedio del dividendo en los últimos 5 años.' }
 ];
 
-// Pasa la tabla que devuelve el Worker a los once números. Un dato que Finviz
-// no tiene ("-") o que no está en la tabla queda en null y se cuenta en
-// `faltan`: nunca se inventa un cero. `hayDatos` es falso cuando no apareció
-// NINGUNO — la señal de que Finviz cambió la página o devolvió otra cosa, y no
-// de que a esa empresa le falte algo.
+// Los meses como los escribe Finviz.
+const FUNDAMENTALES_MESES = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+
+// Formateadores creados una vez: construir uno dentro de la función que los usa
+// cuesta decenas de veces más que usarlo.
+const FUNDAMENTALES_N0 = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const FUNDAMENTALES_N1 = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const FUNDAMENTALES_N2 = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Un valor de una celda de la tabla: el texto ya sin etiquetas. "-" es el dato
+// que Finviz no tiene. Devuelve número, texto (la fecha de resultados) o null.
+function valorDeFundamental(texto, campo) {
+  if (texto === undefined || texto === null) return null;
+  texto = String(texto).trim();
+  if (texto === '' || texto === '-') return null;
+  if (campo.tipo === 'fecha') return /^[A-Za-z]{3}\s+\d{1,2}/.test(texto) ? texto : null;
+  const crudo = texto.split(/\s+/)[campo.parte || 0];
+  if (crudo === undefined || crudo === '-') return null;
+  // Finviz separa miles con coma y decimales con punto; los paréntesis y el %
+  // sólo decoran ("(0.30%)").
+  const n = parseFloat(crudo.replace(/[(),%]/g, ''));
+  if (!isFinite(n)) return null;
+  if (campo.tipo === 'monto') {
+    const mult = { T: 1e12, B: 1e9, M: 1e6, K: 1e3 }[(crudo.match(/[TBMK]$/i) || [''])[0].toUpperCase()];
+    return n * (mult || 1);
+  }
+  return n;
+}
+
+// Pasa la tabla que devuelve el Worker a los números. Un dato que Finviz no
+// tiene o que no está en la tabla queda en null y se cuenta en `faltan`: nunca
+// se inventa un cero. `hayDatos` es falso cuando no apareció NINGUNO — la señal
+// de que Finviz cambió la página o devolvió otra cosa, y no de que a esa
+// empresa le falte algo.
 function fundamentalesDeFinviz(html) {
   const textos = {};
   const re = /snapshot-td-label">([\s\S]*?)<\/div>\s*<\/td>\s*<td[^>]*>\s*<div class="snapshot-td-content">([\s\S]*?)<\/div>\s*<\/td>/g;
@@ -1870,38 +1985,110 @@ function fundamentalesDeFinviz(html) {
   let m;
   while ((m = re.exec(String(html || ''))) !== null) {
     const etiqueta = sinTags(m[1]);
-    if (!(etiqueta in textos)) textos[etiqueta] = sinTags(m[2]);
+    (textos[etiqueta] = textos[etiqueta] || []).push(sinTags(m[2]));
   }
   const datos = {};
   const faltan = [];
+  let hay = false;
   FUNDAMENTALES_CAMPOS.forEach(function (c) {
-    const t = textos[c.etiqueta];
-    // Finviz separa miles con coma y decimales con punto.
-    const n = (t === undefined || t === '-') ? NaN : parseFloat(t.replace(/,/g, '').replace('%', ''));
-    datos[c.k] = isFinite(n) ? n : null;
-    if (datos[c.k] === null) faltan.push(c.rotulo);
+    if (c.calculado) return;
+    const candidatos = textos[c.etiqueta] || [];
+    const texto = c.forma === 'pct'
+      ? candidatos.find(function (t) { return /%\s*$/.test(t); })
+      : candidatos[0];
+    const v = valorDeFundamental(texto, c);
+    datos[c.k] = v;
+    if (c.condicional) return;
+    if (v === null) faltan.push(c.rotulo); else hay = true;
   });
-  return { datos: datos, faltan: faltan, hayDatos: faltan.length < FUNDAMENTALES_CAMPOS.length };
+  return { datos: datos, faltan: faltan, hayDatos: hay };
+}
+
+// Los datos que salen de otros datos. Son aritmética sobre lo que ya se trajo,
+// no una opinión: null donde falte alguno de los dos números.
+function fundamentalesCalculados(datos) {
+  const d = datos || {};
+  const tiene = function (n) { return n !== null && n !== undefined && isFinite(n); };
+  return {
+    potencial: (tiene(d.targetPrice) && tiene(d.price) && d.price > 0)
+      ? (d.targetPrice / d.price - 1) * 100 : null,
+    deltaEps: (tiene(d.epsNext5Y) && tiene(d.epsPast5Y)) ? d.epsNext5Y - d.epsPast5Y : null
+  };
+}
+
+// La fecha de los próximos resultados, con los días que faltan. Finviz no
+// escribe el año ("Nov 02 AMC"): es la próxima que llegue, y si esa fecha ya
+// pasó hace más de una semana es la del año siguiente. Null si no se entiende.
+function resultadosDe(texto, ahora) {
+  const m = /^([A-Za-z]{3})\s+(\d{1,2})(?:\s+(BMO|AMC))?/.exec(String(texto || '').trim());
+  if (!m || !(m[1] in FUNDAMENTALES_MESES)) return null;
+  const hoy = new Date(ahora === undefined ? Date.now() : ahora);
+  hoy.setHours(0, 0, 0, 0);
+  let fecha = new Date(hoy.getFullYear(), FUNDAMENTALES_MESES[m[1]], Number(m[2]));
+  if (fecha.getTime() < hoy.getTime() - 7 * 86400000) {
+    fecha = new Date(hoy.getFullYear() + 1, FUNDAMENTALES_MESES[m[1]], Number(m[2]));
+  }
+  return {
+    fecha: fecha,
+    dias: Math.round((fecha.getTime() - hoy.getTime()) / 86400000),
+    momento: m[3] || null
+  };
+}
+
+function fundamentalesTextoDeResultados(texto, ahora, completo) {
+  const r = resultadosDe(texto, ahora);
+  if (!r) return '—';
+  const dos = function (n) { return String(n).padStart(2, '0'); };
+  const dm = dos(r.fecha.getDate()) + '/' + dos(r.fecha.getMonth() + 1);
+  const cuando = r.dias === 0 ? 'hoy' : (r.dias === 1 ? 'mañana'
+    : (r.dias > 1 ? 'en ' + r.dias + ' días' : 'hace ' + (-r.dias) + (r.dias === -1 ? ' día' : ' días')));
+  if (!completo) return dm + ' · ' + cuando;
+  return dm + '/' + r.fecha.getFullYear() +
+    (r.momento ? ' · ' + (r.momento === 'BMO' ? 'antes de la apertura' : 'después del cierre') : '') +
+    ' · ' + cuando;
 }
 
 // Los datos listos para mostrar: grupos con sus filas ya formateadas. Es la
-// única fuente del tooltip, para que el texto no se arme en dos lugares.
-// `tono` pinta el crecimiento: positivo en verde, negativo en rojo.
-function fundamentalesParaMostrar(datos) {
-  const dos = function (n) { return n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+// única fuente del tooltip y de la ficha, para que el texto no se arme en dos
+// lugares. `completo` falso deja sólo lo marcado `resumen`. `tono` pinta lo que
+// lleva `signo`: positivo en verde, negativo en rojo. El bloque de dividendos
+// sólo sale si la empresa paga.
+function fundamentalesParaMostrar(datos, opciones) {
+  const op = opciones || {};
+  const d = datos || {};
+  const calc = fundamentalesCalculados(d);
+  const paga = d.divYield !== null && d.divYield !== undefined && d.divYield > 0;
+  const signado = function (n, fmt) { return (n > 0 ? '+' : (n < 0 ? '−' : '')) + fmt.format(Math.abs(n)); };
   const grupos = [];
   FUNDAMENTALES_CAMPOS.forEach(function (c) {
+    if (!op.completo && !c.resumen) return;
+    if (c.condicional && !paga) return;
     let g = grupos.find(function (x) { return x.grupo === c.grupo; });
     if (!g) { g = { grupo: c.grupo, filas: [] }; grupos.push(g); }
-    const n = datos ? datos[c.k] : null;
+    const n = c.calculado ? calc[c.k] : d[c.k];
     let texto = '—', tono = '';
     if (n !== null && n !== undefined) {
-      texto = c.tipo === 'pct' ? dos(n) + '%' : (c.tipo === 'precio' ? 'US$ ' + dos(n) : dos(n));
+      if (c.tipo === 'fecha') texto = fundamentalesTextoDeResultados(n, op.ahora, op.completo);
+      else if (c.tipo === 'pct') texto = FUNDAMENTALES_N2.format(n) + '%';
+      else if (c.tipo === 'pctS') texto = signado(n, FUNDAMENTALES_N2) + '%';
+      else if (c.tipo === 'pp') texto = signado(n, FUNDAMENTALES_N1) + ' pp';
+      else if (c.tipo === 'precio') texto = 'US$ ' + FUNDAMENTALES_N2.format(n);
+      else if (c.tipo === 'monto') {
+        const a = Math.abs(n);
+        texto = a >= 1e9 ? 'US$ ' + (a >= 1e11 ? FUNDAMENTALES_N0 : FUNDAMENTALES_N1).format(n / 1e9) + ' mil M'
+          : (a >= 1e6 ? 'US$ ' + (a >= 1e8 ? FUNDAMENTALES_N0 : FUNDAMENTALES_N1).format(n / 1e6) + ' M'
+            : 'US$ ' + FUNDAMENTALES_N0.format(n));
+      } else texto = FUNDAMENTALES_N2.format(n);
       if (c.signo && n !== 0) tono = n > 0 ? 'pos' : 'neg';
     }
-    g.filas.push({ rotulo: c.rotulo, texto: texto, tono: tono });
+    g.filas.push({ rotulo: c.rotulo, texto: texto, tono: tono, mide: c.mide });
   });
-  return grupos;
+  // Un grupo sin un solo dato no se muestra: un ETF no tiene P/E, márgenes ni
+  // deuda, y su ficha sería una columna de guiones. Lo que falta se informa
+  // aparte, contado. Un grupo con ALGÚN dato sí deja ver cuáles faltaron.
+  return grupos.filter(function (g) {
+    return g.filas.some(function (f) { return f.texto !== '—'; });
+  });
 }
 
 // Cuántos días pasaron desde que se trajeron. null si nunca se trajeron.
@@ -3979,6 +4166,7 @@ if (typeof module !== 'undefined' && module.exports) {
     normalizarConfigImportada, contarMesesPresupuestados,
     // fundamentales (Finviz)
     FUNDAMENTALES_CAMPOS, fundamentalesDeFinviz, fundamentalesParaMostrar,
+    fundamentalesCalculados, resultadosDe, fundamentalesTextoDeResultados,
     diasDeAntiguedad,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,

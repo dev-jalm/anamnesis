@@ -6628,6 +6628,74 @@ body[data-exporting="true"] .section-card {
 .inv-plan-fund.listo.vieja { color: var(--accent); }
 .inv-plan-fund.cargando { pointer-events: none; animation: pulse 1s ease-in-out infinite; }
 
+/* La ficha completa de fundamentales. Es un modal estándar —cabecera, aviso,
+   cuerpo, acciones— con el cuerpo en secciones plegables, porque con los
+   treinta y pico datos no entra en pantalla. Cada fila lleva el rótulo, el
+   valor en la tipografía de los números y una línea de lo que el dato mide;
+   las tres columnas son las mismas en todas las filas, así que se alinean sin
+   ajustarlas a ojo. Los títulos de grupo usan el criterio de los encabezados
+   de tabla: mono, mayúsculas, espaciado, color apagado. */
+.fund-card {
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* Sin esto el aviso, el encabezado y las acciones se achicarían para dar lugar
+   al cuerpo: el único que tiene que ceder y scrollear es el cuerpo. */
+.fund-card > .modal-header,
+.fund-card > .alert-box,
+.fund-card > .modal-actions { flex-shrink: 0; }
+/* El eyebrow rojo es el de los diálogos peligrosos: éste es informativo, así
+   que va en el acento, como el del diagnóstico del archivo. */
+.fund-card .modal-eyebrow { color: var(--accent); }
+.fund-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-bottom: 4px;
+}
+.fund-grupo { border-top: 1px solid var(--border); }
+.fund-grupo:first-child { border-top: none; }
+.fund-grupo summary {
+  cursor: pointer;
+  padding: 10px 0 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+.fund-fila {
+  display: grid;
+  grid-template-columns: 210px 170px minmax(0, 1fr);
+  column-gap: 14px;
+  align-items: baseline;
+  padding: 4px 0;
+}
+.fund-rot {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 12px;
+  color: var(--ink);
+}
+.fund-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+  color: var(--ink);
+}
+.fund-val.pos { color: var(--green); }
+.fund-val.neg { color: var(--red); }
+.fund-mide {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
 /* Bloque "Concentración por sector" del cuerpo de cada cartera. Una fila por
    sector: nombre · barra con la línea del umbral · porcentaje · tickers. */
 /* Concentración en dos columnas —por sector y por tipo de riesgo— armada como
