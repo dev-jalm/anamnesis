@@ -21231,6 +21231,8 @@ function botonFundamentalesHtml(ticker, moneda) {
     (dias ? ' (hace ' + dias + (dias === 1 ? ' día)' : ' días)') : '')];
   if (vieja) lineas.push('Pasó más de una semana: conviene actualizar.');
   lineas.push(f.referencias ? 'Comparado con el sector ' + f.referencias.sector + '.' : 'Sin comparar con el sector.');
+  const pt = puntajeContraSector(f.datos, f.referencias);
+  if (pt) lineas.push('Puntaje frente al sector: ' + pt.general + '/100 · ' + pt.lectura.texto + '.');
   if (f.faltan && f.faltan.length) lineas.push(textoDeFaltantes(f.faltan));
   lineas.push('Clic para ver la ficha completa.');
   // Al emergente sólo viajan el rótulo, el valor y la lectura: la definición y
@@ -21390,6 +21392,47 @@ function fichaFundamentalesEnCurso(enCurso) {
   b.textContent = enCurso ? 'ACTUALIZANDO…' : 'ACTUALIZAR';
 }
 
+// Cómo se calcula el puntaje, para el emergente de su franja. Dice lo que cuenta
+// y lo que no, y que no es una recomendación: un número de 0 a 100 invita a
+// leerlo como una nota del activo, y es un resumen de cuántos datos están mejor
+// o peor que su sector.
+function textoDeCalculoDelPuntaje(pt) {
+  return [
+    'Cada comparación contra el sector suma si es favorable, resta si es desfavorable y no mueve si está en línea.',
+    'Se promedia dentro de cada dimensión y después entre las cuatro, con el mismo peso. 50 es el promedio del sector.',
+    'Calculado sobre ' + pt.lecturas + ' de ' + pt.posibles + ' comparaciones. Las opiniones de los analistas y el contexto de precio se muestran, pero no entran.',
+    'No es una recomendación de inversión: resume cuántos datos están mejor o peor que el sector, cuyo promedio está ponderado por capitalización.'
+  ].join('\n');
+}
+
+// La franja del puntaje: el general, su lectura y las cuatro dimensiones.
+function renderPuntajeFundamentales(f) {
+  const cont = document.getElementById('fundPuntaje');
+  const pt = puntajeContraSector(f.datos, f.referencias);
+  cont.classList.toggle('hidden', !pt);
+  if (!pt) return;
+  cont.setAttribute('data-tip-titulo', 'CÓMO SE CALCULA');
+  cont.setAttribute('data-tip-detalle', textoDeCalculoDelPuntaje(pt));
+  cont.innerHTML =
+    '<div class="fund-pt-gral">' +
+      '<span class="fund-pt-num' + (pt.lectura.tono ? ' ' + pt.lectura.tono : '') + '">' + pt.general + '</span>' +
+      '<span class="fund-pt-de">/100</span>' +
+    '</div>' +
+    '<div class="fund-pt-txt">' +
+      '<span class="fund-pt-tit">Puntaje frente al sector</span>' +
+      '<span class="fund-pt-lect' + (pt.lectura.tono ? ' ' + pt.lectura.tono : '') + '">' + escapeHtmlSafe(pt.lectura.texto) + '</span>' +
+    '</div>' +
+    '<div class="fund-pt-dims">' + pt.dimensiones.map(function (d) {
+      const enLinea = d.lecturas - d.favorables - d.desfavorables;
+      return '<div class="fund-pt-dim"' +
+          tipAttrs(d.grupo, d.favorables + ' favorables · ' + enLinea + ' en línea · ' + d.desfavorables + ' desfavorables') + '>' +
+        '<div class="fund-pt-dh"><span class="fund-pt-dr">' + escapeHtmlSafe(d.grupo) + '</span>' +
+          '<span class="fund-pt-dn">' + d.puntaje + '</span></div>' +
+        '<div class="fund-pt-barra"><i' + (d.tono ? ' class="' + d.tono + '"' : '') + ' style="width:' + d.puntaje + '%"></i></div>' +
+      '</div>';
+    }).join('') + '</div>';
+}
+
 function renderFichaFundamentales() {
   const ov = document.getElementById('fundamentalesOverlay');
   if (!ov || ov.classList.contains('hidden') || !fichaFundamentales.ticker) return;
@@ -21421,25 +21464,37 @@ function renderFichaFundamentales() {
   const textoNota = fundamentalesNotaDeReferencias(f.referencias);
   nota.textContent = textoNota;
   nota.classList.toggle('hidden', !textoNota);
+  // La nota entra en una línea para no quitarle alto al cuerpo; el porqué va en el
+  // emergente.
+  if (textoNota) {
+    nota.setAttribute('data-tip-titulo', 'POR QUÉ SÓLO EL SECTOR');
+    nota.setAttribute('data-tip-detalle',
+      'Los promedios de Finviz están ponderados por capitalización. Cuando la empresa es más del 30 % de su industria, el promedio de la industria es en buena parte ella misma: compararla con él sería compararla consigo misma.');
+  } else {
+    nota.removeAttribute('data-tip-titulo');
+    nota.removeAttribute('data-tip-detalle');
+  }
 
+  renderPuntajeFundamentales(f);
+
+  // Todo a la vista, sin desplazarse: dos columnas de grupos y filas de una
+  // línea —rótulo, valor y lectura—. Lo que ocupaba el resto de cada fila —contra
+  // qué se comparó y qué mide el dato— aparece al pasar el mouse, en el
+  // emergente propio de la app y no en un título nativo.
   const grupos = fundamentalesParaMostrar(f.datos, { completo: true, referencias: f.referencias });
   document.getElementById('fundCuerpo').innerHTML = grupos.map(function (g) {
-    return '<details class="fund-grupo" open>' +
-      '<summary>' + escapeHtmlSafe(g.grupo) + '</summary>' +
+    return '<section class="fund-grupo">' +
+      '<div class="fund-grupo-tit">' + escapeHtmlSafe(g.grupo) + '</div>' +
       g.filas.map(function (r) {
-        return '<div class="fund-fila">' +
+        const detalle = [r.ref, r.refInd, r.mide].filter(Boolean).join('\n');
+        return '<div class="fund-fila"' + tipAttrs(r.rotulo, detalle) + '>' +
           '<span class="fund-rot">' + escapeHtmlSafe(r.rotulo) + '</span>' +
           '<span class="fund-val">' + escapeHtmlSafe(r.texto) + '</span>' +
           '<span class="fund-clasif' + (r.clasif && r.clasif.tono ? ' ' + r.clasif.tono : '') + '">' +
             escapeHtmlSafe(r.clasif ? r.clasif.texto : '') + '</span>' +
-          '<span class="fund-det">' +
-            (r.ref ? '<span class="fund-ref">' + escapeHtmlSafe(r.ref) + '</span>' : '') +
-            (r.refInd ? '<span class="fund-ref">' + escapeHtmlSafe(r.refInd) + '</span>' : '') +
-            '<span class="fund-mide">' + escapeHtmlSafe(r.mide || '') + '</span>' +
-          '</span>' +
         '</div>';
       }).join('') +
-    '</details>';
+    '</section>';
   }).join('');
   fichaFundamentalesEnCurso(!!_fundamentalesEnVuelo[claveTickerInfo(ticker, moneda)]);
 }

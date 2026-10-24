@@ -6639,48 +6639,148 @@ body[data-exporting="true"] .section-card {
 .inv-plan-fund.cargando { pointer-events: none; animation: pulse 1s ease-in-out infinite; }
 
 /* La ficha completa de fundamentales. Es un modal estándar —cabecera, aviso,
-   cuerpo, acciones— con el cuerpo en secciones plegables, porque con los
-   treinta y pico datos no entra en pantalla. Cada fila lleva el rótulo, el
-   valor en la tipografía de los números y una línea de lo que el dato mide;
-   las tres columnas son las mismas en todas las filas, así que se alinean sin
-   ajustarlas a ojo. Los títulos de grupo usan el criterio de los encabezados
-   de tabla: mono, mayúsculas, espaciado, color apagado. */
+   cuerpo, acciones— pensado para verse ENTERO sin desplazarse: los grupos van en
+   dos columnas y cada dato en una sola línea —rótulo, valor y lectura—. Lo que
+   explica cada dato (contra qué se comparó y qué mide) no ocupa lugar: aparece al
+   pasar el mouse, en el emergente de la app. Los títulos de grupo usan el
+   criterio de los encabezados de tabla: mono, mayúsculas, espaciado, color
+   apagado. */
 .fund-card {
-  max-width: 940px;
-  max-height: 90vh;
+  max-width: 1000px;
+  max-height: 94vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* Más compacta que el modal estándar: cada pixel de alto es un dato que no
+     hay que ir a buscar. */
+  padding: 18px 26px;
 }
+.fund-card > .modal-header { margin-bottom: 10px; }
+.fund-card > .alert-box { margin-bottom: 10px; padding: 8px 12px; }
+.fund-card > .info-box { padding: 8px 12px; margin-bottom: 10px; }
+.fund-card > .modal-actions { margin-top: 12px; }
 /* Sin esto el aviso, el encabezado y las acciones se achicarían para dar lugar
-   al cuerpo: el único que tiene que ceder y scrollear es el cuerpo. */
+   al cuerpo: el único que tiene que ceder, si la pantalla es muy baja, es el
+   cuerpo. */
 .fund-card > .modal-header,
 .fund-card > .alert-box,
+.fund-card > .fund-puntaje,
 .fund-card > .info-box,
 .fund-card > .modal-actions { flex-shrink: 0; }
+/* El eyebrow rojo es el de los diálogos peligrosos: éste es informativo, así
+   que va en el acento, como el del diagnóstico del archivo. */
+.fund-card .modal-eyebrow { color: var(--accent); }
 /* La nota de contra qué se comparó: el mismo texto chico de los demás avisos. */
 #fundNota {
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.45;
   color: var(--muted-2);
-  margin-bottom: 14px;
 }
-/* El eyebrow rojo es el de los diálogos peligrosos: éste es informativo, así
-   que va en el acento, como el del diagnóstico del archivo. */
-.fund-card .modal-eyebrow { color: var(--accent); }
+
+/* La franja del puntaje: el general, su lectura y las cuatro dimensiones. */
+.fund-puntaje {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 8px 14px;
+  margin-bottom: 8px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: default;
+}
+.fund-pt-gral { display: flex; align-items: baseline; gap: 2px; }
+.fund-pt-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink);
+}
+.fund-pt-num.pos, .fund-pt-lect.pos { color: var(--green); }
+.fund-pt-num.neg, .fund-pt-lect.neg { color: var(--red); }
+.fund-pt-de {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--muted-2);
+}
+.fund-pt-txt { display: flex; flex-direction: column; gap: 3px; min-width: 150px; }
+.fund-pt-tit {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+.fund-pt-lect {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted-2);
+}
+.fund-pt-dims {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+.fund-pt-dim { display: flex; flex-direction: column; gap: 4px; }
+.fund-pt-dh { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.fund-pt-dr {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fund-pt-dn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+/* La barra va de 0 a 100 y la marca del medio es el promedio del sector: lo que
+   pasa de ahí está mejor que él y lo que no llega, peor. */
+.fund-pt-barra {
+  position: relative;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border);
+}
+.fund-pt-barra i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--muted-2);
+}
+.fund-pt-barra i.pos { background: var(--green); }
+.fund-pt-barra i.neg { background: var(--red); }
+.fund-pt-barra::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  width: 1px;
+  height: 9px;
+  background: var(--ink);
+  opacity: 0.45;
+}
+
+/* El cuerpo: dos columnas que se reparten solas los grupos, sin partir ninguno. */
 .fund-cuerpo {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-right: 4px;
-  margin-bottom: 4px;
+  columns: 2;
+  column-gap: 34px;
 }
-.fund-grupo { border-top: 1px solid var(--border); }
-.fund-grupo:first-child { border-top: none; }
-.fund-grupo summary {
-  cursor: pointer;
-  padding: 10px 0 6px;
+.fund-grupo { break-inside: avoid; margin-bottom: 8px; }
+.fund-grupo-tit {
+  padding: 2px 4px 4px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--border);
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   letter-spacing: 1.2px;
@@ -6689,11 +6789,14 @@ body[data-exporting="true"] .section-card {
 }
 .fund-fila {
   display: grid;
-  grid-template-columns: 180px 196px 200px minmax(0, 1fr);
-  column-gap: 14px;
+  grid-template-columns: 148px 104px minmax(0, 1fr);
+  column-gap: 10px;
   align-items: baseline;
-  padding: 5px 0;
+  padding: 3px 4px;
+  border-radius: 5px;
+  cursor: default;
 }
+.fund-fila:hover { background: var(--bg-1); }
 .fund-rot {
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 12px;
@@ -6713,22 +6816,16 @@ body[data-exporting="true"] .section-card {
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 12px;
   font-weight: 500;
+  line-height: 1.25;
   color: var(--muted-2);
 }
 .fund-clasif.pos { color: var(--green); }
 .fund-clasif.neg { color: var(--red); }
-/* Contra qué se comparó y, debajo, qué mide el dato. */
-.fund-det { display: flex; flex-direction: column; gap: 2px; }
-.fund-ref {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted-2);
-}
-.fund-mide {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 11px;
-  line-height: 1.4;
-  color: var(--muted);
+/* Con la pantalla angosta no entran dos columnas ni el puntaje en una línea. */
+@media (max-width: 900px) {
+  .fund-cuerpo { columns: 1; }
+  .fund-puntaje { flex-wrap: wrap; }
+  .fund-pt-dims { flex-basis: 100%; }
 }
 
 /* Bloque "Concentración por sector" del cuerpo de cada cartera. Una fila por

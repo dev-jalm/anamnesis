@@ -1466,12 +1466,12 @@ group('fundamentales de Finviz', function () {
   });
   test('contra su propia historia: las ventas aceleran, frenan o siguen igual', function () {
     const c = function (yoy, hist) { return clasif('salesYoY', yoy, undefined, { salesPast5Y: hist }); };
-    assertEqual(c(14, 8.7).texto, 'acelera frente a su promedio de 5 años');
+    assertEqual(c(14, 8.7).texto, 'acelera frente a sus 5 años');
     assertEqual(c(14, 8.7).tono, 'pos');
-    assertEqual(c(3, 8.7).texto, 'frena frente a su promedio de 5 años');
+    assertEqual(c(3, 8.7).texto, 'frena frente a sus 5 años');
     assertEqual(c(3, 8.7).tono, 'neg');
-    assertEqual(c(9, 8.7).texto, 'en línea con su promedio de 5 años');
-    assertEqual(c(10.7, 8.7).texto, 'acelera frente a su promedio de 5 años');   // justo 2 puntos
+    assertEqual(c(9, 8.7).texto, 'en línea con sus 5 años');
+    assertEqual(c(10.7, 8.7).texto, 'acelera frente a sus 5 años');   // justo 2 puntos
     assertEqual(c(14, null), null);
   });
   test('convención de tamaño: mega, grande, media, pequeña y micro', function () {
@@ -1493,7 +1493,7 @@ group('fundamentales de Finviz', function () {
     assertEqual(k.rsi(25).texto, 'sobrevendido');
     assertEqual(k.rsi(50).texto, 'sin extremos');
     assertEqual(k.dist52High(-0.18).texto, 'cerca del máximo');
-    assertEqual(k.dist52High(-12).texto, 'a media distancia del máximo');
+    assertEqual(k.dist52High(-12).texto, 'a medio camino del máximo');
     assertEqual(k.dist52High(-40).texto, 'lejos del máximo');
     assertEqual(k.sma200(18).texto, 'sobre su media de 200 días');
     assertEqual(k.sma200(-3).texto, 'bajo su media de 200 días');
@@ -1517,11 +1517,90 @@ group('fundamentales de Finviz', function () {
   });
   test('convención de resultados: ya publicados, inminentes, próximos y lejanos', function () {
     const r = function (t) { return FUNDAMENTALES_CONVENCIONES.resultados(t, AHORA).texto; };
-    assertEqual(r('Oct 20 AMC'), 'ya publicados; sin fecha del próximo');
+    assertEqual(r('Oct 20 AMC'), 'último balance publicado');
     assertEqual(r('Oct 31 AMC'), 'inminentes');
     assertEqual(r('Nov 20 AMC'), 'próximos');
     assertEqual(r('Jan 20 AMC'), 'lejanos');
     assertEqual(FUNDAMENTALES_CONVENCIONES.resultados('basura', AHORA), null);
+  });
+
+  // — Puntaje contra el sector —
+  // Valores contra el promedio de SECTORES (Technology), ±15 % de "en línea".
+  const VALORES = {
+    favorable: { forwardPE: 10, peg: 0.5, pfcf: 15, roic: 40, operMargin: 40, profitMargin: 40,
+      salesPast5Y: 30, epsNext5Y: 40, debtEq: 0.1 },
+    enLinea: { forwardPE: 20, peg: 1, pfcf: 30, roic: 20, operMargin: 25, profitMargin: 20,
+      salesPast5Y: 15, epsNext5Y: 18, debtEq: 0.5 },
+    desfavorable: { forwardPE: 40, peg: 2, pfcf: 60, roic: 5, operMargin: 5, profitMargin: 5,
+      salesPast5Y: 3, epsNext5Y: 3, debtEq: 2 }
+  };
+  const refTech = referenciasDe(perfil, SECTORES, {}, { marketCap: 100e9 });
+  const puntaje = function (datos, ref) {
+    return puntajeContraSector(datos, ref === undefined ? refTech : ref, AHORA);
+  };
+  test('puntaje: todo favorable frente al sector es 100, todo desfavorable es 0 y en línea es 50', function () {
+    const a = puntaje(VALORES.favorable);
+    assertEqual(a.general, 100);
+    assertEqual(a.lectura.texto, 'favorable frente al sector');
+    assertEqual(a.lectura.tono, 'pos');
+    const b = puntaje(VALORES.desfavorable);
+    assertEqual(b.general, 0);
+    assertEqual(b.lectura.texto, 'desfavorable frente al sector');
+    assertEqual(b.lectura.tono, 'neg');
+    const c = puntaje(VALORES.enLinea);
+    assertEqual(c.general, 50);
+    assertEqual(c.lectura.texto, 'en línea con el sector');
+    assertEqual(c.lectura.tono, '');
+  });
+  test('puntaje: cuatro dimensiones, y cada una con las lecturas que contó', function () {
+    const p = puntaje(VALORES.favorable);
+    assertEqual(p.dimensiones.map(function (d) { return d.grupo; }).join('|'),
+      'Valuación|Calidad del negocio|Crecimiento|Deuda y liquidez');
+    assertEqual(p.dimensiones.map(function (d) { return d.lecturas; }).join('|'), '3|3|2|1');
+    assertEqual(p.lecturas, 9);
+    assertEqual(p.posibles, 9);
+    assertEqual(p.dimensiones[0].favorables, 3);
+    assertEqual(p.dimensiones[0].desfavorables, 0);
+  });
+  test('puntaje: cada dimensión pesa lo mismo, tenga una lectura o tres', function () {
+    // Valuación toda favorable (3), Calidad y Crecimiento en línea, Deuda desfavorable (1 sola).
+    const d = Object.assign({}, VALORES.enLinea, { forwardPE: 10, peg: 0.5, pfcf: 15, debtEq: 2 });
+    const p = puntaje(d);
+    assertEqual(p.dimensiones[0].puntaje, 100);
+    assertEqual(p.dimensiones[3].puntaje, 0);
+    // (100 + 50 + 50 + 0) / 4. Promediando por lectura saldría 61: la deuda, con una sola, casi no pesaría.
+    assertEqual(p.general, 50);
+  });
+  test('puntaje: cada dimensión se promedia dentro de sí misma', function () {
+    // Dos favorables y una en línea en Valuación: (1 + 1 + 0) / 3 → 83.
+    const d = Object.assign({}, VALORES.enLinea, { forwardPE: 10, peg: 0.5 });
+    assertEqual(puntaje(d).dimensiones[0].puntaje, 83);
+  });
+  test('puntaje: sin promedios, en un ETF o con pocas lecturas no hay puntaje', function () {
+    assertEqual(puntaje(VALORES.favorable, null), null);
+    assertEqual(puntaje({}), null);
+    // Sólo dos dimensiones con datos: no alcanza para decir algo del conjunto.
+    assertEqual(puntaje({ forwardPE: 10, peg: 0.5, pfcf: 15, roic: 40, operMargin: 40, profitMargin: 40 }), null);
+    // Tres dimensiones pero cuatro lecturas: tampoco.
+    assertEqual(puntaje({ forwardPE: 10, roic: 40, salesPast5Y: 30, debtEq: 0.1 }), null);
+  });
+  test('puntaje: un múltiplo negativo no cuenta ni a favor ni en contra', function () {
+    const d = Object.assign({}, VALORES.favorable, { forwardPE: -4 });
+    const p = puntaje(d);
+    assertEqual(p.lecturas, 8);
+    assertEqual(p.posibles, 9);
+    assertEqual(p.general, 100);
+  });
+  test('puntaje: las opiniones de analistas y el contexto de precio no entran', function () {
+    const base = puntaje(VALORES.enLinea).general;
+    const con = puntaje(Object.assign({}, VALORES.enLinea, { recom: 1, targetPrice: 500, price: 100, rsi: 80, beta: 2 })).general;
+    assertEqual(con, base);
+  });
+  test('puntaje: lo que no se compara con el sector no se cuenta (dividendo, Current Ratio, ventas contra sí misma)', function () {
+    const sin = puntaje(VALORES.enLinea);
+    const con = puntaje(Object.assign({}, VALORES.enLinea, { divYield: 9, currentRatio: 0.5, salesYoY: 30 }));
+    assertEqual(con.general, sin.general);
+    assertEqual(con.lecturas, 9);
   });
 
   // — Cómo se muestra —

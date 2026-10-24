@@ -1905,7 +1905,7 @@ const FUNDAMENTALES_CAMPOS = [
     comp: { con: 'sector', col: 'Sales past 5Y', mejor: 'alto', palabras: ['crece menos que {el}', 'crece igual que {el}', 'crece más que {el}'] },
     mide: 'Crecimiento anual promedio de las ventas en los últimos 5 años.' },
   { k: 'salesYoY', etiqueta: 'Sales Y/Y TTM', rotulo: 'Ventas a/a (TTM)', tipo: 'pct', grupo: 'Crecimiento', resumen: true,
-    comp: { con: 'propia', contra: 'salesPast5Y', margen: 2, mejor: 'alto', palabras: ['frena frente a su promedio de 5 años', 'en línea con su promedio de 5 años', 'acelera frente a su promedio de 5 años'] },
+    comp: { con: 'propia', contra: 'salesPast5Y', margen: 2, mejor: 'alto', palabras: ['frena frente a sus 5 años', 'en línea con sus 5 años', 'acelera frente a sus 5 años'] },
     mide: 'Cuánto crecieron las ventas de los últimos 12 meses contra los 12 anteriores.' },
   { k: 'epsNext5Y', etiqueta: 'EPS next 5Y', rotulo: 'EPS próx. 5 años', tipo: 'pct', grupo: 'Crecimiento', resumen: true,
     comp: { con: 'sector', col: 'EPS next 5Y', mejor: 'alto', palabras: ['crece menos que {el}', 'crece igual que {el}', 'crece más que {el}'] },
@@ -1978,13 +1978,13 @@ const FUNDAMENTALES_CONVENCIONES = {
   resultados: function (texto, ahora) {
     const r = resultadosDe(texto, ahora);
     if (!r) return null;
-    if (r.dias < 0) return { texto: 'ya publicados; sin fecha del próximo', tono: '' };
+    if (r.dias < 0) return { texto: 'último balance publicado', tono: '' };
     if (r.dias <= 7) return { texto: 'inminentes', tono: '' };
     if (r.dias <= 30) return { texto: 'próximos', tono: '' };
     return { texto: 'lejanos', tono: '' };
   },
   currentRatio: function (v) {
-    if (v < 1) return { texto: 'no cubre sus deudas de corto plazo', tono: 'neg' };
+    if (v < 1) return { texto: 'no cubre el corto plazo', tono: 'neg' };
     if (v < 1.5) return { texto: 'cobertura justa', tono: '' };
     return { texto: 'cobertura holgada', tono: 'pos' };
   },
@@ -2008,7 +2008,7 @@ const FUNDAMENTALES_CONVENCIONES = {
   },
   dist52High: function (v) {
     if (v >= -5) return { texto: 'cerca del máximo', tono: '' };
-    if (v >= -25) return { texto: 'a media distancia del máximo', tono: '' };
+    if (v >= -25) return { texto: 'a medio camino del máximo', tono: '' };
     return { texto: 'lejos del máximo', tono: '' };
   },
   sma200: function (v) {
@@ -2174,9 +2174,9 @@ function referenciasDe(perfil, sectores, industrias, datos) {
 function fundamentalesNotaDeReferencias(referencias) {
   if (!referencias) return 'Sin promedios de sector: los datos se muestran sin comparar.';
   if (referencias.participacion !== null && !referencias.industriaUsable) {
-    return 'Comparado con el sector ' + referencias.sector + '. La empresa es el ' +
+    return 'Se compara sólo con el sector ' + referencias.sector + ': la empresa es el ' +
       FUNDAMENTALES_N0.format(referencias.participacion * 100) + ' % de su industria (' +
-      referencias.industria + '): compararla con ella sería compararla consigo misma.';
+      referencias.industria + ').';
   }
   return '';
 }
@@ -2276,6 +2276,61 @@ function clasificarFundamental(campo, datos, calculados, referencias, ahora) {
   }
   const ref = referencias && referencias.valoresSector ? referencias.valoresSector[campo.k] : null;
   return _clasificarContraPromedio(valor, ref, comp);
+}
+
+// El puntaje del activo frente a su sector, de 0 a 100, donde 50 es estar en
+// línea con el promedio. Sale de las lecturas contra el sector que ya se ven en
+// pantalla —las que tienen un sentido favorable—, y de nada más: ni las
+// opiniones de los analistas ni el contexto de precio entran, porque no son una
+// comparación con el sector.
+//
+// El método es el más simple que se puede explicar: una lectura favorable suma
+// uno, una desfavorable resta uno y una en línea no mueve. Dentro de cada
+// dimensión (valuación, calidad, crecimiento, deuda) se promedian; el puntaje
+// general es el promedio de las dimensiones, todas con el mismo peso, así una
+// dimensión con una sola lectura pesa lo mismo que una con tres. Es un resumen de
+// cuántos datos están mejor o peor que el sector, no una recomendación, y hereda
+// las limitaciones de la referencia: el promedio de Finviz está ponderado por
+// capitalización y no es una mediana.
+//
+// Null si no hay promedios (un ETF, o no llegaron) o si hay muy pocas lecturas
+// para que un número diga algo: menos de tres dimensiones o de cinco lecturas.
+const FUNDAMENTALES_PUNTAJE = { favorable: 60, desfavorable: 40, minimoDimensiones: 3, minimoLecturas: 5 };
+
+function puntajeContraSector(datos, referencias, ahora) {
+  if (!referencias) return null;
+  const d = datos || {};
+  const calc = fundamentalesCalculados(d);
+  const dims = [];
+  let lecturas = 0;
+  let posibles = 0;
+  FUNDAMENTALES_CAMPOS.forEach(function (c) {
+    if (c.oculto || c.calculado || !c.comp || c.comp.con !== 'sector' || !c.comp.mejor) return;
+    posibles += 1;
+    const cl = clasificarFundamental(c, d, calc, referencias, ahora);
+    // "No comparable" (un múltiplo negativo) no es ni a favor ni en contra.
+    if (!cl || cl.texto.indexOf('no comparable') === 0) return;
+    let dim = dims.find(function (x) { return x.grupo === c.grupo; });
+    if (!dim) { dim = { grupo: c.grupo, suma: 0, favorables: 0, desfavorables: 0, lecturas: 0 }; dims.push(dim); }
+    dim.lecturas += 1;
+    lecturas += 1;
+    if (cl.tono === 'pos') { dim.suma += 1; dim.favorables += 1; }
+    else if (cl.tono === 'neg') { dim.suma -= 1; dim.desfavorables += 1; }
+  });
+  const P = FUNDAMENTALES_PUNTAJE;
+  if (dims.length < P.minimoDimensiones || lecturas < P.minimoLecturas) return null;
+  const lectura = function (n) {
+    if (n >= P.favorable) return { texto: 'favorable frente al sector', tono: 'pos' };
+    if (n <= P.desfavorable) return { texto: 'desfavorable frente al sector', tono: 'neg' };
+    return { texto: 'en línea con el sector', tono: '' };
+  };
+  const dimensiones = dims.map(function (x) {
+    const puntaje = Math.round(50 + 50 * (x.suma / x.lecturas));
+    return { grupo: x.grupo, puntaje: puntaje, tono: lectura(puntaje).tono,
+      lecturas: x.lecturas, favorables: x.favorables, desfavorables: x.desfavorables };
+  });
+  const general = Math.round(dims.reduce(function (a, x) { return a + (50 + 50 * (x.suma / x.lecturas)); }, 0) / dims.length);
+  return { general: general, lectura: lectura(general), dimensiones: dimensiones, lecturas: lecturas, posibles: posibles };
 }
 
 // Los datos listos para mostrar: grupos con sus filas ya formateadas y
@@ -4404,7 +4459,7 @@ if (typeof module !== 'undefined' && module.exports) {
     // fundamentales (Finviz)
     FUNDAMENTALES_CAMPOS, FUNDAMENTALES_CONVENCIONES, fundamentalesDeFinviz,
     perfilDeFinviz, gruposDeFinviz, referenciasDe, fundamentalesNotaDeReferencias,
-    fundamentalesParaMostrar, clasificarFundamental, fundamentalesCalculados,
+    fundamentalesParaMostrar, clasificarFundamental, puntajeContraSector, fundamentalesCalculados,
     resultadosDe, fundamentalesTextoDeResultados, numeroDeFinviz, diasDeAntiguedad,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
