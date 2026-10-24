@@ -36,6 +36,10 @@
      (6,6:1 sobre --tooltip-bg); en oscuro el tooltip es claro y el acento
      quedaba en 1,5:1, así que va un dorado oscuro (5,2:1). */
   --tooltip-accent: #D4A24C;
+  /* Verde y rojo para valores DENTRO de un tooltip: el del resto de la app
+     está pensado para el fondo de la pantalla, no para este. */
+  --tooltip-pos: #9CC27A;
+  --tooltip-neg: #E8836B;
   --on-dark-bg: #2A2520;
   --on-dark-text: #F5F1E8;
   /* Los colores de los sectores salen de PALETA_DISTRIBUCION (dashboard.js),
@@ -79,6 +83,8 @@
   --tooltip-bg: #EFE7D6;
   --tooltip-text: #1A1714;
   --tooltip-accent: #7A5A0E;
+  --tooltip-pos: #3F6B1F;
+  --tooltip-neg: #A63A22;
   --on-dark-bg: #0F0D0B;
   --on-dark-text: #EFE7D6;
   --sector-neutro-1: #B5A892;
@@ -6575,6 +6581,52 @@ body[data-exporting="true"] .section-card {
      interpreta HTML. Los saltos van como saltos de verdad. */
   white-space: pre-line;
 }
+/* Datos en filas, para el tooltip que lleva más que una frase (los
+   fundamentales de un activo): el rótulo a la izquierda en Inter, el valor a la
+   derecha en JetBrains Mono —la tipografía de los números— y un encabezado por
+   grupo con el mismo criterio que los rótulos de la app: mono, mayúsculas,
+   espaciado. */
+.sector-tip-filas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 18px;
+  row-gap: 2px;
+  margin-top: 8px;
+}
+.sector-tip-grupo {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--tooltip-accent);
+}
+.sector-tip-grupo:first-child { margin-top: 0; }
+.sector-tip-rotulo {
+  font-family: 'Inter', system-ui;
+  font-size: 11px;
+  opacity: 0.85;
+}
+.sector-tip-valor {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+}
+.sector-tip-valor.pos { color: var(--tooltip-pos); }
+.sector-tip-valor.neg { color: var(--tooltip-neg); }
+
+/* Fundamentales de un activo del plan: el botón vive en la celda del ticker,
+   al lado de su sigla. Sin datos es un ícono apagado que invita a traerlos; con
+   datos pasa a verde —como "listo" del botón de comprar— y lleva el tooltip.
+   Pasada una semana el verde se vuelve acento: el dato sigue ahí, pero ya no es
+   de fiar a ciegas. */
+.inv-plan-fund { margin-left: 6px; vertical-align: middle; }
+.inv-plan-fund:hover { color: var(--accent) !important; }
+.inv-plan-fund.listo { color: var(--green); }
+.inv-plan-fund.listo.vieja { color: var(--accent); }
+.inv-plan-fund.cargando { pointer-events: none; animation: pulse 1s ease-in-out infinite; }
 
 /* Bloque "Concentración por sector" del cuerpo de cada cartera. Una fila por
    sector: nombre · barra con la línea del umbral · porcentaje · tickers. */

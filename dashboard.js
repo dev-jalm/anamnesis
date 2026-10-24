@@ -18677,8 +18677,34 @@ function tooltipSector(s, prefix, etiquetaDe, soloLectores) {
     tip = document.createElement('div');
     tip.className = 'sector-tip hidden';
     tip.setAttribute('role', 'tooltip');
-    tip.innerHTML = '<div class="sector-tip-titulo"></div><div class="sector-tip-detalle"></div>';
+    tip.innerHTML = '<div class="sector-tip-titulo"></div><div class="sector-tip-detalle"></div>' +
+      '<div class="sector-tip-filas hidden"></div>';
     document.body.appendChild(tip);
+  }
+  // Los datos en filas, para el tooltip que lleva más que una frase. Vienen en
+  // data-tip-filas como [{ grupo, filas: [{ rotulo, texto, tono }] }] y se
+  // arman con textContent, igual que el resto: nada de lo que llegue se
+  // interpreta como HTML.
+  function pintarFilas(el) {
+    const cont = tip.querySelector('.sector-tip-filas');
+    let grupos = null;
+    try { grupos = JSON.parse(el.getAttribute('data-tip-filas') || 'null'); } catch (err) { grupos = null; }
+    cont.textContent = '';
+    cont.classList.toggle('hidden', !Array.isArray(grupos));
+    if (!Array.isArray(grupos)) return;
+    const celda = function (clase, texto) {
+      const d = document.createElement('div');
+      d.className = clase;
+      d.textContent = texto;
+      cont.appendChild(d);
+    };
+    grupos.forEach(function (g) {
+      celda('sector-tip-grupo', g.grupo);
+      (g.filas || []).forEach(function (f) {
+        celda('sector-tip-rotulo', f.rotulo);
+        celda('sector-tip-valor' + (f.tono ? ' ' + f.tono : ''), f.texto);
+      });
+    });
   }
   function ubicar(e) {
     const M = 12;
@@ -18698,6 +18724,7 @@ function tooltipSector(s, prefix, etiquetaDe, soloLectores) {
     const detEl = tip.querySelector('.sector-tip-detalle');
     detEl.textContent = det;
     detEl.classList.toggle('hidden', !det);
+    pintarFilas(el);
     tip.classList.remove('hidden');
     ubicar(e);
   });
@@ -18709,6 +18736,13 @@ function tooltipSector(s, prefix, etiquetaDe, soloLectores) {
     const de = e.target.closest && e.target.closest('[data-tip-titulo]');
     const a = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-tip-titulo]');
     if (de && de !== a) tip.classList.add('hidden');
+  });
+  // Un botón con tooltip que hace algo al presionarlo se redibuja al terminar
+  // —el de fundamentales trae datos y repinta la fila—, y el elemento que
+  // estaba bajo el mouse desaparece sin que llegue su mouseout: el tooltip
+  // quedaba pegado en pantalla. Presionar el botón lo descarta.
+  document.addEventListener('click', function (e) {
+    if (tip && e.target.closest && e.target.closest('button[data-tip-titulo]')) tip.classList.add('hidden');
   });
 })();
 
@@ -21154,6 +21188,98 @@ function cabeceraPlanHtml(rotulo, meta, capital, pct) {
   '</div>';
 }
 
+// ─── Fundamentales de un activo ───
+// Los datos con los que se decide si un activo merece entrar al plan —valuación,
+// crecimiento, márgenes, deuda, precio objetivo de los analistas— se traen de
+// Finviz a pedido, uno por activo, desde un botón en su fila. El navegador no
+// puede pedirle nada a Finviz (CORS), así que se le pide al Worker del propio
+// sitio (worker/fundamentales.mjs) y éste hace de intermediario.
+//
+// Se guardan en tickerInfo del activo, con la fecha, porque cambian despacio:
+// el P/E y el PEG con el precio, el resto con los balances (cuatro veces al
+// año) o con las revisiones de los analistas. Una semana sin actualizar ya
+// amerita un aviso; antes de eso no hace falta volver a pedir.
+const FUNDAMENTALES_DIAS_VIGENTE = 7;
+const ICONO_FUNDAMENTALES =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true">' +
+  '<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>';
+
+// El botón del activo. Sin datos es la invitación a traerlos; con datos lleva
+// el tooltip con la ficha completa, y volver a presionarlo la actualiza.
+function botonFundamentalesHtml(ticker, moneda) {
+  const f = infoDeTicker(state.tickerInfo, ticker, moneda).fundamentales;
+  const base = ' data-plan-fund="' + escapeHtmlSafe(ticker) + '" data-moneda="' + escapeHtmlSafe(moneda) + '"';
+  if (!f || !f.datos) {
+    return '<button type="button" class="inv-delete-btn inv-plan-fund"' + base +
+      ' title="Traer los fundamentales de Finviz">' + ICONO_FUNDAMENTALES + '</button>';
+  }
+  const dias = diasDeAntiguedad(f.fecha);
+  const vieja = dias !== null && dias > FUNDAMENTALES_DIAS_VIGENTE;
+  const cuando = new Date(f.fecha).toLocaleDateString('es-AR');
+  const lineas = ['Finviz · ' + cuando +
+    (dias ? ' (hace ' + dias + (dias === 1 ? ' día)' : ' días)') : '')];
+  if (vieja) lineas.push('Pasó más de una semana: conviene actualizar.');
+  if (f.faltan && f.faltan.length) lineas.push('Sin dato en Finviz: ' + f.faltan.join(', ') + '.');
+  lineas.push('Clic para actualizar.');
+  return '<button type="button" class="inv-delete-btn inv-plan-fund listo' + (vieja ? ' vieja' : '') + '"' +
+    base + tipAttrs(ticker + ' · fundamentales', lineas.join('\n')) +
+    ' data-tip-filas="' + escapeHtmlSafe(JSON.stringify(fundamentalesParaMostrar(f.datos))) + '"' +
+    ' aria-label="Fundamentales de ' + escapeHtmlSafe(ticker) + '">' + ICONO_FUNDAMENTALES + '</button>';
+}
+
+const _fundamentalesEnVuelo = {};
+
+function traerFundamentales(btn) {
+  const ticker = btn.getAttribute('data-plan-fund');
+  const moneda = btn.getAttribute('data-moneda') === 'USD' ? 'USD' : 'ARS';
+  const k = claveTickerInfo(ticker, moneda);
+  if (_fundamentalesEnVuelo[k]) return;
+  const avisar = function (mensaje) {
+    appAlert({ title: 'No se pudieron traer los fundamentales', eyebrow: ticker, message: mensaje, danger: true });
+  };
+  // Abierta desde un archivo no hay servidor del sitio al que pedirle.
+  if (location.protocol !== 'http:' && location.protocol !== 'https:') {
+    avisar('Los fundamentales se piden al servidor del sitio, y esta copia de la app está abierta desde un archivo. Abrila desde el sitio publicado.');
+    return;
+  }
+  _fundamentalesEnVuelo[k] = true;
+  btn.classList.add('cargando');
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(function () { controller.abort(); }, 15000);
+  fetch('/api/fundamentales?t=' + encodeURIComponent(ticker), { signal: controller.signal })
+    .then(function (resp) {
+      return resp.json().catch(function () { return {}; }).then(function (cuerpo) {
+        if (!resp.ok) throw new Error(cuerpo.error || ('El servidor respondió ' + resp.status + '.'));
+        return cuerpo;
+      });
+    })
+    .then(function (cuerpo) {
+      const r = fundamentalesDeFinviz(cuerpo.html);
+      // Ni un dato reconocible: no es que a la empresa le falte algo, es que
+      // Finviz cambió la página. Guardar los nulls pisaría lo que ya se tenía.
+      if (!r.hayDatos) throw new Error('Finviz respondió, pero no se reconoce su tabla de datos: seguramente cambió su formato.');
+      if (!state.tickerInfo) state.tickerInfo = {};
+      if (!state.tickerInfo[k]) state.tickerInfo[k] = { moneda: moneda };
+      state.tickerInfo[k].fundamentales = {
+        datos: r.datos, faltan: r.faltan, fuente: 'finviz',
+        fecha: cuerpo.fecha || new Date().toISOString()
+      };
+      scheduleSave();
+    })
+    .catch(function (err) {
+      avisar(err && err.name === 'AbortError'
+        ? 'Tardó más de 15 segundos en responder.'
+        : (err && err.message ? err.message : 'Error desconocido.'));
+    })
+    .then(function () {
+      clearTimeout(timeoutId);
+      delete _fundamentalesEnVuelo[k];
+      if (typeof renderMainAssets === 'function') renderMainAssets();
+    });
+}
+
 // El cuerpo de la sección: una tabla por moneda, como en Activos, y el
 // formulario de alta —que vive en la banda de la sección, no acá—.
 function bloquePlanificacion(destinos, nombreCartera) {
@@ -21312,7 +21438,7 @@ function bloquePlanificacion(destinos, nombreCartera) {
       '</td>' +
       celdaBroker +
       celdaPf +
-      '<td class="ticker">' + escapeHtmlSafe(g.ticker) + '</td>' +
+      '<td class="ticker">' + escapeHtmlSafe(g.ticker) + botonFundamentalesHtml(g.ticker, g.moneda) + '</td>' +
       '<td><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(g.ticker) +
         '" data-moneda="' + escapeHtmlSafe(g.moneda) + '" value="' +
         escapeHtmlSafe(info.descripcion || '').replace(/"/g, '&quot;') + '" placeholder="EJ: APPLE INC."></td>' +
@@ -21560,6 +21686,8 @@ document.addEventListener('click', function (e) {
     if (typeof renderMainAssets === 'function') renderMainAssets();
     return;
   }
+  const fund = e.target.closest && e.target.closest('[data-plan-fund]');
+  if (fund) { traerFundamentales(fund); return; }
   const del = e.target.closest && e.target.closest('[data-plan-del]');
   if (del) {
     const clave = carteraDelBoton(del);

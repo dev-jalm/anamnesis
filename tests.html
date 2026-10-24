@@ -1175,6 +1175,100 @@ group('getReservaAcumulado — progreso del plan', function () {
 // SUITE — SCHEMA VERSIONING
 // ============================================================
 
+group('fundamentales de Finviz', function () {
+  // Las filas tal como las escribe Finviz: la etiqueta a veces es un enlace, el
+  // valor a veces va en un <span> de color, a veces dentro de otro enlace.
+  const fila = function (etiqueta, valor, conEnlace) {
+    return '<tr class="table-dark-row"><td class="snapshot-td2" align="left" data-boxover-html="x">' +
+      '<div class="snapshot-td-label">' +
+      (conEnlace ? '<a href="stock?t=AAPL" class="hover:underline">' + etiqueta + '</a>' : etiqueta) +
+      '</div></td><td class="snapshot-td2" align="left" style="">' +
+      '<div class="snapshot-td-content">' + valor + '</div></td></tr>';
+  };
+  const pagina = function (extra) {
+    return '<table class="js-snapshot-table snapshot-table2">' +
+      fila('P/E', '<b>39.86</b>') +
+      fila('Forward P/E', '<b>36.24</b>') +
+      fila('PEG', '<b><span class="color-text is-negative">2.88</span></b>') +
+      fila('EPS next 5Y', '<b>12.58%</b>') +
+      fila('Gross Margin', '<b>48.65%</b>') +
+      fila('Profit Margin', '<b><span class="color-text is-negative">27.62%</span></b>') +
+      fila('Sales Y/Y TTM', '<b>-3.10%</b>') +
+      fila('Debt/Eq', '<b><span>0.78</span></b>') +
+      fila('LT Debt/Eq', '<b>0.66</b>') +
+      fila('Quick Ratio', '<b>0.93</b>') +
+      fila('Current Ratio', '<b>1.00</b>') +
+      fila('Target Price', '<a href="stock?t=AAPL"><b><span class="color-text">1,335.44</span></b></a>', true) +
+      (extra || '') + '</table>';
+  };
+  test('lee los once datos por su etiqueta, con o sin span y enlace', function () {
+    const r = fundamentalesDeFinviz(pagina());
+    assertEqual(r.datos.forwardPE, 36.24);
+    assertEqual(r.datos.peg, 2.88);
+    assertEqual(r.datos.epsNext5Y, 12.58);
+    assertEqual(r.datos.grossMargin, 48.65);
+    assertEqual(r.datos.profitMargin, 27.62);
+    assertEqual(r.datos.debtEq, 0.78);
+    assertEqual(r.datos.ltDebtEq, 0.66);
+    assertEqual(r.datos.quickRatio, 0.93);
+    assertEqual(r.datos.currentRatio, 1);
+    assertEqual(r.faltan.length, 0);
+    assert(r.hayDatos, 'hay datos');
+  });
+  test('un negativo conserva el signo y los miles pierden la coma', function () {
+    const r = fundamentalesDeFinviz(pagina());
+    assertEqual(r.datos.salesYoY, -3.1);
+    assertEqual(r.datos.targetPrice, 1335.44);
+  });
+  test('un dato que Finviz no tiene queda en null y se cuenta como faltante', function () {
+    const html = pagina().replace('<b>48.65%</b>', '<b>-</b>');
+    const r = fundamentalesDeFinviz(html);
+    assertEqual(r.datos.grossMargin, null);
+    assertEqual(r.faltan.length, 1);
+    assertEqual(r.faltan[0], 'Margen bruto');
+    assert(r.hayDatos, 'los demas siguen');
+  });
+  test('una etiqueta que no esta tampoco se inventa', function () {
+    const html = pagina().replace('Quick Ratio', 'Otra cosa');
+    assertEqual(fundamentalesDeFinviz(html).datos.quickRatio, null);
+  });
+  test('Debt/Eq no se confunde con LT Debt/Eq', function () {
+    const r = fundamentalesDeFinviz(pagina());
+    assert(r.datos.debtEq !== r.datos.ltDebtEq, 'son filas distintas');
+  });
+  test('sin ninguna fila reconocible no hay datos', function () {
+    const r = fundamentalesDeFinviz('<html><body>Just a moment...</body></html>');
+    assert(!r.hayDatos, 'no hay datos');
+    assertEqual(r.faltan.length, 11);
+    assert(!fundamentalesDeFinviz(undefined).hayDatos, 'tampoco con undefined');
+  });
+  test('para mostrar: agrupa, formatea en es-AR y colorea el crecimiento', function () {
+    const g = fundamentalesParaMostrar(fundamentalesDeFinviz(pagina()).datos);
+    assertEqual(g.map(function (x) { return x.grupo; }).join('|'),
+      'Valuación|Crecimiento|Márgenes|Deuda y liquidez|Analistas');
+    const todas = [].concat.apply([], g.map(function (x) { return x.filas; }));
+    assertEqual(todas.length, 11);
+    const por = function (r) { return todas.find(function (f) { return f.rotulo === r; }); };
+    assertEqual(por('Forward P/E').texto, '36,24');
+    assertEqual(por('Margen bruto').texto, '48,65%');
+    assertEqual(por('Precio objetivo').texto, 'US$ 1.335,44');
+    assertEqual(por('EPS próx. 5 años').tono, 'pos');
+    assertEqual(por('Ventas a/a (TTM)').tono, 'neg');
+    assertEqual(por('Margen bruto').tono, '');
+  });
+  test('para mostrar: un dato sin valor sale como guion', function () {
+    const g = fundamentalesParaMostrar({ forwardPE: null });
+    assertEqual(g[0].filas[0].texto, '—');
+  });
+  test('antiguedad en dias enteros; sin fecha valida, null', function () {
+    const ahora = Date.parse('2026-10-24T12:00:00Z');
+    assertEqual(diasDeAntiguedad('2026-10-24T08:00:00Z', ahora), 0);
+    assertEqual(diasDeAntiguedad('2026-10-17T12:00:00Z', ahora), 7);
+    assertEqual(diasDeAntiguedad(undefined, ahora), null);
+    assertEqual(diasDeAntiguedad('basura', ahora), null);
+  });
+});
+
 group('tickerInfo por ticker y moneda', function () {
   test('la clave separa el mismo ticker segun la moneda', function () {
     assertEqual(claveTickerInfo('SPY', 'ARS'), 'SPY|ARS');

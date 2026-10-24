@@ -1836,6 +1836,82 @@ function infoDeTicker(tickerInfo, ticker, moneda) {
 }
 
 // ============================================================
+// FUNDAMENTALES DE UN ACTIVO (Finviz)
+// ============================================================
+// Los once datos que se miran antes de entrar a una posición, tal como los
+// rotula Finviz. `etiqueta` es el texto exacto de su tabla: es la clave con la
+// que se los busca, y por eso se lee la etiqueta y no la posición — Finviz
+// agrega y reordena filas sin avisar. `tipo` dice cómo se muestra: ratio (dos
+// decimales), pct (dos decimales y %) o precio (en dólares, que es como lo da).
+// Los grupos son los del tooltip: lo que se lee junto se agrupa junto.
+const FUNDAMENTALES_CAMPOS = [
+  { k: 'forwardPE',    etiqueta: 'Forward P/E',   rotulo: 'Forward P/E',        tipo: 'ratio',  grupo: 'Valuación' },
+  { k: 'peg',          etiqueta: 'PEG',           rotulo: 'PEG',                tipo: 'ratio',  grupo: 'Valuación' },
+  { k: 'epsNext5Y',    etiqueta: 'EPS next 5Y',   rotulo: 'EPS próx. 5 años',   tipo: 'pct',    grupo: 'Crecimiento', signo: true },
+  { k: 'salesYoY',     etiqueta: 'Sales Y/Y TTM', rotulo: 'Ventas a/a (TTM)',   tipo: 'pct',    grupo: 'Crecimiento', signo: true },
+  { k: 'grossMargin',  etiqueta: 'Gross Margin',  rotulo: 'Margen bruto',       tipo: 'pct',    grupo: 'Márgenes' },
+  { k: 'profitMargin', etiqueta: 'Profit Margin', rotulo: 'Margen neto',        tipo: 'pct',    grupo: 'Márgenes' },
+  { k: 'debtEq',       etiqueta: 'Debt/Eq',       rotulo: 'Deuda / patrimonio', tipo: 'ratio',  grupo: 'Deuda y liquidez' },
+  { k: 'ltDebtEq',     etiqueta: 'LT Debt/Eq',    rotulo: 'Deuda LP / patrimonio', tipo: 'ratio', grupo: 'Deuda y liquidez' },
+  { k: 'quickRatio',   etiqueta: 'Quick Ratio',   rotulo: 'Quick Ratio',        tipo: 'ratio',  grupo: 'Deuda y liquidez' },
+  { k: 'currentRatio', etiqueta: 'Current Ratio', rotulo: 'Current Ratio',      tipo: 'ratio',  grupo: 'Deuda y liquidez' },
+  { k: 'targetPrice',  etiqueta: 'Target Price',  rotulo: 'Precio objetivo',    tipo: 'precio', grupo: 'Analistas' }
+];
+
+// Pasa la tabla que devuelve el Worker a los once números. Un dato que Finviz
+// no tiene ("-") o que no está en la tabla queda en null y se cuenta en
+// `faltan`: nunca se inventa un cero. `hayDatos` es falso cuando no apareció
+// NINGUNO — la señal de que Finviz cambió la página o devolvió otra cosa, y no
+// de que a esa empresa le falte algo.
+function fundamentalesDeFinviz(html) {
+  const textos = {};
+  const re = /snapshot-td-label">([\s\S]*?)<\/div>\s*<\/td>\s*<td[^>]*>\s*<div class="snapshot-td-content">([\s\S]*?)<\/div>\s*<\/td>/g;
+  const sinTags = function (s) { return s.replace(/<[^>]*>/g, '').trim(); };
+  let m;
+  while ((m = re.exec(String(html || ''))) !== null) {
+    const etiqueta = sinTags(m[1]);
+    if (!(etiqueta in textos)) textos[etiqueta] = sinTags(m[2]);
+  }
+  const datos = {};
+  const faltan = [];
+  FUNDAMENTALES_CAMPOS.forEach(function (c) {
+    const t = textos[c.etiqueta];
+    // Finviz separa miles con coma y decimales con punto.
+    const n = (t === undefined || t === '-') ? NaN : parseFloat(t.replace(/,/g, '').replace('%', ''));
+    datos[c.k] = isFinite(n) ? n : null;
+    if (datos[c.k] === null) faltan.push(c.rotulo);
+  });
+  return { datos: datos, faltan: faltan, hayDatos: faltan.length < FUNDAMENTALES_CAMPOS.length };
+}
+
+// Los datos listos para mostrar: grupos con sus filas ya formateadas. Es la
+// única fuente del tooltip, para que el texto no se arme en dos lugares.
+// `tono` pinta el crecimiento: positivo en verde, negativo en rojo.
+function fundamentalesParaMostrar(datos) {
+  const dos = function (n) { return n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+  const grupos = [];
+  FUNDAMENTALES_CAMPOS.forEach(function (c) {
+    let g = grupos.find(function (x) { return x.grupo === c.grupo; });
+    if (!g) { g = { grupo: c.grupo, filas: [] }; grupos.push(g); }
+    const n = datos ? datos[c.k] : null;
+    let texto = '—', tono = '';
+    if (n !== null && n !== undefined) {
+      texto = c.tipo === 'pct' ? dos(n) + '%' : (c.tipo === 'precio' ? 'US$ ' + dos(n) : dos(n));
+      if (c.signo && n !== 0) tono = n > 0 ? 'pos' : 'neg';
+    }
+    g.filas.push({ rotulo: c.rotulo, texto: texto, tono: tono });
+  });
+  return grupos;
+}
+
+// Cuántos días pasaron desde que se trajeron. null si nunca se trajeron.
+function diasDeAntiguedad(fechaIso, ahora) {
+  const t = Date.parse(fechaIso);
+  if (!isFinite(t)) return null;
+  return Math.max(0, Math.floor(((ahora === undefined ? Date.now() : ahora) - t) / 86400000));
+}
+
+// ============================================================
 // SECTOR DE LOS ACTIVOS
 // ============================================================
 // Catálogo cerrado: el sector se elige de esta lista, no se escribe. Con texto
@@ -3901,6 +3977,9 @@ if (typeof module !== 'undefined' && module.exports) {
     serializeFullConfig, previewImport, PARAMS_CONFIG_KEYS,
     fusionarPorId, fusionarDict, fusionarFichaMedica, fusionarPresupuestos,
     normalizarConfigImportada, contarMesesPresupuestados,
+    // fundamentales (Finviz)
+    FUNDAMENTALES_CAMPOS, fundamentalesDeFinviz, fundamentalesParaMostrar,
+    diasDeAntiguedad,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
     resumirTanda,

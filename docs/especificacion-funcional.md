@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.105 |
+| **Versión** | 1.106 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -59,7 +59,7 @@ El contexto de uso es Argentina: coexistencia de pesos y dólares, cotización M
 
 | # | Objetivo | Cómo se verifica |
 |---|---|---|
-| OBJ-1 | El usuario conserva la propiedad y el control físico de sus datos | No existe backend. El archivo de datos reside en el disco del usuario, en la ubicación que él elige |
+| OBJ-1 | El usuario conserva la propiedad y el control físico de sus datos | No existe backend de datos. El archivo de datos reside en el disco del usuario, en la ubicación que él elige |
 | OBJ-2 | Clasificar movimientos deja de ser trabajo manual repetitivo | Reglas explícitas + aprendizaje sobre el historial propio |
 | OBJ-3 | El diagnóstico se resume en un número interpretable | Score de 0 a 100 con cinco dimensiones configurables |
 | OBJ-4 | Cargar un resumen bancario no exige preparar el archivo | Se sube tal como lo emite la entidad, en CSV o Excel |
@@ -641,8 +641,11 @@ Compartida por todas las compras del mismo símbolo.
 | `moneda` | Enumerado `ARS` \| `USD` | No |
 | `lastUpdate` | Texto ISO 8601 | No |
 | `sector` | Clave del catálogo de RF-073b | No |
+| `fundamentales` | Objeto `{ datos, faltan, fuente, fecha }` (RF-212w a RF-212z) | No |
 
 `sector` se guarda sólo cuando el usuario lo asigna y difiere del automático (RF-073f). El sector que proviene del listado de BYMA no se copia a este registro: se lee del listado cada vez.
+
+`fundamentales.datos` guarda los once valores de RF-212x como números, con `null` donde Finviz no tiene el dato; los porcentajes se guardan como porcentaje (12,58 es 12,58 %). `faltan` lista los rótulos de los que quedaron en `null`, `fuente` vale `finviz` y `fecha` es el instante, en ISO 8601, en que el intermediario trajo la ficha.
 
 ### 5.3.1 Portafolio
 
@@ -876,6 +879,9 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | INT-04 | OKX | `https://www.okx.com/api/v5/market/candles` | Velas para la verificación automática de la mesa | 12 s |
 | INT-05 | OKX | `https://www.okx.com/api/v5/public/instruments?instType=SWAP` | Catálogo de instrumentos | — |
 | INT-06 | OKX | `https://www.okx.com/api/v5/market/tickers?instType=SPOT` | Precio de las tenencias en cripto | 10 s |
+| INT-07 | Finviz, por el intermediario del propio sitio | `/api/fundamentales?t={símbolo}` → `https://finviz.com/quote.ashx?t={símbolo}` | Fundamentales de un activo planificado (RF-212w a RF-212z) | 15 s |
+
+**INT-07.** El navegador no puede leer Finviz directamente —su respuesta no admite lecturas desde otro origen (CORS)—, así que la aplicación le pide la ficha a un intermediario que corre en el mismo sitio (`worker/fundamentales.mjs`, un Worker de Cloudflare atendido antes que los archivos estáticos sólo para `/api/*`). El intermediario **no tiene estado ni guarda datos**: valida que el símbolo sea alfanumérico (con un punto o guion para las clases, como `BRK-B`), pide la página, devuelve únicamente su tabla de datos y la conserva en caché **seis horas**. Lo único que recibe es un símbolo bursátil. **No interpreta los valores**: eso lo hace la aplicación, que puede corregirse sin volver a desplegar el intermediario. Abierta desde un archivo local, la aplicación no tiene a quién pedirle y lo informa.
 
 **Requerimientos transversales de integración**
 
@@ -883,7 +889,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 |---|---|
 | RF-200 | Ninguna integración recibe datos del usuario. El intercambio se limita a consultar precios públicos |
 | RF-201 | La indisponibilidad de un servicio externo no impide operar: los valores quedan sin actualizar y la aplicación continúa |
-| RF-202 | Toda consulta a un servicio externo se cancela por tiempo, sin dejar la operación colgada: 8 segundos las de cotización, 10 las de precios de CEDEARs y 12 las de velas de mercado |
+| RF-202 | Toda consulta a un servicio externo se cancela por tiempo, sin dejar la operación colgada: 8 segundos las de cotización, 10 las de precios de CEDEARs, 12 las de velas de mercado y 15 las de fundamentales |
 | RF-203 | Las cotizaciones obtenidas se conservan en caché para no repetir consultas dentro de la misma sesión |
 
 **Dependencias de terceros embebidas**
@@ -942,6 +948,10 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RF-212v | El plan ofrece las mismas **dos vistas** que Activos, con el mismo selector: por cartera, con una banda que la encabeza, y por **portafolio**, con un bloque por objetivo y el grupo sin asignar al final. Cada banda informa el capital, lo comprometido por ese grupo y lo que queda. La vista se ofrece sólo donde los portafolios existen |
 | RF-212s | Un activo planificado se puede comprar **entero desde su fila**, con todos sus tramos en una sola operación, además de tramo por tramo desde el detalle. Es la contraparte de vender un ticker completo desde la fila de Activos, y el botón va en el mismo lugar. El precio propuesto es el del mercado y los nominales los que entran en el monto reservado por el conjunto; sin precio actual cargado se usa el promedio de los precios de entrada **ponderado por lo que reserva cada tramo**, porque no hay un objetivo único que respetar. Se registra una compra por el total y las líneas ejecutadas salen del plan |
 | RF-212t | Las cinco secciones de un panel de cartera llevan **su número de orden delante del nombre** —"1 \| Planificación"—: el orden sigue el ciclo de una posición y el número lo hace explícito, en vez de dejarlo como una coincidencia de la lista |
+| RF-212w | Cada activo del plan lleva, **junto a su símbolo**, un botón para traer sus **fundamentales** de Finviz. Es una acción a pedido y por activo: ni se dispara sola ni trae el plan entero, porque los datos cambian despacio —el P/E y el PEG con el precio, el resto con los balances, cuatro veces al año, o con las revisiones de los analistas— y no hay nada que mirar todos los días. Es el mismo botón de ícono que comprar y quitar, del mismo tamaño y color, y no agranda la fila |
+| RF-212x | Se traen **once datos**, en cinco grupos: **Valuación** (Forward P/E, PEG), **Crecimiento** (EPS próx. 5 años, ventas a/a TTM), **Márgenes** (bruto, neto), **Deuda y liquidez** (deuda / patrimonio, deuda de largo plazo / patrimonio, Quick Ratio, Current Ratio) y **Analistas** (precio objetivo, en dólares). Se buscan **por el rótulo** de la tabla de Finviz y no por su posición, que cambia sin aviso. Un dato que Finviz no tiene queda vacío —nunca en cero— y se informa cuál faltó |
+| RF-212y | Con los datos traídos el botón pasa a **verde** y presionarlo de nuevo los actualiza. Al pasar el mouse por encima se muestra, en el **emergente propio del producto** (RNF-19), la ficha ordenada: título con el símbolo, la fecha del dato y, debajo, cada grupo con su encabezado y sus filas —rótulo a la izquierda, valor a la derecha en la tipografía de los números—. El crecimiento se pinta en verde si es positivo y en rojo si es negativo. Presionar el botón descarta el emergente |
+| RF-212z | Pasada **una semana** el botón pasa del verde al color de acento y el emergente lo dice: el dato sigue ahí, pero conviene renovarlo. El intermediario conserva cada ficha seis horas (INT-07), así que actualizar antes devuelve la misma. Si la consulta falla —Finviz no conoce el símbolo, no responde, tarda más de 15 segundos o cambió su página y no se reconoce ni un dato— se avisa con el diálogo propio del producto (9.2), **sin tocar** lo que ya se tenía guardado |
 | RF-212r | "El mismo criterio" significa **los mismos controles**, no un dibujo parecido: la descripción del activo en el plan es el mismo campo de texto de la tabla de activos y su sector el mismo selector, de modo que comparten tipografía, cuerpo, peso, color y el alto que le dan a la fila, y se editan desde los dos lados. El orden de las columnas es el de aquella tabla —dónde está el activo, qué es, y después los números— y el símbolo de moneda se separa del importe con un espacio en todas las columnas |
 | RF-212m | El plan se presenta con **la misma tabla que Activos**: la banda que la encabeza, los títulos de columna, el cuerpo de las cifras, el fondo y la barra de acento de las filas de detalle, el chevron que despliega y el lugar de los íconos de acción —la primera columna— son los de esa tabla y no una versión propia. Comprar un ingreso planificado es la acción opuesta a vender una tenencia y se dibuja igual: el mismo botón de ícono, en la misma celda, con un más donde el otro lleva el tilde |
 | RF-211b | Los paneles que acumulan tenencias suman una sección plegable, **Rendimiento**, que responde cómo se comportó la cartera en el tiempo. Está en **Reserva, Inversiones y las Jubilaciones**: "¿cómo me fue?" no es una pregunta exclusiva de una cartera, y en una jubilación —que es de largo plazo— es justamente la que decide si conviene dejarla donde está. Sólo en Inversiones ofrece la vista por portafolio, porque los portafolios son de esa cartera y de ninguna otra; en el resto trabaja a nivel cartera. Trading queda afuera: no lista tenencias por ticker. Se presenta como sus hermanas —la misma banda de encabezado y la misma sangría del cuerpo—, de modo que las secciones del panel arrancan en una sola columna |
@@ -1061,7 +1071,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | ID | Requerimiento |
 |---|---|
 | RNF-30 | El producto no solicita credenciales bancarias en ninguna circunstancia |
-| RNF-31 | Los movimientos no se transmiten a ningún servidor. No existe backend |
+| RNF-31 | Los movimientos no se transmiten a ningún servidor. No existe backend de datos: el único código de servidor es el intermediario sin estado de INT-07, que recibe un símbolo bursátil y devuelve una página pública |
 | RNF-32 | El archivo de datos reside donde el usuario decide, bajo su control |
 | RNF-33 | Los archivos de resumen se procesan íntegramente en el navegador |
 | RNF-34 | El modo demostración no escribe en ningún medio persistente ni realiza consultas de red |
@@ -1073,7 +1083,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | RNF-40 | HTML, CSS y JavaScript sin marcos de trabajo ni empaquetador |
 | RNF-41 | La lógica de cálculo se aísla de la presentación en un módulo sin dependencias del DOM, de modo que sea verificable de forma automatizada |
 | RNF-42 | La suite de pruebas se ejecuta en el navegador, sin instalación ni dependencias |
-| RNF-43 | Cobertura actual: 550 pruebas en 67 grupos, incluidos casos de integración sobre un trimestre completo |
+| RNF-43 | Cobertura actual: 559 pruebas en 68 grupos, incluidos casos de integración sobre un trimestre completo |
 | RNF-44 | Cada entidad bancaria es un dato de configuración, no código |
 | RNF-45 | **El buscador de movimientos espera a que se deje de escribir** antes de filtrar. Un listado de 1.500 movimientos se recalcula entero en cada pulsación: escribir una palabra de doce letras eran doce recálculos y un segundo y medio de pantalla trabada —medido—. La espera es de 160 ms, por debajo del umbral en que la respuesta deja de percibirse inmediata |
 | RNF-46 | **Lo que se usa muchas veces se construye una sola vez.** Los formateadores de número viven fuera de la función que los usa: crear uno cuesta 47 veces más que usarlo, y el formateo de montos llegó a ser más de la mitad del tiempo de cada pulsación. La misma regla vale para el dibujado de iconos, que se acota al elemento que cambió en lugar de recorrer la pantalla entera, y para las claves de ordenamiento, que se calculan una vez por fila y no dentro del comparador |
@@ -1327,7 +1337,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.102 | 20/10/2026 | Un activo planificado se compra entero desde su fila, y las secciones del panel van numeradas (RF-212s, RF-212t) | Reemplazada |
 | 1.103 | 21/10/2026 | El plan separa las monedas en dos tablas y suma la vista por portafolio, como Activos (RF-212u, RF-212v) | Reemplazada |
 | 1.104 | 21/10/2026 | El presupuesto se exporta e importa como sección propia, separado de las tarjetas KPI (RF-210a, RF-210e, RF-210g, RNF-43) | Reemplazada |
-| 1.105 | 22/10/2026 | Un archivo exportado con el presupuesto adentro de las tarjetas se lee igual: se normaliza al abrirlo (RF-210h, RNF-43) | **Vigente** |
+| 1.105 | 22/10/2026 | Un archivo exportado con el presupuesto adentro de las tarjetas se lee igual: se normaliza al abrirlo (RF-210h, RNF-43) | Reemplazada |
+| 1.106 | 24/10/2026 | Los activos del plan traen sus fundamentales de Finviz a pedido, con un emergente que los muestra agrupados (RF-212w a RF-212z, INT-07, 5.3). El intermediario de INT-07 es el primer código de servidor del producto: se precisan RNF-31 y OBJ-1 («no existe backend de datos»), RF-202 y RNF-43 | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 
