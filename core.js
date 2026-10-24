@@ -2094,15 +2094,51 @@ function _textoDeCelda(s) {
 // El sector y la industria del activo, de los enlaces de la cabecera de su
 // ficha ("f=sec_technology", "f=ind_consumerelectronics"). Con ellos se busca su
 // fila en las tablas de promedios.
+//
+// Un ETF no tiene industria: en su lugar Finviz pone un enlace de tipo de fondo
+// ("f=etf_sectype_exchangetradedfund") y le asigna igual un sector, "Financial",
+// que no dice nada de lo que el fondo tiene adentro. `esEtf` lo marca, para no
+// confundirlo con una empresa financiera.
 function perfilDeFinviz(cabecera) {
-  const perfil = { sector: null, industria: null, pais: null };
-  const re = /<a[^>]*href="[^"]*f=(sec|ind|geo)_[^"]*"[^>]*>([\s\S]*?)<\/a>/g;
+  const perfil = { sector: null, industria: null, pais: null, esEtf: false };
+  const re = /<a[^>]*href="[^"]*f=(sec|ind|geo|etf)_[^"]*"[^>]*>([\s\S]*?)<\/a>/g;
   let m;
   while ((m = re.exec(String(cabecera || ''))) !== null) {
+    if (m[1] === 'etf') { perfil.esEtf = true; continue; }
     const clave = { sec: 'sector', ind: 'industria', geo: 'pais' }[m[1]];
     if (!perfil[clave]) perfil[clave] = _textoDeCelda(m[2]);
   }
   return perfil;
+}
+
+// Los once sectores de Finviz, contra los once bursátiles del selector de la app.
+// Los nombres no son los de la clasificación GICS ("Consumer Cyclical" en vez de
+// "Consumer Discretionary") pero se corresponden uno a uno. Finviz no cubre
+// cripto, commodities ni renta fija: esas clases no salen de acá.
+const FINVIZ_SECTORES = {
+  'Technology': 'tecnologia',
+  'Communication Services': 'comunicaciones',
+  'Consumer Cyclical': 'consumo_discrecional',
+  'Consumer Defensive': 'consumo_basico',
+  'Financial': 'financiero',
+  'Healthcare': 'salud',
+  'Industrials': 'industria',
+  'Energy': 'energia',
+  'Basic Materials': 'materiales',
+  'Utilities': 'servicios_publicos',
+  'Real Estate': 'inmobiliario'
+};
+
+// El sector del selector que corresponde al perfil de Finviz, o null. Un ETF es
+// "Indices y ETF": Finviz no dice qué sigue, así que un ETF sectorial (XLE) cae
+// ahí en vez de en Energía, y el usuario lo corrige a mano si quiere. Sin
+// industria y sin marca de ETF no se asigna nada: "Financial" a secas podría ser
+// un dato incompleto, y de eso no se saca un sector.
+function sectorDeFinviz(perfil) {
+  if (!perfil) return null;
+  if (perfil.esEtf) return 'indices';
+  if (!perfil.industria) return null;
+  return FINVIZ_SECTORES[perfil.sector] || null;
 }
 
 // Las tablas de promedios de Finviz —una por vista— pasadas a
@@ -2676,10 +2712,13 @@ function etiquetaSector(key) {
 //   origen 'manual'  → lo cargó el usuario (en el alta o en la cartera)
 //   origen 'listado' → sale del listado de CEDEARs de BYMA
 //   origen 'cripto'  → el ticker es un par contra USDT
+//   origen 'finviz'  → el activo trajo su ficha de Finviz y de ahí sale su sector
 //   sector null      → no hay de dónde sacarlo; se muestra "sin sector"
 //
 // Lo manual gana siempre, también sobre el listado: el usuario puede no estar de
-// acuerdo con la clasificación, o tener el ticker en otro mercado.
+// acuerdo con la clasificación, o tener el ticker en otro mercado. Finviz va
+// último: llena lo que está sin sector y no pisa nada —ni lo manual ni el
+// listado, que se armó revisándolo activo por activo—.
 // Se busca primero en la moneda de la tenencia y después en la otra: el sector
 // es de la empresa, no de la moneda, así que SPY en pesos y SPY en dólares son
 // el mismo sector aunque tengan registros de precio separados.
@@ -2698,6 +2737,11 @@ function sectorDeActivo(ticker, moneda, tickerInfo, listado) {
   if (/-USDT$/.test(tk)) return { sector: 'cripto', origen: 'cripto' };
   const c = listado && listado[tk];
   if (c && c.s && sectorPorClave(c.s)) return { sector: c.s, origen: 'listado' };
+  // La ficha de Finviz es de la empresa, igual que el sector: sirve la de
+  // cualquiera de las dos monedas.
+  const ficha = infoDeTicker(tickerInfo, tk, moneda).fundamentales || infoDeTicker(tickerInfo, tk, otra).fundamentales;
+  const deFinviz = ficha ? sectorDeFinviz(ficha.perfil) : null;
+  if (deFinviz && valida(deFinviz)) return { sector: deFinviz, origen: 'finviz' };
   return { sector: null, origen: null };
 }
 
@@ -4497,7 +4541,8 @@ if (typeof module !== 'undefined' && module.exports) {
     normalizarConfigImportada, contarMesesPresupuestados,
     // fundamentales (Finviz)
     FUNDAMENTALES_CAMPOS, FUNDAMENTALES_CONVENCIONES, fundamentalesDeFinviz,
-    perfilDeFinviz, gruposDeFinviz, referenciasDe, fundamentalesNotaDeReferencias,
+    perfilDeFinviz, FINVIZ_SECTORES, sectorDeFinviz, gruposDeFinviz, referenciasDe,
+    fundamentalesNotaDeReferencias,
     fundamentalesParaMostrar, clasificarFundamental, puntajeContraSector, lecturaCortoPlazo,
     fundamentalesCalculados,
     resultadosDe, fundamentalesTextoDeResultados, numeroDeFinviz, diasDeAntiguedad,

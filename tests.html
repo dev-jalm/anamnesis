@@ -1984,6 +1984,79 @@ group('Sector de los activos', function () {
     const ti = { 'AAPL|ARS': { sector: 'Tech' } };
     assertEqual(sectorDeActivo('AAPL', 'ARS', ti, LISTADO).origen, 'listado');
   });
+
+  // — El sector que viene de la ficha de Finviz —
+  const ficha = function (sector, industria, esEtf) {
+    return { fundamentales: { perfil: { sector: sector, industria: industria, pais: 'USA', esEtf: !!esEtf } } };
+  };
+  test('el perfil de un ETF se marca como tal: Finviz le pone un tipo de fondo y no una industria', function () {
+    const cab = '<div class="quote-header_categories">' +
+      '<a href="screener?v=111&f=sec_financial" class="quote-header_category">Financial</a>' +
+      '<a href="/screener/etf?v=181&f=etf_sectype_exchangetradedfund" class="quote-header_category" title="Exchange Traded Fund"><span>Exchange Traded Fund</span></a>' +
+      '<a href="screener?v=111&f=geo_usa" class="quote-header_category">USA</a></div>';
+    const p = perfilDeFinviz(cab);
+    assert(p.esEtf, 'es un ETF');
+    assertEqual(p.industria, null);
+    assertEqual(p.sector, 'Financial');
+    assert(!perfilDeFinviz('<a href="screener?f=ind_x">Banks</a>').esEtf, 'una empresa no lo es');
+  });
+  test('los once sectores de Finviz se corresponden uno a uno con los bursátiles del selector', function () {
+    const nombres = Object.keys(FINVIZ_SECTORES);
+    assertEqual(nombres.length, 11);
+    const destinos = nombres.map(function (n) { return FINVIZ_SECTORES[n]; });
+    assertEqual(new Set(destinos).size, 11);
+    destinos.forEach(function (k) { assert(sectorPorClave(k), 'existe en el catalogo: ' + k); });
+    assertEqual(sectorDeFinviz({ sector: 'Consumer Cyclical', industria: 'Internet Retail' }), 'consumo_discrecional');
+    assertEqual(sectorDeFinviz({ sector: 'Healthcare', industria: 'Biotechnology' }), 'salud');
+    assertEqual(sectorDeFinviz({ sector: 'Basic Materials', industria: 'Gold' }), 'materiales');
+  });
+  test('un ETF es Indices y ETF, y sin industria ni marca de ETF no se asigna nada', function () {
+    assertEqual(sectorDeFinviz({ sector: 'Financial', industria: null, esEtf: true }), 'indices');
+    // "Financial" a secas no es una empresa financiera: sin industria no se saca un sector.
+    assertEqual(sectorDeFinviz({ sector: 'Financial', industria: null, esEtf: false }), null);
+    assertEqual(sectorDeFinviz({ sector: 'Sector Nuevo', industria: 'X' }), null);
+    assertEqual(sectorDeFinviz(null), null);
+    assertEqual(sectorDeFinviz(undefined), null);
+  });
+  test('sin carga manual ni listado, el sector sale de Finviz', function () {
+    const ti = { 'GGAL|ARS': ficha('Financial', 'Banks - Regional') };
+    const r = sectorDeActivo('GGAL', 'ARS', ti, LISTADO);
+    assertEqual(r.sector, 'financiero');
+    assertEqual(r.origen, 'finviz');
+  });
+  test('Finviz va último: no pisa lo manual ni el listado', function () {
+    const conFicha = ficha('Healthcare', 'Biotechnology');
+    // El listado clasifica a AAPL como tecnología y Finviz diría salud: manda el listado.
+    const r1 = sectorDeActivo('AAPL', 'ARS', { 'AAPL|ARS': conFicha }, LISTADO);
+    assertEqual(r1.sector, 'tecnologia');
+    assertEqual(r1.origen, 'listado');
+    // Lo manual gana sobre las dos.
+    const manual = Object.assign({ sector: 'energia' }, conFicha);
+    const r2 = sectorDeActivo('AAPL', 'ARS', { 'AAPL|ARS': manual }, LISTADO);
+    assertEqual(r2.sector, 'energia');
+    assertEqual(r2.origen, 'manual');
+  });
+  test('un par cripto sigue siendo cripto aunque tenga una ficha', function () {
+    const ti = { 'BTC-USDT|USD': ficha('Technology', 'Software - Application') };
+    assertEqual(sectorDeActivo('BTC-USDT', 'USD', ti, LISTADO).sector, 'cripto');
+  });
+  test('la ficha de la otra moneda también sirve: el sector es de la empresa', function () {
+    const ti = { 'GGAL|USD': ficha('Financial', 'Banks - Regional') };
+    assertEqual(sectorDeActivo('GGAL', 'ARS', ti, LISTADO).sector, 'financiero');
+    // La de la propia moneda tiene prioridad sobre la de la otra.
+    const dos = { 'X|ARS': ficha('Energy', 'Oil & Gas E&P'), 'X|USD': ficha('Utilities', 'Utilities - Regulated Electric') };
+    assertEqual(sectorDeActivo('X', 'ARS', dos, LISTADO).sector, 'energia');
+    assertEqual(sectorDeActivo('X', 'USD', dos, LISTADO).sector, 'servicios_publicos');
+  });
+  test('una ficha vieja, de antes de marcar los ETF, no asigna "Financiero" a un fondo', function () {
+    // Así quedó guardado SPY antes: sector "Financial", sin industria y sin esEtf.
+    const ti = { 'VOOX|ARS': { fundamentales: { perfil: { sector: 'Financial', industria: null, pais: 'USA' } } } };
+    assertEqual(sectorDeActivo('VOOX', 'ARS', ti, LISTADO).sector, null);
+  });
+  test('sin ficha, o con una ficha sin perfil, todo sigue como antes', function () {
+    assertEqual(sectorDeActivo('GGAL', 'ARS', { 'GGAL|ARS': { precioActual: 10 } }, LISTADO).sector, null);
+    assertEqual(sectorDeActivo('GGAL', 'ARS', { 'GGAL|ARS': { fundamentales: {} } }, LISTADO).sector, null);
+  });
   test('las dos liquideces se muestran pero no se asignan a un activo', function () {
     assert(sectorPorClave('liquidez'), 'sigue en el catalogo para mostrarla');
     assert(sectorPorClave('liquidez_reservada'), 'la reservada tambien');

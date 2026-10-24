@@ -19160,10 +19160,18 @@ function sectorDeTenencia(tk, moneda) {
   return sectorDeActivo(tk, moneda, state.tickerInfo, listadoCedears());
 }
 
-// El sector que tendría el activo sin carga manual: el del listado o cripto.
-// Sirve para saber si lo elegido a mano difiere de lo automático.
+// El sector que tendría el activo sin carga manual: el del listado, cripto o,
+// si trajo su ficha, el de Finviz. Sirve para saber si lo elegido a mano difiere
+// de lo automático. De lo guardado del activo sólo pasa la ficha: lo manual es
+// justamente lo que se deja afuera.
 function sectorAutomatico(tk, moneda) {
-  return sectorDeActivo(tk, moneda, {}, listadoCedears()).sector;
+  const soloFichas = {};
+  ['ARS', 'USD'].forEach(function (m) {
+    const k = claveTickerInfo(tk, m);
+    const f = state.tickerInfo && state.tickerInfo[k] && state.tickerInfo[k].fundamentales;
+    if (f) soloFichas[k] = { fundamentales: f };
+  });
+  return sectorDeActivo(tk, moneda, soloFichas, listadoCedears()).sector;
 }
 
 // Umbral de las alertas de concentración, en %. Configurable en Parámetros.
@@ -19233,7 +19241,9 @@ function celdaSectorTicker(tk, moneda) {
   const esManual = r.origen === 'manual' && auto && auto !== r.sector;
   const title = esManual
     ? 'Original: ' + etiquetaSector(auto)
-    : (r.origen === 'listado' ? 'Del listado de CEDEARs de BYMA' : (r.origen === 'cripto' ? 'Par cripto' : (r.sector ? 'Cargado a mano' : 'Sin sector: elegilo de la lista')));
+    : (r.origen === 'listado' ? 'Del listado de CEDEARs de BYMA'
+      : (r.origen === 'finviz' ? 'De la ficha de Finviz'
+        : (r.origen === 'cripto' ? 'Par cripto' : (r.sector ? 'Cargado a mano' : 'Sin sector: elegilo de la lista'))));
   return '<td class="inv-sector-cell"><select class="inv-sector-sel' + (esManual ? ' modified' : '') + (r.sector ? '' : ' inv-sector-vacio') + '" ' +
     'data-ticker="' + escapeHtmlSafe(tk) + '" data-moneda="' + escapeHtmlSafe(moneda || 'ARS') + '" title="' + escapeHtmlSafe(title) + '">' +
     opcionesSector(r.sector, !r.sector) +
