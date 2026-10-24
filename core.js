@@ -2715,10 +2715,16 @@ function etiquetaSector(key) {
 //   origen 'finviz'  → el activo trajo su ficha de Finviz y de ahí sale su sector
 //   sector null      → no hay de dónde sacarlo; se muestra "sin sector"
 //
-// Lo manual gana siempre, también sobre el listado: el usuario puede no estar de
-// acuerdo con la clasificación, o tener el ticker en otro mercado. Finviz va
-// último: llena lo que está sin sector y no pisa nada —ni lo manual ni el
-// listado, que se armó revisándolo activo por activo—.
+// Lo manual gana siempre, también sobre el listado y sobre Finviz: el usuario
+// puede no estar de acuerdo con la clasificación, o tener el ticker en otro
+// mercado. Después de lo manual, y de cripto, el sector de la ficha de Finviz
+// reemplaza al del listado: es el mismo que usa la comparación contra el sector,
+// y así los dos coinciden.
+//
+// Con una excepción, los ETF: Finviz les pone "Indices y ETF" porque no dice qué
+// siguen, y el listado tiene a los ETF sectoriales (XLE, SMH, IBB) clasificados
+// por el sector que siguen. Para un ETF el listado manda y Finviz sólo llena lo
+// que está sin sector.
 // Se busca primero en la moneda de la tenencia y después en la otra: el sector
 // es de la empresa, no de la moneda, así que SPY en pesos y SPY en dólares son
 // el mismo sector aunque tengan registros de precio separados.
@@ -2735,12 +2741,14 @@ function sectorDeActivo(ticker, moneda, tickerInfo, listado) {
   const ajeno = infoDeTicker(tickerInfo, tk, otra).sector;
   if (valida(ajeno)) return { sector: ajeno, origen: 'manual' };
   if (/-USDT$/.test(tk)) return { sector: 'cripto', origen: 'cripto' };
-  const c = listado && listado[tk];
-  if (c && c.s && sectorPorClave(c.s)) return { sector: c.s, origen: 'listado' };
   // La ficha de Finviz es de la empresa, igual que el sector: sirve la de
   // cualquiera de las dos monedas.
   const ficha = infoDeTicker(tickerInfo, tk, moneda).fundamentales || infoDeTicker(tickerInfo, tk, otra).fundamentales;
   const deFinviz = ficha ? sectorDeFinviz(ficha.perfil) : null;
+  const esEtf = !!(ficha && ficha.perfil && ficha.perfil.esEtf);
+  if (deFinviz && valida(deFinviz) && !esEtf) return { sector: deFinviz, origen: 'finviz' };
+  const c = listado && listado[tk];
+  if (c && c.s && sectorPorClave(c.s)) return { sector: c.s, origen: 'listado' };
   if (deFinviz && valida(deFinviz)) return { sector: deFinviz, origen: 'finviz' };
   return { sector: null, origen: null };
 }

@@ -2024,17 +2024,44 @@ group('Sector de los activos', function () {
     assertEqual(r.sector, 'financiero');
     assertEqual(r.origen, 'finviz');
   });
-  test('Finviz va último: no pisa lo manual ni el listado', function () {
+  test('Finviz reemplaza al listado, pero no a lo manual', function () {
     const conFicha = ficha('Healthcare', 'Biotechnology');
-    // El listado clasifica a AAPL como tecnología y Finviz diría salud: manda el listado.
+    // El listado clasifica a AAPL como tecnología y Finviz diría salud: manda Finviz.
     const r1 = sectorDeActivo('AAPL', 'ARS', { 'AAPL|ARS': conFicha }, LISTADO);
-    assertEqual(r1.sector, 'tecnologia');
-    assertEqual(r1.origen, 'listado');
+    assertEqual(r1.sector, 'salud');
+    assertEqual(r1.origen, 'finviz');
     // Lo manual gana sobre las dos.
     const manual = Object.assign({ sector: 'energia' }, conFicha);
     const r2 = sectorDeActivo('AAPL', 'ARS', { 'AAPL|ARS': manual }, LISTADO);
     assertEqual(r2.sector, 'energia');
     assertEqual(r2.origen, 'manual');
+  });
+  test('sin ficha, o con una ficha que no da sector, el listado sigue mandando', function () {
+    assertEqual(sectorDeActivo('AAPL', 'ARS', {}, LISTADO).origen, 'listado');
+    // Un sector de Finviz que no existe en el catálogo no da nada: queda el listado.
+    const rara = { 'AAPL|ARS': ficha('Sector Nuevo', 'X') };
+    const r = sectorDeActivo('AAPL', 'ARS', rara, LISTADO);
+    assertEqual(r.sector, 'tecnologia');
+    assertEqual(r.origen, 'listado');
+  });
+  test('un ETF del listado conserva su sector: Finviz sólo diría "Indices y ETF"', function () {
+    // XLE sigue al sector energía y el listado lo tiene clasificado así.
+    const listado = { XLE: { r: 5, n: 'Energy Select Sector SPDR', s: 'energia' } };
+    const r = sectorDeActivo('XLE', 'ARS', { 'XLE|ARS': ficha('Financial', null, true) }, listado);
+    assertEqual(r.sector, 'energia');
+    assertEqual(r.origen, 'listado');
+  });
+  test('un ETF que el listado no tiene sí toma "Indices y ETF" de Finviz', function () {
+    const r = sectorDeActivo('XYZ', 'USD', { 'XYZ|USD': ficha('Financial', null, true) }, LISTADO);
+    assertEqual(r.sector, 'indices');
+    assertEqual(r.origen, 'finviz');
+  });
+  test('una empresa del listado toma el sector de su ficha aunque el listado difiera', function () {
+    // Una empresa y no un ETF: la ficha reemplaza al listado.
+    const listado = { KO: { r: 5, n: 'Coca-Cola', s: 'tecnologia' } };
+    const r = sectorDeActivo('KO', 'ARS', { 'KO|ARS': ficha('Consumer Defensive', 'Beverages - Non-Alcoholic') }, listado);
+    assertEqual(r.sector, 'consumo_basico');
+    assertEqual(r.origen, 'finviz');
   });
   test('un par cripto sigue siendo cripto aunque tenga una ficha', function () {
     const ti = { 'BTC-USDT|USD': ficha('Technology', 'Software - Application') };

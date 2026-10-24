@@ -19160,9 +19160,9 @@ function sectorDeTenencia(tk, moneda) {
   return sectorDeActivo(tk, moneda, state.tickerInfo, listadoCedears());
 }
 
-// El sector que tendría el activo sin carga manual: el del listado, cripto o,
-// si trajo su ficha, el de Finviz. Sirve para saber si lo elegido a mano difiere
-// de lo automático. De lo guardado del activo sólo pasa la ficha: lo manual es
+// El sector que tendría el activo sin carga manual: el de Finviz si trajo su
+// ficha, y si no el del listado o cripto. Sirve para saber si lo elegido a mano
+// difiere de lo automático. De lo guardado del activo sólo pasa la ficha: lo manual es
 // justamente lo que se deja afuera.
 function sectorAutomatico(tk, moneda) {
   const soloFichas = {};
