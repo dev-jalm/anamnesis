@@ -21233,6 +21233,8 @@ function botonFundamentalesHtml(ticker, moneda) {
   lineas.push(f.referencias ? 'Comparado con el sector ' + f.referencias.sector + '.' : 'Sin comparar con el sector.');
   const pt = puntajeContraSector(f.datos, f.referencias);
   if (pt) lineas.push('Puntaje frente al sector: ' + pt.general + '/100 · ' + pt.lectura.texto + '.');
+  const cp = lecturaCortoPlazo(f.datos);
+  if (cp) lineas.push('3 y 6 meses (confianza ' + cp.confianza + '): ' + cp.texto + (cp.eventos ? ' · ' + cp.eventos : '') + '.');
   if (f.faltan && f.faltan.length) lineas.push(textoDeFaltantes(f.faltan));
   lineas.push('Clic para ver la ficha completa.');
   // Al emergente sólo viajan el rótulo, el valor y la lectura: la definición y
@@ -21405,32 +21407,62 @@ function textoDeCalculoDelPuntaje(pt) {
   ].join('\n');
 }
 
-// La franja del puntaje: el general, su lectura y las cuatro dimensiones.
+// Cómo se arma la lectura de 3 y 6 meses, para el emergente de su bloque. Dice
+// de dónde sale, que no mira indicadores técnicos y por qué va con confianza baja.
+function textoDeCalculoDelCortoPlazo(l) {
+  return [
+    l.lecturas.map(function (x) { return x.rotulo + ': ' + x.lectura.texto; }).join(' · ') + '.',
+    l.eventos ? 'Eventos: ' + l.eventos + (l.inminentes ? ' (inminentes: el precio suele moverse más alrededor de esa fecha)' : '') + '.' : '',
+    'A 3 y 6 meses los fundamentales casi no anticipan el precio, así que acá no se califican: se lee qué espera el consenso de los analistas y qué eventos se vienen. No usa indicadores técnicos.',
+    'Confianza baja: la recomendación de los analistas tiende al optimismo y su precio objetivo es a un año. No es una recomendación de inversión.'
+  ].filter(Boolean).join('\n');
+}
+
+// La franja de arriba de la ficha, con dos bloques que responden a plazos
+// distintos: a la izquierda el puntaje frente al sector (largo plazo) con sus
+// cuatro dimensiones, y al medio la lectura de 3 y 6 meses. Cada bloque falta si
+// no hay con qué armarlo, y la franja entera si faltan los dos.
 function renderPuntajeFundamentales(f) {
   const cont = document.getElementById('fundPuntaje');
   const pt = puntajeContraSector(f.datos, f.referencias);
-  cont.classList.toggle('hidden', !pt);
-  if (!pt) return;
-  cont.setAttribute('data-tip-titulo', 'CÓMO SE CALCULA');
-  cont.setAttribute('data-tip-detalle', textoDeCalculoDelPuntaje(pt));
-  cont.innerHTML =
-    '<div class="fund-pt-gral">' +
-      '<span class="fund-pt-num' + (pt.lectura.tono ? ' ' + pt.lectura.tono : '') + '">' + pt.general + '</span>' +
-      '<span class="fund-pt-de">/100</span>' +
-    '</div>' +
-    '<div class="fund-pt-txt">' +
-      '<span class="fund-pt-tit">Puntaje frente al sector</span>' +
-      '<span class="fund-pt-lect' + (pt.lectura.tono ? ' ' + pt.lectura.tono : '') + '">' + escapeHtmlSafe(pt.lectura.texto) + '</span>' +
-    '</div>' +
-    '<div class="fund-pt-dims">' + pt.dimensiones.map(function (d) {
-      const enLinea = d.lecturas - d.favorables - d.desfavorables;
-      return '<div class="fund-pt-dim"' +
-          tipAttrs(d.grupo, d.favorables + ' favorables · ' + enLinea + ' en línea · ' + d.desfavorables + ' desfavorables') + '>' +
-        '<div class="fund-pt-dh"><span class="fund-pt-dr">' + escapeHtmlSafe(d.grupo) + '</span>' +
-          '<span class="fund-pt-dn">' + d.puntaje + '</span></div>' +
-        '<div class="fund-pt-barra"><i' + (d.tono ? ' class="' + d.tono + '"' : '') + ' style="width:' + d.puntaje + '%"></i></div>' +
-      '</div>';
-    }).join('') + '</div>';
+  const cp = lecturaCortoPlazo(f.datos);
+  cont.classList.toggle('hidden', !pt && !cp);
+  if (!pt && !cp) { cont.innerHTML = ''; return; }
+  const clase = function (tono) { return tono ? ' ' + tono : ''; };
+  const largo = pt
+    ? '<div class="fund-pt-largo"' + tipAttrs('Cómo se calcula', textoDeCalculoDelPuntaje(pt)) + '>' +
+        '<div class="fund-pt-gral">' +
+          '<span class="fund-pt-num' + clase(pt.lectura.tono) + '">' + pt.general + '</span>' +
+          '<span class="fund-pt-de">/100</span>' +
+        '</div>' +
+        '<div class="fund-pt-txt">' +
+          '<span class="fund-pt-tit">Puntaje frente al sector</span>' +
+          '<span class="fund-pt-lect' + clase(pt.lectura.tono) + '">' + escapeHtmlSafe(pt.lectura.texto) + '</span>' +
+        '</div>' +
+      '</div>'
+    : '';
+  const cortoHtml = cp
+    ? '<div class="fund-pt-corto"' + tipAttrs('Corto plazo · cómo se lee', textoDeCalculoDelCortoPlazo(cp)) + '>' +
+        '<span class="fund-pt-tit">3 y 6 meses · confianza ' + cp.confianza + '</span>' +
+        '<span class="fund-pt-lect' + clase(cp.tono) + '">' + escapeHtmlSafe(cp.texto) + '</span>' +
+        (cp.eventos ? '<span class="fund-pt-base">' + escapeHtmlSafe(cp.eventos) + '</span>' : '') +
+      '</div>'
+    : '';
+  // En la franja los nombres van cortos, porque con los dos bloques no entran
+  // enteros; el nombre completo queda en el emergente de cada dimensión.
+  const corto = { 'Calidad del negocio': 'Calidad', 'Deuda y liquidez': 'Deuda' };
+  const dims = pt
+    ? '<div class="fund-pt-dims">' + pt.dimensiones.map(function (d) {
+        const enLinea = d.lecturas - d.favorables - d.desfavorables;
+        return '<div class="fund-pt-dim"' +
+            tipAttrs(d.grupo, d.favorables + ' favorables · ' + enLinea + ' en línea · ' + d.desfavorables + ' desfavorables') + '>' +
+          '<div class="fund-pt-dh"><span class="fund-pt-dr">' + escapeHtmlSafe(corto[d.grupo] || d.grupo) + '</span>' +
+            '<span class="fund-pt-dn">' + d.puntaje + '</span></div>' +
+          '<div class="fund-pt-barra"><i' + (d.tono ? ' class="' + d.tono + '"' : '') + ' style="width:' + d.puntaje + '%"></i></div>' +
+        '</div>';
+      }).join('') + '</div>'
+    : '';
+  cont.innerHTML = largo + cortoHtml + dims;
 }
 
 function renderFichaFundamentales() {

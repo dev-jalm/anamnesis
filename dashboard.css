@@ -6690,6 +6690,22 @@ body[data-exporting="true"] .section-card {
   border-radius: 8px;
   cursor: default;
 }
+/* Dos bloques que responden a plazos distintos: el puntaje frente al sector
+   (largo plazo) y, separada por una línea, la lectura de 3 y 6 meses. */
+.fund-pt-largo { display: flex; align-items: center; gap: 12px; }
+.fund-pt-corto {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 170px;
+  padding-left: 20px;
+  border-left: 1px solid var(--border);
+}
+.fund-pt-base {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 11px;
+  color: var(--muted);
+}
 .fund-pt-gral { display: flex; align-items: baseline; gap: 2px; }
 .fund-pt-num {
   font-family: 'JetBrains Mono', monospace;

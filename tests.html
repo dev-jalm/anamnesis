@@ -1603,6 +1603,59 @@ group('fundamentales de Finviz', function () {
     assertEqual(con.lecturas, 9);
   });
 
+  // — Corto plazo: eventos y consenso —
+  const corto = function (datos) { return lecturaCortoPlazo(datos, AHORA); };
+  test('corto plazo: el consenso es favorable si ninguna lectura es desfavorable y alguna es favorable', function () {
+    const l = corto({ recom: 1.5, targetPrice: 120, price: 100 });
+    assertEqual(l.texto, 'consenso favorable');
+    assertEqual(l.tono, 'pos');
+    assertEqual(l.confianza, 'baja');
+    assertEqual(l.lecturas.length, 2);
+  });
+  test('corto plazo: desfavorable en el caso opuesto, dividido si se contradicen y neutro si ninguna se inclina', function () {
+    const des = corto({ recom: 4, targetPrice: 90, price: 100 });
+    assertEqual(des.texto, 'consenso desfavorable');
+    assertEqual(des.tono, 'neg');
+    const div = corto({ recom: 1.5, targetPrice: 95, price: 100 });
+    assertEqual(div.texto, 'consenso dividido');
+    assertEqual(div.tono, '');
+    const neu = corto({ recom: 3, targetPrice: 105, price: 100 });
+    assertEqual(neu.texto, 'consenso neutro');
+    assertEqual(neu.tono, '');
+  });
+  test('corto plazo: con una sola de las dos lecturas alcanza, y sin ninguna no hay', function () {
+    assertEqual(corto({ recom: 2 }).texto, 'consenso favorable');
+    assertEqual(corto({ targetPrice: 130, price: 100 }).texto, 'consenso favorable');
+    assertEqual(corto({ forwardPE: 20, earnings: 'Nov 02 AMC' }), null);
+    assertEqual(corto({}), null);
+    assertEqual(corto(undefined), null);
+  });
+  test('corto plazo: los resultados, en días, y cuándo son inminentes (hasta 7)', function () {
+    const e = function (t) { return corto({ recom: 2, earnings: t }); };
+    assertEqual(e('Oct 27 BMO').eventos, 'resultados en 3 días');
+    assert(e('Oct 27 BMO').inminentes, 'a 3 días es inminente');
+    assertEqual(e('Oct 31 AMC').eventos, 'resultados en 7 días');
+    assert(e('Oct 31 AMC').inminentes, 'el límite de 7 días todavía lo es');
+    assert(!e('Nov 01 AMC').inminentes, 'a 8 días ya no');
+    assertEqual(e('Oct 24').eventos, 'resultados hoy');
+    assertEqual(e('Oct 25').eventos, 'resultados mañana');
+    assertEqual(e('Oct 13 BMO').eventos, 'último balance hace 11 días');
+    assert(!e('Oct 13 BMO').inminentes, 'uno ya publicado no es inminente');
+  });
+  test('corto plazo: sin fecha de resultados la lectura sigue, sin eventos', function () {
+    const l = corto({ recom: 2 });
+    assertEqual(l.eventos, null);
+    assert(!l.inminentes, 'sin fecha no hay evento inminente');
+    assertEqual(l.texto, 'consenso favorable');
+  });
+  test('corto plazo: no usa indicadores técnicos ni fundamentales', function () {
+    const base = corto({ recom: 2, targetPrice: 120, price: 100 });
+    const con = corto({ recom: 2, targetPrice: 120, price: 100, rsi: 90, sma200: -30, dist52High: -50,
+      beta: 2, forwardPE: 80, roic: 1, debtEq: 9 });
+    assertEqual(con.texto, base.texto);
+    assertEqual(con.tono, base.tono);
+  });
+
   // — Cómo se muestra —
   const datosCompletos = function (cambios) { return fundamentalesDeFinviz(pagina(cambios)).datos; };
   const refSector = referenciasDe(perfil, SECTORES, {}, { marketCap: 100e9 });

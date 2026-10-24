@@ -2333,6 +2333,45 @@ function puntajeContraSector(datos, referencias, ahora) {
   return { general: general, lectura: lectura(general), dimensiones: dimensiones, lecturas: lecturas, posibles: posibles };
 }
 
+// La lectura de 3 y 6 meses. A ese plazo los fundamentales casi no anticipan el
+// precio, y lo que puede moverlo son los eventos y lo que esperan quienes siguen
+// a la empresa: por eso no se califica con el puntaje contra el sector sino con
+//   · el consenso de los analistas: su recomendación promedio y el potencial
+//     hasta su precio objetivo, leídos con las mismas convenciones de siempre;
+//   · los eventos: cuándo publica su próximo balance, un día en que el precio
+//     suele moverse más.
+// No usa indicadores técnicos. Va siempre con confianza baja: el consenso de los
+// analistas tiende al optimismo y su precio objetivo es a un año, no a seis
+// meses. Es una lectura de qué espera el consenso y qué eventos se vienen, no una
+// recomendación.
+//
+// El consenso es favorable si ninguna de sus dos lecturas es desfavorable y
+// alguna es favorable, desfavorable en el caso opuesto, dividido si se
+// contradicen y neutro si ninguna se inclina. Null sin ninguna de las dos.
+function lecturaCortoPlazo(datos, ahora) {
+  const d = datos || {};
+  const K = FUNDAMENTALES_CONVENCIONES;
+  const calc = fundamentalesCalculados(d);
+  const lecturas = [];
+  if (esNumeroFinito(d.recom)) lecturas.push({ rotulo: 'Recomendación', lectura: K.recom(d.recom) });
+  if (esNumeroFinito(calc.potencial)) lecturas.push({ rotulo: 'Potencial hasta el objetivo', lectura: K.potencial(calc.potencial) });
+  if (!lecturas.length) return null;
+  const fav = lecturas.filter(function (l) { return l.lectura.tono === 'pos'; }).length;
+  const des = lecturas.filter(function (l) { return l.lectura.tono === 'neg'; }).length;
+  let texto = 'consenso neutro', tono = '';
+  if (fav > 0 && des > 0) texto = 'consenso dividido';
+  else if (fav > 0) { texto = 'consenso favorable'; tono = 'pos'; }
+  else if (des > 0) { texto = 'consenso desfavorable'; tono = 'neg'; }
+  let eventos = null, inminentes = false;
+  const r = resultadosDe(d.earnings, ahora);
+  if (r) {
+    inminentes = r.dias >= 0 && r.dias <= 7;
+    eventos = r.dias < 0 ? 'último balance hace ' + (-r.dias) + (r.dias === -1 ? ' día' : ' días')
+      : (r.dias === 0 ? 'resultados hoy' : (r.dias === 1 ? 'resultados mañana' : 'resultados en ' + r.dias + ' días'));
+  }
+  return { texto: texto, tono: tono, eventos: eventos, inminentes: inminentes, confianza: 'baja', lecturas: lecturas };
+}
+
 // Los datos listos para mostrar: grupos con sus filas ya formateadas y
 // clasificadas. Es la única fuente del tooltip y de la ficha, para que el texto
 // no se arme en dos lugares. `completo` falso deja sólo lo marcado `resumen`.
@@ -4459,7 +4498,8 @@ if (typeof module !== 'undefined' && module.exports) {
     // fundamentales (Finviz)
     FUNDAMENTALES_CAMPOS, FUNDAMENTALES_CONVENCIONES, fundamentalesDeFinviz,
     perfilDeFinviz, gruposDeFinviz, referenciasDe, fundamentalesNotaDeReferencias,
-    fundamentalesParaMostrar, clasificarFundamental, puntajeContraSector, fundamentalesCalculados,
+    fundamentalesParaMostrar, clasificarFundamental, puntajeContraSector, lecturaCortoPlazo,
+    fundamentalesCalculados,
     resultadosDe, fundamentalesTextoDeResultados, numeroDeFinviz, diasDeAntiguedad,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
