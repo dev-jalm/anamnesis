@@ -2492,6 +2492,27 @@ function balanceDeActivo(texto, ahora) {
 }
 
 // ----- LISTA DE SEGUIMIENTO -----
+// El orden de la lista: primero lo que está por publicar, del balance más
+// cercano al más lejano; debajo lo que ya publicó, del más reciente al más
+// viejo; y al final lo que no tiene fecha. `diasDe` da, de cada elemento, los
+// días al balance (negativos si ya pasó) o null. A igualdad se conserva el orden
+// de entrada, que es el de carga. Devuelve { item, corte }: `corte` marca el
+// último de lo que está por publicar cuando hay algo debajo, que es donde va la
+// línea que separa los dos grupos.
+function ordenarPorBalance(items, diasDe) {
+  const clave = function (x) {
+    const d = diasDe(x);
+    if (d === null || d === undefined || !esNumeroFinito(d)) return [2, 0];
+    return d >= 0 ? [0, d] : [1, -d];
+  };
+  const ordenados = (items || []).map(function (x, i) { return { item: x, k: clave(x), i: i }; })
+    .sort(function (a, b) { return (a.k[0] - b.k[0]) || (a.k[1] - b.k[1]) || (a.i - b.i); });
+  const ultimoProximo = ordenados.reduce(function (u, o, idx) { return o.k[0] === 0 ? idx : u; }, -1);
+  return ordenados.map(function (o, idx) {
+    return { item: o.item, corte: idx === ultimoProximo && idx < ordenados.length - 1 };
+  });
+}
+
 // Los símbolos que Finviz acepta: letras y números, y un punto o guion para las
 // clases (BRK-B). Es el mismo criterio con el que el Worker valida el ticker
 // antes de armar la URL; acá se aplica antes de guardarlo en la lista.
@@ -4816,7 +4837,7 @@ if (typeof module !== 'undefined' && module.exports) {
     fundamentalesParaMostrar, clasificarFundamental, puntajeContraSector, lecturaCortoPlazo,
     fundamentalesCalculados,
     resultadosDe, fundamentalesTextoDeResultados, numeroDeFinviz, diasDeAntiguedad,
-    esTickerDeFinviz, resumenDeSeguimiento, balanceDeActivo,
+    esTickerDeFinviz, resumenDeSeguimiento, balanceDeActivo, ordenarPorBalance,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
     equivalenteDeCedear, cotizacionDeCedear, textoDeRatioCedear,

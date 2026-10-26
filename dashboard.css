@@ -8157,6 +8157,10 @@ select.inv-plan-in { cursor: pointer; }
    no se pegan a los extremos: 20px de margen, y el mismo en el título. */
 .inv-rango { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0 20px; }
 .inv-seg-titulos span:nth-child(5) { padding-left: 20px; }
+/* Lo que está por publicar va arriba y lo ya publicado debajo; el último de los
+   primeros cierra con una línea más gruesa que el divisor de las filas, del
+   mismo color: separa los dos grupos sin ser otro dibujo. */
+.inv-seg-fila.inv-seg-corte { border-bottom-width: 2px; }
 .inv-rango-extremo { flex-shrink: 0; color: var(--muted); font-size: 10px; }
 /* La barra es la de progreso de la meta de Reserva (.inv-meta-progress-bar), el
    mismo riel con su borde y sus puntas redondas; acá no lleva relleno sino una

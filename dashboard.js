@@ -22499,10 +22499,15 @@ function htmlListaSeguimiento() {
   const ahora = Date.now();
   const guion = '<span class="inv-na">—</span>';
   const usd = function (n) { return n === null ? guion : 'US$ ' + fmtPrecio(n); };
-  const filas = lista.map(function (item) {
+  // Primero lo que está por publicar, del balance más cercano al más lejano, y
+  // debajo lo ya publicado, con una línea más gruesa entre los dos grupos. El
+  // resumen de cada activo se calcula una vez y es lo que dice cómo se ordena.
+  const calculados = lista.map(function (item) {
     const info = infoDeTicker(state.tickerInfo, item.ticker, 'USD');
-    const f = info.fundamentales;
-    const r = resumenDeSeguimiento(f && f.datos, ahora);
+    return { item: item, info: info, f: info.fundamentales, r: resumenDeSeguimiento(info.fundamentales && info.fundamentales.datos, ahora) };
+  });
+  const filas = ordenarPorBalance(calculados, function (c) { return c.r.diasAlBalance; }).map(function (o) {
+    const item = o.item.item, info = o.item.info, f = o.item.f, r = o.item.r;
     const desc = info.descripcion || infoDeTicker(state.tickerInfo, item.ticker, 'ARS').descripcion ||
       nombreDeCedear(item.ticker) || '';
     // El rango del último año como una barra: el mínimo al comienzo, el máximo
@@ -22524,7 +22529,7 @@ function htmlListaSeguimiento() {
       '</span>';
     }
     const dias = f ? diasDeAntiguedad(f.fecha) : null;
-    return '<div class="inv-seg-fila">' +
+    return '<div class="inv-seg-fila' + (o.corte ? ' inv-seg-corte' : '') + '">' +
       '<span class="inv-seg-acciones">' +
         '<button class="inv-delete-btn" data-seg-del="' + escapeHtmlSafe(item.id) + '" title="Quitar del seguimiento">' +
           '<i data-lucide="trash-2" style="width:11px;height:11px"></i>' +

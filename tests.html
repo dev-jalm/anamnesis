@@ -2272,6 +2272,38 @@ group('Lista de seguimiento', function () {
     assertEqual(balanceDeActivo('', AHORA), null);
     assertEqual(balanceDeActivo('pronto', AHORA), null);
   });
+  // — El orden de la lista —
+  const ord = function (dias) {
+    return ordenarPorBalance(dias.map(function (d, i) { return { id: i, d: d }; }), function (x) { return x.d; })
+      .map(function (o) { return o.item.d; });
+  };
+  test('lo que está por publicar va primero, del más cercano al más lejano', function () {
+    assertEqual(ord([9, 2, 30, 0, 5]).join(','), '0,2,5,9,30');
+  });
+  test('lo ya publicado va debajo, del más reciente al más viejo', function () {
+    assertEqual(ord([-18, 4, -2, 10, -40]).join(','), '4,10,-2,-18,-40');
+  });
+  test('lo que no tiene fecha va al final, después de lo ya publicado', function () {
+    assertEqual(ord([null, -3, 7, undefined]).join(','), '7,-3,,');
+  });
+  test('el balance de hoy está por publicar, no ya publicado', function () {
+    assertEqual(ord([-1, 0]).join(','), '0,-1');
+  });
+  test('la línea divisoria va después del último que está por publicar', function () {
+    const r = ordenarPorBalance([{ d: 5 }, { d: -2 }, { d: 1 }], function (x) { return x.d; });
+    assertEqual(r.map(function (o) { return o.corte; }).join(','), 'false,true,false');
+  });
+  test('sin nada por publicar, o sin nada debajo, no hay línea', function () {
+    const sin = ordenarPorBalance([{ d: -2 }, { d: -9 }], function (x) { return x.d; });
+    assert(sin.every(function (o) { return !o.corte; }), 'solo publicados');
+    const todos = ordenarPorBalance([{ d: 1 }, { d: 8 }], function (x) { return x.d; });
+    assert(todos.every(function (o) { return !o.corte; }), 'solo por publicar');
+    assertEqual(ordenarPorBalance([], function () { return 0; }).length, 0);
+  });
+  test('a igual fecha se conserva el orden de carga', function () {
+    const r = ordenarPorBalance([{ n: 'a', d: 3 }, { n: 'b', d: 3 }, { n: 'c', d: 3 }], function (x) { return x.d; });
+    assertEqual(r.map(function (o) { return o.item.n; }).join(''), 'abc');
+  });
   test('los símbolos que acepta Finviz, y los que no', function () {
     ['AAPL', 'KO', 'BRK-B', 'BF.B', 'GOOGL', 'A', '3M'].forEach(function (t) { assert(esTickerDeFinviz(t), t); });
     ['', 'aapl', 'AAPL ', 'TOOLONGX', 'A B', 'AAPL/X', '../x', 'BTC-USDT'].forEach(function (t) { assert(!esTickerDeFinviz(t), '"' + t + '"'); });
