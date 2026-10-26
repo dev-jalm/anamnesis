@@ -40,6 +40,11 @@
      está pensado para el fondo de la pantalla, no para este. */
   --tooltip-pos: #9CC27A;
   --tooltip-neg: #E8836B;
+  /* Un color por tipo de precio dentro de un tooltip: el dólar al CCL y el dólar
+     al MEP. Los pesos van en el acento y la acción en el color del texto. Ni verde
+     ni rojo: esos dicen favorable y desfavorable. */
+  --tooltip-ccl: #5CC8D7;
+  --tooltip-mep: #B9A2F0;
   --on-dark-bg: #2A2520;
   --on-dark-text: #F5F1E8;
   /* Los colores de los sectores salen de PALETA_DISTRIBUCION (dashboard.js),
@@ -85,6 +90,8 @@
   --tooltip-accent: #7A5A0E;
   --tooltip-pos: #3F6B1F;
   --tooltip-neg: #A63A22;
+  --tooltip-ccl: #17606D;
+  --tooltip-mep: #5A3EA6;
   --on-dark-bg: #0F0D0B;
   --on-dark-text: #EFE7D6;
   --sector-neutro-1: #B5A892;
@@ -6637,6 +6644,12 @@ body[data-exporting="true"] .section-card {
   font-weight: 700;
   color: var(--tooltip-accent);
 }
+/* Y un color por tipo de precio, el mismo en todas las filas de ese tipo: así el
+   dólar al CCL, el dólar al MEP y los pesos se siguen de una sección a la otra. */
+.sector-tip-valor.destacado.accion { color: var(--tooltip-text); }
+.sector-tip-valor.destacado.ccl { color: var(--tooltip-ccl); }
+.sector-tip-valor.destacado.mep { color: var(--tooltip-mep); }
+.sector-tip-valor.destacado.ars { color: var(--tooltip-accent); }
 /* La lectura del dato contra su referencia: lo favorable en verde y lo
    desfavorable en rojo; lo que no es ni una cosa ni la otra, apagado. */
 .sector-tip-clasif {

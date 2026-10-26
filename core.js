@@ -1469,6 +1469,35 @@ function equivalenteDeCedear(fila, ratio, ccl, mep) {
   };
 }
 
+// La cotización real de un CEDEAR en pesos, a partir de lo que la app guardó del
+// activo en pesos (`infoArs`) y del activo en dólares (`infoUsd`). El de pesos
+// guarda la cotización como precio actual; el de dólares guarda el precio
+// derivado de la acción, así que la cotización de la que salió se anota aparte
+// en `cedearArs`. Devuelve { precio, fecha, origen } o null.
+//
+// `origen` es 'BYMA' si el precio lo trajo data912 y 'cargado' si no: uno escrito
+// a mano, o el de la demostración, no es una cotización de BYMA y no se lo rotula
+// así. Con las dos, gana la más reciente —un precio en pesos viejo no tiene que
+// tapar la cotización anotada después—; si empatan, o ninguna tiene fecha, la del
+// activo en pesos, que es la primera.
+function cotizacionDeCedear(infoArs, infoUsd) {
+  const valido = function (n) {
+    return (n !== undefined && n !== null && n !== '' && isFinite(Number(n)) && Number(n) > 0) ? Number(n) : null;
+  };
+  const ars = infoArs || {};
+  const usd = infoUsd || {};
+  const candidatos = [];
+  const enPesos = valido(ars.precioActual);
+  if (enPesos !== null) {
+    candidatos.push({ precio: enPesos, fecha: ars.lastUpdate || null, origen: /^data912/.test(ars.source || '') ? 'BYMA' : 'cargado' });
+  }
+  const anotado = valido(usd.cedearArs);
+  if (anotado !== null) candidatos.push({ precio: anotado, fecha: usd.lastUpdate || null, origen: 'BYMA' });
+  if (!candidatos.length) return null;
+  const ms = function (c) { const t = Date.parse(c.fecha); return isFinite(t) ? t : -Infinity; };
+  return candidatos.reduce(function (mejor, c) { return ms(c) > ms(mejor) ? c : mejor; });
+}
+
 // El ratio dicho como se lee en el listado de BYMA: "20 CEDEARs = 1 acción", o,
 // si un CEDEAR equivale a varias acciones, "1 CEDEAR = 3 acciones".
 const CEDEAR_RATIO_N = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -4607,7 +4636,7 @@ if (typeof module !== 'undefined' && module.exports) {
     resultadosDe, fundamentalesTextoDeResultados, numeroDeFinviz, diasDeAntiguedad,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
-    equivalenteDeCedear, textoDeRatioCedear,
+    equivalenteDeCedear, cotizacionDeCedear, textoDeRatioCedear,
     resumirTanda,
     // reserva
     getReservaParams, getReservaAcumulado,

@@ -18709,7 +18709,8 @@ function tooltipSector(s, prefix, etiquetaDe, soloLectores) {
       (g.filas || []).forEach(function (f) {
         celda('sector-tip-rotulo', f.rotulo);
         // `destacado` es para lo que tiene que leerse primero: los precios.
-        celda('sector-tip-valor' + (f.destacado ? ' destacado' : ''), f.texto);
+        // `tipo` es el color del precio: acción, ccl, mep o ars.
+        celda('sector-tip-valor' + (f.destacado ? ' destacado' : '') + (f.tipo ? ' ' + f.tipo : ''), f.texto);
         // La lectura del dato contra su referencia. Va siempre, vacía si no la
         // hay, para que las tres columnas de la grilla no se corran.
         celda('sector-tip-clasif' + (f.clasif && f.clasif.tono ? ' ' + f.clasif.tono : ''),
@@ -21639,12 +21640,22 @@ function precioRealDeFinviz(ticker) {
   return (typeof p === 'number' && isFinite(p) && p > 0) ? { precio: p, fecha: f.fecha || null } : null;
 }
 
+// La cotización real del CEDEAR en pesos: la que trajo data912 de BYMA. La del
+// activo en pesos, o —para uno en dólares, que guarda el precio derivado de la
+// acción y no el del CEDEAR— la que se anotó al derivarlo. `origen` dice de dónde
+// sale: un precio cargado a mano o de la demo no es de BYMA, y no se lo rotula así.
+function precioDeByma(ticker) {
+  return cotizacionDeCedear(infoDeTicker(state.tickerInfo, ticker, 'ARS'), infoDeTicker(state.tickerInfo, ticker, 'USD'));
+}
+
 // El tooltip de una línea, o null si no hay nada que decir: un ticker que no está
-// en el listado de BYMA no tiene CEDEAR. Siete precios, cada uno en su fila, en
-// tres tramos: el real de la acción; ese mismo precio como CEDEAR en dólares al
-// CCL, en dólares al MEP y en pesos; y lo mismo desde el precio de entrada. Así se
-// ve qué cuesta hoy el CEDEAR y qué costaría al precio planificado, uno junto al
-// otro. Lo que falta se muestra como guion.
+// en el listado de BYMA no tiene CEDEAR. Dos secciones:
+//   · la cotización actual en el mercado —el precio real de la acción en Finviz,
+//     el del CEDEAR en BYMA y, desde esa cotización de BYMA, el CEDEAR en dólares
+//     al CCL, en dólares al MEP y en pesos—;
+//   · el precio de entrada planificado, con esos mismos tres precios.
+// Lo que sale del dato real de BYMA no es una paridad teórica: es lo que el
+// CEDEAR cotiza. Lo que falta se muestra como guion.
 function tooltipPrecioDeEntrada(fila) {
   const ratio = ratioDeCedear(fila.ticker);
   if (!ratio) return null;
@@ -21653,9 +21664,10 @@ function tooltipPrecioDeEntrada(fila) {
   const eq = equivalenteDeCedear(fila, ratio, ccl && ccl.valor, mep);
   if (!eq) return null;
   const real = precioRealDeFinviz(fila.ticker);
-  // El precio real de Finviz es el de una acción en dólares: pasa por el mismo
-  // cálculo que una línea del plan en dólares.
-  const hoy = real ? equivalenteDeCedear({ moneda: 'USD', precioObjetivo: real.precio }, ratio, ccl && ccl.valor, mep) : null;
+  const byma = precioDeByma(fila.ticker);
+  // La cotización de BYMA es la de un CEDEAR en pesos: pasa por el mismo cálculo
+  // que una línea del plan en pesos.
+  const mercado = byma ? equivalenteDeCedear({ moneda: 'ARS', precioObjetivo: byma.precio }, ratio, ccl && ccl.valor, mep) : null;
   const diaDe = function (ts) {
     return ts ? new Date(ts).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '';
   };
@@ -21670,26 +21682,38 @@ function tooltipPrecioDeEntrada(fila) {
     ].join(' · ') + '.'
   ];
   if (!real) lineas.push('Sin precio de Finviz: traé los fundamentales del activo.');
+  if (!byma) lineas.push('Sin cotización del CEDEAR: actualizá los precios.');
   const pesos = function (n) { return n === null ? '—' : '$ ' + fmtPrecio(n); };
-  // Los tres precios del CEDEAR de un equivalente, en el orden de siempre.
+  // Los tres precios del CEDEAR de un equivalente, en el orden de siempre. El
+  // `tipo` es el color: los precios del mismo tipo —dólares al CCL, dólares al
+  // MEP, pesos— van del mismo color en las dos secciones, así se siguen con la
+  // vista de una a otra.
   const filasDeCedear = function (e) {
     return [
-      { rotulo: 'Precio del CEDEAR en dólares (CCL)', texto: usd(e.cedearUsdCcl), destacado: true },
-      { rotulo: 'Precio del CEDEAR en dólares (MEP)', texto: usd(e.cedearUsdMep), destacado: true },
-      { rotulo: 'Precio del CEDEAR en pesos', texto: pesos(e.cedearArs), destacado: true }
+      { rotulo: 'Precio del CEDEAR en dólares (CCL)', texto: usd(e.cedearUsdCcl), destacado: true, tipo: 'ccl' },
+      { rotulo: 'Precio del CEDEAR en dólares (MEP)', texto: usd(e.cedearUsdMep), destacado: true, tipo: 'mep' },
+      { rotulo: 'Precio del CEDEAR en pesos', texto: pesos(e.cedearArs), destacado: true, tipo: 'ars' }
     ];
   };
-  const grupos = [
-    { grupo: 'Hoy, en el mercado', filas: [
-      { rotulo: 'Precio real del activo en dólares' + (real && real.fecha ? ' (Finviz, ' + diaDe(real.fecha) + ')' : ''),
-        texto: real ? usd(real.precio) : '—', destacado: true }
-    ] }
+  const etiquetaDe = function (origen, p) { return p && p.fecha ? ' (' + origen + ', ' + diaDe(p.fecha) + ')' : ''; };
+  const mercadoFilas = [
+    { rotulo: 'Precio real del activo en dólares' + etiquetaDe('Finviz', real),
+      texto: real ? usd(real.precio) : '—', destacado: true, tipo: 'accion' },
+    { rotulo: (byma && byma.origen === 'cargado' ? 'Precio actual del CEDEAR en pesos' : 'Precio real del CEDEAR en pesos') +
+        etiquetaDe(byma ? byma.origen : 'BYMA', byma),
+      texto: byma ? pesos(byma.precio) : '—', destacado: true, tipo: 'ars' }
   ];
-  // Sin precio de Finviz el tramo de hoy no se dibuja: tres guiones seguidos no
-  // dirían nada que la primera fila no diga ya.
-  if (hoy) grupos.push({ grupo: 'El CEDEAR hoy, al precio real', filas: filasDeCedear(hoy) });
-  grupos.push({ grupo: 'Tu precio de entrada, como CEDEAR', filas: filasDeCedear(eq) });
-  return { titulo: 'Precios del CEDEAR', detalle: lineas.join('\n'), filas: grupos };
+  // Sin la cotización de BYMA no hay de dónde partir: tres guiones seguidos no
+  // dirían nada que la fila de arriba no diga ya.
+  if (mercado) Array.prototype.push.apply(mercadoFilas, filasDeCedear(mercado));
+  return {
+    titulo: 'Precios del CEDEAR',
+    detalle: lineas.join('\n'),
+    filas: [
+      { grupo: 'Cotización actual en el mercado', filas: mercadoFilas },
+      { grupo: 'Precio de entrada planificado', filas: filasDeCedear(eq) }
+    ]
+  };
 }
 
 // Los atributos de la celda del precio de entrada: el tooltip y los datos con
@@ -23247,6 +23271,9 @@ function autoFetchSaludFinancieraIfStale() {
           const k = claveTickerInfo(tk, 'USD');
           if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
           state.tickerInfo[k].precioActual = precioUsd;
+          // La cotización del CEDEAR en pesos de la que sale ese precio: la
+          // muestra el tooltip del plan, y de otro modo se perdería.
+          state.tickerInfo[k].cedearArs = Number(info.price);
           state.tickerInfo[k].moneda = 'USD';
           const desc = info.desc || nombreDeCedear(tk);
           if (desc && !state.tickerInfo[k].descripcion) state.tickerInfo[k].descripcion = desc;
@@ -23552,6 +23579,9 @@ function fetchTickerPricesFromData912(destinos, btnEl) {
         const k = claveTickerInfo(tk, 'USD');
         if (!state.tickerInfo[k]) state.tickerInfo[k] = {};
         state.tickerInfo[k].precioActual = precioUsdImplicito;
+        // La cotización del CEDEAR en pesos de la que sale ese precio (ver el
+        // mismo campo en la actualización automática).
+        state.tickerInfo[k].cedearArs = Number(info.price);
         state.tickerInfo[k].moneda = 'USD';
         const desc = info.desc || nombreDeCedear(tk);
         if (desc && !state.tickerInfo[k].descripcion) state.tickerInfo[k].descripcion = desc;

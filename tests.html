@@ -2018,6 +2018,39 @@ group('CEDEAR equivalente al precio de entrada', function () {
   test('una línea sin moneda de dólares se trata como pesos, igual que en el resto del plan', function () {
     assertEqual(equivalenteDeCedear({ precioObjetivo: 1000 }, 10, CCL, MEP).moneda, 'ARS');
   });
+  // — La cotización real del CEDEAR en pesos —
+  const hace = function (dias) { return new Date(Date.now() - dias * 86400000).toISOString(); };
+  test('la cotización es el precio actual del activo en pesos, de BYMA si lo trajo data912', function () {
+    const c = cotizacionDeCedear({ precioActual: 30580, lastUpdate: hace(0), source: 'data912' }, {});
+    assertEqual(c.precio, 30580);
+    assertEqual(c.origen, 'BYMA');
+  });
+  test('un precio cargado a mano o de la demo no se rotula como de BYMA', function () {
+    assertEqual(cotizacionDeCedear({ precioActual: 23076, lastUpdate: hace(0) }, {}).origen, 'cargado');
+    assertEqual(cotizacionDeCedear({ precioActual: 23076, source: 'manual' }, {}).origen, 'cargado');
+  });
+  test('un activo en dólares aporta la cotización anotada al derivar su precio', function () {
+    const c = cotizacionDeCedear({}, { precioActual: 347.7, cedearArs: 28660, lastUpdate: hace(0), source: 'data912-cedear' });
+    assertEqual(c.precio, 28660);
+    assertEqual(c.origen, 'BYMA');
+    // El precio actual de un activo en dólares es el de la ACCIÓN, no el del CEDEAR.
+    assert(c.precio !== 347.7, 'no toma el precio derivado en dólares');
+  });
+  test('con las dos gana la más reciente, y con empate o sin fechas la del activo en pesos', function () {
+    const viejo = { precioActual: 18000, lastUpdate: hace(3), source: 'data912' };
+    const nuevoUsd = { cedearArs: 21430, lastUpdate: hace(0) };
+    assertEqual(cotizacionDeCedear(viejo, nuevoUsd).precio, 21430);
+    assertEqual(cotizacionDeCedear({ precioActual: 18000, lastUpdate: hace(0) }, { cedearArs: 21430, lastUpdate: hace(5) }).precio, 18000);
+    const mismo = hace(1);
+    assertEqual(cotizacionDeCedear({ precioActual: 18000, lastUpdate: mismo }, { cedearArs: 21430, lastUpdate: mismo }).precio, 18000);
+    assertEqual(cotizacionDeCedear({ precioActual: 18000 }, { cedearArs: 21430 }).precio, 18000);
+  });
+  test('sin cotización utilizable no hay: faltante, vacía, cero, negativa o que no es número', function () {
+    assertEqual(cotizacionDeCedear({}, {}), null);
+    assertEqual(cotizacionDeCedear(undefined, undefined), null);
+    assertEqual(cotizacionDeCedear({ precioActual: '' }, { cedearArs: 0 }), null);
+    assertEqual(cotizacionDeCedear({ precioActual: -5 }, { cedearArs: 'abc' }), null);
+  });
   test('el ratio dicho como en el listado: varios CEDEARs por acción, o un CEDEAR por varias', function () {
     assertEqual(textoDeRatioCedear(20), '20 CEDEARs = 1 acción');
     assertEqual(textoDeRatioCedear(1), '1 CEDEAR = 1 acción');
