@@ -18704,10 +18704,12 @@ function tooltipSector(s, prefix, etiquetaDe, soloLectores) {
       cont.appendChild(d);
     };
     grupos.forEach(function (g) {
-      celda('sector-tip-grupo', g.grupo);
+      // Un grupo sin nombre no lleva encabezado.
+      if (g.grupo) celda('sector-tip-grupo', g.grupo);
       (g.filas || []).forEach(function (f) {
         celda('sector-tip-rotulo', f.rotulo);
-        celda('sector-tip-valor', f.texto);
+        // `destacado` es para lo que tiene que leerse primero: los precios.
+        celda('sector-tip-valor' + (f.destacado ? ' destacado' : ''), f.texto);
         // La lectura del dato contra su referencia. Va siempre, vacía si no la
         // hay, para que las tres columnas de la grilla no se corran.
         celda('sector-tip-clasif' + (f.clasif && f.clasif.tono ? ' ' + f.clasif.tono : ''),
@@ -18728,6 +18730,11 @@ function tooltipSector(s, prefix, etiquetaDe, soloLectores) {
     const el = e.target.closest && e.target.closest('[data-tip-titulo]');
     if (!el) return;
     if (!tip) crear();
+    // Un tooltip que se arma con datos que cambian —las cotizaciones— se rehace
+    // acá, con lo vigente, antes de leerlo.
+    if (el.hasAttribute('data-eq-ticker') && typeof refrescarEquivalenteDeEntrada === 'function') {
+      refrescarEquivalenteDeEntrada(el);
+    }
     tip.querySelector('.sector-tip-titulo').textContent = el.getAttribute('data-tip-titulo');
     // Una línea que tiene que destacar, debajo del título: en negrita y con el
     // color de su lectura (verde, rojo o neutro). Opcional.
@@ -21614,9 +21621,8 @@ function autoFetchCclIfStale() {
       state.params.cotizacionCcl = venta;
       state.params.cotizacionCclUpdatedAt = Date.now();
       scheduleSave();
-      // Los tooltips ya dibujados se corrigen en su lugar: rehacer el panel le
-      // borraría lo que se esté tipeando en el alta del plan.
-      refrescarEquivalentesDeEntrada();
+      // No hay nada que repintar: el tooltip se arma al pasar el mouse, con lo
+      // que haya en ese momento (ver refrescarEquivalenteDeEntrada).
     })
     .catch(function (err) {
       console.warn('Auto-fetch CCL falló:', err && err.message ? err.message : err);
@@ -21624,58 +21630,85 @@ function autoFetchCclIfStale() {
     .then(function () { _cclEnVuelo = false; });
 }
 
-// El título y el detalle del tooltip de una línea, o null si no hay nada que
-// decir: un ticker que no está en el listado de BYMA no tiene CEDEAR.
+// El precio real de la acción en dólares: el que trajo Finviz con su ficha. Vale
+// la ficha de cualquiera de las dos monedas, porque la acción es la misma.
+function precioRealDeFinviz(ticker) {
+  const f = infoDeTicker(state.tickerInfo, ticker, 'ARS').fundamentales ||
+    infoDeTicker(state.tickerInfo, ticker, 'USD').fundamentales;
+  const p = f && f.datos && f.datos.price;
+  return (typeof p === 'number' && isFinite(p) && p > 0) ? { precio: p, fecha: f.fecha || null } : null;
+}
+
+// El tooltip de una línea, o null si no hay nada que decir: un ticker que no está
+// en el listado de BYMA no tiene CEDEAR. Cuatro precios, cada uno en su fila:
+// el real de la acción, y el precio de entrada como CEDEAR en dólares al CCL, en
+// dólares al MEP y en pesos. Lo que falta se muestra como guion.
 function tooltipPrecioDeEntrada(fila) {
   const ratio = ratioDeCedear(fila.ticker);
   if (!ratio) return null;
   const ccl = cclVigente();
-  const eq = equivalenteDeCedear(fila, ratio, ccl && ccl.valor);
+  const mep = getMepRate();
+  const eq = equivalenteDeCedear(fila, ratio, ccl && ccl.valor, mep);
   if (!eq) return null;
-  const dia = (ccl && ccl.fecha)
-    ? ' del ' + new Date(ccl.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '';
-  const alCcl = ccl ? '(al CCL $ ' + fmtPrecio(ccl.valor) + dia + ')' : '';
-  const lineas = ['Ratio: ' + textoDeRatioCedear(ratio) + '.'];
-  if (eq.moneda === 'USD') {
-    lineas.push('En dólares: US$ ' + fmtPrecio(eq.cedearUsd) + ' por CEDEAR.');
-    lineas.push(eq.cedearArs !== null
-      ? 'En pesos: $ ' + fmtPrecio(eq.cedearArs) + ' por CEDEAR ' + alCcl + '.'
-      : 'En pesos: sin cotización CCL.');
-  } else {
-    lineas.push(eq.cedearUsd !== null
-      ? 'En dólares: US$ ' + fmtPrecio(eq.cedearUsd) + ' por CEDEAR ' + alCcl + '.'
-      : 'En dólares: sin cotización CCL.');
-    if (eq.accionUsd !== null) lineas.push('La acción equivale a US$ ' + fmtPrecio(eq.accionUsd) + '.');
-  }
+  const real = precioRealDeFinviz(fila.ticker);
+  const diaDe = function (ts) {
+    return ts ? new Date(ts).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '';
+  };
+  const usd = function (n) { return n === null ? '—' : 'US$ ' + fmtPrecio(n); };
+  // Las cotizaciones con las que se hizo la cuenta, en el detalle: no son
+  // precios, y van chicas.
+  const lineas = [
+    'Ratio: ' + textoDeRatioCedear(ratio) + '.',
+    'Cotizaciones: ' + [
+      ccl ? 'CCL $ ' + fmtPrecio(ccl.valor) + (ccl.fecha ? ' del ' + diaDe(ccl.fecha) : '') : 'sin CCL',
+      mep ? 'MEP $ ' + fmtPrecio(mep) : 'sin MEP'
+    ].join(' · ') + '.'
+  ];
+  if (!real) lineas.push('Sin precio de Finviz: traé los fundamentales del activo.');
   return {
-    titulo: eq.moneda === 'USD' ? 'CEDEAR equivalente' : 'Equivalente en dólares',
-    detalle: lineas.join('\n')
+    titulo: 'Precios del CEDEAR',
+    detalle: lineas.join('\n'),
+    filas: [
+      { grupo: 'Hoy, en el mercado', filas: [
+        { rotulo: 'Precio real del activo en dólares' + (real && real.fecha ? ' (Finviz, ' + diaDe(real.fecha) + ')' : ''),
+          texto: real ? usd(real.precio) : '—', destacado: true }
+      ] },
+      { grupo: 'Tu precio de entrada, como CEDEAR', filas: [
+        { rotulo: 'Precio del CEDEAR en dólares (CCL)', texto: usd(eq.cedearUsdCcl), destacado: true },
+        { rotulo: 'Precio del CEDEAR en dólares (MEP)', texto: usd(eq.cedearUsdMep), destacado: true },
+        { rotulo: 'Precio del CEDEAR en pesos', texto: eq.cedearArs === null ? '—' : '$ ' + fmtPrecio(eq.cedearArs), destacado: true }
+      ] }
+    ]
   };
 }
 
 // Los atributos de la celda del precio de entrada: el tooltip y los datos con
-// los que se lo rehace cuando llega el CCL. Vacío si no hay CEDEAR.
+// los que se lo rehace al pasar el mouse. Vacío si no hay CEDEAR.
 function atributosEquivalenteDeEntrada(fila) {
   const t = tooltipPrecioDeEntrada(fila);
   if (!t) return '';
   return ' data-eq-ticker="' + escapeHtmlSafe(fila.ticker) + '"' +
     ' data-eq-moneda="' + (fila.moneda === 'USD' ? 'USD' : 'ARS') + '"' +
     ' data-eq-precio="' + escapeHtmlSafe(String(fila.precioObjetivo)) + '"' +
-    tipAttrs(t.titulo, t.detalle);
+    tipAttrs(t.titulo, t.detalle) +
+    ' data-tip-filas="' + escapeHtmlSafe(JSON.stringify(t.filas)) + '"';
 }
 
-// Rehace, en el lugar, el tooltip de todas las celdas ya dibujadas.
-function refrescarEquivalentesDeEntrada() {
-  document.querySelectorAll('[data-eq-ticker]').forEach(function (td) {
-    const t = tooltipPrecioDeEntrada({
-      ticker: td.getAttribute('data-eq-ticker'),
-      moneda: td.getAttribute('data-eq-moneda'),
-      precioObjetivo: Number(td.getAttribute('data-eq-precio'))
-    });
-    if (!t) return;
-    td.setAttribute('data-tip-titulo', t.titulo.toLocaleUpperCase('es-AR'));
-    td.setAttribute('data-tip-detalle', t.detalle);
+// Rehace el tooltip de una celda con lo que hay en este momento. Lo llama el
+// emergente al pasar el mouse, antes de leerlo: así el CCL, el MEP y el precio de
+// Finviz son siempre los vigentes, aunque hayan llegado después de dibujar el
+// panel, y no hace falta rehacer el panel —que le borraría lo que se esté
+// escribiendo en el alta del plan— cada vez que alguno cambia.
+function refrescarEquivalenteDeEntrada(td) {
+  const t = tooltipPrecioDeEntrada({
+    ticker: td.getAttribute('data-eq-ticker'),
+    moneda: td.getAttribute('data-eq-moneda'),
+    precioObjetivo: Number(td.getAttribute('data-eq-precio'))
   });
+  if (!t) return;
+  td.setAttribute('data-tip-titulo', t.titulo.toLocaleUpperCase('es-AR'));
+  td.setAttribute('data-tip-detalle', t.detalle);
+  td.setAttribute('data-tip-filas', JSON.stringify(t.filas));
 }
 
 // El cuerpo de la sección: una tabla por moneda, como en Activos, y el

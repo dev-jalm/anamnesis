@@ -6630,6 +6630,13 @@ body[data-exporting="true"] .section-card {
   font-weight: 600;
   text-align: right;
 }
+/* Un valor que tiene que leerse primero —un precio—: más grande, en negrita y en
+   el color de acento del título, que ya se distingue del texto corriente. */
+.sector-tip-valor.destacado {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tooltip-accent);
+}
 /* La lectura del dato contra su referencia: lo favorable en verde y lo
    desfavorable en rojo; lo que no es ni una cosa ni la otra, apagado. */
 .sector-tip-clasif {

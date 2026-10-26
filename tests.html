@@ -1950,54 +1950,73 @@ group('Portafolios', function () {
 
 group('CEDEAR equivalente al precio de entrada', function () {
   const CCL = 1654;
-  test('en dólares: el CEDEAR vale la acción dividida por el ratio, y en pesos al CCL', function () {
-    const e = equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 347.73 }, 20, CCL);
+  const MEP = 1563.9;
+  const cerca = function (a, b, msg) { assert(Math.abs(a - b) < 1e-6, (msg || '') + ': ' + a + ' contra ' + b); };
+  test('en dólares: la acción dividida por el ratio, en pesos al CCL y en dólares al MEP desde ese precio en pesos', function () {
+    const e = equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 347.73 }, 20, CCL, MEP);
     assertEqual(e.moneda, 'USD');
-    assertEqual(e.accionUsd, 347.73);
-    assert(Math.abs(e.cedearUsd - 17.3865) < 1e-9, 'US$ por CEDEAR: ' + e.cedearUsd);
-    assert(Math.abs(e.cedearArs - 17.3865 * CCL) < 1e-6, '$ por CEDEAR: ' + e.cedearArs);
+    cerca(e.cedearUsdCcl, 17.3865, 'US$ al CCL');
+    cerca(e.cedearArs, 17.3865 * CCL, '$ por CEDEAR');
+    // El mismo precio en pesos, visto con el dólar más barato, sale más caro en dólares.
+    cerca(e.cedearUsdMep, 17.3865 * CCL / MEP, 'US$ al MEP');
+    assert(e.cedearUsdMep > e.cedearUsdCcl, 'con el MEP, más dólares por el mismo CEDEAR');
   });
-  test('en pesos: el CEDEAR en dólares al CCL, y la acción a la que corresponde', function () {
-    const e = equivalenteDeCedear({ moneda: 'ARS', precioObjetivo: 28660 }, 20, CCL);
+  test('en pesos: el precio es el del CEDEAR, y de él salen los dos dólares', function () {
+    const e = equivalenteDeCedear({ moneda: 'ARS', precioObjetivo: 28660 }, 20, CCL, MEP);
     assertEqual(e.moneda, 'ARS');
     assertEqual(e.cedearArs, 28660);
-    assert(Math.abs(e.cedearUsd - 28660 / CCL) < 1e-9, 'US$ por CEDEAR');
-    assert(Math.abs(e.accionUsd - 28660 * 20 / CCL) < 1e-9, 'acción: ' + e.accionUsd);
+    cerca(e.cedearUsdCcl, 28660 / CCL, 'US$ al CCL');
+    cerca(e.cedearUsdMep, 28660 / MEP, 'US$ al MEP');
   });
-  test('ida y vuelta: de la acción al CEDEAR en pesos y de ahí otra vez a la acción', function () {
-    const ida = equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 92.71 }, 5, CCL);
-    const vuelta = equivalenteDeCedear({ moneda: 'ARS', precioObjetivo: ida.cedearArs }, 5, CCL);
-    assert(Math.abs(vuelta.accionUsd - 92.71) < 1e-9, 'vuelve a ' + vuelta.accionUsd);
+  test('la diferencia entre los dos dólares es la brecha CCL / MEP, en las dos direcciones', function () {
+    const brecha = CCL / MEP;
+    const usd = equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 92.71 }, 5, CCL, MEP);
+    const ars = equivalenteDeCedear({ moneda: 'ARS', precioObjetivo: 30580 }, 5, CCL, MEP);
+    cerca(usd.cedearUsdMep / usd.cedearUsdCcl, brecha, 'desde la acción');
+    cerca(ars.cedearUsdMep / ars.cedearUsdCcl, brecha, 'desde el CEDEAR');
+  });
+  test('ida y vuelta: la acción pasada a CEDEAR en pesos y de ahí al CCL vuelve al CEDEAR en dólares', function () {
+    const ida = equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 92.71 }, 5, CCL, MEP);
+    const vuelta = equivalenteDeCedear({ moneda: 'ARS', precioObjetivo: ida.cedearArs }, 5, CCL, MEP);
+    cerca(vuelta.cedearUsdCcl, ida.cedearUsdCcl, 'vuelve');
+    cerca(vuelta.cedearUsdMep, ida.cedearUsdMep, 'y también al MEP');
   });
   test('sin CCL, lo que lo necesita queda en null y lo que no, se calcula igual', function () {
-    const usd = equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, 10, null);
-    assertEqual(usd.cedearUsd, 10);
+    const usd = equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, 10, null, MEP);
+    assertEqual(usd.cedearUsdCcl, 10);
     assertEqual(usd.cedearArs, null);
-    const ars = equivalenteDeCedear({ moneda: 'ARS', precioObjetivo: 1000 }, 10, undefined);
+    assertEqual(usd.cedearUsdMep, null);    // sin pesos no hay con qué pasar al MEP
+    const ars = equivalenteDeCedear({ moneda: 'ARS', precioObjetivo: 1000 }, 10, undefined, MEP);
     assertEqual(ars.cedearArs, 1000);
-    assertEqual(ars.cedearUsd, null);
-    assertEqual(ars.accionUsd, null);
+    assertEqual(ars.cedearUsdCcl, null);
+    cerca(ars.cedearUsdMep, 1000 / MEP, 'el MEP sí');
   });
-  test('un CCL en cero, negativo o que no es número se trata como que no hay', function () {
+  test('sin MEP, el dólar al MEP queda en null y el resto sigue', function () {
+    const e = equivalenteDeCedear({ moneda: 'ARS', precioObjetivo: 1000 }, 10, CCL, null);
+    assertEqual(e.cedearUsdMep, null);
+    cerca(e.cedearUsdCcl, 1000 / CCL, 'el CCL sí');
+  });
+  test('una cotización en cero, negativa o que no es número se trata como que no hay', function () {
     [0, -5, NaN, 'abc'].forEach(function (c) {
-      assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, 10, c).cedearArs, null);
+      assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, 10, c, MEP).cedearArs, null);
+      assertEqual(equivalenteDeCedear({ moneda: 'ARS', precioObjetivo: 100 }, 10, CCL, c).cedearUsdMep, null);
     });
   });
   test('un CEDEAR que equivale a varias acciones: el ratio es una fracción', function () {
     // r = 1/3: un CEDEAR vale tres acciones.
-    const e = equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 10 }, 1 / 3, CCL);
-    assert(Math.abs(e.cedearUsd - 30) < 1e-9, 'cuesta tres acciones: ' + e.cedearUsd);
+    const e = equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 10 }, 1 / 3, CCL, MEP);
+    cerca(e.cedearUsdCcl, 30, 'cuesta tres acciones');
   });
   test('sin un precio o un ratio que sirvan no hay equivalente', function () {
-    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 0 }, 10, CCL), null);
-    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: -3 }, 10, CCL), null);
-    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, 0, CCL), null);
-    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, null, CCL), null);
-    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, 'x', CCL), null);
-    assertEqual(equivalenteDeCedear(undefined, 10, CCL), null);
+    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 0 }, 10, CCL, MEP), null);
+    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: -3 }, 10, CCL, MEP), null);
+    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, 0, CCL, MEP), null);
+    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, null, CCL, MEP), null);
+    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, 'x', CCL, MEP), null);
+    assertEqual(equivalenteDeCedear(undefined, 10, CCL, MEP), null);
   });
   test('una línea sin moneda de dólares se trata como pesos, igual que en el resto del plan', function () {
-    assertEqual(equivalenteDeCedear({ precioObjetivo: 1000 }, 10, CCL).moneda, 'ARS');
+    assertEqual(equivalenteDeCedear({ precioObjetivo: 1000 }, 10, CCL, MEP).moneda, 'ARS');
   });
   test('el ratio dicho como en el listado: varios CEDEARs por acción, o un CEDEAR por varias', function () {
     assertEqual(textoDeRatioCedear(20), '20 CEDEARs = 1 acción');

@@ -1429,34 +1429,43 @@ function compraPlanificada(fila, capital, precioActual, mep) {
   };
 }
 
-// El precio de entrada de una línea del plan llevado al otro lado del CEDEAR: lo
-// que costaría un CEDEAR si el precio es el de la acción en dólares, o a qué
-// acción corresponde si el precio es el del CEDEAR en pesos. `ratio` es el
-// factor del listado de BYMA —20 es que 20 CEDEARs valen una acción—.
+// El precio de entrada de una línea del plan expresado como CEDEAR: en pesos y
+// en dólares, al CCL y al MEP. `ratio` es el factor del listado de BYMA —20 es
+// que 20 CEDEARs valen una acción—.
 //
-// El dólar es el CCL y no el MEP: los CEDEARs cotizan al CCL (medido sobre cinco
-// con datos reales, su dólar implícito cae a menos de 0,5 % de él, y a casi 6 %
-// del MEP). Con el MEP el CEDEAR teórico saldría ese 6 % por debajo del mercado
-// y se leería como una prima que no existe.
+// El pivote es el precio del CEDEAR EN PESOS. Si la línea ya está en pesos, es el
+// precio de entrada. Si está en dólares, es el precio de la acción dividido por
+// el ratio y llevado a pesos al CCL: los CEDEARs cotizan a esa paridad (medido
+// sobre cinco con datos reales, su dólar implícito cae a menos de 0,5 % del CCL
+// y a casi 6 % del MEP). De ese precio en pesos salen los dos dólares, y por eso
+// difieren: el CEDEAR en dólares al MEP es ese mismo precio visto con el dólar
+// más barato.
 //
-// En dólares, la acción pasada a CEDEAR no necesita cotización: es dividir por
-// el ratio. Lo que sí la necesita sale en null si falta, y no se reemplaza por
-// otra cotización. Null si el precio o el ratio no sirven.
-function equivalenteDeCedear(fila, ratio, ccl) {
+// El CEDEAR en dólares al CCL de una acción en dólares es dividir por el ratio y
+// no necesita cotización. Lo que sí la necesita sale en null si falta, y no se
+// reemplaza por otra. Null si el precio o el ratio no sirven.
+function equivalenteDeCedear(fila, ratio, ccl, mep) {
   const precio = Number(fila && fila.precioObjetivo);
   const r = Number(ratio);
   if (!(isFinite(precio) && precio > 0) || !(isFinite(r) && r > 0)) return null;
-  const tc = (isFinite(ccl) && ccl > 0) ? Number(ccl) : null;
+  const valida = function (x) { return (isFinite(x) && x > 0) ? Number(x) : null; };
+  const tcc = valida(ccl);
+  const tmep = valida(mep);
+  let cedearArs, cedearUsdCcl;
   if (fila.moneda === 'USD') {
     // El precio es el de la acción, en dólares.
-    const usd = precio / r;
-    return { moneda: 'USD', accionUsd: precio, cedearUsd: usd, cedearArs: tc ? usd * tc : null };
+    cedearUsdCcl = precio / r;
+    cedearArs = tcc ? cedearUsdCcl * tcc : null;
+  } else {
+    // El precio es el del CEDEAR, en pesos.
+    cedearArs = precio;
+    cedearUsdCcl = tcc ? precio / tcc : null;
   }
-  // El precio es el del CEDEAR, en pesos.
   return {
-    moneda: 'ARS', cedearArs: precio,
-    cedearUsd: tc ? precio / tc : null,
-    accionUsd: tc ? precio * r / tc : null
+    moneda: fila.moneda === 'USD' ? 'USD' : 'ARS',
+    cedearArs: cedearArs,
+    cedearUsdCcl: cedearUsdCcl,
+    cedearUsdMep: (cedearArs !== null && tmep) ? cedearArs / tmep : null
   };
 }
 
