@@ -21640,9 +21640,11 @@ function precioRealDeFinviz(ticker) {
 }
 
 // El tooltip de una línea, o null si no hay nada que decir: un ticker que no está
-// en el listado de BYMA no tiene CEDEAR. Cuatro precios, cada uno en su fila:
-// el real de la acción, y el precio de entrada como CEDEAR en dólares al CCL, en
-// dólares al MEP y en pesos. Lo que falta se muestra como guion.
+// en el listado de BYMA no tiene CEDEAR. Siete precios, cada uno en su fila, en
+// tres tramos: el real de la acción; ese mismo precio como CEDEAR en dólares al
+// CCL, en dólares al MEP y en pesos; y lo mismo desde el precio de entrada. Así se
+// ve qué cuesta hoy el CEDEAR y qué costaría al precio planificado, uno junto al
+// otro. Lo que falta se muestra como guion.
 function tooltipPrecioDeEntrada(fila) {
   const ratio = ratioDeCedear(fila.ticker);
   if (!ratio) return null;
@@ -21651,6 +21653,9 @@ function tooltipPrecioDeEntrada(fila) {
   const eq = equivalenteDeCedear(fila, ratio, ccl && ccl.valor, mep);
   if (!eq) return null;
   const real = precioRealDeFinviz(fila.ticker);
+  // El precio real de Finviz es el de una acción en dólares: pasa por el mismo
+  // cálculo que una línea del plan en dólares.
+  const hoy = real ? equivalenteDeCedear({ moneda: 'USD', precioObjetivo: real.precio }, ratio, ccl && ccl.valor, mep) : null;
   const diaDe = function (ts) {
     return ts ? new Date(ts).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '';
   };
@@ -21665,21 +21670,26 @@ function tooltipPrecioDeEntrada(fila) {
     ].join(' · ') + '.'
   ];
   if (!real) lineas.push('Sin precio de Finviz: traé los fundamentales del activo.');
-  return {
-    titulo: 'Precios del CEDEAR',
-    detalle: lineas.join('\n'),
-    filas: [
-      { grupo: 'Hoy, en el mercado', filas: [
-        { rotulo: 'Precio real del activo en dólares' + (real && real.fecha ? ' (Finviz, ' + diaDe(real.fecha) + ')' : ''),
-          texto: real ? usd(real.precio) : '—', destacado: true }
-      ] },
-      { grupo: 'Tu precio de entrada, como CEDEAR', filas: [
-        { rotulo: 'Precio del CEDEAR en dólares (CCL)', texto: usd(eq.cedearUsdCcl), destacado: true },
-        { rotulo: 'Precio del CEDEAR en dólares (MEP)', texto: usd(eq.cedearUsdMep), destacado: true },
-        { rotulo: 'Precio del CEDEAR en pesos', texto: eq.cedearArs === null ? '—' : '$ ' + fmtPrecio(eq.cedearArs), destacado: true }
-      ] }
-    ]
+  const pesos = function (n) { return n === null ? '—' : '$ ' + fmtPrecio(n); };
+  // Los tres precios del CEDEAR de un equivalente, en el orden de siempre.
+  const filasDeCedear = function (e) {
+    return [
+      { rotulo: 'Precio del CEDEAR en dólares (CCL)', texto: usd(e.cedearUsdCcl), destacado: true },
+      { rotulo: 'Precio del CEDEAR en dólares (MEP)', texto: usd(e.cedearUsdMep), destacado: true },
+      { rotulo: 'Precio del CEDEAR en pesos', texto: pesos(e.cedearArs), destacado: true }
+    ];
   };
+  const grupos = [
+    { grupo: 'Hoy, en el mercado', filas: [
+      { rotulo: 'Precio real del activo en dólares' + (real && real.fecha ? ' (Finviz, ' + diaDe(real.fecha) + ')' : ''),
+        texto: real ? usd(real.precio) : '—', destacado: true }
+    ] }
+  ];
+  // Sin precio de Finviz el tramo de hoy no se dibuja: tres guiones seguidos no
+  // dirían nada que la primera fila no diga ya.
+  if (hoy) grupos.push({ grupo: 'El CEDEAR hoy, al precio real', filas: filasDeCedear(hoy) });
+  grupos.push({ grupo: 'Tu precio de entrada, como CEDEAR', filas: filasDeCedear(eq) });
+  return { titulo: 'Precios del CEDEAR', detalle: lineas.join('\n'), filas: grupos };
 }
 
 // Los atributos de la celda del precio de entrada: el tooltip y los datos con
