@@ -6415,20 +6415,31 @@ body[data-exporting="true"] .section-card {
   text-align: right;
   font-family: 'JetBrains Mono', monospace;
 }
-.investment-detail-table td.ticker {
+/* El ticker de la lista de seguimiento comparte esta declaración: es el mismo
+   dato que el de Activos y el de Planificación, y en JetBrains Mono 11 semibold
+   ámbar se lee igual en las tres. Iba en tinta oscura, que es la de Liquidado. */
+.investment-detail-table td.ticker,
+.inv-seg-fila .inv-liq-tk {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 600;
   color: var(--accent);
 }
 .investment-detail-table tr:last-child td { border-bottom: none; }
-.investment-detail-table .inv-delete-btn {
+/* Los botones de la lista de seguimiento —quitar y la ficha— comparten la
+   declaración del botón de las tablas. Sin ella eran botones del navegador:
+   fondo gris, borde en relieve y 6px de relleno, que no existen en ninguna otra
+   pantalla. Va ANTES de .inv-plan-fund.listo para que el verde de la ficha con
+   datos siga ganando. */
+.investment-detail-table .inv-delete-btn,
+.inv-seg-fila .inv-delete-btn {
   background: transparent;
   border: none;
   cursor: pointer;
   color: var(--muted-2);
   padding: 2px;
 }
-.investment-detail-table .inv-delete-btn:hover { color: var(--red); }
+.investment-detail-table .inv-delete-btn:hover,
+.inv-seg-fila .inv-delete-btn:hover { color: var(--red); }
 
 /* ===== Vista agrupada por ticker ===== */
 .investment-detail-grouped .inv-ticker-toggle {
@@ -8125,13 +8136,32 @@ select.inv-plan-in { cursor: pointer; }
 .inv-cal-titulos span:nth-child(n+5),
 .inv-cal-num { text-align: right; }
 .inv-cal-ref { color: var(--muted); }
-/* La lista de seguimiento, en la misma lista: quitar | Activo | Precio | Mín. |
-   Máx. | En el rango | Próx. balance | Consulta. Los cuatro números y la fecha de
-   consulta a la derecha, como en las demás. */
+/* La lista de seguimiento, en la misma lista: quitar | Activo | Descripción |
+   Precio | Rango de 52 semanas | Próx. balance | Consulta. El precio y la fecha
+   de consulta a la derecha, como en las demás. */
 .inv-seg-titulos,
-.inv-seg-fila { grid-template-columns: 30px minmax(0, 2fr) repeat(4, minmax(0, 1fr)) minmax(0, 1.3fr) 96px; }
-.inv-seg-titulos span:nth-child(n+3):nth-child(-n+6),
-.inv-seg-titulos span:nth-child(8) { text-align: right; }
+.inv-seg-fila { grid-template-columns: 30px 112px minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 2.6fr) minmax(0, 1.3fr) 96px; }
+.inv-seg-titulos span:nth-child(4),
+.inv-seg-titulos span:nth-child(7) { text-align: right; }
+/* El rango del último año: el mínimo, la barra y el máximo en una línea. */
+.inv-rango { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.inv-rango-extremo { flex-shrink: 0; color: var(--muted); font-size: 10px; }
+/* La barra es la de progreso de la meta de Reserva (.inv-meta-progress-bar), el
+   mismo riel con su borde y sus puntas redondas; acá no lleva relleno sino una
+   línea donde está el precio. */
+.inv-rango-barra { flex: 1 1 auto; position: relative; min-width: 40px; }
+/* La línea sobresale del riel por arriba y por abajo, y con overflow oculto —el
+   de la barra de la meta— se recortaría. */
+.inv-rango-barra.inv-rango-barra { overflow: visible; }
+.inv-rango-marca {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--accent);
+}
 /* Lo publicado es el dato que se vino a buscar: en tinta plena y con peso, el
    mismo que el del ticker en las otras listas. */
 .inv-cal-pub { font-weight: 600; }
@@ -8275,7 +8305,8 @@ select.inv-plan-in { cursor: pointer; }
   gap: 3px;
   width: 100%;
 }
-.inv-meta-progress-bar {
+.inv-meta-progress-bar,
+.inv-rango-barra {
   height: 14px;
   background: var(--bg-0);
   border: 1px solid var(--border);

@@ -22477,18 +22477,23 @@ function htmlListaSeguimiento() {
     const r = resumenDeSeguimiento(f && f.datos, ahora);
     const desc = info.descripcion || infoDeTicker(state.tickerInfo, item.ticker, 'ARS').descripcion ||
       nombreDeCedear(item.ticker) || '';
-    // En qué punto del rango anual está: el dato que dice si el precio está
-    // cerca de su piso o de su techo. El emergente propio de la app, no el title.
-    let posicion = guion;
+    // El rango del último año como una barra: el mínimo al comienzo, el máximo
+    // al final y una línea donde está el precio. Dice de un vistazo si el
+    // precio está cerca de su piso o de su techo, que tres números sueltos no
+    // dicen. El emergente propio de la app, no el title.
+    let rango = guion;
     if (r.posicion !== null) {
-      const detalle = ['Mínimo ' + usd(r.min) + ' · máximo ' + usd(r.max) + '.'];
+      const detalle = ['Está al ' + FUNDAMENTALES_N0.format(r.posicion) + '% del camino entre el mínimo (0%) y el máximo (100%).'];
       if (r.distanciaAlMaximo !== null) {
-        detalle.push((r.distanciaAlMaximo <= 0 ? 'A ' + FUNDAMENTALES_N2.format(Math.abs(r.distanciaAlMaximo)) + '% por debajo del máximo.'
-          : 'Por encima del máximo que tenía Finviz.'));
+        detalle.push(r.distanciaAlMaximo <= 0
+          ? 'A ' + FUNDAMENTALES_N2.format(Math.abs(r.distanciaAlMaximo)) + '% por debajo del máximo.'
+          : 'Por encima del máximo que tenía Finviz.');
       }
-      posicion = '<span' + tipAttrs('Posición en el rango de 52 semanas',
-        '0% es el mínimo del año y 100% el máximo.\n' + detalle.join('\n')) + '>' +
-        FUNDAMENTALES_N0.format(r.posicion) + '%</span>';
+      rango = '<span class="inv-rango"' + tipAttrs('Posición en el rango de 52 semanas', detalle.join('\n')) + '>' +
+        '<span class="inv-rango-extremo">' + usd(r.min) + '</span>' +
+        '<span class="inv-rango-barra"><span class="inv-rango-marca" style="left:' + r.posicion.toFixed(1) + '%"></span></span>' +
+        '<span class="inv-rango-extremo">' + usd(r.max) + '</span>' +
+      '</span>';
     }
     const dias = f ? diasDeAntiguedad(f.fecha) : null;
     return '<div class="inv-seg-fila">' +
@@ -22500,18 +22505,21 @@ function htmlListaSeguimiento() {
       '<span class="inv-liq-activo">' +
         '<span class="inv-liq-tk">' + escapeHtmlSafe(item.ticker) + '</span>' +
         botonFundamentalesHtml(item.ticker, 'USD') +
-        (desc ? '<span class="inv-liq-desc">' + escapeHtmlSafe(desc) + '</span>' : '') +
       '</span>' +
+      // La descripción es el mismo campo de Activos y de Planificación, no un
+      // texto que lo imita: de ahí salen la tipografía, el color y que se pueda
+      // corregir. Se guarda junto al activo, en dólares.
+      '<span><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(item.ticker) +
+        '" data-moneda="USD" value="' + escapeHtmlSafe(desc).replace(/"/g, '&quot;') +
+        '" placeholder="EJ: APPLE INC."></span>' +
       '<span class="inv-cal-num">' + usd(r.precio) + '</span>' +
-      '<span class="inv-cal-num">' + usd(r.min) + '</span>' +
-      '<span class="inv-cal-num">' + usd(r.max) + '</span>' +
-      '<span class="inv-cal-num">' + posicion + '</span>' +
+      rango +
       '<span>' + (r.balance ? escapeHtmlSafe(r.balance) : guion) + '</span>' +
       '<span class="inv-cal-num inv-cal-ref">' + (dias === null ? guion : (dias === 0 ? 'hoy' : 'hace ' + dias + (dias === 1 ? ' día' : ' días'))) + '</span>' +
     '</div>';
   });
-  return '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Precio</span>' +
-    '<span>Mín. 52 sem.</span><span>Máx. 52 sem.</span><span>En el rango</span><span>Próx. balance</span><span>Consulta</span></div>' +
+  return '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Descripción</span><span>Precio</span>' +
+    '<span>Rango de 52 semanas</span><span>Próx. balance</span><span>Consulta</span></div>' +
     filas.join('');
 }
 
