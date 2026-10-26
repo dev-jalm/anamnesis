@@ -2063,6 +2063,130 @@ group('CEDEAR equivalente al precio de entrada', function () {
   });
 });
 
+group('Calendario económico', function () {
+  const hora = function (texto) { return fechaHoraArgentina(instanteDeFinviz(texto)); };
+  // — La hora: Finviz da Nueva York, la app muestra Argentina —
+  test('con horario de verano en Nueva York, 08:30 son las 09:30 en Argentina', function () {
+    const h = hora('2026-10-29T08:30:00');
+    assertEqual(h.dia, '2026-10-29');
+    assertEqual(h.hora, '09:30');
+  });
+  test('con horario estándar, la misma hora de pared son las 10:30: Argentina no cambia', function () {
+    const h = hora('2026-11-06T08:30:00');
+    assertEqual(h.dia, '2026-11-06');
+    assertEqual(h.hora, '10:30');
+  });
+  test('el cambio de hora de Nueva York (1/11/2026) corre la diferencia de una a dos horas', function () {
+    assertEqual(hora('2026-10-31T08:30:00').hora, '09:30');
+    assertEqual(hora('2026-11-02T08:30:00').hora, '10:30');
+  });
+  test('una salida de la tarde de Nueva York pasa de día en Argentina cuando corresponde', function () {
+    assertEqual(hora('2026-11-06T20:00:00').dia, '2026-11-06');
+    assertEqual(hora('2026-11-06T20:00:00').hora, '22:00');
+    const h = hora('2026-11-06T22:00:00');
+    assertEqual(h.dia, '2026-11-07');
+    assertEqual(h.hora, '00:00');
+  });
+  test('una fecha ilegible no tiene instante', function () {
+    assertEqual(instanteDeFinviz('mañana'), null);
+    assertEqual(instanteDeFinviz(''), null);
+    assertEqual(instanteDeFinviz(null), null);
+  });
+  // — Los valores —
+  test('los valores pasan a la forma de la app, sin tocar la unidad', function () {
+    assertEqual(valorDeCalendario('3.5%'), '3,5%');
+    assertEqual(valorDeCalendario('225K'), '225K');
+    assertEqual(valorDeCalendario('1,234.5'), '1234,5');
+    assertEqual(valorDeCalendario('-0.3%'), '-0,3%');
+  });
+  test('un dato que todavía no existe queda vacío', function () {
+    assertEqual(valorDeCalendario(null), '');
+    assertEqual(valorDeCalendario(undefined), '');
+    assertEqual(valorDeCalendario('  '), '');
+  });
+  // — Qué eventos se siguen —
+  const e = function (id, evento, fecha, extra) {
+    return Object.assign({ id: id, evento: evento, fecha: fecha, referencia: 'Oct', previo: null, pronostico: null, publicado: null, importancia: 3 }, extra || {});
+  };
+  test('se siguen IPC, PPI, PCE, empleo y PIB, cada uno en su grupo y con nombre en castellano', function () {
+    const r = calendarioRelevante([
+      e(1, 'Inflation Rate YoY', '2026-11-10T08:30:00'),
+      e(2, 'Core PPI MoM', '2026-11-13T08:30:00'),
+      e(3, 'PCE Price Index YoY', '2026-10-29T08:30:00'),
+      e(4, 'Non Farm Payrolls', '2026-11-06T08:30:00'),
+      e(5, 'GDP Growth Rate QoQ Adv', '2026-10-29T08:30:00')
+    ]);
+    assertEqual(r.length, 5);
+    const por = {};
+    r.forEach(function (x) { por[x.id] = x; });
+    assertEqual(por[1].grupo, 'ipc');
+    assertEqual(por[1].nombre, 'IPC interanual');
+    assertEqual(por[2].grupo, 'ppi');
+    assertEqual(por[2].nombre, 'PPI subyacente mensual');
+    assertEqual(por[3].grupo, 'pce');
+    assertEqual(por[4].grupo, 'empleo');
+    assertEqual(por[5].grupo, 'pib');
+  });
+  test('lo que parece de la familia pero mide otra cosa no entra', function () {
+    const r = calendarioRelevante([
+      e(1, 'PPI Ex Food, Energy and Trade MoM', '2026-11-13T08:30:00'),
+      e(2, 'Michigan Inflation Expectations Prel', '2026-11-06T10:00:00'),
+      e(3, 'Government Payrolls', '2026-11-06T08:30:00'),
+      e(4, 'Consumer Inflation Expectations', '2026-11-09T11:00:00'),
+      e(5, 'Atlanta Fed GDPNow', '2026-10-27T11:00:00'),
+      e(6, 'Core PCE Prices QoQ Adv', '2026-10-29T08:30:00')
+    ]);
+    assertEqual(r.length, 0);
+  });
+  test('sale ordenado por hora de salida, aunque lleguen desordenados', function () {
+    const r = calendarioRelevante([
+      e(1, 'PPI MoM', '2026-11-13T08:30:00'),
+      e(2, 'Unemployment Rate', '2026-11-06T08:30:00'),
+      e(3, 'Inflation Rate MoM', '2026-11-10T08:30:00')
+    ]);
+    assertEqual(r.map(function (x) { return x.id; }).join(','), '2,3,1');
+  });
+  test('a la misma hora salen en el orden de la tabla: mensual, interanual, subyacentes', function () {
+    const misma = '2026-10-29T08:30:00';
+    const r = calendarioRelevante([
+      e(1, 'Core PCE Price Index YoY', misma),
+      e(2, 'PCE Price Index YoY', misma),
+      e(3, 'Core PCE Price Index MoM', misma),
+      e(4, 'PCE Price Index MoM', misma)
+    ]);
+    assertEqual(r.map(function (x) { return x.id; }).join(','), '4,2,3,1');
+  });
+  test('un evento que viene en dos semanas pedidas se muestra una sola vez', function () {
+    const r = calendarioRelevante([
+      e(7, 'Unemployment Rate', '2026-11-06T08:30:00'),
+      e(7, 'Unemployment Rate', '2026-11-06T08:30:00')
+    ]);
+    assertEqual(r.length, 1);
+  });
+  test('lleva la hora de Argentina, el período y el previo, el pronóstico y el publicado', function () {
+    const r = calendarioRelevante([
+      e(1, 'Inflation Rate YoY', '2026-11-10T08:30:00', { referencia: 'Oct', previo: '3.0%', pronostico: '3.1%', publicado: '3.2%' })
+    ])[0];
+    assertEqual(r.dia, '2026-11-10');
+    assertEqual(r.hora, '10:30');
+    assertEqual(r.referencia, 'Oct');
+    assertEqual(r.previo, '3,0%');
+    assertEqual(r.pronostico, '3,1%');
+    assertEqual(r.publicado, '3,2%');
+  });
+  test('uno que todavía no salió tiene el publicado vacío, y uno sin pronóstico también', function () {
+    const r = calendarioRelevante([e(1, 'PPI YoY', '2026-11-13T08:30:00', { previo: '2.0%' })])[0];
+    assertEqual(r.publicado, '');
+    assertEqual(r.pronostico, '');
+  });
+  test('una entrada rota no tumba el resto', function () {
+    const r = calendarioRelevante([null, {}, e(1, 'PPI YoY', 'sin fecha'), e(2, 'PPI YoY', '2026-11-13T08:30:00')]);
+    assertEqual(r.length, 1);
+    assertEqual(r[0].id, 2);
+    assertEqual(calendarioRelevante(undefined).length, 0);
+  });
+});
+
 group('Sector de los activos', function () {
   const LISTADO = { AAPL: { r: 20, n: 'Apple Inc.', s: 'tecnologia' }, SPY: { r: 60, n: 'SPDR S&P 500', s: 'indices' } };
   test('sin carga manual, el sector sale del listado', function () {

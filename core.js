@@ -1509,6 +1509,131 @@ function textoDeRatioCedear(ratio) {
   return '1 CEDEAR = ' + CEDEAR_RATIO_N.format(acciones) + ' acciones';
 }
 
+// ----- CALENDARIO ECONÓMICO (Finviz) -----
+// Los datos que mueven al mercado y cuándo salen: inflación al consumidor (IPC),
+// a los productores (PPI), PCE, empleo y PIB. Finviz trae decenas de eventos por
+// semana y estos son los que se siguen; cada uno se reconoce por el nombre con el
+// que Finviz lo publica (el IPC figura como "Inflation Rate", no como "CPI").
+const CALENDARIO_GRUPOS = [
+  { clave: 'ipc', rotulo: 'IPC' },
+  { clave: 'ppi', rotulo: 'PPI' },
+  { clave: 'pce', rotulo: 'PCE' },
+  { clave: 'empleo', rotulo: 'Empleo' },
+  { clave: 'pib', rotulo: 'PIB' }
+];
+
+// Nombre de Finviz -> grupo y nombre en castellano. Los que no están acá no se
+// muestran: "PPI Ex Food, Energy and Trade" o "Michigan Inflation Expectations"
+// parecen de la familia pero miden otra cosa.
+const CALENDARIO_EVENTOS = {
+  'Inflation Rate MoM': ['ipc', 'IPC mensual'],
+  'Inflation Rate YoY': ['ipc', 'IPC interanual'],
+  'Core Inflation Rate MoM': ['ipc', 'IPC subyacente mensual'],
+  'Core Inflation Rate YoY': ['ipc', 'IPC subyacente interanual'],
+  'PPI MoM': ['ppi', 'PPI mensual'],
+  'PPI YoY': ['ppi', 'PPI interanual'],
+  'Core PPI MoM': ['ppi', 'PPI subyacente mensual'],
+  'Core PPI YoY': ['ppi', 'PPI subyacente interanual'],
+  'PCE Price Index MoM': ['pce', 'PCE mensual'],
+  'PCE Price Index YoY': ['pce', 'PCE interanual'],
+  'Core PCE Price Index MoM': ['pce', 'PCE subyacente mensual'],
+  'Core PCE Price Index YoY': ['pce', 'PCE subyacente interanual'],
+  'Non Farm Payrolls': ['empleo', 'Nóminas no agrícolas'],
+  'Unemployment Rate': ['empleo', 'Tasa de desempleo'],
+  'GDP Growth Rate QoQ Adv': ['pib', 'PIB trimestral (adelanto)'],
+  'GDP Growth Rate QoQ 2nd Est': ['pib', 'PIB trimestral (2.ª estimación)'],
+  'GDP Growth Rate QoQ Final': ['pib', 'PIB trimestral (final)']
+};
+
+const CALENDARIO_ZONA_FINVIZ = 'America/New_York';
+const CALENDARIO_ZONA_LOCAL = 'America/Argentina/Buenos_Aires';
+
+// Los formateadores se arman una vez: construirlos por evento costaría más que
+// toda la conversión.
+const _formatosDeZona = {};
+function formatoDeZona(zona) {
+  if (!_formatosDeZona[zona]) {
+    _formatosDeZona[zona] = new Intl.DateTimeFormat('en-US', {
+      timeZone: zona, hourCycle: 'h23', year: 'numeric', month: '2-digit',
+      day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+  }
+  return _formatosDeZona[zona];
+}
+
+// Cuánto se adelanta la hora de pared de `zona` respecto de UTC en ese instante,
+// en milisegundos. Se mide y no se supone: Nueva York cambia de hora dos veces
+// por año y Argentina no, así que la diferencia entre ambas no es fija.
+function desfaseDeZona(ms, zona) {
+  const t = Math.floor(ms / 1000) * 1000;
+  const p = {};
+  formatoDeZona(zona).formatToParts(new Date(t)).forEach(function (x) { p[x.type] = Number(x.value); });
+  return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - t;
+}
+
+// Finviz da la hora de pared de Nueva York ("2026-10-29T08:30:00", sin zona).
+// Devuelve el instante real en milisegundos UTC, o null si no se puede leer.
+function instanteDeFinviz(texto) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(String(texto || ''));
+  if (!m) return null;
+  const pared = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+  // Dos pasadas: el desfase se mide en un instante que ya está corrido por él.
+  let utc = pared - desfaseDeZona(pared, CALENDARIO_ZONA_FINVIZ);
+  utc = pared - desfaseDeZona(utc, CALENDARIO_ZONA_FINVIZ);
+  return utc;
+}
+
+// Día ("2026-10-29") y hora ("09:30") de un instante, en Argentina.
+function fechaHoraArgentina(ms) {
+  const d = new Date(ms + desfaseDeZona(ms, CALENDARIO_ZONA_LOCAL));
+  const dos = function (n) { return String(n).padStart(2, '0'); };
+  return {
+    dia: d.getUTCFullYear() + '-' + dos(d.getUTCMonth() + 1) + '-' + dos(d.getUTCDate()),
+    hora: dos(d.getUTCHours()) + ':' + dos(d.getUTCMinutes())
+  };
+}
+
+// Finviz escribe como en inglés: "3.5%", "225K", "1,234.5". Se pasa a la forma de
+// la app —coma decimal, sin separador de miles— sin tocar la unidad. Vacío si el
+// dato todavía no existe.
+function valorDeCalendario(texto) {
+  if (texto === null || texto === undefined || String(texto).trim() === '') return '';
+  return String(texto).trim().replace(/,/g, '').replace('.', ',');
+}
+
+// De las entradas crudas del Worker a lo que se muestra: sólo los eventos que se
+// siguen, sin repetir (las semanas pedidas se pisan en sus bordes), con la hora
+// en Argentina y por orden de salida. `entradas` son { id, evento, fecha,
+// referencia, previo, pronostico, publicado, importancia }.
+function calendarioRelevante(entradas) {
+  const vistos = {};
+  const salida = [];
+  (Array.isArray(entradas) ? entradas : []).forEach(function (e) {
+    if (!e || !Object.prototype.hasOwnProperty.call(CALENDARIO_EVENTOS, e.evento)) return;
+    if (e.id !== undefined && e.id !== null) {
+      if (vistos[e.id]) return;
+      vistos[e.id] = true;
+    }
+    const ms = instanteDeFinviz(e.fecha);
+    if (ms === null) return;
+    const def = CALENDARIO_EVENTOS[e.evento];
+    const grupo = CALENDARIO_GRUPOS.filter(function (g) { return g.clave === def[0]; })[0];
+    const fh = fechaHoraArgentina(ms);
+    salida.push({
+      id: e.id, evento: e.evento, grupo: grupo.clave, rotuloGrupo: grupo.rotulo, nombre: def[1], ms: ms,
+      dia: fh.dia, hora: fh.hora, referencia: e.referencia || '',
+      previo: valorDeCalendario(e.previo), pronostico: valorDeCalendario(e.pronostico),
+      publicado: valorDeCalendario(e.publicado), importancia: Number(e.importancia) || 0
+    });
+  });
+  // A la misma hora salen varios a la vez (IPC y PPI traen mensual, interanual y
+  // los dos subyacentes): se ordenan como están en la tabla, no como lleguen.
+  const posicion = Object.keys(CALENDARIO_EVENTOS);
+  return salida.sort(function (a, b) {
+    return (a.ms - b.ms) || (posicion.indexOf(a.evento) - posicion.indexOf(b.evento));
+  });
+}
+
 // ----- FICHA MÉDICA: FUSIÓN POR MODO -----
 // El modo elegido en el diálogo de import vale para TODO lo que se importa, no
 // sólo para las reglas y las categorías. Las tarjetas KPI y los viajes son
@@ -4637,6 +4762,8 @@ if (typeof module !== 'undefined' && module.exports) {
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
     equivalenteDeCedear, cotizacionDeCedear, textoDeRatioCedear,
+    // calendario económico
+    CALENDARIO_GRUPOS, instanteDeFinviz, fechaHoraArgentina, valorDeCalendario, calendarioRelevante,
     resumirTanda,
     // reserva
     getReservaParams, getReservaAcumulado,

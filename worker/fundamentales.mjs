@@ -9,11 +9,13 @@
 // atienden functions/api/*.js, que lo envuelven; en Workers con assets, el
 // "main" de wrangler.jsonc.
 //
-// Dos rutas, las dos de solo lectura:
+// Tres rutas, las tres de solo lectura:
 //   /api/fundamentales?t=AAPL  la ficha de un activo: su tabla de datos y la
 //                              cabecera con su sector e industria.
 //   /api/grupos                los promedios de cada sector y de cada industria,
 //                              contra los que se compara el activo.
+//   /api/calendario?d=AAAA-MM-DD  los eventos económicos de la semana que
+//                              contiene esa fecha (IPC, PPI, PCE, empleo, PIB…).
 //
 // Hace lo mínimo: valida, pide, recorta y devuelve. NO interpreta los valores:
 // eso vive en core.js (fundamentalesDeFinviz, gruposDeFinviz), donde tiene tests
@@ -33,6 +35,7 @@ const TICKER_OK = /^[A-Z0-9]{1,6}([.-][A-Z0-9]{1,3})?$/;
 // mismos para todos los activos: un día alcanza.
 const CACHE_FICHA = 6 * 60 * 60;
 const CACHE_GRUPOS = 24 * 60 * 60;
+const CACHE_CALENDARIO = 15 * 60;
 
 // Las tres vistas de la tabla de grupos que traen lo que se compara: valuación
 // y crecimiento (120), calidad y deuda (160), y dividendo y recomendación (110).
@@ -153,12 +156,58 @@ async function grupos(request) {
   });
 }
 
+// El calendario económico viaja incrustado en la página como un JSON
+// (`route-init-data`): se extrae y se parsea acá, sin pasar HTML a la app. Los
+// campos se renombran a los de la app y se descartan los que no se usan; qué
+// eventos interesan y en qué hora se muestran lo decide core.js.
+function recortarCalendario(html) {
+  const marca = html.indexOf('id="route-init-data"');
+  if (marca < 0) return null;
+  const ini = html.indexOf('>', marca);
+  const fin = html.indexOf('</script>', ini);
+  if (ini < 0 || fin < 0) return null;
+  let datos;
+  try {
+    datos = JSON.parse(html.slice(ini + 1, fin));
+  } catch (e) {
+    return null;
+  }
+  const entradas = datos && datos.data && datos.data.entries;
+  if (!Array.isArray(entradas)) return null;
+  return entradas.map(function (x) {
+    return {
+      id: x.calendarId, evento: x.event, fecha: x.date, referencia: x.reference,
+      previo: x.previous, pronostico: x.forecast, publicado: x.actual, importancia: x.importance
+    };
+  });
+}
+
+// Un valor publicado aparece en minutos, así que la caché es corta: lo suficiente
+// para no pedirle a Finviz lo mismo en cada visita.
+async function calendario(request, url) {
+  const desde = (url.searchParams.get('d') || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(desde)) return json({ error: 'Fecha inválida.' }, 400);
+  return conCache(request, CACHE_CALENDARIO, async function () {
+    let resp;
+    try {
+      resp = await pedir('https://finviz.com/calendar/economic?dateFrom=' + desde);
+    } catch (e) {
+      return json({ error: 'No se pudo conectar con Finviz.' }, 502);
+    }
+    if (!resp.ok) return json({ error: 'Finviz respondió ' + resp.status + '.' }, 502);
+    const entradas = recortarCalendario(await resp.text());
+    if (!entradas) return json({ error: 'Finviz no devolvió el calendario.' }, 502);
+    return json({ fuente: 'finviz', fecha: new Date().toISOString(), desde: desde, entradas: entradas });
+  });
+}
+
 export default {
   async fetch(request) {
     const url = new URL(request.url);
     if (request.method !== 'GET') return json({ error: 'Sólo GET.' }, 405);
     if (url.pathname === '/api/fundamentales') return fundamentales(request, url);
     if (url.pathname === '/api/grupos') return grupos(request);
+    if (url.pathname === '/api/calendario') return calendario(request, url);
     return json({ error: 'No existe.' }, 404);
   }
 };

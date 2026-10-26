@@ -8008,7 +8008,9 @@ select.inv-plan-in { cursor: pointer; }
   gap: var(--perf-gap);
 }
 .inv-liq-titulos,
-.inv-liq-fila {
+.inv-liq-fila,
+.inv-cal-titulos,
+.inv-cal-fila {
   display: grid;
   /* Fecha | Activo (ticker + descripción) | Nominales | Días | Cobrado | Resultado */
   grid-template-columns: 86px minmax(0, 2fr) minmax(0, 1fr) 82px minmax(0, 1fr) minmax(0, 1fr);
@@ -8019,7 +8021,8 @@ select.inv-plan-in { cursor: pointer; }
    dos tablas de la misma pantalla y tienen que leerse igual. Los valores
    salen de .investment-detail-table th, medidos: mono 9px/700, acento,
    letter-spacing 1,2 y el mismo divisor debajo. */
-.inv-liq-titulos {
+.inv-liq-titulos,
+.inv-cal-titulos {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 1.2px;
@@ -8081,7 +8084,8 @@ select.inv-plan-in { cursor: pointer; }
    eso son más altas que una línea de texto. align-items pasa a center porque
    con una altura fija el baseline dejaba el texto pegado arriba; el ticker y su
    descripción siguen alineados por baseline dentro de .inv-liq-activo. */
-.inv-liq-fila {
+.inv-liq-fila,
+.inv-cal-fila {
   font-size: 11px;
   color: var(--ink);
   min-height: 40px;
@@ -8108,6 +8112,18 @@ select.inv-plan-in { cursor: pointer; }
 .inv-liq-res.inv-gp-positive { color: var(--green); }
 .inv-liq-res.inv-gp-negative { color: var(--red); }
 .inv-liq-vacio { font-size: 10px; color: var(--muted-2); font-style: italic; }
+/* El calendario económico de Seguimiento es la misma lista que Liquidado —mismos
+   títulos, mismas filas, mismo divisor—: sólo cambian las columnas. Fecha | Hora
+   | Dato | Período | Previo | Esperado | Publicado. Va después de la
+   declaración compartida para que su grilla sea la que rige. */
+.inv-cal-titulos,
+.inv-cal-fila { grid-template-columns: 86px 48px minmax(0, 2fr) 64px repeat(3, minmax(0, 1fr)); }
+.inv-cal-titulos span:nth-child(n+5),
+.inv-cal-num { text-align: right; }
+.inv-cal-ref { color: var(--muted); }
+/* Lo publicado es el dato que se vino a buscar: en tinta plena y con peso, el
+   mismo que el del ticker en las otras listas. */
+.inv-cal-pub { font-weight: 600; }
 
 /* Etiqueta y valor de la cotización MEP usada. Viven en la fila de las
    solapas principales (.main-tabs-mep); antes iban debajo de cada panel. */
@@ -8286,7 +8302,8 @@ select.inv-plan-in { cursor: pointer; }
    —el ancho de la primera columna—, así que el rótulo salía en tres renglones. */
 /* Al lado del conteo, no empujado al margen derecho: los tres datos de la
    cabecera se leen juntos. */
-.inv-currency-header-row .inv-update-prices-btn {
+.inv-currency-header-row .inv-update-prices-btn,
+.inv-fold-acciones .inv-update-prices-btn {
   width: 22px;
   height: 22px;
   border-radius: 5px;

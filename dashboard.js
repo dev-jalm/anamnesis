@@ -18311,6 +18311,8 @@ function setMainTab(tab) {
     // El CCL, para el tooltip del precio de entrada del plan. Aparte del MEP:
     // otra cotización, otro uso.
     if (typeof autoFetchCclIfStale === 'function') autoFetchCclIfStale();
+    // El calendario económico de la sección Seguimiento.
+    if (typeof autoTraerCalendario === 'function') autoTraerCalendario();
   }
   if (tab === 'movements') renderMainMovements();
   if (tab === 'budget') renderMainBudget();
@@ -22263,6 +22265,137 @@ document.addEventListener('click', function (e) {
   });
 });
 
+// ─── 0 | Seguimiento: el calendario económico ───
+// Cuándo salen los datos que mueven al mercado —IPC, PPI, PCE, empleo y PIB— y
+// cómo vinieron. Se pide a Finviz por semana y sólo se guarda en memoria: es un
+// dato del día, no de la cartera, y no tiene por qué viajar en el archivo.
+const CALENDARIO_SEMANAS = 4;
+// Un valor publicado aparece en minutos; repetir el pedido en cada render
+// sería gastar Finviz sin ganar nada.
+const CALENDARIO_VIGENCIA_MS = 15 * 60 * 1000;
+// Lo que salió hace poco sigue a la vista —es lo que se quiere comparar con lo
+// esperado—. Hacia adelante, tres semanas: alcanza para ver el próximo IPC y el
+// próximo PPI, que salen con una semana de diferencia a mitad de mes.
+const CALENDARIO_ATRAS_MS = 3 * 86400000;
+const CALENDARIO_ADELANTE_MS = 21 * 86400000;
+let _calendario = null;
+let _calendarioEnVuelo = null;
+let _calendarioError = '';
+
+const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+
+function fechaIso(d) {
+  const dos = function (n) { return String(n).padStart(2, '0'); };
+  return d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate());
+}
+
+// Los lunes de las semanas a pedir: la actual y las que siguen. Cada pedido de
+// Finviz cubre de tres días antes a cuatro después, así que de lunes en lunes no
+// queda ningún hueco.
+function lunesDeCalendario() {
+  const hoy = new Date();
+  const lunes = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - ((hoy.getDay() + 6) % 7));
+  const salida = [];
+  for (let i = 0; i < CALENDARIO_SEMANAS; i++) {
+    salida.push(fechaIso(new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + 7 * i)));
+  }
+  return salida;
+}
+
+function repintarCalendario(cargando) {
+  document.querySelectorAll('.inv-cal-cuerpo').forEach(function (el) { el.innerHTML = htmlCalendario(); });
+  document.querySelectorAll('[data-action="update-calendar"]').forEach(function (b) {
+    b.classList.toggle('loading', !!cargando);
+    b.disabled = !!cargando;
+  });
+  if (window.lucide) lucide.createIcons();
+}
+
+function traerCalendario(forzar) {
+  if (window.DEMO_MODE) return Promise.resolve(null);
+  if (!forzar && _calendario && Date.now() - _calendario.ms < CALENDARIO_VIGENCIA_MS) return Promise.resolve(_calendario);
+  if (_calendarioEnVuelo) return _calendarioEnVuelo;
+  // Abierta desde un archivo no hay servidor del sitio al que pedirle.
+  if (location.protocol !== 'http:' && location.protocol !== 'https:') {
+    _calendarioError = 'El calendario se pide al servidor del sitio, y esta copia de la app está abierta desde un archivo. Abrila desde el sitio publicado.';
+    repintarCalendario(false);
+    return Promise.resolve(null);
+  }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(function () { controller.abort(); }, 15000);
+  repintarCalendario(true);
+  _calendarioEnVuelo = Promise.all(lunesDeCalendario().map(function (d) {
+    return fetch('/api/calendario?d=' + d, { signal: controller.signal }).then(function (resp) {
+      return resp.json().catch(function () { return {}; }).then(function (cuerpo) {
+        if (!resp.ok) throw new Error(cuerpo.error || ('El servidor respondió ' + resp.status + '.'));
+        return cuerpo.entradas || [];
+      });
+    });
+  }))
+    .then(function (semanas) {
+      _calendario = { ms: Date.now(), entradas: calendarioRelevante([].concat.apply([], semanas)) };
+      _calendarioError = '';
+      return _calendario;
+    })
+    .catch(function (err) {
+      _calendarioError = err && err.name === 'AbortError'
+        ? 'Tardó más de 15 segundos en responder.'
+        : (err && err.message ? err.message : 'Error desconocido.');
+      return null;
+    })
+    .then(function (r) {
+      clearTimeout(timeoutId);
+      _calendarioEnVuelo = null;
+      repintarCalendario(false);
+      return r;
+    });
+  return _calendarioEnVuelo;
+}
+
+function autoTraerCalendario() {
+  traerCalendario(false);
+}
+
+function htmlCalendario() {
+  const nota = function (texto) { return '<div class="inv-liq-vacio">' + escapeHtmlSafe(texto) + '</div>'; };
+  // La demostración no sale a la red (RF-227).
+  if (window.DEMO_MODE) return nota('En la demostración no se consulta el calendario: no sale a la red.');
+  if (!_calendario) {
+    return nota(_calendarioError ? 'No se pudo traer el calendario: ' + _calendarioError : 'Trayendo el calendario de Finviz…');
+  }
+  const ahora = Date.now();
+  const lista = _calendario.entradas.filter(function (e) {
+    return e.ms >= ahora - CALENDARIO_ATRAS_MS && e.ms <= ahora + CALENDARIO_ADELANTE_MS;
+  });
+  const dato = function (cls, texto) {
+    return '<span class="' + cls + '">' + (texto ? escapeHtmlSafe(texto) : '<span class="inv-na">—</span>') + '</span>';
+  };
+  const filas = lista.map(function (e) {
+    const p = e.dia.split('-').map(Number);
+    const dia = DIAS_CORTOS[new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay()] + ' ' +
+      String(p[2]).padStart(2, '0') + '/' + String(p[1]).padStart(2, '0');
+    return '<div class="inv-cal-fila">' +
+      '<span class="inv-liq-fecha">' + dia + '</span>' +
+      '<span>' + e.hora + '</span>' +
+      '<span class="inv-liq-activo"><span class="inv-liq-tk">' + escapeHtmlSafe(e.nombre) + '</span></span>' +
+      dato('inv-cal-ref', e.referencia) +
+      dato('inv-cal-num', e.previo) +
+      dato('inv-cal-num', e.pronostico) +
+      dato('inv-cal-num inv-cal-pub', e.publicado) +
+    '</div>';
+  });
+  const consulta = new Date(_calendario.ms).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return (filas.length
+    ? '<div class="inv-cal-titulos"><span>Fecha</span><span>Hora</span><span>Dato</span><span>Período</span>' +
+        '<span>Previo</span><span>Esperado</span><span>Publicado</span></div>' + filas.join('')
+    : nota('Sin publicaciones de IPC, PPI, PCE, empleo ni PIB en las próximas tres semanas.')) +
+    nota('Hora de Argentina · Finviz · consultado a las ' + consulta);
+}
+
+function bloqueSeguimiento() {
+  return '<div class="inv-liq"><div class="inv-cal-cuerpo">' + htmlCalendario() + '</div></div>';
+}
+
 function buildInvestmentDetailPanel(destinos, title) {
   // Filtrar entradas del destino. Si no hay ninguna, igual mostramos el panel
   // con todo en 0 (estado vacío) — el usuario quiere ver las 5 secciones siempre.
@@ -23003,9 +23136,22 @@ function buildInvestmentDetailPanel(destinos, title) {
       // quedó repartido. RENDIMIENTO cuenta cómo le fue a eso que se tiene, y
       // LIQUIDADO va último porque es lo que ya salió de la cartera: es
       // historia cerrada y es lo que menos se consulta.
-      // Las cinco van numeradas: el número dice en qué paso del ciclo está
+      // Las seis van numeradas: el número dice en qué paso del ciclo está
       // cada una y hace explícito que el orden no es alfabético ni casual.
+      // SEGUIMIENTO es la 0 porque va antes de decidir nada: cómo está el
+      // mercado y qué datos salen. El número va como texto: un 0 numérico se
+      // tomaría por "sin número". Lo que muestra es del mercado y no de una
+      // cartera, así que va una sola vez, en Inversiones: repetido en cada panel
+      // eran cuatro copias del mismo calendario.
       (panelKey === 'trading' ? '' :
+        (panelKey === 'inversiones'
+          ? bloquePlegableInv('Seguimiento',
+              'Qué datos económicos salen y cuándo: lo esperado y lo publicado.',
+              bloqueSeguimiento(), 'inv-fold-seg', '',
+              '<button class="inv-update-prices-btn" data-action="update-calendar" title="Volver a pedir el calendario a Finviz">' +
+                '<i data-lucide="refresh-cw" style="width:11px;height:11px"></i>' +
+              '</button>', '0')
+          : '') +
         bloquePlegableInv('Planificación',
           'En qué activos entrar, a qué precio y con qué parte del capital.',
           bloquePlanificacion(destinos, title), 'inv-fold-plan', '',
@@ -24000,6 +24146,13 @@ function bindInvestmentDetailDelegation() {
       // —justo el que se acaba de tocar— se cerraba solo.
       const clave = claveDespliegue(row);
       if (clave) { if (isExpanded) invTickersDesplegados.delete(clave); else invTickersDesplegados.add(clave); }
+      return;
+    }
+    const calBtn = e.target.closest('[data-action="update-calendar"]');
+    if (calBtn) {
+      e.preventDefault();
+      e.stopPropagation();   // evitar que el click toggle el <details>
+      traerCalendario(true);
       return;
     }
     // Actualizar precios desde data912.com para los tickers del panel
