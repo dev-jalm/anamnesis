@@ -128,6 +128,12 @@ const DEMO_APORTES = [
 // todos los precios en pesos: si se toca, se mueve la cartera entera y sigue
 // siendo coherente consigo misma.
 const DEMO_MEP = 1285;
+// El CCL de la demo. Sólo lo usa el tooltip del precio de entrada de la
+// Planificación, que muestra el CEDEAR equivalente al CCL. Va unos 5,5 % sobre
+// el MEP, que es la brecha que tienen en la vida real. Hace falta fijarlo acá
+// porque los parámetros de la demo se FUSIONAN con los del usuario: sin esto, el
+// CCL real de quien mira la demo se colaría en ella.
+const DEMO_CCL = 1355;
 
 const DEMO_CARTERA = [
   { ticker: 'SPY',  desc: 'SPDR S&P 500 ETF Trust',  broker: 'BALANZ',      destino: 'inversiones',
@@ -844,6 +850,8 @@ function buildDemoSnapshot(mesesAtras) {
     params: {
       diasBajo: 5, periFugaPct: 30, learnRulesMonths: 6,
       cotizacionMep: DEMO_MEP, sidebarPinned: false,
+      // Sin fecha: la demo no consulta nada, y una fecha real no tendría sentido.
+      cotizacionCcl: DEMO_CCL, cotizacionCclUpdatedAt: null,
       viewMode: 'resumen',
       kpiPaletteMigrated: true,
       scoreLeftCardsInitialized: true

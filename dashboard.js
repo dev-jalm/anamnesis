@@ -18308,6 +18308,9 @@ function setMainTab(tab) {
     // nada. El auto-fetch corre en background — primero rendea con los valores
     // actuales y, cuando los fetchs terminan, dispara otro render con los nuevos.
     if (typeof autoFetchSaludFinancieraIfStale === 'function') autoFetchSaludFinancieraIfStale();
+    // El CCL, para el tooltip del precio de entrada del plan. Aparte del MEP:
+    // otra cotización, otro uso.
+    if (typeof autoFetchCclIfStale === 'function') autoFetchCclIfStale();
   }
   if (tab === 'movements') renderMainMovements();
   if (tab === 'budget') renderMainBudget();
@@ -21567,6 +21570,114 @@ function renderFichaFundamentales() {
   ov.addEventListener('click', function (e) { if (e.target === ov) cerrarFichaFundamentales(); });
 })();
 
+// ─── El CEDEAR equivalente al precio de entrada ───
+// Al pasar el mouse por el precio de entrada de un ingreso del plan, el tooltip
+// lo lleva al otro lado del CEDEAR: si el precio es el de la acción en dólares,
+// lo que costaría un CEDEAR en dólares y en pesos; si es el del CEDEAR en pesos,
+// en dólares y a qué acción corresponde. Sólo para lo que está en el listado de
+// BYMA, que es de donde sale el ratio.
+//
+// El dólar es el CCL y no el MEP (ver equivalenteDeCedear en core.js). El MEP
+// sigue siendo el de la app para todo lo demás; el CCL no se usa en ningún otro
+// lado. Se consulta a dolarapi, una vez por día al entrar a Salud financiera, y
+// se guarda con su fecha: el tooltip dice cuál usó y de qué día es.
+
+// El CCL guardado, o null si todavía no hay.
+function cclVigente() {
+  const v = state.params && state.params.cotizacionCcl;
+  if (!(typeof v === 'number' && isFinite(v) && v > 0)) return null;
+  return { valor: v, fecha: state.params.cotizacionCclUpdatedAt || null };
+}
+
+let _cclEnVuelo = false;
+
+// Trae el CCL si el guardado no es de hoy. Falla en silencio: el tooltip sigue
+// funcionando con el que haya, o sin pesos si no hay ninguno. En la demo no sale
+// a la red, por el mismo motivo que el MEP (RF-227).
+function autoFetchCclIfStale() {
+  if (window.DEMO_MODE) return;
+  if (_cclEnVuelo) return;
+  if (cclVigente() && isTimestampToday(state.params.cotizacionCclUpdatedAt)) return;
+  _cclEnVuelo = true;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(function () { controller.abort(); }, 8000);
+  fetch('https://dolarapi.com/v1/dolares/contadoconliqui', { signal: controller.signal })
+    .then(function (resp) {
+      clearTimeout(timeoutId);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    })
+    .then(function (data) {
+      const venta = Number(data && data.venta);
+      if (!isFinite(venta) || venta <= 0) throw new Error('cotización inválida');
+      if (!state.params) state.params = {};
+      state.params.cotizacionCcl = venta;
+      state.params.cotizacionCclUpdatedAt = Date.now();
+      scheduleSave();
+      // Los tooltips ya dibujados se corrigen en su lugar: rehacer el panel le
+      // borraría lo que se esté tipeando en el alta del plan.
+      refrescarEquivalentesDeEntrada();
+    })
+    .catch(function (err) {
+      console.warn('Auto-fetch CCL falló:', err && err.message ? err.message : err);
+    })
+    .then(function () { _cclEnVuelo = false; });
+}
+
+// El título y el detalle del tooltip de una línea, o null si no hay nada que
+// decir: un ticker que no está en el listado de BYMA no tiene CEDEAR.
+function tooltipPrecioDeEntrada(fila) {
+  const ratio = ratioDeCedear(fila.ticker);
+  if (!ratio) return null;
+  const ccl = cclVigente();
+  const eq = equivalenteDeCedear(fila, ratio, ccl && ccl.valor);
+  if (!eq) return null;
+  const dia = (ccl && ccl.fecha)
+    ? ' del ' + new Date(ccl.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '';
+  const alCcl = ccl ? '(al CCL $ ' + fmtPrecio(ccl.valor) + dia + ')' : '';
+  const lineas = ['Ratio: ' + textoDeRatioCedear(ratio) + '.'];
+  if (eq.moneda === 'USD') {
+    lineas.push('En dólares: US$ ' + fmtPrecio(eq.cedearUsd) + ' por CEDEAR.');
+    lineas.push(eq.cedearArs !== null
+      ? 'En pesos: $ ' + fmtPrecio(eq.cedearArs) + ' por CEDEAR ' + alCcl + '.'
+      : 'En pesos: sin cotización CCL.');
+  } else {
+    lineas.push(eq.cedearUsd !== null
+      ? 'En dólares: US$ ' + fmtPrecio(eq.cedearUsd) + ' por CEDEAR ' + alCcl + '.'
+      : 'En dólares: sin cotización CCL.');
+    if (eq.accionUsd !== null) lineas.push('La acción equivale a US$ ' + fmtPrecio(eq.accionUsd) + '.');
+  }
+  return {
+    titulo: eq.moneda === 'USD' ? 'CEDEAR equivalente' : 'Equivalente en dólares',
+    detalle: lineas.join('\n')
+  };
+}
+
+// Los atributos de la celda del precio de entrada: el tooltip y los datos con
+// los que se lo rehace cuando llega el CCL. Vacío si no hay CEDEAR.
+function atributosEquivalenteDeEntrada(fila) {
+  const t = tooltipPrecioDeEntrada(fila);
+  if (!t) return '';
+  return ' data-eq-ticker="' + escapeHtmlSafe(fila.ticker) + '"' +
+    ' data-eq-moneda="' + (fila.moneda === 'USD' ? 'USD' : 'ARS') + '"' +
+    ' data-eq-precio="' + escapeHtmlSafe(String(fila.precioObjetivo)) + '"' +
+    tipAttrs(t.titulo, t.detalle);
+}
+
+// Rehace, en el lugar, el tooltip de todas las celdas ya dibujadas.
+function refrescarEquivalentesDeEntrada() {
+  document.querySelectorAll('[data-eq-ticker]').forEach(function (td) {
+    const t = tooltipPrecioDeEntrada({
+      ticker: td.getAttribute('data-eq-ticker'),
+      moneda: td.getAttribute('data-eq-moneda'),
+      precioObjetivo: Number(td.getAttribute('data-eq-precio'))
+    });
+    if (!t) return;
+    td.setAttribute('data-tip-titulo', t.titulo.toLocaleUpperCase('es-AR'));
+    td.setAttribute('data-tip-detalle', t.detalle);
+  });
+}
+
 // El cuerpo de la sección: una tabla por moneda, como en Activos, y el
 // formulario de alta —que vive en la banda de la sección, no acá—.
 function bloquePlanificacion(destinos, nombreCartera) {
@@ -21645,7 +21756,7 @@ function bloquePlanificacion(destinos, nombreCartera) {
         // funciones de formateo de la app esperan una fracción.
         '<td class="num">' + pctSinSigno(Number(f.pctCapital) / 100) + '</td>' +
         '<td class="num">' + (nominales === null ? '<span class="inv-na">—</span>' : fmtNominales(nominales)) + '</td>' +
-        '<td class="num">' + simbolo + ' ' + fmtPrecio(Number(f.precioObjetivo)) + '</td>' +
+        '<td class="num"' + atributosEquivalenteDeEntrada(f) + '>' + simbolo + ' ' + fmtPrecio(Number(f.precioObjetivo)) + '</td>' +
         // El capital está en pesos y el precio de un activo en dólares no: sin
         // el equivalente, la fila mostraba un monto en $ al lado de un precio
         // en US$ y los nominales salían de una cuenta que no estaba a la vista.

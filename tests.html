@@ -1948,6 +1948,69 @@ group('Portafolios', function () {
   });
 });
 
+group('CEDEAR equivalente al precio de entrada', function () {
+  const CCL = 1654;
+  test('en dólares: el CEDEAR vale la acción dividida por el ratio, y en pesos al CCL', function () {
+    const e = equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 347.73 }, 20, CCL);
+    assertEqual(e.moneda, 'USD');
+    assertEqual(e.accionUsd, 347.73);
+    assert(Math.abs(e.cedearUsd - 17.3865) < 1e-9, 'US$ por CEDEAR: ' + e.cedearUsd);
+    assert(Math.abs(e.cedearArs - 17.3865 * CCL) < 1e-6, '$ por CEDEAR: ' + e.cedearArs);
+  });
+  test('en pesos: el CEDEAR en dólares al CCL, y la acción a la que corresponde', function () {
+    const e = equivalenteDeCedear({ moneda: 'ARS', precioObjetivo: 28660 }, 20, CCL);
+    assertEqual(e.moneda, 'ARS');
+    assertEqual(e.cedearArs, 28660);
+    assert(Math.abs(e.cedearUsd - 28660 / CCL) < 1e-9, 'US$ por CEDEAR');
+    assert(Math.abs(e.accionUsd - 28660 * 20 / CCL) < 1e-9, 'acción: ' + e.accionUsd);
+  });
+  test('ida y vuelta: de la acción al CEDEAR en pesos y de ahí otra vez a la acción', function () {
+    const ida = equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 92.71 }, 5, CCL);
+    const vuelta = equivalenteDeCedear({ moneda: 'ARS', precioObjetivo: ida.cedearArs }, 5, CCL);
+    assert(Math.abs(vuelta.accionUsd - 92.71) < 1e-9, 'vuelve a ' + vuelta.accionUsd);
+  });
+  test('sin CCL, lo que lo necesita queda en null y lo que no, se calcula igual', function () {
+    const usd = equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, 10, null);
+    assertEqual(usd.cedearUsd, 10);
+    assertEqual(usd.cedearArs, null);
+    const ars = equivalenteDeCedear({ moneda: 'ARS', precioObjetivo: 1000 }, 10, undefined);
+    assertEqual(ars.cedearArs, 1000);
+    assertEqual(ars.cedearUsd, null);
+    assertEqual(ars.accionUsd, null);
+  });
+  test('un CCL en cero, negativo o que no es número se trata como que no hay', function () {
+    [0, -5, NaN, 'abc'].forEach(function (c) {
+      assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, 10, c).cedearArs, null);
+    });
+  });
+  test('un CEDEAR que equivale a varias acciones: el ratio es una fracción', function () {
+    // r = 1/3: un CEDEAR vale tres acciones.
+    const e = equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 10 }, 1 / 3, CCL);
+    assert(Math.abs(e.cedearUsd - 30) < 1e-9, 'cuesta tres acciones: ' + e.cedearUsd);
+  });
+  test('sin un precio o un ratio que sirvan no hay equivalente', function () {
+    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 0 }, 10, CCL), null);
+    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: -3 }, 10, CCL), null);
+    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, 0, CCL), null);
+    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, null, CCL), null);
+    assertEqual(equivalenteDeCedear({ moneda: 'USD', precioObjetivo: 100 }, 'x', CCL), null);
+    assertEqual(equivalenteDeCedear(undefined, 10, CCL), null);
+  });
+  test('una línea sin moneda de dólares se trata como pesos, igual que en el resto del plan', function () {
+    assertEqual(equivalenteDeCedear({ precioObjetivo: 1000 }, 10, CCL).moneda, 'ARS');
+  });
+  test('el ratio dicho como en el listado: varios CEDEARs por acción, o un CEDEAR por varias', function () {
+    assertEqual(textoDeRatioCedear(20), '20 CEDEARs = 1 acción');
+    assertEqual(textoDeRatioCedear(1), '1 CEDEAR = 1 acción');
+    assertEqual(textoDeRatioCedear(1.5), '1,5 CEDEARs = 1 acción');
+    assertEqual(textoDeRatioCedear(1 / 3), '1 CEDEAR = 3 acciones');
+    assertEqual(textoDeRatioCedear(0.5), '1 CEDEAR = 2 acciones');
+    assertEqual(textoDeRatioCedear(0), '');
+    assertEqual(textoDeRatioCedear(null), '');
+    assertEqual(textoDeRatioCedear('x'), '');
+  });
+});
+
 group('Sector de los activos', function () {
   const LISTADO = { AAPL: { r: 20, n: 'Apple Inc.', s: 'tecnologia' }, SPY: { r: 60, n: 'SPDR S&P 500', s: 'indices' } };
   test('sin carga manual, el sector sale del listado', function () {

@@ -1429,6 +1429,48 @@ function compraPlanificada(fila, capital, precioActual, mep) {
   };
 }
 
+// El precio de entrada de una línea del plan llevado al otro lado del CEDEAR: lo
+// que costaría un CEDEAR si el precio es el de la acción en dólares, o a qué
+// acción corresponde si el precio es el del CEDEAR en pesos. `ratio` es el
+// factor del listado de BYMA —20 es que 20 CEDEARs valen una acción—.
+//
+// El dólar es el CCL y no el MEP: los CEDEARs cotizan al CCL (medido sobre cinco
+// con datos reales, su dólar implícito cae a menos de 0,5 % de él, y a casi 6 %
+// del MEP). Con el MEP el CEDEAR teórico saldría ese 6 % por debajo del mercado
+// y se leería como una prima que no existe.
+//
+// En dólares, la acción pasada a CEDEAR no necesita cotización: es dividir por
+// el ratio. Lo que sí la necesita sale en null si falta, y no se reemplaza por
+// otra cotización. Null si el precio o el ratio no sirven.
+function equivalenteDeCedear(fila, ratio, ccl) {
+  const precio = Number(fila && fila.precioObjetivo);
+  const r = Number(ratio);
+  if (!(isFinite(precio) && precio > 0) || !(isFinite(r) && r > 0)) return null;
+  const tc = (isFinite(ccl) && ccl > 0) ? Number(ccl) : null;
+  if (fila.moneda === 'USD') {
+    // El precio es el de la acción, en dólares.
+    const usd = precio / r;
+    return { moneda: 'USD', accionUsd: precio, cedearUsd: usd, cedearArs: tc ? usd * tc : null };
+  }
+  // El precio es el del CEDEAR, en pesos.
+  return {
+    moneda: 'ARS', cedearArs: precio,
+    cedearUsd: tc ? precio / tc : null,
+    accionUsd: tc ? precio * r / tc : null
+  };
+}
+
+// El ratio dicho como se lee en el listado de BYMA: "20 CEDEARs = 1 acción", o,
+// si un CEDEAR equivale a varias acciones, "1 CEDEAR = 3 acciones".
+const CEDEAR_RATIO_N = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+function textoDeRatioCedear(ratio) {
+  const r = Number(ratio);
+  if (!(isFinite(r) && r > 0)) return '';
+  if (r >= 1) return CEDEAR_RATIO_N.format(r) + (r === 1 ? ' CEDEAR = 1 acción' : ' CEDEARs = 1 acción');
+  const acciones = 1 / r;
+  return '1 CEDEAR = ' + CEDEAR_RATIO_N.format(acciones) + ' acciones';
+}
+
 // ----- FICHA MÉDICA: FUSIÓN POR MODO -----
 // El modo elegido en el diálogo de import vale para TODO lo que se importa, no
 // sólo para las reglas y las categorías. Las tarjetas KPI y los viajes son
@@ -4556,6 +4598,7 @@ if (typeof module !== 'undefined' && module.exports) {
     resultadosDe, fundamentalesTextoDeResultados, numeroDeFinviz, diasDeAntiguedad,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
+    equivalenteDeCedear, textoDeRatioCedear,
     resumirTanda,
     // reserva
     getReservaParams, getReservaAcumulado,
