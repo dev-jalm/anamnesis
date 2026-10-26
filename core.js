@@ -2134,6 +2134,13 @@ const FUNDAMENTALES_CAMPOS = [
     comp: { con: 'conv', fn: 'recom' },
     mide: 'El promedio de las recomendaciones de los analistas: 1 es comprar, 3 mantener, 5 vender.' },
   // — Precio hoy —
+  // El máximo y el mínimo del último año son los precios de la celda "52W High" y
+  // "52W Low" —el primer número—; el segundo es la distancia, que es el campo de
+  // abajo. Ocultos: no se juzgan contra nada, los usa la lista de seguimiento.
+  { k: 'max52', etiqueta: '52W High', rotulo: 'Máximo de 52 sem.', tipo: 'precio', grupo: 'Precio hoy', oculto: true,
+    mide: 'El precio más alto de los últimos 12 meses, en dólares.' },
+  { k: 'min52', etiqueta: '52W Low', rotulo: 'Mínimo de 52 sem.', tipo: 'precio', grupo: 'Precio hoy', oculto: true,
+    mide: 'El precio más bajo de los últimos 12 meses, en dólares.' },
   { k: 'dist52High', etiqueta: '52W High', parte: 1, rotulo: 'Distancia al máximo de 52 sem.', tipo: 'pctS', grupo: 'Precio hoy',
     comp: { con: 'conv', fn: 'dist52High' },
     mide: 'Cuánto está el precio por debajo (−) del máximo del último año.' },
@@ -2464,6 +2471,38 @@ function fundamentalesTextoDeResultados(texto, ahora, completo) {
     : (r.dias > 1 ? 'en ' + r.dias + ' días' : 'hace ' + (-r.dias) + (r.dias === -1 ? ' día' : ' días')));
   if (!completo) return dm + ' · ' + cuando;
   return dm + '/' + r.fecha.getFullYear() + ' · ' + cuando;
+}
+
+// ----- LISTA DE SEGUIMIENTO -----
+// Los símbolos que Finviz acepta: letras y números, y un punto o guion para las
+// clases (BRK-B). Es el mismo criterio con el que el Worker valida el ticker
+// antes de armar la URL; acá se aplica antes de guardarlo en la lista.
+function esTickerDeFinviz(ticker) {
+  return /^[A-Z0-9]{1,6}([.-][A-Z0-9]{1,3})?$/.test(String(ticker || ''));
+}
+
+// Lo que se ve de un activo seguido, de los datos de su ficha: el precio, el
+// mínimo y el máximo del año, en qué punto del rango está (0 % es el mínimo,
+// 100 % el máximo) y cuándo publica su balance. Cada pieza es null si falta: un
+// guion en pantalla, nunca un cero inventado. Un precio fuera del rango —Finviz
+// actualiza el máximo con retraso— se recorta a los extremos.
+function resumenDeSeguimiento(datos, ahora) {
+  const d = datos || {};
+  const positivo = function (n) { return esNumeroFinito(n) && n > 0 ? n : null; };
+  const precio = positivo(d.price);
+  const min = positivo(d.min52);
+  const max = positivo(d.max52);
+  const posicion = (precio !== null && min !== null && max !== null && max > min)
+    ? Math.min(100, Math.max(0, (precio - min) / (max - min) * 100)) : null;
+  const r = d.earnings ? resultadosDe(d.earnings, ahora) : null;
+  return {
+    precio: precio, min: min, max: max, posicion: posicion,
+    // Una fecha ya pasada es el último balance, no el próximo: Finviz deja el
+    // publicado hasta que la empresa anuncia el siguiente.
+    balance: r ? (r.dias < 0 ? 'último ' : '') + fundamentalesTextoDeResultados(d.earnings, ahora, false) : null,
+    diasAlBalance: r ? r.dias : null,
+    distanciaAlMaximo: esNumeroFinito(d.dist52High) ? d.dist52High : null
+  };
 }
 
 // Un valor en el formato de su dato.
@@ -4759,6 +4798,7 @@ if (typeof module !== 'undefined' && module.exports) {
     fundamentalesParaMostrar, clasificarFundamental, puntajeContraSector, lecturaCortoPlazo,
     fundamentalesCalculados,
     resultadosDe, fundamentalesTextoDeResultados, numeroDeFinviz, diasDeAntiguedad,
+    esTickerDeFinviz, resumenDeSeguimiento,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
     equivalenteDeCedear, cotizacionDeCedear, textoDeRatioCedear,

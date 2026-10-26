@@ -961,6 +961,14 @@ function buildDemoSnapshot(mesesAtras) {
         { id: 'plan_demo_4', ticker: 'VOO', moneda: 'USD', precioObjetivo: precioPlan('VOO', 'USD', 0.95), pctCapital: 80, broker: 'BALANZ', portafolio: '', nota: 'APORTE DEL TRIMESTRE' }
       ]
     },
+    // Lista de seguimiento: tres activos que se miran sin tenerlos en el plan.
+    // Sin datos de Finviz —la demo no sale a la red—: la lista se ve con sus
+    // guiones y el ícono que invita a traerlos.
+    seguimiento: [
+      { id: 'seg_demo_1', ticker: 'MSFT' },
+      { id: 'seg_demo_2', ticker: 'PEP' },
+      { id: 'seg_demo_3', ticker: 'XOM' }
+    ],
     // Dos portafolios que reparten parte de los CEDEARs de Inversiones y dejan
     // el resto sin asignar, que es el caso más común: se agrupa lo que tiene un
     // destino pensado y lo demás queda suelto. Las fechas de plazo son futuras y

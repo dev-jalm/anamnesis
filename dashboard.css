@@ -8010,7 +8010,9 @@ select.inv-plan-in { cursor: pointer; }
 .inv-liq-titulos,
 .inv-liq-fila,
 .inv-cal-titulos,
-.inv-cal-fila {
+.inv-cal-fila,
+.inv-seg-titulos,
+.inv-seg-fila {
   display: grid;
   /* Fecha | Activo (ticker + descripción) | Nominales | Días | Cobrado | Resultado */
   grid-template-columns: 86px minmax(0, 2fr) minmax(0, 1fr) 82px minmax(0, 1fr) minmax(0, 1fr);
@@ -8022,7 +8024,8 @@ select.inv-plan-in { cursor: pointer; }
    salen de .investment-detail-table th, medidos: mono 9px/700, acento,
    letter-spacing 1,2 y el mismo divisor debajo. */
 .inv-liq-titulos,
-.inv-cal-titulos {
+.inv-cal-titulos,
+.inv-seg-titulos {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 1.2px;
@@ -8085,7 +8088,8 @@ select.inv-plan-in { cursor: pointer; }
    con una altura fija el baseline dejaba el texto pegado arriba; el ticker y su
    descripción siguen alineados por baseline dentro de .inv-liq-activo. */
 .inv-liq-fila,
-.inv-cal-fila {
+.inv-cal-fila,
+.inv-seg-fila {
   font-size: 11px;
   color: var(--ink);
   min-height: 40px;
@@ -8121,6 +8125,13 @@ select.inv-plan-in { cursor: pointer; }
 .inv-cal-titulos span:nth-child(n+5),
 .inv-cal-num { text-align: right; }
 .inv-cal-ref { color: var(--muted); }
+/* La lista de seguimiento, en la misma lista: quitar | Activo | Precio | Mín. |
+   Máx. | En el rango | Próx. balance | Consulta. Los cuatro números y la fecha de
+   consulta a la derecha, como en las demás. */
+.inv-seg-titulos,
+.inv-seg-fila { grid-template-columns: 30px minmax(0, 2fr) repeat(4, minmax(0, 1fr)) minmax(0, 1.3fr) 96px; }
+.inv-seg-titulos span:nth-child(n+3):nth-child(-n+6),
+.inv-seg-titulos span:nth-child(8) { text-align: right; }
 /* Lo publicado es el dato que se vino a buscar: en tinta plena y con peso, el
    mismo que el del ticker en las otras listas. */
 .inv-cal-pub { font-weight: 600; }

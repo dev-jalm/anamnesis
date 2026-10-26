@@ -385,6 +385,11 @@ const state = {
   // que se piensa comprar, no lo que se compró: las tenencias viven en
   // investmentEntries.
   planCompras: {},
+  // Lista de seguimiento: los activos que se miran sin haberlos comprado ni
+  // planificado. Cada uno: { id, ticker }. Los datos de Finviz de cada símbolo
+  // viven en tickerInfo, como los de cualquier activo, no acá. Es una lista
+  // sola y no una por cartera: seguir una acción no la asigna a ninguna.
+  seguimiento: [],
   // Parámetros configurables del usuario
   params: {
     diasBajo: 50000, // umbral para "Días bajo $X" en saldo MP
@@ -15114,6 +15119,7 @@ function buildStateSnapshot() {
     paymentMethodOverrides: state.paymentMethodOverrides,
     categoryRules: state.categoryRules,
     planCompras: state.planCompras,
+    seguimiento: state.seguimiento,
     params: state.params,
     recurringDismissed: state.recurringDismissed,
     travels: state.travels,
@@ -15312,6 +15318,9 @@ function applyStateSnapshot(snap) {
   // sobrevive al modo demo y después se guarda en el archivo siguiente.
   state.planCompras = (snap.planCompras && typeof snap.planCompras === 'object')
     ? snap.planCompras : {};
+  // Igual que el plan: se resetea si el snapshot no la trae, para que la lista
+  // de un archivo real no sobreviva a la demo.
+  state.seguimiento = Array.isArray(snap.seguimiento) ? snap.seguimiento : [];
   if (Array.isArray(snap.recurringDismissed)) state.recurringDismissed = snap.recurringDismissed;
   if (Array.isArray(snap.travels)) state.travels = snap.travels;
   // Se resetean si el snapshot no los trae, igual que trades: si no, los
@@ -22392,9 +22401,150 @@ function htmlCalendario() {
     nota('Hora de Argentina · Finviz · consultado a las ' + consulta);
 }
 
-function bloqueSeguimiento() {
-  return '<div class="inv-liq"><div class="inv-cal-cuerpo">' + htmlCalendario() + '</div></div>';
+// ─── La lista de seguimiento ───
+// Los activos que se miran antes de decidir si entran al plan. De cada uno: su
+// ficha de Finviz, el precio, el rango del último año y cuándo publica su
+// balance. Los datos son los de cualquier activo —tickerInfo, en dólares, que es
+// en lo que cotiza Finviz—, así que traerlos y abrir la ficha es lo mismo que en
+// Planificación.
+function seguimientoLista() {
+  return Array.isArray(state.seguimiento) ? state.seguimiento : [];
 }
+
+// 'ok', 'invalido' o 'repetido'.
+function agregarASeguimiento(ticker) {
+  if (!esTickerDeFinviz(ticker)) return 'invalido';
+  if (seguimientoLista().some(function (x) { return x.ticker === ticker; })) return 'repetido';
+  state.seguimiento = seguimientoLista().concat([{
+    id: 'seg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    ticker: ticker
+  }]);
+  scheduleSave();
+  return 'ok';
+}
+
+function quitarDeSeguimiento(id) {
+  state.seguimiento = seguimientoLista().filter(function (x) { return x.id !== id; });
+  scheduleSave();
+}
+
+// Lo que se escribe y el botón van en la banda de la sección, como el alta del
+// plan, con sus mismas clases. Con el refresco: vuelve a pedir el calendario y
+// los datos de cada activo de la lista.
+function accionesDeSeguimientoHtml() {
+  return '<div class="inv-plan-alta">' +
+    '<span class="inv-plan-campo es-ticker">' +
+      '<label class="inv-plan-rot">Activo</label>' +
+      '<input type="text" class="inv-plan-in" data-seg-campo maxlength="8" placeholder="EJ: MSFT">' +
+    '</span>' +
+    '<button type="button" class="inv-agrupar-btn inv-plan-add" data-seg-add>AGREGAR AL SEGUIMIENTO</button>' +
+    '<button class="inv-update-prices-btn" data-action="update-calendar" ' +
+      'title="Volver a pedir a Finviz el calendario y los datos de los activos">' +
+      '<i data-lucide="refresh-cw" style="width:11px;height:11px"></i>' +
+    '</button>' +
+  '</div>';
+}
+
+function htmlListaSeguimiento() {
+  const nota = function (texto) { return '<div class="inv-liq-vacio">' + escapeHtmlSafe(texto) + '</div>'; };
+  const lista = seguimientoLista();
+  if (!lista.length) return nota('Todavía no seguís ningún activo: escribí su símbolo arriba y agregalo.');
+  const ahora = Date.now();
+  const guion = '<span class="inv-na">—</span>';
+  const usd = function (n) { return n === null ? guion : 'US$ ' + fmtPrecio(n); };
+  const filas = lista.map(function (item) {
+    const info = infoDeTicker(state.tickerInfo, item.ticker, 'USD');
+    const f = info.fundamentales;
+    const r = resumenDeSeguimiento(f && f.datos, ahora);
+    const desc = info.descripcion || infoDeTicker(state.tickerInfo, item.ticker, 'ARS').descripcion ||
+      nombreDeCedear(item.ticker) || '';
+    // En qué punto del rango anual está: el dato que dice si el precio está
+    // cerca de su piso o de su techo. El emergente propio de la app, no el title.
+    let posicion = guion;
+    if (r.posicion !== null) {
+      const detalle = ['Mínimo ' + usd(r.min) + ' · máximo ' + usd(r.max) + '.'];
+      if (r.distanciaAlMaximo !== null) {
+        detalle.push((r.distanciaAlMaximo <= 0 ? 'A ' + FUNDAMENTALES_N2.format(Math.abs(r.distanciaAlMaximo)) + '% por debajo del máximo.'
+          : 'Por encima del máximo que tenía Finviz.'));
+      }
+      posicion = '<span' + tipAttrs('Posición en el rango de 52 semanas',
+        '0% es el mínimo del año y 100% el máximo.\n' + detalle.join('\n')) + '>' +
+        FUNDAMENTALES_N0.format(r.posicion) + '%</span>';
+    }
+    const dias = f ? diasDeAntiguedad(f.fecha) : null;
+    return '<div class="inv-seg-fila">' +
+      '<span class="inv-seg-acciones">' +
+        '<button class="inv-delete-btn" data-seg-del="' + escapeHtmlSafe(item.id) + '" title="Quitar del seguimiento">' +
+          '<i data-lucide="trash-2" style="width:11px;height:11px"></i>' +
+        '</button>' +
+      '</span>' +
+      '<span class="inv-liq-activo">' +
+        '<span class="inv-liq-tk">' + escapeHtmlSafe(item.ticker) + '</span>' +
+        botonFundamentalesHtml(item.ticker, 'USD') +
+        (desc ? '<span class="inv-liq-desc">' + escapeHtmlSafe(desc) + '</span>' : '') +
+      '</span>' +
+      '<span class="inv-cal-num">' + usd(r.precio) + '</span>' +
+      '<span class="inv-cal-num">' + usd(r.min) + '</span>' +
+      '<span class="inv-cal-num">' + usd(r.max) + '</span>' +
+      '<span class="inv-cal-num">' + posicion + '</span>' +
+      '<span>' + (r.balance ? escapeHtmlSafe(r.balance) : guion) + '</span>' +
+      '<span class="inv-cal-num inv-cal-ref">' + (dias === null ? guion : (dias === 0 ? 'hoy' : 'hace ' + dias + (dias === 1 ? ' día' : ' días'))) + '</span>' +
+    '</div>';
+  });
+  return '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Precio</span>' +
+    '<span>Mín. 52 sem.</span><span>Máx. 52 sem.</span><span>En el rango</span><span>Próx. balance</span><span>Consulta</span></div>' +
+    filas.join('');
+}
+
+function bloqueSeguimiento() {
+  // Los dos grupos llevan el título de Liquidado —mismo cuerpo, mismo color, los
+  // dos puntos— porque son la misma pieza: un grupo de filas con su rótulo.
+  const grupo = function (titulo, cuerpo) {
+    return '<div class="inv-liq-grupo"><div class="inv-liq-cab"><span class="inv-liq-titulo">' + titulo + ':</span></div>' +
+      cuerpo + '</div>';
+  };
+  return '<div class="inv-liq">' +
+    grupo('Calendario económico', '<div class="inv-cal-cuerpo">' + htmlCalendario() + '</div>') +
+    grupo('Activos en seguimiento', htmlListaSeguimiento()) +
+  '</div>';
+}
+
+// Agregar y quitar, por delegación: el panel se repinta entero en cada render.
+function agregarDesdeLaBanda(boton) {
+  const cont = boton.closest('.inv-plan-alta');
+  const campo = cont && cont.querySelector('[data-seg-campo]');
+  const ticker = campo ? campo.value.trim().toUpperCase() : '';
+  if (!ticker) { appAlert('Escribí el símbolo del activo que querés seguir.'); return; }
+  const r = agregarASeguimiento(ticker);
+  if (r === 'invalido') {
+    appAlert('"' + ticker + '" no es un símbolo que Finviz reconozca: letras y números, con un punto o un guion para las clases (BRK-B).');
+    return;
+  }
+  if (r === 'repetido') { appAlert(ticker + ' ya está en el seguimiento.'); return; }
+  if (campo) campo.value = '';
+  // Se trae su ficha de una vez: una fila sin datos es una fila que no dice nada.
+  if (typeof renderMainAssets === 'function') renderMainAssets();
+  traerFundamentales(ticker, 'USD');
+}
+
+document.addEventListener('click', function (e) {
+  const add = e.target.closest && e.target.closest('[data-seg-add]');
+  if (add) { e.preventDefault(); agregarDesdeLaBanda(add); return; }
+  const del = e.target.closest && e.target.closest('[data-seg-del]');
+  if (del) {
+    quitarDeSeguimiento(del.getAttribute('data-seg-del'));
+    if (typeof renderMainAssets === 'function') renderMainAssets();
+  }
+});
+// Enter en el campo agrega, como en el alta del plan.
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter') return;
+  const campo = e.target.closest && e.target.closest('[data-seg-campo]');
+  if (!campo) return;
+  e.preventDefault();
+  const add = campo.closest('.inv-plan-alta').querySelector('[data-seg-add]');
+  if (add) agregarDesdeLaBanda(add);
+});
 
 function buildInvestmentDetailPanel(destinos, title) {
   // Filtrar entradas del destino. Si no hay ninguna, igual mostramos el panel
@@ -23146,11 +23296,8 @@ function buildInvestmentDetailPanel(destinos, title) {
       (panelKey === 'trading' ? '' :
         (panelKey === 'inversiones'
           ? bloquePlegableInv('Seguimiento',
-              'Qué datos económicos salen y cuándo: lo esperado y lo publicado.',
-              bloqueSeguimiento(), 'inv-fold-seg', '',
-              '<button class="inv-update-prices-btn" data-action="update-calendar" title="Volver a pedir el calendario a Finviz">' +
-                '<i data-lucide="refresh-cw" style="width:11px;height:11px"></i>' +
-              '</button>', '0')
+              'Cómo está el mercado y qué activos se miran: el calendario económico y la lista de seguimiento.',
+              bloqueSeguimiento(), 'inv-fold-seg', '', accionesDeSeguimientoHtml(), '0')
           : '') +
         bloquePlegableInv('Planificación',
           'En qué activos entrar, a qué precio y con qué parte del capital.',
@@ -24153,6 +24300,8 @@ function bindInvestmentDetailDelegation() {
       e.preventDefault();
       e.stopPropagation();   // evitar que el click toggle el <details>
       traerCalendario(true);
+      // También los datos de cada activo seguido: el botón es el de la sección.
+      seguimientoLista().forEach(function (x) { traerFundamentales(x.ticker, 'USD'); });
       return;
     }
     // Actualizar precios desde data912.com para los tickers del panel

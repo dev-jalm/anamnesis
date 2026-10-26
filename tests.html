@@ -1200,7 +1200,7 @@ group('fundamentales de Finviz', function () {
       'Debt/Eq': '<b><span>0.78</span></b>', 'Current Ratio': '<b>1.00</b>',
       'Target Price': '<a href="stock?t=AAPL"><b><span class="color-text">1,335.44</span></b></a>',
       'Recom': '<a href="stock?t=AAPL"><b>2.20</b></a>', 'Price': '<b>347.73</b>',
-      '52W High': '<b>348.36 -0.18%</b>', 'SMA200': '<b>18.11%</b>', 'RSI (14)': '<b>63.91</b>',
+      '52W High': '<b>348.36 -0.18%</b>', '52W Low': '<b>212.50 63.63%</b>', 'SMA200': '<b>18.11%</b>', 'RSI (14)': '<b>63.91</b>',
       'Dividend TTM': '<b>1.06 (0.30%)</b>', 'Payout': '<b>13.66%</b>'
     }, cambios || {});
     return '<table class="js-snapshot-table snapshot-table2">' +
@@ -1243,6 +1243,17 @@ group('fundamentales de Finviz', function () {
     const d = fundamentalesDeFinviz(pagina()).datos;
     assertEqual(d.salesPast5Y, 8.71);
     assertEqual(d.dist52High, -0.18);
+  });
+  test('el máximo y el mínimo del año son el primer número de su celda', function () {
+    const d = fundamentalesDeFinviz(pagina()).datos;
+    assertEqual(d.max52, 348.36);
+    assertEqual(d.min52, 212.5);
+  });
+  test('el máximo y el mínimo no aparecen en la ficha: son insumo de la lista de seguimiento', function () {
+    const filas = fundamentalesParaMostrar(fundamentalesDeFinviz(pagina()).datos, { completo: true });
+    const rotulos = [].concat.apply([], filas.map(function (g) { return g.filas.map(function (f) { return f.rotulo; }); }));
+    assert(rotulos.indexOf('Máximo de 52 sem.') < 0, 'sin máximo');
+    assert(rotulos.indexOf('Mínimo de 52 sem.') < 0, 'sin mínimo');
   });
   test('el rendimiento por dividendo se lee entre paréntesis', function () {
     assertEqual(fundamentalesDeFinviz(pagina()).datos.divYield, 0.3);
@@ -2184,6 +2195,65 @@ group('Calendario económico', function () {
     assertEqual(r.length, 1);
     assertEqual(r[0].id, 2);
     assertEqual(calendarioRelevante(undefined).length, 0);
+  });
+});
+
+group('Lista de seguimiento', function () {
+  const AHORA = new Date(2026, 9, 26, 12).getTime();   // 26/10/2026
+  const base = { price: 150, min52: 100, max52: 200, earnings: 'Nov 04 AMC', dist52High: -25 };
+  test('el precio, el mínimo y el máximo del año salen tal cual', function () {
+    const r = resumenDeSeguimiento(base, AHORA);
+    assertEqual(r.precio, 150);
+    assertEqual(r.min, 100);
+    assertEqual(r.max, 200);
+  });
+  test('la posición es el punto del rango: 0 % en el mínimo, 100 % en el máximo', function () {
+    assertEqual(resumenDeSeguimiento(base, AHORA).posicion, 50);
+    assertEqual(resumenDeSeguimiento(Object.assign({}, base, { price: 100 }), AHORA).posicion, 0);
+    assertEqual(resumenDeSeguimiento(Object.assign({}, base, { price: 200 }), AHORA).posicion, 100);
+  });
+  test('un precio fuera del rango se recorta: Finviz actualiza el máximo con retraso', function () {
+    assertEqual(resumenDeSeguimiento(Object.assign({}, base, { price: 210 }), AHORA).posicion, 100);
+    assertEqual(resumenDeSeguimiento(Object.assign({}, base, { price: 90 }), AHORA).posicion, 0);
+  });
+  test('sin rango no hay posición: máximo igual al mínimo, o uno de los dos faltante', function () {
+    assertEqual(resumenDeSeguimiento(Object.assign({}, base, { max52: 100 }), AHORA).posicion, null);
+    assertEqual(resumenDeSeguimiento(Object.assign({}, base, { min52: null }), AHORA).posicion, null);
+    assertEqual(resumenDeSeguimiento(Object.assign({}, base, { price: null }), AHORA).posicion, null);
+  });
+  test('un dato que falta o no es un número positivo queda en null, nunca en cero', function () {
+    const r = resumenDeSeguimiento({ price: 0, min52: -3, max52: 'x' }, AHORA);
+    assertEqual(r.precio, null);
+    assertEqual(r.min, null);
+    assertEqual(r.max, null);
+    const vacio = resumenDeSeguimiento(undefined, AHORA);
+    assertEqual(vacio.precio, null);
+    assertEqual(vacio.balance, null);
+    assertEqual(vacio.distanciaAlMaximo, null);
+  });
+  test('el próximo balance dice la fecha y cuántos días faltan', function () {
+    const r = resumenDeSeguimiento(base, AHORA);
+    assertEqual(r.balance, '04/11 · en 9 días');
+    assertEqual(r.diasAlBalance, 9);
+  });
+  test('una fecha ya pasada es el último balance y se dice así', function () {
+    const r = resumenDeSeguimiento(Object.assign({}, base, { earnings: 'Oct 15 AMC' }), AHORA);
+    assertEqual(r.balance, 'último 15/10 · hace 11 días');
+    assertEqual(r.diasAlBalance, -11);
+  });
+  test('sin fecha de balance, o una que no se entiende, no hay balance', function () {
+    assertEqual(resumenDeSeguimiento(Object.assign({}, base, { earnings: null }), AHORA).balance, null);
+    assertEqual(resumenDeSeguimiento(Object.assign({}, base, { earnings: 'pronto' }), AHORA).balance, null);
+  });
+  test('la distancia al máximo se conserva con su signo, o null', function () {
+    assertEqual(resumenDeSeguimiento(base, AHORA).distanciaAlMaximo, -25);
+    assertEqual(resumenDeSeguimiento(Object.assign({}, base, { dist52High: undefined }), AHORA).distanciaAlMaximo, null);
+  });
+  test('los símbolos que acepta Finviz, y los que no', function () {
+    ['AAPL', 'KO', 'BRK-B', 'BF.B', 'GOOGL', 'A', '3M'].forEach(function (t) { assert(esTickerDeFinviz(t), t); });
+    ['', 'aapl', 'AAPL ', 'TOOLONGX', 'A B', 'AAPL/X', '../x', 'BTC-USDT'].forEach(function (t) { assert(!esTickerDeFinviz(t), '"' + t + '"'); });
+    assert(!esTickerDeFinviz(null), 'null');
+    assert(!esTickerDeFinviz(undefined), 'undefined');
   });
 });
 
