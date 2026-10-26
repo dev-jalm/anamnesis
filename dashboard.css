@@ -8030,8 +8030,8 @@ select.inv-plan-in { cursor: pointer; }
 }
 .inv-liq-titulos,
 .inv-liq-fila,
-.inv-cal-titulos,
-.inv-cal-fila,
+.inv-cal-mes-titulos,
+.inv-cal-dia,
 .inv-seg-titulos,
 .inv-seg-fila {
   display: grid;
@@ -8045,7 +8045,7 @@ select.inv-plan-in { cursor: pointer; }
    salen de .investment-detail-table th, medidos: mono 9px/700, acento,
    letter-spacing 1,2 y el mismo divisor debajo. */
 .inv-liq-titulos,
-.inv-cal-titulos,
+.inv-cal-mes-titulos,
 .inv-seg-titulos {
   font-size: 9px;
   font-weight: 700;
@@ -8109,7 +8109,7 @@ select.inv-plan-in { cursor: pointer; }
    con una altura fija el baseline dejaba el texto pegado arriba; el ticker y su
    descripción siguen alineados por baseline dentro de .inv-liq-activo. */
 .inv-liq-fila,
-.inv-cal-fila,
+.inv-cal-dia,
 .inv-seg-fila {
   font-size: 11px;
   color: var(--ink);
@@ -8137,13 +8137,80 @@ select.inv-plan-in { cursor: pointer; }
 .inv-liq-res.inv-gp-positive { color: var(--green); }
 .inv-liq-res.inv-gp-negative { color: var(--red); }
 .inv-liq-vacio { font-size: 10px; color: var(--muted-2); font-style: italic; }
-/* El calendario económico de Seguimiento es la misma lista que Liquidado —mismos
-   títulos, mismas filas, mismo divisor—: sólo cambian las columnas. Fecha | Hora
-   | Dato | Período | Previo | Esperado | Publicado. Va después de la
-   declaración compartida para que su grilla sea la que rige. */
-.inv-cal-titulos,
-.inv-cal-fila { grid-template-columns: 86px 48px minmax(0, 2fr) 64px repeat(3, minmax(0, 1fr)); }
-.inv-cal-titulos span:nth-child(n+5),
+/* El calendario económico de Seguimiento son tres columnas de mes, las de
+   Liquidado pero con tres: la misma grilla, el mismo divisor entre columnas, el
+   mismo título de grupo y el mismo título de columna. Va después de las
+   declaraciones compartidas para que lo suyo sea lo que rige. */
+.inv-cal-meses { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* En el del medio no vale el padding de la columna de la derecha de Liquidado:
+   tiene otra columna a su derecha y su divisor. */
+.inv-cal-mes { --cal-val: 56px; }
+.inv-cal-mes:nth-child(2) { padding-right: 14px; }
+/* Lo que se lee de cada fecha va en las tres columnas de valores: previo,
+   esperado y publicado, a la derecha, con el mismo ancho en el título y en cada
+   línea. El título arranca donde arrancan las líneas: 40px del día y 12 de aire. */
+.inv-cal-mes-titulos {
+  grid-template-columns: minmax(0, 1fr) repeat(3, var(--cal-val));
+  gap: 8px;
+  padding-left: 52px;
+}
+.inv-cal-mes-titulos span { text-align: right; }
+/* Un día: su número a la izquierda y sus familias a la derecha. Es una fila de
+   la lista, con su divisor, pero más alta que una de 40px porque lleva varias
+   líneas: por eso arranca arriba en vez de centrarse. */
+.inv-cal-dia { grid-template-columns: 40px minmax(0, 1fr); align-items: start; padding: 8px 0; min-height: 0; }
+.inv-cal-dn { font-size: 16px; font-weight: 600; line-height: 1; color: var(--ink); }
+.inv-cal-dn small {
+  display: block;
+  margin-top: 4px;
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+.inv-cal-fams { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.inv-cal-fam-cab { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.inv-cal-hora { margin-left: auto; color: var(--muted-2); font-size: 10px; }
+.inv-cal-lin {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(3, var(--cal-val));
+  gap: 8px;
+  align-items: baseline;
+  padding: 2px 0;
+}
+.inv-cal-corto { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* La sigla de cada familia, con su color: es lo que permite recorrer las tres
+   columnas buscando "los IPC" sin leer. Un fondo translúcido y la tinta de
+   siempre, para que valga en los dos temas; ninguno es verde ni rojo, que en la
+   app dicen favorable y desfavorable. */
+.inv-cal-chip {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--cal-c) 22%, transparent);
+  border-left: 3px solid var(--cal-c);
+}
+.inv-cal-ipc { --cal-c: #D85A30; }
+.inv-cal-ppi { --cal-c: #D4537E; }
+.inv-cal-pce { --cal-c: #7F77DD; }
+.inv-cal-empleo { --cal-c: #1D9E75; }
+.inv-cal-pib { --cal-c: #378ADD; }
+/* Hoy, entre lo que ya salió y lo que viene: una línea en el acento, el color
+   con el que la app señala lo que hay que mirar, con la fecha encima. */
+.inv-cal-hoy {
+  margin: 2px 0;
+  padding-top: 3px;
+  border-top: 2px solid var(--accent);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
 .inv-cal-num { text-align: right; }
 .inv-cal-ref { color: var(--muted); }
 /* La lista de seguimiento, en la misma lista: quitar | Activo | Descripción |

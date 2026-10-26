@@ -22297,37 +22297,21 @@ document.addEventListener('click', function (e) {
 // Cuándo salen los datos que mueven al mercado —IPC, PPI, PCE, empleo y PIB— y
 // cómo vinieron. Se pide a Finviz por semana y sólo se guarda en memoria: es un
 // dato del día, no de la cartera, y no tiene por qué viajar en el archivo.
-const CALENDARIO_SEMANAS = 4;
 // Un valor publicado aparece en minutos; repetir el pedido en cada render
 // sería gastar Finviz sin ganar nada.
 const CALENDARIO_VIGENCIA_MS = 15 * 60 * 1000;
-// Lo que salió hace poco sigue a la vista —es lo que se quiere comparar con lo
-// esperado—. Hacia adelante, tres semanas: alcanza para ver el próximo IPC y el
-// próximo PPI, que salen con una semana de diferencia a mitad de mes.
-const CALENDARIO_ATRAS_MS = 3 * 86400000;
-const CALENDARIO_ADELANTE_MS = 21 * 86400000;
+// Se ven tres meses en tres columnas: el actual y los dos que siguen. Los días
+// que ya pasaron del mes en curso se quedan a la vista, porque ahí está lo
+// publicado, que es lo que se compara con lo esperado.
+const CALENDARIO_CANTIDAD_MESES = 3;
 let _calendario = null;
 let _calendarioEnVuelo = null;
 let _calendarioError = '';
 
-const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
-
-function fechaIso(d) {
-  const dos = function (n) { return String(n).padStart(2, '0'); };
-  return d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate());
-}
-
-// Los lunes de las semanas a pedir: la actual y las que siguen. Cada pedido de
-// Finviz cubre de tres días antes a cuatro después, así que de lunes en lunes no
-// queda ningún hueco.
-function lunesDeCalendario() {
-  const hoy = new Date();
-  const lunes = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - ((hoy.getDay() + 6) % 7));
-  const salida = [];
-  for (let i = 0; i < CALENDARIO_SEMANAS; i++) {
-    salida.push(fechaIso(new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + 7 * i)));
-  }
-  return salida;
+// El día de hoy en Argentina ("2026-10-26"), que es el que cuenta para el
+// calendario aunque el navegador esté en otra zona.
+function hoyDelCalendario() {
+  return fechaHoraArgentina(Date.now()).dia;
 }
 
 function repintarCalendario(cargando) {
@@ -22352,7 +22336,7 @@ function traerCalendario(forzar) {
   const controller = new AbortController();
   const timeoutId = setTimeout(function () { controller.abort(); }, 15000);
   repintarCalendario(true);
-  _calendarioEnVuelo = Promise.all(lunesDeCalendario().map(function (d) {
+  _calendarioEnVuelo = Promise.all(semanasDelCalendario(hoyDelCalendario(), CALENDARIO_CANTIDAD_MESES).map(function (d) {
     return fetch('/api/calendario?d=' + d, { signal: controller.signal }).then(function (resp) {
       return resp.json().catch(function () { return {}; }).then(function (cuerpo) {
         if (!resp.ok) throw new Error(cuerpo.error || ('El servidor respondió ' + resp.status + '.'));
@@ -22361,7 +22345,15 @@ function traerCalendario(forzar) {
     });
   }))
     .then(function (semanas) {
-      _calendario = { ms: Date.now(), entradas: calendarioRelevante([].concat.apply([], semanas)) };
+      const crudas = [].concat.apply([], semanas);
+      // Hasta qué día publica Finviz: lo más lejano que trajo, sea o no de lo que
+      // se sigue. Pasada esa fecha no es que no haya datos, es que todavía no los
+      // cargó, y la vista lo dice.
+      const lejano = crudas.reduce(function (mx, e) { return Math.max(mx, instanteDeFinviz(e.fecha) || 0); }, 0);
+      _calendario = {
+        ms: Date.now(), entradas: calendarioRelevante(crudas),
+        hasta: lejano ? fechaHoraArgentina(lejano).dia : null
+      };
       _calendarioError = '';
       return _calendario;
     })
@@ -22410,34 +22402,77 @@ function cuerpoDelCalendario() {
   if (!_calendario) {
     return { conteo: '', html: nota(_calendarioError ? 'No se pudo traer el calendario: ' + _calendarioError : 'Trayendo el calendario de Finviz…') };
   }
-  const ahora = Date.now();
-  const lista = _calendario.entradas.filter(function (e) {
-    return e.ms >= ahora - CALENDARIO_ATRAS_MS && e.ms <= ahora + CALENDARIO_ADELANTE_MS;
-  });
+  const hoy = hoyDelCalendario();
+  const meses = calendarioPorMes(_calendario.entradas, hoy, CALENDARIO_CANTIDAD_MESES);
+  const total = meses.reduce(function (n, m) { return n + m.dias.length; }, 0);
   const dato = function (cls, texto) {
     return '<span class="' + cls + '">' + (texto ? escapeHtmlSafe(texto) : '<span class="inv-na">—</span>') + '</span>';
   };
-  const filas = lista.map(function (e) {
-    const p = e.dia.split('-').map(Number);
-    const dia = DIAS_CORTOS[new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay()] + ' ' +
-      String(p[2]).padStart(2, '0') + '/' + String(p[1]).padStart(2, '0');
-    return '<div class="inv-cal-fila">' +
-      '<span class="inv-liq-fecha">' + dia + '</span>' +
-      '<span>' + e.hora + '</span>' +
-      '<span class="inv-liq-activo"><span class="inv-liq-tk">' + escapeHtmlSafe(e.nombre) + '</span></span>' +
-      dato('inv-cal-ref', e.referencia) +
-      dato('inv-cal-num', e.previo) +
-      dato('inv-cal-num', e.pronostico) +
-      dato('inv-cal-num inv-cal-pub', e.publicado) +
+  const ddmm = function (iso) { return iso.slice(8, 10) + '/' + iso.slice(5, 7); };
+  const diaDeHoy = (function () {
+    const p = hoy.split('-').map(Number);
+    return CALENDARIO_DIAS[new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay()] + ' ' + ddmm(hoy);
+  })();
+
+  // Un día: su número y, a la derecha, cada familia con una línea por variante y
+  // sus tres valores. Esperado y publicado van como dato, no como detalle.
+  const htmlDia = function (d) {
+    return '<div class="inv-cal-dia">' +
+      '<span class="inv-cal-dn">' + d.numero + '<small>' + d.diaSemana + '</small></span>' +
+      '<div class="inv-cal-fams">' + d.familias.map(function (f) {
+        return '<div class="inv-cal-fam">' +
+          '<div class="inv-cal-fam-cab">' +
+            '<span class="inv-cal-chip inv-cal-' + f.grupo + '">' + escapeHtmlSafe(f.rotulo) + '</span>' +
+            (f.referencia ? '<span class="inv-cal-ref">' + escapeHtmlSafe(f.referencia) + '</span>' : '') +
+            '<span class="inv-cal-hora">' + f.hora + ' h</span>' +
+          '</div>' +
+          f.lineas.map(function (l) {
+            return '<div class="inv-cal-lin"><span class="inv-cal-corto">' + escapeHtmlSafe(l.corto) + '</span>' +
+              dato('inv-cal-num', l.previo) + dato('inv-cal-num', l.pronostico) +
+              dato('inv-cal-num inv-cal-pub', l.publicado) + '</div>';
+          }).join('') +
+        '</div>';
+      }).join('') + '</div>' +
     '</div>';
-  });
+  };
+
+  const htmlMes = function (m, i) {
+    const cab = '<div class="inv-liq-cab"><span class="inv-liq-titulo">' + escapeHtmlSafe(m.nombre) +
+      (m.anio !== Number(hoy.slice(0, 4)) ? ' ' + m.anio : '') + '</span>' +
+      '<span class="inv-liq-total">' + m.dias.length + (m.dias.length === 1 ? ' fecha' : ' fechas') + '</span></div>';
+    // La marca de hoy va entre lo que ya pasó y lo que viene, sólo en su mes.
+    const esElMes = m.clave === hoy.slice(0, 7);
+    let cuerpo = '';
+    let puesta = false;
+    const marca = '<div class="inv-cal-hoy">Hoy · ' + diaDeHoy + '</div>';
+    m.dias.forEach(function (d) {
+      if (esElMes && !puesta && d.dia > hoy) { cuerpo += marca; puesta = true; }
+      cuerpo += htmlDia(d);
+    });
+    if (esElMes && !puesta && m.dias.length) cuerpo += marca;
+    // Finviz carga el calendario unas semanas hacia adelante: lo que pasa de ahí
+    // no es que no haya datos, es que todavía no están.
+    const hasta = _calendario.hasta;
+    let aviso = '';
+    if (hasta) {
+      const finDeMes = new Date(Date.UTC(m.anio, m.mes + 1, 0)).getUTCDate();
+      if (m.clave > hasta.slice(0, 7)) aviso = 'Finviz todavía no publica las fechas de este mes: llega hasta el ' + ddmm(hasta) + '.';
+      else if (m.clave === hasta.slice(0, 7) && Number(hasta.slice(8, 10)) < finDeMes) {
+        aviso = 'Finviz publica hasta el ' + ddmm(hasta) + ': el resto del mes aparece cuando lo cargue.';
+      }
+    }
+    return '<div class="inv-liq-celda inv-cal-mes' + (i ? ' inv-liq-col2' : '') + '">' + cab +
+      (m.dias.length
+        ? '<div class="inv-cal-mes-titulos"><span></span><span>Previo</span><span>Esperado</span><span>Publicado</span></div>' + cuerpo
+        : (m.clave > (hasta || '').slice(0, 7) ? '' : nota('Sin publicaciones de IPC, PPI, PCE, empleo ni PIB.'))) +
+      (aviso ? nota(aviso) : '') +
+    '</div>';
+  };
+
   const consulta = new Date(_calendario.ms).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
   return {
-    conteo: filas.length + (filas.length === 1 ? ' dato' : ' datos'),
-    html: (filas.length
-      ? '<div class="inv-cal-titulos"><span>Fecha</span><span>Hora</span><span>Dato</span><span>Período</span>' +
-          '<span>Previo</span><span>Esperado</span><span>Publicado</span></div>' + filas.join('')
-      : nota('Sin publicaciones de IPC, PPI, PCE, empleo ni PIB en las próximas tres semanas.')) +
+    conteo: total + (total === 1 ? ' fecha' : ' fechas'),
+    html: '<div class="inv-liq-grid inv-cal-meses">' + meses.map(htmlMes).join('') + '</div>' +
       nota('Hora de Argentina · Finviz · consultado a las ' + consulta)
   };
 }

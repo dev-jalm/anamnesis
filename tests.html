@@ -2190,6 +2190,70 @@ group('Calendario económico', function () {
     assertEqual(r.publicado, '');
     assertEqual(r.pronostico, '');
   });
+  // — La vista por mes —
+  const evs = function (lista) { return calendarioRelevante(lista); };
+  test('los eventos se reparten en el mes actual y los dos siguientes, aunque un mes quede vacío', function () {
+    const m = calendarioPorMes(evs([e(1, 'Non Farm Payrolls', '2026-11-06T08:30:00')]), '2026-10-26', 3);
+    assertEqual(m.map(function (x) { return x.nombre; }).join(','), 'octubre,noviembre,diciembre');
+    assertEqual(m[0].dias.length, 0);
+    assertEqual(m[1].dias.length, 1);
+    assertEqual(m[2].dias.length, 0);
+  });
+  test('los meses cruzan el fin de año', function () {
+    const m = calendarioPorMes([], '2026-11-15', 3);
+    assertEqual(m.map(function (x) { return x.clave; }).join(','), '2026-11,2026-12,2027-01');
+    assertEqual(m[2].nombre, 'enero');
+  });
+  test('lo que cae fuera de esos meses se descarta', function () {
+    const m = calendarioPorMes(evs([e(1, 'PPI MoM', '2027-02-12T08:30:00'), e(2, 'PPI MoM', '2026-09-14T08:30:00')]), '2026-10-26', 3);
+    assertEqual(m.reduce(function (n, x) { return n + x.dias.length; }, 0), 0);
+  });
+  test('un día lleva su número y el día de la semana, y los días salen en orden', function () {
+    const m = calendarioPorMes(evs([e(1, 'PPI MoM', '2026-11-13T08:30:00'), e(2, 'Unemployment Rate', '2026-11-06T08:30:00')]), '2026-10-26', 3);
+    assertEqual(m[1].dias.map(function (d) { return d.numero; }).join(','), '6,13');
+    assertEqual(m[1].dias[0].diaSemana, 'vie');
+  });
+  test('las variantes de una familia en un mismo día se leen juntas bajo una sigla', function () {
+    const m = calendarioPorMes(evs([
+      e(1, 'Inflation Rate YoY', '2026-11-10T08:30:00', { previo: '3.0%', pronostico: '3.1%', publicado: '3.2%' }),
+      e(2, 'Inflation Rate MoM', '2026-11-10T08:30:00'),
+      e(3, 'Core Inflation Rate YoY', '2026-11-10T08:30:00')
+    ]), '2026-10-26', 3);
+    const dia = m[1].dias[0];
+    assertEqual(dia.familias.length, 1);
+    assertEqual(dia.familias[0].rotulo, 'IPC');
+    assertEqual(dia.familias[0].hora, '10:30');
+    assertEqual(dia.familias[0].lineas.map(function (l) { return l.corto; }).join(','), 'mensual,interanual,subyacente interanual');
+  });
+  test('cada línea lleva el previo, el esperado y el publicado', function () {
+    const m = calendarioPorMes(evs([e(1, 'Inflation Rate YoY', '2026-11-10T08:30:00', { previo: '3.0%', pronostico: '3.1%', publicado: '3.2%' })]), '2026-10-26', 3);
+    const l = m[1].dias[0].familias[0].lineas[0];
+    assertEqual(l.previo, '3,0%');
+    assertEqual(l.pronostico, '3,1%');
+    assertEqual(l.publicado, '3,2%');
+  });
+  test('dos familias el mismo día —PCE y PIB— son dos bloques', function () {
+    const m = calendarioPorMes(evs([e(1, 'PCE Price Index YoY', '2026-10-29T08:30:00'), e(2, 'GDP Growth Rate QoQ Adv', '2026-10-29T08:30:00')]), '2026-10-26', 3);
+    assertEqual(m[0].dias[0].familias.map(function (f) { return f.grupo; }).join(','), 'pce,pib');
+  });
+  test('las semanas a pedir van de lunes en lunes y cubren los tres meses', function () {
+    const s = semanasDelCalendario('2026-10-26', 3);
+    assertEqual(s[0], '2026-09-28');
+    assertEqual(s[s.length - 1], '2026-12-28');
+    assertEqual(s.length, 14);
+    for (let i = 1; i < s.length; i++) {
+      assertEqual((Date.parse(s[i]) - Date.parse(s[i - 1])) / 86400000, 7);
+    }
+  });
+  test('las semanas a pedir son todas lunes, y cruzan el fin de año', function () {
+    const s = semanasDelCalendario('2026-11-15', 3);
+    s.forEach(function (d) { assertEqual(new Date(d + 'T00:00:00Z').getUTCDay(), 1); });
+    // El 30 y el 31 de enero sólo los cubre la semana que arranca el 1/2.
+    assertEqual(s[s.length - 1], '2027-02-01');
+  });
+  test('si el mes arranca en lunes, la primera semana es esa', function () {
+    assertEqual(semanasDelCalendario('2026-06-10', 1)[0], '2026-06-01');
+  });
   test('una entrada rota no tumba el resto', function () {
     const r = calendarioRelevante([null, {}, e(1, 'PPI YoY', 'sin fecha'), e(2, 'PPI YoY', '2026-11-13T08:30:00')]);
     assertEqual(r.length, 1);

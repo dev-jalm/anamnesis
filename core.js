@@ -1525,24 +1525,27 @@ const CALENDARIO_GRUPOS = [
 // Nombre de Finviz -> grupo y nombre en castellano. Los que no están acá no se
 // muestran: "PPI Ex Food, Energy and Trade" o "Michigan Inflation Expectations"
 // parecen de la familia pero miden otra cosa.
+// El tercer elemento es el nombre corto, sin la sigla del grupo: en la vista por
+// mes los eventos de una misma familia van juntos bajo su sigla, y repetirla en
+// cada línea ("IPC / IPC interanual") sería ruido.
 const CALENDARIO_EVENTOS = {
-  'Inflation Rate MoM': ['ipc', 'IPC mensual'],
-  'Inflation Rate YoY': ['ipc', 'IPC interanual'],
-  'Core Inflation Rate MoM': ['ipc', 'IPC subyacente mensual'],
-  'Core Inflation Rate YoY': ['ipc', 'IPC subyacente interanual'],
-  'PPI MoM': ['ppi', 'PPI mensual'],
-  'PPI YoY': ['ppi', 'PPI interanual'],
-  'Core PPI MoM': ['ppi', 'PPI subyacente mensual'],
-  'Core PPI YoY': ['ppi', 'PPI subyacente interanual'],
-  'PCE Price Index MoM': ['pce', 'PCE mensual'],
-  'PCE Price Index YoY': ['pce', 'PCE interanual'],
-  'Core PCE Price Index MoM': ['pce', 'PCE subyacente mensual'],
-  'Core PCE Price Index YoY': ['pce', 'PCE subyacente interanual'],
-  'Non Farm Payrolls': ['empleo', 'Nóminas no agrícolas'],
-  'Unemployment Rate': ['empleo', 'Tasa de desempleo'],
-  'GDP Growth Rate QoQ Adv': ['pib', 'PIB trimestral (adelanto)'],
-  'GDP Growth Rate QoQ 2nd Est': ['pib', 'PIB trimestral (2.ª estimación)'],
-  'GDP Growth Rate QoQ Final': ['pib', 'PIB trimestral (final)']
+  'Inflation Rate MoM': ['ipc', 'IPC mensual', 'mensual'],
+  'Inflation Rate YoY': ['ipc', 'IPC interanual', 'interanual'],
+  'Core Inflation Rate MoM': ['ipc', 'IPC subyacente mensual', 'subyacente mensual'],
+  'Core Inflation Rate YoY': ['ipc', 'IPC subyacente interanual', 'subyacente interanual'],
+  'PPI MoM': ['ppi', 'PPI mensual', 'mensual'],
+  'PPI YoY': ['ppi', 'PPI interanual', 'interanual'],
+  'Core PPI MoM': ['ppi', 'PPI subyacente mensual', 'subyacente mensual'],
+  'Core PPI YoY': ['ppi', 'PPI subyacente interanual', 'subyacente interanual'],
+  'PCE Price Index MoM': ['pce', 'PCE mensual', 'mensual'],
+  'PCE Price Index YoY': ['pce', 'PCE interanual', 'interanual'],
+  'Core PCE Price Index MoM': ['pce', 'PCE subyacente mensual', 'subyacente mensual'],
+  'Core PCE Price Index YoY': ['pce', 'PCE subyacente interanual', 'subyacente interanual'],
+  'Non Farm Payrolls': ['empleo', 'Nóminas no agrícolas', 'nóminas no agrícolas'],
+  'Unemployment Rate': ['empleo', 'Tasa de desempleo', 'tasa de desempleo'],
+  'GDP Growth Rate QoQ Adv': ['pib', 'PIB trimestral (adelanto)', 'adelanto'],
+  'GDP Growth Rate QoQ 2nd Est': ['pib', 'PIB trimestral (2.ª estimación)', '2.ª estimación'],
+  'GDP Growth Rate QoQ Final': ['pib', 'PIB trimestral (final)', 'final']
 };
 
 const CALENDARIO_ZONA_FINVIZ = 'America/New_York';
@@ -1620,7 +1623,7 @@ function calendarioRelevante(entradas) {
     const grupo = CALENDARIO_GRUPOS.filter(function (g) { return g.clave === def[0]; })[0];
     const fh = fechaHoraArgentina(ms);
     salida.push({
-      id: e.id, evento: e.evento, grupo: grupo.clave, rotuloGrupo: grupo.rotulo, nombre: def[1], ms: ms,
+      id: e.id, evento: e.evento, grupo: grupo.clave, rotuloGrupo: grupo.rotulo, nombre: def[1], corto: def[2], ms: ms,
       dia: fh.dia, hora: fh.hora, referencia: e.referencia || '',
       previo: valorDeCalendario(e.previo), pronostico: valorDeCalendario(e.pronostico),
       publicado: valorDeCalendario(e.publicado), importancia: Number(e.importancia) || 0
@@ -2471,6 +2474,72 @@ function fundamentalesTextoDeResultados(texto, ahora, completo) {
     : (r.dias > 1 ? 'en ' + r.dias + ' días' : 'hace ' + (-r.dias) + (r.dias === -1 ? ' día' : ' días')));
   if (!completo) return dm + ' · ' + cuando;
   return dm + '/' + r.fecha.getFullYear() + ' · ' + cuando;
+}
+
+const CALENDARIO_MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+  'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const CALENDARIO_DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+
+// Los eventos ya filtrados, repartidos en `cantidad` meses a partir del de
+// `hoyDia` ("2026-10-26"): el actual y los que siguen. Cada mes lleva sus días
+// con datos, y cada día sus familias (IPC, PPI…) con una línea por variante, de
+// modo que el IPC mensual, el interanual y los subyacentes de un mismo día se
+// leen juntos bajo una sola sigla. Los meses sin nada igual salen, vacíos: la
+// vista dice que todavía no hay fechas. Lo que cae fuera de esos meses se
+// descarta.
+function calendarioPorMes(eventos, hoyDia, cantidad) {
+  const dos = function (n) { return String(n).padStart(2, '0'); };
+  const p = String(hoyDia).split('-').map(Number);
+  const meses = [];
+  const porClave = {};
+  for (let i = 0; i < cantidad; i++) {
+    const d = new Date(Date.UTC(p[0], p[1] - 1 + i, 1));
+    const m = { clave: d.getUTCFullYear() + '-' + dos(d.getUTCMonth() + 1), anio: d.getUTCFullYear(),
+      mes: d.getUTCMonth(), nombre: CALENDARIO_MESES[d.getUTCMonth()], dias: [] };
+    meses.push(m);
+    porClave[m.clave] = m;
+  }
+  (Array.isArray(eventos) ? eventos : []).forEach(function (e) {
+    const mes = porClave[String(e.dia).slice(0, 7)];
+    if (!mes) return;
+    let dia = mes.dias.filter(function (x) { return x.dia === e.dia; })[0];
+    if (!dia) {
+      const q = e.dia.split('-').map(Number);
+      dia = { dia: e.dia, numero: q[2], diaSemana: CALENDARIO_DIAS[new Date(Date.UTC(q[0], q[1] - 1, q[2])).getUTCDay()], familias: [] };
+      mes.dias.push(dia);
+    }
+    let fam = dia.familias.filter(function (f) { return f.grupo === e.grupo; })[0];
+    if (!fam) {
+      fam = { grupo: e.grupo, rotulo: e.rotuloGrupo, referencia: e.referencia, hora: e.hora, lineas: [] };
+      dia.familias.push(fam);
+    }
+    fam.lineas.push({ nombre: e.nombre, corto: e.corto, previo: e.previo, pronostico: e.pronostico, publicado: e.publicado });
+  });
+  meses.forEach(function (m) { m.dias.sort(function (a, b) { return a.dia < b.dia ? -1 : (a.dia > b.dia ? 1 : 0); }); });
+  return meses;
+}
+
+// Los lunes desde los que se piden las semanas para cubrir `cantidad` meses a
+// partir del de `hoyDia`: del lunes que abre el mes actual al que cierra el
+// último. Cada pedido de Finviz cubre de tres días antes a cuatro después de su
+// fecha, así que de lunes en lunes no queda hueco.
+function semanasDelCalendario(hoyDia, cantidad) {
+  const dos = function (n) { return String(n).padStart(2, '0'); };
+  const iso = function (ms) {
+    const d = new Date(ms);
+    return d.getUTCFullYear() + '-' + dos(d.getUTCMonth() + 1) + '-' + dos(d.getUTCDate());
+  };
+  const p = String(hoyDia).split('-').map(Number);
+  const DIA = 86400000;
+  const primero = Date.UTC(p[0], p[1] - 1, 1);
+  const ultimo = Date.UTC(p[0], p[1] - 1 + cantidad, 0);
+  let lunes = primero - ((new Date(primero).getUTCDay() + 6) % 7) * DIA;
+  const salida = [];
+  while (lunes - 3 * DIA <= ultimo) {
+    salida.push(iso(lunes));
+    lunes += 7 * DIA;
+  }
+  return salida;
 }
 
 // La fecha del balance de un activo, dicha de dos maneras: corta para una celda
@@ -4843,6 +4912,7 @@ if (typeof module !== 'undefined' && module.exports) {
     equivalenteDeCedear, cotizacionDeCedear, textoDeRatioCedear,
     // calendario económico
     CALENDARIO_GRUPOS, instanteDeFinviz, fechaHoraArgentina, valorDeCalendario, calendarioRelevante,
+    calendarioPorMes, semanasDelCalendario,
     resumirTanda,
     // reserva
     getReservaParams, getReservaAcumulado,
