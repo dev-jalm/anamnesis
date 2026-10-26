@@ -21704,8 +21704,11 @@ function tooltipPrecioDeEntrada(fila) {
       texto: byma ? pesos(byma.precio) : '—', destacado: true, tipo: 'ars' }
   ];
   // Sin la cotización de BYMA no hay de dónde partir: tres guiones seguidos no
-  // dirían nada que la fila de arriba no diga ya.
-  if (mercado) Array.prototype.push.apply(mercadoFilas, filasDeCedear(mercado));
+  // dirían nada que la fila de arriba no diga ya. Desde ella salen los dos
+  // dólares; los pesos no se repiten, porque son esa misma fila.
+  if (mercado) {
+    Array.prototype.push.apply(mercadoFilas, filasDeCedear(mercado).filter(function (f) { return f.tipo !== 'ars'; }));
+  }
   return {
     titulo: 'Precios del CEDEAR',
     detalle: lineas.join('\n'),
