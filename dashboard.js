@@ -22384,12 +22384,31 @@ function autoTraerCalendario() {
   traerCalendario(false);
 }
 
+// La banda que encabeza cada bloque de la sección: la de "Activos planificados
+// en ARS" de Planificación, con el rótulo y el conteo, y lo que haga falta al
+// margen derecho. Es la misma clase de banda que usan Concentración y Liquidado
+// para sus portafolios; acá no es una fila de tabla, así que va en un div.
+function bandaDeSeguimiento(rotulo, conteo, extra) {
+  return '<div class="inv-currency-header-row inv-seg-banda"><div class="inv-currency-head-inner">' +
+    '<span class="inv-section-label">' + escapeHtmlSafe(rotulo) + '</span>' +
+    (conteo ? '<span class="inv-section-count">' + escapeHtmlSafe(conteo) + '</span>' : '') +
+    (extra || '') +
+  '</div></div>';
+}
+
+// La banda del calendario va adentro de lo que se repinta: su conteo cambia con
+// los datos.
 function htmlCalendario() {
+  const r = cuerpoDelCalendario();
+  return bandaDeSeguimiento('Calendario económico', r.conteo) + r.html;
+}
+
+function cuerpoDelCalendario() {
   const nota = function (texto) { return '<div class="inv-liq-vacio">' + escapeHtmlSafe(texto) + '</div>'; };
   // La demostración no sale a la red (RF-227).
-  if (window.DEMO_MODE) return nota('En la demostración no se consulta el calendario: no sale a la red.');
+  if (window.DEMO_MODE) return { conteo: '', html: nota('En la demostración no se consulta el calendario: no sale a la red.') };
   if (!_calendario) {
-    return nota(_calendarioError ? 'No se pudo traer el calendario: ' + _calendarioError : 'Trayendo el calendario de Finviz…');
+    return { conteo: '', html: nota(_calendarioError ? 'No se pudo traer el calendario: ' + _calendarioError : 'Trayendo el calendario de Finviz…') };
   }
   const ahora = Date.now();
   const lista = _calendario.entradas.filter(function (e) {
@@ -22413,11 +22432,14 @@ function htmlCalendario() {
     '</div>';
   });
   const consulta = new Date(_calendario.ms).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
-  return (filas.length
-    ? '<div class="inv-cal-titulos"><span>Fecha</span><span>Hora</span><span>Dato</span><span>Período</span>' +
-        '<span>Previo</span><span>Esperado</span><span>Publicado</span></div>' + filas.join('')
-    : nota('Sin publicaciones de IPC, PPI, PCE, empleo ni PIB en las próximas tres semanas.')) +
-    nota('Hora de Argentina · Finviz · consultado a las ' + consulta);
+  return {
+    conteo: filas.length + (filas.length === 1 ? ' dato' : ' datos'),
+    html: (filas.length
+      ? '<div class="inv-cal-titulos"><span>Fecha</span><span>Hora</span><span>Dato</span><span>Período</span>' +
+          '<span>Previo</span><span>Esperado</span><span>Publicado</span></div>' + filas.join('')
+      : nota('Sin publicaciones de IPC, PPI, PCE, empleo ni PIB en las próximas tres semanas.')) +
+      nota('Hora de Argentina · Finviz · consultado a las ' + consulta)
+  };
 }
 
 // ─── La lista de seguimiento ───
@@ -22447,27 +22469,33 @@ function quitarDeSeguimiento(id) {
   scheduleSave();
 }
 
-// Lo que se escribe y el botón van en la banda de la sección, como el alta del
-// plan, con sus mismas clases. Con el refresco: vuelve a pedir el calendario y
-// los datos de cada activo de la lista.
+// El refresco va en la banda de la sección: vuelve a pedir el calendario y los
+// datos de cada activo de la lista.
 function accionesDeSeguimientoHtml() {
+  return '<button class="inv-update-prices-btn" data-action="update-calendar" ' +
+    'title="Volver a pedir a Finviz el calendario y los datos de los activos">' +
+    '<i data-lucide="refresh-cw" style="width:11px;height:11px"></i>' +
+  '</button>';
+}
+
+// El campo para agregar y su botón, con las clases del alta del plan, a la
+// altura del rótulo de la lista y al margen derecho de su banda. Sin rótulo
+// propio: la banda ya dice qué es, y con él la banda crecía.
+function altaDeSeguimientoHtml() {
   return '<div class="inv-plan-alta">' +
     '<span class="inv-plan-campo es-ticker">' +
-      '<label class="inv-plan-rot">Activo</label>' +
-      '<input type="text" class="inv-plan-in" data-seg-campo maxlength="8" placeholder="EJ: MSFT">' +
+      '<input type="text" class="inv-plan-in" data-seg-campo maxlength="8" placeholder="EJ: MSFT" aria-label="Símbolo del activo a seguir">' +
     '</span>' +
     '<button type="button" class="inv-agrupar-btn inv-plan-add" data-seg-add>AGREGAR AL SEGUIMIENTO</button>' +
-    '<button class="inv-update-prices-btn" data-action="update-calendar" ' +
-      'title="Volver a pedir a Finviz el calendario y los datos de los activos">' +
-      '<i data-lucide="refresh-cw" style="width:11px;height:11px"></i>' +
-    '</button>' +
   '</div>';
 }
 
 function htmlListaSeguimiento() {
   const nota = function (texto) { return '<div class="inv-liq-vacio">' + escapeHtmlSafe(texto) + '</div>'; };
   const lista = seguimientoLista();
-  if (!lista.length) return nota('Todavía no seguís ningún activo: escribí su símbolo arriba y agregalo.');
+  const banda = bandaDeSeguimiento('Activos en seguimiento',
+    lista.length + (lista.length === 1 ? ' activo' : ' activos'), altaDeSeguimientoHtml());
+  if (!lista.length) return banda + nota('Todavía no seguís ningún activo: escribí su símbolo y agregalo.');
   const ahora = Date.now();
   const guion = '<span class="inv-na">—</span>';
   const usd = function (n) { return n === null ? guion : 'US$ ' + fmtPrecio(n); };
@@ -22518,21 +22546,17 @@ function htmlListaSeguimiento() {
       '<span class="inv-cal-num inv-cal-ref">' + (dias === null ? guion : (dias === 0 ? 'hoy' : 'hace ' + dias + (dias === 1 ? ' día' : ' días'))) + '</span>' +
     '</div>';
   });
-  return '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Descripción</span><span>Precio</span>' +
+  return banda + '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Descripción</span><span>Precio</span>' +
     '<span>Rango de 52 semanas</span><span>Próx. balance</span><span>Consulta</span></div>' +
     filas.join('');
 }
 
 function bloqueSeguimiento() {
-  // Los dos grupos llevan el título de Liquidado —mismo cuerpo, mismo color, los
-  // dos puntos— porque son la misma pieza: un grupo de filas con su rótulo.
-  const grupo = function (titulo, cuerpo) {
-    return '<div class="inv-liq-grupo"><div class="inv-liq-cab"><span class="inv-liq-titulo">' + titulo + ':</span></div>' +
-      cuerpo + '</div>';
-  };
+  // Los dos bloques llevan la misma banda, la de las tablas de Planificación y
+  // Activos: son piezas de una misma sección y se leen igual.
   return '<div class="inv-liq">' +
-    grupo('Calendario económico', '<div class="inv-cal-cuerpo">' + htmlCalendario() + '</div>') +
-    grupo('Activos en seguimiento', htmlListaSeguimiento()) +
+    '<div class="inv-liq-grupo"><div class="inv-cal-cuerpo">' + htmlCalendario() + '</div></div>' +
+    '<div class="inv-liq-grupo">' + htmlListaSeguimiento() + '</div>' +
   '</div>';
 }
 

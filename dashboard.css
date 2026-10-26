@@ -7389,8 +7389,10 @@ body[data-exporting="true"] .section-card {
 .inv-currency-header-row td,
 /* La banda de Concentración y Liquidado no es una celda de tabla, así que no
    heredaba esta tipografía: sin ella el conteo salía en minúscula mientras en
-   Activos salía en mayúscula, y las tres cabeceras tenían que leerse igual. */
-.inv-conc-pf-head {
+   Activos salía en mayúscula, y las tres cabeceras tenían que leerse igual.
+   La de Seguimiento tampoco es una celda de tabla y comparte esta declaración. */
+.inv-conc-pf-head,
+.inv-seg-banda {
   /* Padding lateral reducido para alinear el rótulo con el inicio de las
      columnas de abajo, sin desperdiciar espacio a la izquierda. */
   padding: 8px 5px !important;
@@ -7497,11 +7499,18 @@ select.inv-plan-in { cursor: pointer; }
    tabla de Activos: allá el sangrado se lo da el padding del cuerpo de esa
    sección, y acá el cuerpo no lo tiene porque cada bloque pone el suyo.
    Medido: sin esto la banda arrancaba en 43 contra los 57 de aquélla. */
-.inv-conc-pf-head.inv-currency-header-row {
+.inv-conc-pf-head.inv-currency-header-row,
+.inv-seg-banda.inv-currency-header-row {
   background: rgba(74, 107, 138, 0.12);
   border-bottom: 1px solid var(--border);
   margin: 0 14px;
 }
+/* La de Seguimiento va dentro de un cuerpo que ya trae sus 14px de sangría
+   (.inv-liq): sin esto arrancaba 14px más adentro que las demás. */
+.inv-seg-banda.inv-currency-header-row { margin: 0; }
+/* El campo para agregar y su botón, al margen derecho de la banda de la lista,
+   en una sola línea: el flex de la banda los deja a la altura de su rótulo. */
+.inv-seg-banda .inv-plan-alta { margin-left: auto; flex-wrap: nowrap; }
 /* Aire entre la cabecera del portafolio y su bloque, el mismo que la
    concentración tiene por el padding de su primera fila. */
 .inv-conc-pf .inv-liq,
@@ -8143,8 +8152,11 @@ select.inv-plan-in { cursor: pointer; }
 .inv-seg-fila { grid-template-columns: 30px 112px minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 2.6fr) minmax(0, 1.3fr) 96px; }
 .inv-seg-titulos span:nth-child(4),
 .inv-seg-titulos span:nth-child(7) { text-align: right; }
-/* El rango del último año: el mínimo, la barra y el máximo en una línea. */
-.inv-rango { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* El rango del último año: el mínimo, la barra y el máximo en una línea. Con
+   aire a los dos lados, que el precio de la izquierda y la fecha de la derecha
+   no se pegan a los extremos: 20px de margen, y el mismo en el título. */
+.inv-rango { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0 20px; }
+.inv-seg-titulos span:nth-child(5) { padding-left: 20px; }
 .inv-rango-extremo { flex-shrink: 0; color: var(--muted); font-size: 10px; }
 /* La barra es la de progreso de la meta de Reserva (.inv-meta-progress-bar), el
    mismo riel con su borde y sus puntas redondas; acá no lleva relleno sino una
