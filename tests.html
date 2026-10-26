@@ -2249,6 +2249,29 @@ group('Lista de seguimiento', function () {
     assertEqual(resumenDeSeguimiento(base, AHORA).distanciaAlMaximo, -25);
     assertEqual(resumenDeSeguimiento(Object.assign({}, base, { dist52High: undefined }), AHORA).distanciaAlMaximo, null);
   });
+  test('la fecha del balance, corta para la celda y completa para el emergente', function () {
+    const b = balanceDeActivo('Nov 04 AMC', AHORA);
+    assertEqual(b.corto, '04/11');
+    assertEqual(b.completo, '04/11/2026 · en 9 días');
+    assertEqual(b.dias, 9);
+    assertEqual(b.pasado, false);
+  });
+  test('un balance ya pasado se marca como último, en la forma corta', function () {
+    const b = balanceDeActivo('Oct 15 AMC', AHORA);
+    assertEqual(b.corto, 'últ. 15/10');
+    assertEqual(b.pasado, true);
+    assertEqual(b.dias, -11);
+  });
+  test('el balance de hoy no es pasado', function () {
+    const b = balanceDeActivo('Oct 26 BMO', AHORA);
+    assertEqual(b.pasado, false);
+    assertEqual(b.dias, 0);
+  });
+  test('sin fecha, o con una que no se entiende, no hay balance', function () {
+    assertEqual(balanceDeActivo(null, AHORA), null);
+    assertEqual(balanceDeActivo('', AHORA), null);
+    assertEqual(balanceDeActivo('pronto', AHORA), null);
+  });
   test('los símbolos que acepta Finviz, y los que no', function () {
     ['AAPL', 'KO', 'BRK-B', 'BF.B', 'GOOGL', 'A', '3M'].forEach(function (t) { assert(esTickerDeFinviz(t), t); });
     ['', 'aapl', 'AAPL ', 'TOOLONGX', 'A B', 'AAPL/X', '../x', 'BTC-USDT'].forEach(function (t) { assert(!esTickerDeFinviz(t), '"' + t + '"'); });

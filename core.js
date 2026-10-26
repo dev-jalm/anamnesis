@@ -2473,6 +2473,24 @@ function fundamentalesTextoDeResultados(texto, ahora, completo) {
   return dm + '/' + r.fecha.getFullYear() + ' · ' + cuando;
 }
 
+// La fecha del balance de un activo, dicha de dos maneras: corta para una celda
+// angosta ("04/11", o "últ. 08/10" si ya pasó) y completa para el emergente
+// ("04/11/2026 · en 9 días"). Null si no hay fecha o no se entiende. `pasado`
+// dice que es el último publicado: Finviz deja ese hasta que la empresa anuncia
+// el siguiente, así que no es el que viene.
+function balanceDeActivo(texto, ahora) {
+  const r = texto ? resultadosDe(texto, ahora) : null;
+  if (!r) return null;
+  const dos = function (n) { return String(n).padStart(2, '0'); };
+  const pasado = r.dias < 0;
+  return {
+    corto: (pasado ? 'últ. ' : '') + dos(r.fecha.getDate()) + '/' + dos(r.fecha.getMonth() + 1),
+    completo: fundamentalesTextoDeResultados(texto, ahora, true),
+    dias: r.dias,
+    pasado: pasado
+  };
+}
+
 // ----- LISTA DE SEGUIMIENTO -----
 // Los símbolos que Finviz acepta: letras y números, y un punto o guion para las
 // clases (BRK-B). Es el mismo criterio con el que el Worker valida el ticker
@@ -4798,7 +4816,7 @@ if (typeof module !== 'undefined' && module.exports) {
     fundamentalesParaMostrar, clasificarFundamental, puntajeContraSector, lecturaCortoPlazo,
     fundamentalesCalculados,
     resultadosDe, fundamentalesTextoDeResultados, numeroDeFinviz, diasDeAntiguedad,
-    esTickerDeFinviz, resumenDeSeguimiento,
+    esTickerDeFinviz, resumenDeSeguimiento, balanceDeActivo,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
     equivalenteDeCedear, cotizacionDeCedear, textoDeRatioCedear,

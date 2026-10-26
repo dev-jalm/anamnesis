@@ -21792,6 +21792,22 @@ function bloquePlanificacion(destinos, nombreCartera) {
     const ocultar = abierto ? '' : ' hidden';
     let nominalesTotal = 0, hayNominales = false;
 
+    // La fecha del balance sale de la ficha de Finviz del activo, de la moneda
+    // que la tenga: la empresa es la misma en pesos y en dólares. Sin ficha, un
+    // guion; la ficha se trae con el ícono de la fila del activo.
+    const fichaBalance = info.fundamentales ||
+      infoDeTicker(state.tickerInfo, g.ticker, g.moneda === 'USD' ? 'ARS' : 'USD').fundamentales;
+    const balance = fichaBalance && fichaBalance.datos ? balanceDeActivo(fichaBalance.datos.earnings) : null;
+    let celdaBalance = '<td class="num"><span class="inv-na">—</span></td>';
+    if (balance) {
+      const detalleTip = [balance.completo];
+      if (balance.pasado) detalleTip.push('Es el último balance publicado: la empresa todavía no anunció el siguiente.');
+      else if (balance.dias <= 7) detalleTip.push('Inminente: alrededor de esa fecha el precio suele moverse más.');
+      detalleTip.push('Según Finviz, consultado el ' + new Date(fichaBalance.fecha).toLocaleDateString('es-AR') + '.');
+      celdaBalance = '<td class="num"' + tipAttrs('Resultados de ' + g.ticker, detalleTip.join('\n')) + '>' +
+        escapeHtmlSafe(balance.corto) + '</td>';
+    }
+
     const detalle = g.entradas.map(function (f) {
       const d = filaDePlan(f, capital, pa);
       const montoArs = d.monto;
@@ -21848,7 +21864,10 @@ function bloquePlanificacion(destinos, nombreCartera) {
         '</td>' +
         // El precio actual es del activo y ya está en su fila: repetirlo igual
         // en cada ingreso sería la misma cifra tres veces en la misma columna.
-        '<td class="num"></td>' +
+        // En su lugar va la fecha del balance: también es del activo, pero es lo
+        // que se mira al decidir A QUÉ PRECIO y CUÁNDO entrar, y el ingreso es
+        // donde se decide. Se repite en cada uno a propósito.
+        celdaBalance +
         '<td class="num ' + (d.enPrecio ? 'inv-plan-enprecio' : '') + '">' + distTxt + '</td>' +
       '</tr>';
     }).join('');
@@ -21863,7 +21882,7 @@ function bloquePlanificacion(destinos, nombreCartera) {
       '<td class="num">Nominales</td>' +
       '<td class="num">Precio de entrada</td>' +
       '<td class="num">Monto</td>' +
-      '<td></td>' +
+      '<td class="num">Próx. balance</td>' +
       '<td class="num">Distancia</td>' +
     '</tr>';
 
