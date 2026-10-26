@@ -6677,7 +6677,8 @@ body[data-exporting="true"] .section-card {
    Pasada una semana el verde se vuelve acento: el dato sigue ahí, pero ya no es
    de fiar a ciegas. */
 .inv-plan-fund { margin-left: 6px; vertical-align: middle; }
-.inv-plan-fund:hover { color: var(--accent) !important; }
+.inv-plan-fund:hover,
+.inv-seg-plan:hover { color: var(--accent) !important; }
 .inv-plan-fund.listo { color: var(--green); }
 .inv-plan-fund.listo.vieja { color: var(--accent); }
 .inv-plan-fund.cargando { pointer-events: none; animation: pulse 1s ease-in-out infinite; }
@@ -8149,7 +8150,7 @@ select.inv-plan-in { cursor: pointer; }
    Precio | Rango de 52 semanas | Próx. balance | Consulta. El precio y la fecha
    de consulta a la derecha, como en las demás. */
 .inv-seg-titulos,
-.inv-seg-fila { grid-template-columns: 30px 112px minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 2.6fr) minmax(0, 1.3fr) 96px; }
+.inv-seg-fila { grid-template-columns: 40px 112px minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 2.6fr) minmax(0, 1.3fr) 96px; }
 .inv-seg-titulos span:nth-child(4),
 .inv-seg-titulos span:nth-child(7) { text-align: right; }
 /* El rango del último año: el mínimo, la barra y el máximo en una línea. Con
@@ -8158,9 +8159,13 @@ select.inv-plan-in { cursor: pointer; }
 .inv-rango { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0 20px; }
 .inv-seg-titulos span:nth-child(5) { padding-left: 20px; }
 /* Lo que está por publicar va arriba y lo ya publicado debajo; el último de los
-   primeros cierra con una línea más gruesa que el divisor de las filas, del
-   mismo color: separa los dos grupos sin ser otro dibujo. */
-.inv-seg-fila.inv-seg-corte { border-bottom-width: 2px; }
+   primeros cierra con una línea más gruesa que el divisor de las filas y en el
+   acento, que es el color con el que la app señala lo que hay que mirar: así
+   resalta contra los divisores comunes. */
+.inv-seg-fila.inv-seg-corte { border-bottom: 2px solid var(--accent); }
+/* Quitar y agregar al plan, uno al lado del otro: la columna del tacho pasa de 30
+   a 40px, como la de las acciones de una fila del plan, que también lleva dos. */
+.inv-seg-acciones { display: flex; align-items: center; justify-content: center; }
 .inv-rango-extremo { flex-shrink: 0; color: var(--muted); font-size: 10px; }
 /* La barra es la de progreso de la meta de Reserva (.inv-meta-progress-bar), el
    mismo riel con su borde y sus puntas redondas; acá no lleva relleno sino una

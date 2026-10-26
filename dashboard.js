@@ -22464,6 +22464,43 @@ function agregarASeguimiento(ticker) {
   return 'ok';
 }
 
+// La descripción de un activo seguido: la que se cargó, en cualquiera de las dos
+// monedas, o el nombre del listado de BYMA.
+function descripcionDeActivoSeguido(ticker) {
+  return infoDeTicker(state.tickerInfo, ticker, 'USD').descripcion ||
+    infoDeTicker(state.tickerInfo, ticker, 'ARS').descripcion ||
+    nombreDeCedear(ticker) || '';
+}
+
+// Lleva un activo seguido al alta de Planificación: abre la sección, carga lo
+// que se sabe del activo —símbolo, descripción, sector y moneda— y deja el foco
+// en "% del capital", que es lo primero que falta decidir. El precio de entrada
+// no se sugiere: es una decisión, no un dato. Lo que no se sabe se limpia, para
+// que no quede lo escrito antes para otro activo.
+function pasarAlPlan(ticker) {
+  const panel = document.querySelector('.inv-panel-inversiones');
+  const fold = panel && panel.querySelector('[data-fold="Planificación"]');
+  const alta = fold && fold.querySelector('.inv-plan-alta');
+  if (!alta) return;
+  fold.open = true;
+  const poner = function (k, v) {
+    const el = alta.querySelector('[data-plan-campo="' + k + '"]');
+    if (el) el.value = v;
+  };
+  // Un CEDEAR del listado de BYMA se compra en pesos; lo demás, en dólares: es
+  // la moneda en la que cotiza el activo que se va a comprar.
+  const moneda = ratioDeCedear(ticker) ? 'ARS' : 'USD';
+  poner('ticker', ticker);
+  poner('descripcion', descripcionDeActivoSeguido(ticker).toLocaleUpperCase('es-AR'));
+  poner('sector', sectorDeTenencia(ticker, moneda).sector || '');
+  poner('moneda', moneda);
+  ['pct', 'precio', 'nota', 'broker', 'portafolio'].forEach(function (k) { poner(k, ''); });
+  // Sube hasta la sección sin dejarla bajo la barra de pestañas, que es fija.
+  window.scrollTo({ top: fold.getBoundingClientRect().top + window.scrollY - 120, behavior: 'smooth' });
+  const pct = alta.querySelector('[data-plan-campo="pct"]');
+  if (pct) pct.focus({ preventScroll: true });
+}
+
 function quitarDeSeguimiento(id) {
   state.seguimiento = seguimientoLista().filter(function (x) { return x.id !== id; });
   scheduleSave();
@@ -22508,8 +22545,7 @@ function htmlListaSeguimiento() {
   });
   const filas = ordenarPorBalance(calculados, function (c) { return c.r.diasAlBalance; }).map(function (o) {
     const item = o.item.item, info = o.item.info, f = o.item.f, r = o.item.r;
-    const desc = info.descripcion || infoDeTicker(state.tickerInfo, item.ticker, 'ARS').descripcion ||
-      nombreDeCedear(item.ticker) || '';
+    const desc = descripcionDeActivoSeguido(item.ticker);
     // El rango del último año como una barra: el mínimo al comienzo, el máximo
     // al final y una línea donde está el precio. Dice de un vistazo si el
     // precio está cerca de su piso o de su techo, que tres números sueltos no
@@ -22533,6 +22569,11 @@ function htmlListaSeguimiento() {
       '<span class="inv-seg-acciones">' +
         '<button class="inv-delete-btn" data-seg-del="' + escapeHtmlSafe(item.id) + '" title="Quitar del seguimiento">' +
           '<i data-lucide="trash-2" style="width:11px;height:11px"></i>' +
+        '</button>' +
+        // Pasar el activo al plan de compras: abre Planificación con lo que ya
+        // se sabe cargado y el foco en lo que falta decidir.
+        '<button class="inv-delete-btn inv-seg-plan" data-seg-plan="' + escapeHtmlSafe(item.ticker) + '" title="Agregar al plan de compras">' +
+          '<i data-lucide="plus" style="width:11px;height:11px"></i>' +
         '</button>' +
       '</span>' +
       '<span class="inv-liq-activo">' +
@@ -22586,6 +22627,8 @@ function agregarDesdeLaBanda(boton) {
 document.addEventListener('click', function (e) {
   const add = e.target.closest && e.target.closest('[data-seg-add]');
   if (add) { e.preventDefault(); agregarDesdeLaBanda(add); return; }
+  const aPlan = e.target.closest && e.target.closest('[data-seg-plan]');
+  if (aPlan) { pasarAlPlan(aPlan.getAttribute('data-seg-plan')); return; }
   const del = e.target.closest && e.target.closest('[data-seg-del]');
   if (del) {
     quitarDeSeguimiento(del.getAttribute('data-seg-del'));
