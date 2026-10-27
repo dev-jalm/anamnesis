@@ -22564,8 +22564,10 @@ function descripcionDeActivoSeguido(ticker) {
 // en "% del capital", que es lo primero que falta decidir. El precio de entrada
 // no se sugiere: es una decisión, no un dato. Lo que no se sabe se limpia, para
 // que no quede lo escrito antes para otro activo.
-function pasarAlPlan(ticker) {
-  const panel = document.querySelector('.inv-panel-inversiones');
+function pasarAlPlan(ticker, boton) {
+  // El plan es el del panel donde está la lista que se tocó: la lista aparece en
+  // Reserva, Inversiones y las jubilaciones, y cada una planifica por separado.
+  const panel = (boton && boton.closest('.investment-detail-panel')) || document.querySelector('.inv-panel-inversiones');
   const fold = panel && panel.querySelector('[data-fold="Planificación"]');
   const alta = fold && fold.querySelector('.inv-plan-alta');
   if (!alta) return;
@@ -22715,7 +22717,7 @@ document.addEventListener('click', function (e) {
   const add = e.target.closest && e.target.closest('[data-seg-add]');
   if (add) { e.preventDefault(); agregarDesdeLaBanda(add); return; }
   const aPlan = e.target.closest && e.target.closest('[data-seg-plan]');
-  if (aPlan) { pasarAlPlan(aPlan.getAttribute('data-seg-plan')); return; }
+  if (aPlan) { pasarAlPlan(aPlan.getAttribute('data-seg-plan'), aPlan); return; }
   const del = e.target.closest && e.target.closest('[data-seg-del]');
   if (del) {
     quitarDeSeguimiento(del.getAttribute('data-seg-del'));
@@ -23494,8 +23496,12 @@ function buildInvestmentDetailPanel(destinos, title) {
         (panelKey === 'reserva' && metaRowHtml
           ? '<div class="inv-liq inv-reserva-meta"><div class="inv-header-totals">' + metaRowHtml + '</div></div>'
           : '') +
-        // Encendida por defecto, y apagable en Administración → Parámetros.
-        (panelKey === 'inversiones' && seguimientoActivado()
+        // Encendida por defecto, y apagable en Administración → Parámetros. Va en
+        // Reserva, Inversiones y las jubilaciones —las tres son la misma sección
+        // de inversiones—: con la grilla de destinos se ve el detalle de uno solo
+        // a la vez, así que ya no hay cuatro copias a la vista. Trading no, porque
+        // no son tenencias.
+        (seguimientoActivado()
           ? bloquePlegableInv('Seguimiento',
               'Cómo está el mercado y qué activos se miran: el calendario económico y la lista de seguimiento.',
               bloqueSeguimiento(), 'inv-fold-seg', '', accionesDeSeguimientoHtml(), '0')
