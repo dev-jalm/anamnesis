@@ -11808,6 +11808,7 @@ function renderParamsTab() {
 
   // Toggle de modo oscuro automático
   renderThemeAutoParam();
+  renderSeguimientoParam();
 
   // Health Score: 16 inputs + 2 rangos. Para mantener el código manejable usamos
   // un metadato `HEALTH_SCORE_INPUTS` que mapea cada input id ↔ campo en
@@ -11839,6 +11840,34 @@ function renderThemeAutoParam() {
     });
     input._bound = true;
   }
+}
+
+// El interruptor de la sección Seguimiento (calendario y lista de activos). Es
+// información del mercado y no de los movimientos de la persona, así que viene
+// apagado; se mueve igual que el del modo oscuro: pendiente hasta GUARDAR.
+function renderSeguimientoParam() {
+  const input = document.getElementById('paramSeguimientoInput');
+  if (!input) return;
+  const persisted = !!(state.params && state.params.mostrarSeguimiento);
+  const pendVal = catModalState.pendingParamChanges.mostrarSeguimiento;
+  const effVal = pendVal !== undefined ? pendVal : persisted;
+  input.checked = !!effVal;
+  input.classList.toggle('modified', pendVal !== undefined && pendVal !== persisted);
+  if (!input._bound) {
+    input.addEventListener('change', function () {
+      const v = !!input.checked;
+      const baseline = !!(state.params && state.params.mostrarSeguimiento);
+      if (v === baseline) delete catModalState.pendingParamChanges.mostrarSeguimiento;
+      else catModalState.pendingParamChanges.mostrarSeguimiento = v;
+      input.classList.toggle('modified', v !== baseline);
+      updateCatModalStatus();
+    });
+    input._bound = true;
+  }
+}
+
+function seguimientoActivado() {
+  return !!(state.params && state.params.mostrarSeguimiento);
 }
 
 // Metadata de inputs del score. Cada entrada: id del input, path dentro del
@@ -14791,6 +14820,11 @@ function applyCategoryChanges() {
   if (catModalState.pendingParamChanges.themeAuto !== undefined) {
     state.params.themeAuto = catModalState.pendingParamChanges.themeAuto;
     if (typeof applyThemeAutoSetting === 'function') applyThemeAutoSetting();
+  }
+  if (catModalState.pendingParamChanges.mostrarSeguimiento !== undefined) {
+    state.params.mostrarSeguimiento = catModalState.pendingParamChanges.mostrarSeguimiento;
+    // Recién encendida: se pide el calendario ahora, no recién al volver a entrar.
+    autoTraerCalendario();
   }
   // Health score config: merge profundo. Solo escribimos los campos pendientes,
   // dejando el resto del healthScore intacto. Si el usuario apretó "Restablecer
@@ -22376,7 +22410,9 @@ function traerCalendario(forzar) {
   return _calendarioEnVuelo;
 }
 
+// Con la sección apagada no se le pide nada a Finviz.
 function autoTraerCalendario() {
+  if (!seguimientoActivado()) return;
   traerCalendario(false);
 }
 
@@ -23442,7 +23478,9 @@ function buildInvestmentDetailPanel(destinos, title) {
       // cartera, así que va una sola vez, en Inversiones: repetido en cada panel
       // eran cuatro copias del mismo calendario.
       (panelKey === 'trading' ? '' :
-        (panelKey === 'inversiones'
+        // Apagada por defecto: es información del mercado y no de los
+        // movimientos de la persona (Administración → Parámetros).
+        (panelKey === 'inversiones' && seguimientoActivado()
           ? bloquePlegableInv('Seguimiento',
               'Cómo está el mercado y qué activos se miran: el calendario económico y la lista de seguimiento.',
               bloqueSeguimiento(), 'inv-fold-seg', '', accionesDeSeguimientoHtml(), '0')
