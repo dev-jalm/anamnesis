@@ -23451,11 +23451,19 @@ function buildInvestmentDetailPanel(destinos, title) {
           'En qué activos entrar, a qué precio y con qué parte del capital.',
           bloquePlanificacion(destinos, title), 'inv-fold-plan', '',
           altaDePlanHtml(destinos), 1) +
+        // Sin tenencias las dos tablas salen vacías, y una sección sin contenido
+        // no se dibuja: la numeración saltaba de 1 a 3 en cualquier cartera sin
+        // compras. Va siempre, con un aviso, como Planificación cuando no hay
+        // plan.
         bloquePlegableInv('Activos', 'Las tenencias por ticker, con su detalle de compras.',
-          buildCurrencyTable('ARS', arsTickers.length, arsRows) +
-          buildCurrencyTable('USD', usdTickers.length, usdRows), 'inv-fold-activos', '', '', 2) +
+          (buildCurrencyTable('ARS', arsTickers.length, arsRows) +
+          buildCurrencyTable('USD', usdTickers.length, usdRows)) ||
+          '<div class="inv-liq"><div class="inv-liq-vacio">Todavía no hay activos comprados en esta cartera: ' +
+            'se listan acá, con su detalle de compras, apenas registres la primera.</div></div>',
+          'inv-fold-activos', '', '', 2) +
         bloquePlegableInv('Concentración', 'Cuánto pesa cada sector y cada tipo de riesgo en la cartera.',
-          buildSectorConcentrationBlock(destinos, title), '',
+          buildSectorConcentrationBlock(destinos, title) ||
+          '<div class="inv-liq"><div class="inv-liq-vacio">Sin tenencias que repartir por sector.</div></div>', '',
           vistaSeccionToggle((destinos[0] || '') + '|conc'), '', 3) +
         // Va en todas las carteras que tienen tenencias —la pregunta "¿cómo me
         // fue?" no es exclusiva de Inversiones—, pero sólo a nivel cartera: el
