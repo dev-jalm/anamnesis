@@ -8347,7 +8347,22 @@ select.inv-plan-in { cursor: pointer; }
    cuerpo, su padding y su divisor. Acá va sólo lo que esta tabla tiene y las
    otras no: la fila que se elige, el nombre del destino y la fila de total. */
 .inv-destinos-tabla { margin-bottom: 14px; }
-.inv-destinos-tabla td { vertical-align: middle; height: 44px; }
+/* Todas las filas miden lo mismo: el alto lo fija la celda y no su contenido. Con
+   el alto libre, la que lleva "reservado" debajo del líquido salía más alta que
+   las demás. Medido: con 52px esa fila pedía 56 y se estiraba; 60 alcanzan para
+   la segunda línea con su relleno, así que ninguna se estira. */
+.inv-destinos-tabla td { vertical-align: middle; height: 60px; }
+/* La cabecera, distinta de las filas que se eligen: más alta, con el fondo de las
+   bandas de las tablas y sin cursor ni resalte, porque no se toca. */
+.inv-destinos-tabla thead th {
+  height: 44px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  background: rgba(74, 107, 138, 0.12);
+  border-bottom: 1px solid var(--border-strong, var(--border));
+  color: var(--accent);
+  cursor: default;
+}
 .inv-destino-fila { cursor: pointer; }
 .inv-destino-fila:hover td { background: var(--bg-1); }
 .inv-destino-fila:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -8368,7 +8383,14 @@ select.inv-plan-in { cursor: pointer; }
 /* Lo reservado a un objetivo va debajo del líquido, como en la cabecera, y no al
    lado: en una celda angosta se pisaba con el número. */
 .inv-destinos-tabla .inv-header-cell-sub { display: block; margin-top: 2px; }
-.inv-destino-total td { border-top: 1px solid var(--border-strong, var(--border)); border-bottom: none; }
+/* El total, con un fondo propio —un velo de la tinta, ni el azul de la cabecera
+   ni el acento de la fila elegida— y una línea más marcada arriba, para que se
+   lea como el cierre de la tabla y no como una fila más. */
+.inv-destino-total td {
+  background: color-mix(in srgb, var(--ink) 9%, transparent);
+  border-top: 2px solid var(--border-strong, var(--border));
+  border-bottom: none;
+}
 /* La cabecera de cada panel ya la dice la grilla: no se muestra. La de Trading
    queda, porque no son totales de tenencias sino las métricas de su cuenta. */
 .assets-grid .investment-detail-panel:not(.inv-panel-trading) > summary { display: none; }
