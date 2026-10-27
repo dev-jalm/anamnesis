@@ -177,7 +177,10 @@ function recortarCalendario(html) {
   return entradas.map(function (x) {
     return {
       id: x.calendarId, evento: x.event, fecha: x.date, referencia: x.reference,
-      previo: x.previous, pronostico: x.forecast, publicado: x.actual, importancia: x.importance
+      previo: x.previous, pronostico: x.forecast, publicado: x.actual, importancia: x.importance,
+      // En qué sentido es bueno el dato: 1 si más alto es favorable (empleo, PIB),
+      // -1 si es desfavorable (inflación, desempleo), 0 si no se juzga.
+      masEsMejor: x.isHigherPositive
     };
   });
 }

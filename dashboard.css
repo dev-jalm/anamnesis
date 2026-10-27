@@ -8144,21 +8144,49 @@ select.inv-plan-in { cursor: pointer; }
 .inv-cal-meses { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 /* En el del medio no vale el padding de la columna de la derecha de Liquidado:
    tiene otra columna a su derecha y su divisor. */
-.inv-cal-mes { --cal-val: 56px; }
+.inv-cal-mes { --cal-val: 60px; --cal-dia: 32px; }
 .inv-cal-mes:nth-child(2) { padding-right: 14px; }
-/* Lo que se lee de cada fecha va en las tres columnas de valores: previo,
-   esperado y publicado, a la derecha, con el mismo ancho en el título y en cada
-   línea. El título arranca donde arrancan las líneas: 40px del día y 12 de aire. */
+/* El mes, en un recuadro del ancho de su columna: el nombre centrado y en el
+   cuerpo de un título —Fraunces, la de los títulos de la app—, y debajo cuántas
+   fechas trae. El fondo es el de las bandas de las tablas. */
+.inv-cal-mes-cab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 8px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: rgba(74, 107, 138, 0.12);
+}
+.inv-cal-mes-nombre {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--ink);
+  text-transform: capitalize;
+}
+.inv-cal-mes-n {
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+/* Lo que se lee de cada fecha va en cuatro columnas de valores: previo, esperado,
+   publicado y sorpresa, a la derecha, con el mismo ancho en el título y en cada
+   línea. El título arranca donde arrancan las líneas: el día y 12px de aire. */
 .inv-cal-mes-titulos {
-  grid-template-columns: minmax(0, 1fr) repeat(3, var(--cal-val));
-  gap: 8px;
-  padding-left: 52px;
+  grid-template-columns: minmax(0, 1fr) repeat(4, var(--cal-val));
+  gap: 4px;
+  padding-left: calc(var(--cal-dia) + 12px);
 }
 .inv-cal-mes-titulos span { text-align: right; }
 /* Un día: su número a la izquierda y sus familias a la derecha. Es una fila de
    la lista, con su divisor, pero más alta que una de 40px porque lleva varias
    líneas: por eso arranca arriba en vez de centrarse. */
-.inv-cal-dia { grid-template-columns: 40px minmax(0, 1fr); align-items: start; padding: 8px 0; min-height: 0; }
+.inv-cal-dia { grid-template-columns: var(--cal-dia) minmax(0, 1fr); align-items: start; padding: 8px 0; min-height: 0; }
 .inv-cal-dn { font-size: 16px; font-weight: 600; line-height: 1; color: var(--ink); }
 .inv-cal-dn small {
   display: block;
@@ -8174,11 +8202,19 @@ select.inv-plan-in { cursor: pointer; }
 .inv-cal-hora { margin-left: auto; color: var(--muted-2); font-size: 10px; }
 .inv-cal-lin {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(3, var(--cal-val));
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) repeat(4, var(--cal-val));
+  gap: 4px;
   align-items: baseline;
   padding: 2px 0;
 }
+/* La sorpresa, en verde si el dato salió mejor de lo esperado y en rojo si salió
+   peor: el criterio de toda la app, ganancia en verde y pérdida en rojo. No es el
+   signo de la resta —una inflación por encima de lo esperado es un número que
+   sube y un dato que empeora—: el sentido de cada dato lo da Finviz. Sin color
+   donde no se juzga o no hay diferencia. */
+.inv-cal-sor { font-weight: 600; }
+.inv-cal-sor-pos { color: var(--green); }
+.inv-cal-sor-neg { color: var(--red); }
 .inv-cal-corto { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* La sigla de cada familia, con su color: es lo que permite recorrer las tres
    columnas buscando "los IPC" sin leer. Un fondo translúcido y la tinta de

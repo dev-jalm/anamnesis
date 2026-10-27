@@ -2190,6 +2190,60 @@ group('Calendario económico', function () {
     assertEqual(r.publicado, '');
     assertEqual(r.pronostico, '');
   });
+  // — La sorpresa: lo publicado menos lo esperado —
+  test('un porcentaje se resta en puntos porcentuales, con signo', function () {
+    assertEqual(sorpresaDeCalendario('3,7%', '3,6%', -1).texto, '+0,1 pp');
+    assertEqual(sorpresaDeCalendario('0,2%', '0,3%', -1).texto, '−0,1 pp');
+  });
+  test('una cifra con sufijo conserva la unidad', function () {
+    assertEqual(sorpresaDeCalendario('29K', '90K', 1).texto, '−61K');
+    assertEqual(sorpresaDeCalendario('150K', '90K', 1).texto, '+60K');
+  });
+  test('la resta no arrastra los decimales de la coma flotante', function () {
+    assertEqual(sorpresaDeCalendario('3,7%', '3,6%', 1).texto, '+0,1 pp');
+    assertEqual(sorpresaDeCalendario('0,3%', '0,1%', 1).texto, '+0,2 pp');
+  });
+  test('con distinta cantidad de decimales se usan los del que más tiene', function () {
+    assertEqual(sorpresaDeCalendario('5%', '4,4%', -1).texto, '+0,6 pp');
+    assertEqual(sorpresaDeCalendario('3%', '3,1%', -1).texto, '−0,1 pp');
+  });
+  test('el color es favorable o desfavorable, no el signo: más inflación de lo esperado es malo', function () {
+    assertEqual(sorpresaDeCalendario('3,7%', '3,6%', -1).tono, 'neg');
+    assertEqual(sorpresaDeCalendario('3,5%', '3,6%', -1).tono, 'pos');
+  });
+  test('en empleo y PIB, más de lo esperado es favorable y menos es desfavorable', function () {
+    assertEqual(sorpresaDeCalendario('150K', '90K', 1).tono, 'pos');
+    assertEqual(sorpresaDeCalendario('29K', '90K', 1).tono, 'neg');
+    assertEqual(sorpresaDeCalendario('3,5%', '3,2%', 1).tono, 'pos');
+  });
+  test('el desempleo, como la inflación, desfavorable cuando sube', function () {
+    assertEqual(sorpresaDeCalendario('4,2%', '4,1%', -1).tono, 'neg');
+    assertEqual(sorpresaDeCalendario('4,0%', '4,1%', -1).tono, 'pos');
+  });
+  test('sin sentido conocido, o sin diferencia, no se pinta', function () {
+    assertEqual(sorpresaDeCalendario('3,7%', '3,6%', 0).tono, '');
+    assertEqual(sorpresaDeCalendario('3,7%', '3,6%', undefined).tono, '');
+    const igual = sorpresaDeCalendario('3,1%', '3,1%', -1);
+    assertEqual(igual.tono, '');
+    assertEqual(igual.signo, 0);
+    assertEqual(igual.texto, '0,0 pp');
+  });
+  test('sin uno de los dos valores, o con unidades distintas, no hay sorpresa', function () {
+    assertEqual(sorpresaDeCalendario('', '3,6%', -1), null);
+    assertEqual(sorpresaDeCalendario('3,7%', '', -1), null);
+    assertEqual(sorpresaDeCalendario(null, null, -1), null);
+    assertEqual(sorpresaDeCalendario('3,7%', '90K', -1), null);
+    assertEqual(sorpresaDeCalendario('algo', '3,6%', -1), null);
+  });
+  test('la línea de un día lleva su sorpresa, y la del que no salió no', function () {
+    const m = calendarioPorMes(calendarioRelevante([
+      e(1, 'Inflation Rate YoY', '2026-10-14T08:30:00', { previo: '3.4%', pronostico: '3.6%', publicado: '3.7%', masEsMejor: -1 }),
+      e(2, 'Inflation Rate YoY', '2026-10-28T08:30:00', { previo: '3.7%', pronostico: '3.6%', masEsMejor: -1 })
+    ]), '2026-10-26', 3);
+    assertEqual(m[0].dias[0].familias[0].lineas[0].sorpresa.texto, '+0,1 pp');
+    assertEqual(m[0].dias[0].familias[0].lineas[0].sorpresa.tono, 'neg');
+    assertEqual(m[0].dias[1].familias[0].lineas[0].sorpresa, null);
+  });
   // — La vista por mes —
   const evs = function (lista) { return calendarioRelevante(lista); };
   test('los eventos se reparten en el mes actual y los dos siguientes, aunque un mes quede vacío', function () {
@@ -2223,7 +2277,7 @@ group('Calendario económico', function () {
     assertEqual(dia.familias.length, 1);
     assertEqual(dia.familias[0].rotulo, 'IPC');
     assertEqual(dia.familias[0].hora, '10:30');
-    assertEqual(dia.familias[0].lineas.map(function (l) { return l.corto; }).join(','), 'mensual,interanual,subyacente interanual');
+    assertEqual(dia.familias[0].lineas.map(function (l) { return l.corto; }).join(','), 'mensual,interanual,subyac. interanual');
   });
   test('cada línea lleva el previo, el esperado y el publicado', function () {
     const m = calendarioPorMes(evs([e(1, 'Inflation Rate YoY', '2026-11-10T08:30:00', { previo: '3.0%', pronostico: '3.1%', publicado: '3.2%' })]), '2026-10-26', 3);

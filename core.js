@@ -1527,21 +1527,24 @@ const CALENDARIO_GRUPOS = [
 // parecen de la familia pero miden otra cosa.
 // El tercer elemento es el nombre corto, sin la sigla del grupo: en la vista por
 // mes los eventos de una misma familia van juntos bajo su sigla, y repetirla en
-// cada línea ("IPC / IPC interanual") sería ruido.
+// cada línea ("IPC / IPC interanual") sería ruido. Además tiene que entrar en lo
+// que deja libre la fila al lado de sus cuatro valores —unos 120px—, y por eso
+// "subyacente" va abreviado: con la palabra entera se cortaba en las columnas
+// angostas.
 const CALENDARIO_EVENTOS = {
   'Inflation Rate MoM': ['ipc', 'IPC mensual', 'mensual'],
   'Inflation Rate YoY': ['ipc', 'IPC interanual', 'interanual'],
-  'Core Inflation Rate MoM': ['ipc', 'IPC subyacente mensual', 'subyacente mensual'],
-  'Core Inflation Rate YoY': ['ipc', 'IPC subyacente interanual', 'subyacente interanual'],
+  'Core Inflation Rate MoM': ['ipc', 'IPC subyacente mensual', 'subyac. mensual'],
+  'Core Inflation Rate YoY': ['ipc', 'IPC subyacente interanual', 'subyac. interanual'],
   'PPI MoM': ['ppi', 'PPI mensual', 'mensual'],
   'PPI YoY': ['ppi', 'PPI interanual', 'interanual'],
-  'Core PPI MoM': ['ppi', 'PPI subyacente mensual', 'subyacente mensual'],
-  'Core PPI YoY': ['ppi', 'PPI subyacente interanual', 'subyacente interanual'],
+  'Core PPI MoM': ['ppi', 'PPI subyacente mensual', 'subyac. mensual'],
+  'Core PPI YoY': ['ppi', 'PPI subyacente interanual', 'subyac. interanual'],
   'PCE Price Index MoM': ['pce', 'PCE mensual', 'mensual'],
   'PCE Price Index YoY': ['pce', 'PCE interanual', 'interanual'],
-  'Core PCE Price Index MoM': ['pce', 'PCE subyacente mensual', 'subyacente mensual'],
-  'Core PCE Price Index YoY': ['pce', 'PCE subyacente interanual', 'subyacente interanual'],
-  'Non Farm Payrolls': ['empleo', 'Nóminas no agrícolas', 'nóminas no agrícolas'],
+  'Core PCE Price Index MoM': ['pce', 'PCE subyacente mensual', 'subyac. mensual'],
+  'Core PCE Price Index YoY': ['pce', 'PCE subyacente interanual', 'subyac. interanual'],
+  'Non Farm Payrolls': ['empleo', 'Nóminas no agrícolas', 'empleo no agrícola'],
   'Unemployment Rate': ['empleo', 'Tasa de desempleo', 'tasa de desempleo'],
   'GDP Growth Rate QoQ Adv': ['pib', 'PIB trimestral (adelanto)', 'adelanto'],
   'GDP Growth Rate QoQ 2nd Est': ['pib', 'PIB trimestral (2.ª estimación)', '2.ª estimación'],
@@ -1626,7 +1629,8 @@ function calendarioRelevante(entradas) {
       id: e.id, evento: e.evento, grupo: grupo.clave, rotuloGrupo: grupo.rotulo, nombre: def[1], corto: def[2], ms: ms,
       dia: fh.dia, hora: fh.hora, referencia: e.referencia || '',
       previo: valorDeCalendario(e.previo), pronostico: valorDeCalendario(e.pronostico),
-      publicado: valorDeCalendario(e.publicado), importancia: Number(e.importancia) || 0
+      publicado: valorDeCalendario(e.publicado), importancia: Number(e.importancia) || 0,
+      masEsMejor: Number(e.masEsMejor) > 0 ? 1 : (Number(e.masEsMejor) < 0 ? -1 : 0)
     });
   });
   // A la misma hora salen varios a la vez (IPC y PPI traen mensual, interanual y
@@ -2476,6 +2480,36 @@ function fundamentalesTextoDeResultados(texto, ahora, completo) {
   return dm + '/' + r.fecha.getFullYear() + ' · ' + cuando;
 }
 
+// La sorpresa de un dato: lo publicado menos lo esperado, con su unidad. Es lo
+// que mueve al mercado —un dato que sale como se esperaba ya estaba en los
+// precios— y por eso se muestra aparte. `masEsMejor` dice en qué sentido es
+// bueno el dato: 1 si más alto es favorable (empleo, PIB), -1 si es
+// desfavorable (inflación, desempleo), 0 si no se juzga; de ahí sale el tono,
+// que pinta lo favorable y lo desfavorable y no el signo de la cuenta (una
+// inflación por encima de lo esperado es una sorpresa positiva en el número y
+// negativa en el efecto). Un porcentaje se resta en puntos porcentuales. Null si
+// falta alguno de los dos valores, si no se entienden o si no son de la misma
+// unidad.
+function sorpresaDeCalendario(publicado, esperado, masEsMejor) {
+  const leer = function (t) {
+    const m = /^(-?\d+(?:,\d+)?)([%KMBT]?)$/.exec(String(t === null || t === undefined ? '' : t).trim());
+    return m ? { n: parseFloat(m[1].replace(',', '.')), dec: (m[1].split(',')[1] || '').length, u: m[2] } : null;
+  };
+  const a = leer(publicado);
+  const b = leer(esperado);
+  if (!a || !b || a.u !== b.u) return null;
+  const dec = Math.max(a.dec, b.dec);
+  const k = Math.pow(10, dec);
+  // Redondeado: 3,7 − 3,6 da 0,10000000000000009 en coma flotante.
+  const dif = Math.round((a.n - b.n) * k) / k;
+  const signo = dif > 0 ? 1 : (dif < 0 ? -1 : 0);
+  const unidad = a.u === '%' ? ' pp' : a.u;
+  const texto = (signo > 0 ? '+' : (signo < 0 ? '−' : '')) + Math.abs(dif).toFixed(dec).replace('.', ',') + unidad;
+  const sentido = Number(masEsMejor) > 0 ? 1 : (Number(masEsMejor) < 0 ? -1 : 0);
+  const tono = (signo === 0 || sentido === 0) ? '' : (signo * sentido > 0 ? 'pos' : 'neg');
+  return { texto: texto, signo: signo, tono: tono };
+}
+
 const CALENDARIO_MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
   'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const CALENDARIO_DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
@@ -2513,7 +2547,10 @@ function calendarioPorMes(eventos, hoyDia, cantidad) {
       fam = { grupo: e.grupo, rotulo: e.rotuloGrupo, referencia: e.referencia, hora: e.hora, lineas: [] };
       dia.familias.push(fam);
     }
-    fam.lineas.push({ nombre: e.nombre, corto: e.corto, previo: e.previo, pronostico: e.pronostico, publicado: e.publicado });
+    fam.lineas.push({
+      nombre: e.nombre, corto: e.corto, previo: e.previo, pronostico: e.pronostico, publicado: e.publicado,
+      sorpresa: sorpresaDeCalendario(e.publicado, e.pronostico, e.masEsMejor)
+    });
   });
   meses.forEach(function (m) { m.dias.sort(function (a, b) { return a.dia < b.dia ? -1 : (a.dia > b.dia ? 1 : 0); }); });
   return meses;
@@ -4912,7 +4949,7 @@ if (typeof module !== 'undefined' && module.exports) {
     equivalenteDeCedear, cotizacionDeCedear, textoDeRatioCedear,
     // calendario económico
     CALENDARIO_GRUPOS, instanteDeFinviz, fechaHoraArgentina, valorDeCalendario, calendarioRelevante,
-    calendarioPorMes, semanasDelCalendario,
+    calendarioPorMes, semanasDelCalendario, sorpresaDeCalendario,
     resumirTanda,
     // reserva
     getReservaParams, getReservaAcumulado,

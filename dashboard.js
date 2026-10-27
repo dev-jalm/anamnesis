@@ -22304,6 +22304,10 @@ const CALENDARIO_VIGENCIA_MS = 15 * 60 * 1000;
 // que ya pasaron del mes en curso se quedan a la vista, porque ahí está lo
 // publicado, que es lo que se compara con lo esperado.
 const CALENDARIO_CANTIDAD_MESES = 3;
+// Sube cuando cambia la FORMA de la respuesta del Worker: se guarda 15 minutos
+// en la caché de Cloudflare con la dirección como clave, y sin esto se serviría
+// la versión vieja —sin el sentido de cada dato— hasta que venciera.
+const CALENDARIO_API_VERSION = 2;
 let _calendario = null;
 let _calendarioEnVuelo = null;
 let _calendarioError = '';
@@ -22337,7 +22341,7 @@ function traerCalendario(forzar) {
   const timeoutId = setTimeout(function () { controller.abort(); }, 15000);
   repintarCalendario(true);
   _calendarioEnVuelo = Promise.all(semanasDelCalendario(hoyDelCalendario(), CALENDARIO_CANTIDAD_MESES).map(function (d) {
-    return fetch('/api/calendario?d=' + d, { signal: controller.signal }).then(function (resp) {
+    return fetch('/api/calendario?d=' + d + '&v=' + CALENDARIO_API_VERSION, { signal: controller.signal }).then(function (resp) {
       return resp.json().catch(function () { return {}; }).then(function (cuerpo) {
         if (!resp.ok) throw new Error(cuerpo.error || ('El servidor respondió ' + resp.status + '.'));
         return cuerpo.entradas || [];
@@ -22427,9 +22431,17 @@ function cuerpoDelCalendario() {
             '<span class="inv-cal-hora">' + f.hora + ' h</span>' +
           '</div>' +
           f.lineas.map(function (l) {
+            // La sorpresa: lo publicado menos lo esperado. Verde si el dato salió
+            // mejor de lo esperado y rojo si salió peor —el criterio de toda la
+            // app—; sin color donde no se juzga o no hay diferencia.
+            const sor = l.sorpresa;
             return '<div class="inv-cal-lin"><span class="inv-cal-corto">' + escapeHtmlSafe(l.corto) + '</span>' +
               dato('inv-cal-num', l.previo) + dato('inv-cal-num', l.pronostico) +
-              dato('inv-cal-num inv-cal-pub', l.publicado) + '</div>';
+              dato('inv-cal-num inv-cal-pub', l.publicado) +
+              (sor
+                ? '<span class="inv-cal-num inv-cal-sor' + (sor.tono ? ' inv-cal-sor-' + sor.tono : '') + '">' + escapeHtmlSafe(sor.texto) + '</span>'
+                : '<span class="inv-cal-num"><span class="inv-na">—</span></span>') +
+            '</div>';
           }).join('') +
         '</div>';
       }).join('') + '</div>' +
@@ -22437,9 +22449,11 @@ function cuerpoDelCalendario() {
   };
 
   const htmlMes = function (m, i) {
-    const cab = '<div class="inv-liq-cab"><span class="inv-liq-titulo">' + escapeHtmlSafe(m.nombre) +
+    // El mes, en un recuadro del ancho de su columna: el nombre centrado y grande
+    // y, debajo, cuántas fechas trae.
+    const cab = '<div class="inv-cal-mes-cab"><span class="inv-cal-mes-nombre">' + escapeHtmlSafe(m.nombre) +
       (m.anio !== Number(hoy.slice(0, 4)) ? ' ' + m.anio : '') + '</span>' +
-      '<span class="inv-liq-total">' + m.dias.length + (m.dias.length === 1 ? ' fecha' : ' fechas') + '</span></div>';
+      '<span class="inv-cal-mes-n">' + m.dias.length + (m.dias.length === 1 ? ' fecha' : ' fechas') + '</span></div>';
     // La marca de hoy va entre lo que ya pasó y lo que viene, sólo en su mes.
     const esElMes = m.clave === hoy.slice(0, 7);
     let cuerpo = '';
@@ -22463,7 +22477,7 @@ function cuerpoDelCalendario() {
     }
     return '<div class="inv-liq-celda inv-cal-mes' + (i ? ' inv-liq-col2' : '') + '">' + cab +
       (m.dias.length
-        ? '<div class="inv-cal-mes-titulos"><span></span><span>Previo</span><span>Esperado</span><span>Publicado</span></div>' + cuerpo
+        ? '<div class="inv-cal-mes-titulos"><span></span><span>Previo</span><span>Esperado</span><span>Publicado</span><span>Sorpresa</span></div>' + cuerpo
         : (m.clave > (hasta || '').slice(0, 7) ? '' : nota('Sin publicaciones de IPC, PPI, PCE, empleo ni PIB.'))) +
       (aviso ? nota(aviso) : '') +
     '</div>';
