@@ -428,6 +428,9 @@
            lejano: primero la reserva, después lo invertido, después las dos
            jubilaciones, y Trading al final porque es el único que no son
            tenencias sino operaciones. -->
+      <!-- La grilla de destinos: una fila por destino, y debajo el detalle del
+           que se elija. Se llena en renderMainAssets (renderGrillaDeDestinos). -->
+      <div id="destinosGrid"></div>
       <div id="reservaContent"></div>
       <div id="inversionesContent"></div>
       <div id="jubilacionJalmContent"></div>
@@ -3010,7 +3013,7 @@
         <div class="param-row">
           <div class="param-info">
             <div class="param-label">Seguimiento de mercado</div>
-            <div class="param-desc">Muestra en Salud financiera, encima de Planificación, la sección <strong>0 | Seguimiento</strong>: el calendario económico de Estados Unidos (IPC, PPI, PCE, empleo y PIB) y una lista de activos para mirar antes de planificar su compra. Es información del mercado y no de tus movimientos, así que viene apagada. Mientras esté apagada no se le pide nada a Finviz.</div>
+            <div class="param-desc">Muestra en Salud financiera, encima de Planificación, la sección <strong>0 | Seguimiento</strong>: el calendario económico de Estados Unidos (IPC, PPI, PCE, empleo y PIB) y una lista de activos para mirar antes de planificar su compra. Es información del mercado y no de tus movimientos: si no invertís en bolsa, apagala y la pantalla queda sin ella. Mientras esté apagada no se le pide nada a Finviz.</div>
           </div>
           <div class="param-input-wrap">
             <label class="config-toggle" style="margin:0">

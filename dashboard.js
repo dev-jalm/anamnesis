@@ -11848,7 +11848,7 @@ function renderThemeAutoParam() {
 function renderSeguimientoParam() {
   const input = document.getElementById('paramSeguimientoInput');
   if (!input) return;
-  const persisted = !!(state.params && state.params.mostrarSeguimiento);
+  const persisted = seguimientoActivado();
   const pendVal = catModalState.pendingParamChanges.mostrarSeguimiento;
   const effVal = pendVal !== undefined ? pendVal : persisted;
   input.checked = !!effVal;
@@ -11856,7 +11856,7 @@ function renderSeguimientoParam() {
   if (!input._bound) {
     input.addEventListener('change', function () {
       const v = !!input.checked;
-      const baseline = !!(state.params && state.params.mostrarSeguimiento);
+      const baseline = seguimientoActivado();
       if (v === baseline) delete catModalState.pendingParamChanges.mostrarSeguimiento;
       else catModalState.pendingParamChanges.mostrarSeguimiento = v;
       input.classList.toggle('modified', v !== baseline);
@@ -11866,8 +11866,10 @@ function renderSeguimientoParam() {
   }
 }
 
+// Encendida salvo que se haya apagado a propósito: un archivo que nunca tocó el
+// interruptor no trae el parámetro, y no apagarla es lo que se espera de él.
 function seguimientoActivado() {
-  return !!(state.params && state.params.mostrarSeguimiento);
+  return !(state.params && state.params.mostrarSeguimiento === false);
 }
 
 // Metadata de inputs del score. Cada entrada: id del input, path dentro del
@@ -22730,6 +22732,37 @@ document.addEventListener('keydown', function (e) {
   if (add) agregarDesdeLaBanda(add);
 });
 
+// Los totales de un grupo de tenencias de una moneda: lo invertido, lo
+// actualizado a precio de hoy y la ganancia o pérdida. `allHavePrecio` dice si
+// todos los activos tienen precio: con uno solo sin precio el actualizado no es
+// el total y se informa como faltante en vez de dar un número que miente.
+function totalesDeTenencias(groups, tickers) {
+  let totInv = 0, totAct = 0, totRealizado = 0, allHavePrecio = (tickers.length > 0);
+  tickers.forEach(function (tk) {
+    const g = groups[tk];
+    const info = infoDeTicker(state.tickerInfo, tk, g.moneda);
+    totInv += g.invertidoBruto;
+    totRealizado += (g.realizado || 0);
+    const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
+      ? Number(info.precioActual) : null;
+    if (pa === null) allHavePrecio = false;
+    else totAct += pa * g.cantidadTotal;
+  });
+  const gp = (tickers.length > 0 && allHavePrecio) ? (totAct - totInv) : null;
+  const gpPct = (gp !== null && totInv !== 0) ? (gp / Math.abs(totInv) * 100) : null;
+  return {
+    tickers: tickers.length,
+    invertido: totInv,
+    actualizado: totAct,
+    allHavePrecio: allHavePrecio,
+    // Ganancia YA realizada por ventas. No entra en gp —que compara lo que
+    // todavía se tiene contra su precio de hoy— pero sí en el líquido.
+    realizado: totRealizado,
+    gp: gp,
+    gpPct: gpPct
+  };
+}
+
 function buildInvestmentDetailPanel(destinos, title) {
   // Filtrar entradas del destino. Si no hay ninguna, igual mostramos el panel
   // con todo en 0 (estado vacío) — el usuario quiere ver las 5 secciones siempre.
@@ -22746,32 +22779,9 @@ function buildInvestmentDetailPanel(destinos, title) {
   const usdTickers = Object.keys(usdGroups).sort();
 
   // ─── 2. Helper para calcular totales de un grupo (ARS o USD) ───
-  function totalsFor(groups, tickers) {
-    let totInv = 0, totAct = 0, totRealizado = 0, allHavePrecio = (tickers.length > 0);
-    tickers.forEach(function (tk) {
-      const g = groups[tk];
-      const info = infoDeTicker(state.tickerInfo, tk, g.moneda);
-      totInv += g.invertidoBruto;
-      totRealizado += (g.realizado || 0);
-      const pa = (info.precioActual !== undefined && info.precioActual !== null && info.precioActual !== '')
-        ? Number(info.precioActual) : null;
-      if (pa === null) allHavePrecio = false;
-      else totAct += pa * g.cantidadTotal;
-    });
-    const gp = (tickers.length > 0 && allHavePrecio) ? (totAct - totInv) : null;
-    const gpPct = (gp !== null && totInv !== 0) ? (gp / Math.abs(totInv) * 100) : null;
-    return {
-      tickers: tickers.length,
-      invertido: totInv,
-      actualizado: totAct,
-      allHavePrecio: allHavePrecio,
-      // Ganancia YA realizada por ventas. No entra en gp —que compara lo que
-      // todavía se tiene contra su precio de hoy— pero sí en el líquido.
-      realizado: totRealizado,
-      gp: gp,
-      gpPct: gpPct
-    };
-  }
+  // La cuenta vive afuera (totalesDeTenencias): la grilla de destinos de arriba
+  // de la pantalla la usa también, y los dos números no pueden diferir.
+  const totalsFor = totalesDeTenencias;
   const arsT = totalsFor(arsGroups, arsTickers);
   const usdT = totalsFor(usdGroups, usdTickers);
 
@@ -23478,8 +23488,13 @@ function buildInvestmentDetailPanel(destinos, title) {
       // cartera, así que va una sola vez, en Inversiones: repetido en cada panel
       // eran cuatro copias del mismo calendario.
       (panelKey === 'trading' ? '' :
-        // Apagada por defecto: es información del mercado y no de los
-        // movimientos de la persona (Administración → Parámetros).
+        // La meta de Reserva. Antes iba en la cabecera del panel; con la grilla
+        // de destinos arriba esa cabecera no se muestra, y la meta es lo único
+        // que no está en la grilla: se escribe al empezar el detalle.
+        (panelKey === 'reserva' && metaRowHtml
+          ? '<div class="inv-liq inv-reserva-meta"><div class="inv-header-totals">' + metaRowHtml + '</div></div>'
+          : '') +
+        // Encendida por defecto, y apagable en Administración → Parámetros.
         (panelKey === 'inversiones' && seguimientoActivado()
           ? bloquePlegableInv('Seguimiento',
               'Cómo está el mercado y qué activos se miran: el calendario económico y la lista de seguimiento.',
@@ -24617,6 +24632,196 @@ function bindInvestmentDetailDelegation() {
   });
 }
 
+// ─── La grilla de destinos ───
+// Arriba de Salud financiera, una tabla con una fila por destino —Reserva,
+// Inversiones, las jubilaciones y Trading— y sus números siempre en pesos: lo
+// líquido, lo invertido, lo actualizado y la variación, más cómo está repartido
+// y cómo viene evolucionando. Debajo va el detalle del destino que se eligió,
+// uno a la vez: en lugar de cinco paneles apilados con la misma cabecera cada
+// uno, una sola tabla para comparar y un solo detalle para trabajar.
+//
+// Los paneles de cada destino siguen construyéndose igual (buildInvestmentDetailPanel);
+// lo que cambia es que su cabecera no se muestra —la grilla dice lo mismo— y que
+// sólo se ve el del destino elegido. La excepción es Trading: su cabecera no son
+// totales de tenencias sino las métricas de la cuenta (el día, las abiertas, el
+// PnL, la adherencia), que no están en ninguna otra parte.
+const DESTINOS_GRILLA = [
+  { k: 'reserva', destinos: ['reserva'], contenido: 'reservaContent' },
+  { k: 'inversiones', destinos: ['inversiones'], contenido: 'inversionesContent' },
+  { k: 'jubilacion_jalm', destinos: ['jubilacion_jalm'], contenido: 'jubilacionJalmContent' },
+  { k: 'jubilacion_clm', destinos: ['jubilacion_clm'], contenido: 'jubilacionClmContent' },
+  { k: 'trading', destinos: ['trading'], contenido: 'tradingContent', sinTotales: true }
+];
+const DESTINO_ELEGIDO_CLAVE = 'anamnesis.destinoElegido';
+
+// Las filas que hay: la demo trabaja con una sola jubilación y no muestra la
+// segunda (ver renderMainAssets).
+function destinosVisiblesDeLaGrilla() {
+  return DESTINOS_GRILLA.filter(function (d) { return !(window.DEMO_MODE && d.k === 'jubilacion_clm'); });
+}
+
+function nombreDeDestino(k) {
+  if (k === 'reserva') return 'Reserva';
+  if (k === 'inversiones') return 'Inversiones';
+  if (k === 'trading') return 'Trading';
+  if (k === 'jubilacion_jalm') return window.DEMO_MODE ? 'Jubilación' : labelJubilacion(1);
+  return labelJubilacion(2);
+}
+
+// El destino elegido se recuerda mientras dure la sesión del navegador, así que
+// volver a la solapa lo encuentra donde se lo dejó. Sin elección, o con una que
+// ya no está en la grilla, Inversiones: es donde se trabaja.
+function destinoElegido() {
+  let k = null;
+  try { k = sessionStorage.getItem(DESTINO_ELEGIDO_CLAVE); } catch (e) { /* sin sessionStorage */ }
+  return destinosVisiblesDeLaGrilla().some(function (d) { return d.k === k; }) ? k : 'inversiones';
+}
+
+function elegirDestino(k) {
+  try { sessionStorage.setItem(DESTINO_ELEGIDO_CLAVE, k); } catch (e) { /* sin sessionStorage */ }
+  aplicarDestinoElegido();
+}
+
+// Los números de un destino, en pesos: lo de los dólares al MEP, igual que la
+// fila ARS+USD de las cabeceras que esta grilla reemplaza.
+function resumenDeDestino(destinos) {
+  const todas = (Array.isArray(state.investmentEntries) ? state.investmentEntries : [])
+    .filter(function (e) { return destinos.indexOf(e.destino) >= 0; });
+  const arsGroups = groupInvestmentEntriesByTicker(todas.filter(function (e) { return e.moneda !== 'USD'; }));
+  const usdGroups = groupInvestmentEntriesByTicker(todas.filter(function (e) { return e.moneda === 'USD'; }));
+  const arsT = totalesDeTenencias(arsGroups, Object.keys(arsGroups).sort());
+  const usdT = totalesDeTenencias(usdGroups, Object.keys(usdGroups).sort());
+  const mep = (state.params && state.params.cotizacionMep) ? Number(state.params.cotizacionMep) : 1000;
+  const arsAct = arsT.allHavePrecio ? arsT.actualizado : null;
+  const usdAct = usdT.allHavePrecio ? usdT.actualizado : null;
+  const invertido = arsT.invertido + usdT.invertido * mep;
+  const actualizado = (arsAct !== null || usdAct !== null) ? ((arsAct || 0) + (usdAct || 0) * mep) : null;
+  const variacion = actualizado === null ? null : actualizado - invertido;
+  return {
+    entradas: todas,
+    liquido: liquidoDeDestino(destinos),
+    reservado: liquidoReservado(destinos),
+    invertido: invertido,
+    actualizado: actualizado,
+    variacion: variacion,
+    variacionPct: variacion === null ? null : (invertido !== 0 ? variacion / Math.abs(invertido) * 100 : 0)
+  };
+}
+
+// Cómo está repartido el destino, por sector y en pesos: la misma barra y los
+// mismos colores que la cabecera y la sección de Concentración, con la liquidez
+// adentro.
+function barraDeRepartoDeDestino(destinos) {
+  const c = concentracionDeCartera(destinos);
+  if (!c.total) return '<div class="inv-distbar inv-distbar-empty" title="Sin tenencias con valor"></div>';
+  return '<div class="inv-distbar" aria-label="Reparto por sector">' + c.sectores.map(function (s) {
+    const color = colorDeSector(s.sector);
+    return '<span class="inv-distbar-seg' + (s.sector ? '' : ' inv-distbar-sin-sector') + '" style="width:' +
+      s.pct.toFixed(2) + '%' + (color ? ';background:' + color : '') + '"' + tooltipSector(s, '$') + '></span>';
+  }).join('') + '</div>';
+}
+
+function htmlGrillaDeDestinos() {
+  const guion = '<span class="inv-na">—</span>';
+  const monto = function (n) { return (n < 0 ? '-' : '') + '$ ' + fmt(Math.abs(n)); };
+  const celdaVariacion = function (abs, pct) {
+    if (abs === null) return '<td class="num">' + guion + '</td>';
+    const cls = abs > 0 ? 'inv-gp-positive' : (abs < 0 ? 'inv-gp-negative' : '');
+    const signo = abs > 0 ? '+' : (abs < 0 ? '-' : '');
+    return '<td class="num"><span class="inv-header-cell-value ' + cls + '">$ ' + fmt(Math.abs(abs)) +
+      ' <span class="inv-header-pct">(' + signo + Math.abs(pct).toFixed(2) + '%)</span></span></td>';
+  };
+  const totales = { liquido: 0, invertido: 0, actualizado: 0, invConPrecio: 0, hayPrecio: false };
+  const filas = destinosVisiblesDeLaGrilla().map(function (d) {
+    const nombre = '<td class="inv-destino-nombre-celda"><span class="inv-destino-nombre">' + escapeHtmlSafe(nombreDeDestino(d.k)) + '</span></td>';
+    const atributos = ' class="inv-destino-fila" data-destino-fila="' + d.k + '" tabindex="0"';
+    // Trading no son tenencias que se valúan: sus números son las métricas de la
+    // cuenta, que van en su propia cabecera, en dólares de cuenta. Se deja sin
+    // totales —un guion— en vez de inventar un líquido que no existe.
+    if (d.sinTotales) {
+      return '<tr' + atributos + '>' + nombre + '<td>' + guion + '</td><td>' + guion + '</td>' +
+        '<td class="num">' + guion + '</td><td class="num">' + guion + '</td><td class="num">' + guion + '</td><td class="num">' + guion + '</td></tr>';
+    }
+    const r = resumenDeDestino(d.destinos);
+    totales.liquido += r.liquido;
+    totales.invertido += r.invertido;
+    if (r.actualizado !== null) {
+      totales.actualizado += r.actualizado;
+      totales.invConPrecio += r.invertido;
+      totales.hayPrecio = true;
+    }
+    const liqClase = r.liquido < 0 ? 'inv-gp-negative' : '';
+    const sub = r.reservado > 0
+      ? '<span class="inv-header-cell-sub' + (r.reservado > r.liquido ? ' is-over' : '') + '">' +
+          (r.reservado > r.liquido ? '⚠ ' : '') + 'reservado $ ' + fmt(Math.round(r.reservado)) + '</span>'
+      : '';
+    const cls = r.variacion === null ? '' : (r.variacion > 0 ? 'inv-gp-positive' : (r.variacion < 0 ? 'inv-gp-negative' : ''));
+    return '<tr' + atributos + '>' + nombre +
+      '<td>' + barraDeRepartoDeDestino(d.destinos) + '</td>' +
+      '<td>' + buildPanelSparkline(r.entradas) + '</td>' +
+      // El líquido lleva a los movimientos que lo componen, como en la cabecera.
+      '<td class="num"><span class="inv-liq-clickable" data-action="goto-mov-liquido" data-destinos="' + d.destinos.join(',') +
+        '" title="Ver movimientos en Historia clínica"><span class="inv-header-cell-value ' + liqClase + '">' + monto(r.liquido) + '</span>' + sub + '</span></td>' +
+      '<td class="num"><span class="inv-header-cell-value">' + monto(r.invertido) + '</span></td>' +
+      '<td class="num"><span class="inv-header-cell-value ' + cls + '">' + (r.actualizado === null ? guion : monto(r.actualizado)) + '</span></td>' +
+      celdaVariacion(r.variacion, r.variacionPct) + '</tr>';
+  });
+  const totVar = totales.hayPrecio ? totales.actualizado - totales.invConPrecio : null;
+  const totPct = totVar === null ? null : (totales.invConPrecio !== 0 ? totVar / Math.abs(totales.invConPrecio) * 100 : 0);
+  const clsTot = totVar === null ? '' : (totVar > 0 ? 'inv-gp-positive' : (totVar < 0 ? 'inv-gp-negative' : ''));
+  const filaTotal = '<tr class="inv-destino-total"><td class="inv-destino-nombre-celda"><span class="inv-destino-nombre">Total</span></td><td></td><td></td>' +
+    '<td class="num"><span class="inv-header-cell-value ' + (totales.liquido < 0 ? 'inv-gp-negative' : '') + '">' + monto(totales.liquido) + '</span></td>' +
+    '<td class="num"><span class="inv-header-cell-value">' + monto(totales.invertido) + '</span></td>' +
+    '<td class="num"><span class="inv-header-cell-value ' + clsTot + '">' + (totales.hayPrecio ? monto(totales.actualizado) : guion) + '</span></td>' +
+    celdaVariacion(totVar, totPct) + '</tr>';
+  return '<table class="investment-detail-table inv-destinos-tabla">' +
+    '<colgroup><col style="width:190px"><col style="width:170px"><col style="width:120px"><col style="width:160px"><col style="width:150px"><col style="width:150px"><col></colgroup>' +
+    '<thead><tr><th>Destino</th><th>Reparto</th><th>Evolución</th><th class="num">Líquido</th><th class="num">Invertido</th><th class="num">Actualizado</th><th class="num">Variación</th></tr></thead>' +
+    '<tbody>' + filas.join('') + filaTotal + '</tbody></table>';
+}
+
+// Muestra el detalle del destino elegido y esconde los demás, y marca su fila.
+// El panel elegido va siempre abierto: no hay cabecera donde cerrarlo.
+function aplicarDestinoElegido() {
+  const elegido = destinoElegido();
+  DESTINOS_GRILLA.forEach(function (d) {
+    const cont = document.getElementById(d.contenido);
+    if (!cont) return;
+    const ver = d.k === elegido;
+    cont.style.display = ver ? '' : 'none';
+    const panel = cont.querySelector('.investment-detail-panel');
+    if (ver && panel) panel.setAttribute('open', '');
+  });
+  document.querySelectorAll('#destinosGrid [data-destino-fila]').forEach(function (tr) {
+    tr.classList.toggle('inv-destino-sel', tr.getAttribute('data-destino-fila') === elegido);
+  });
+}
+
+function renderGrillaDeDestinos() {
+  const el = document.getElementById('destinosGrid');
+  if (!el) return;
+  el.innerHTML = htmlGrillaDeDestinos();
+  aplicarDestinoElegido();
+}
+
+// Elegir una fila, por clic o con Enter. El clic en el líquido va a los
+// movimientos —lo maneja su propio handler— y no cambia la fila elegida.
+document.addEventListener('click', function (e) {
+  const fila = e.target.closest && e.target.closest('#destinosGrid [data-destino-fila]');
+  if (!fila || e.target.closest('[data-action="goto-mov-liquido"]')) return;
+  elegirDestino(fila.getAttribute('data-destino-fila'));
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter') return;
+  const fila = e.target.closest && e.target.closest('#destinosGrid [data-destino-fila]');
+  if (fila) elegirDestino(fila.getAttribute('data-destino-fila'));
+});
+// La cabecera de Trading queda a la vista y no se pliega: es su panel de control.
+document.addEventListener('click', function (e) {
+  const sum = e.target.closest && e.target.closest('.assets-grid .inv-panel-trading > summary');
+  if (sum && !e.target.closest('a, button, input, select, [data-action]')) e.preventDefault();
+});
+
 function renderMainAssets() {
   // Snapshot de qué paneles colapsables están abiertos AHORA, para reabrirlos
   // después del re-render. Sin esto, cualquier acción que dispare renderMainAssets
@@ -24710,6 +24915,8 @@ function renderMainAssets() {
   }
   // Bindear handler de borrado (idempotente — solo bindea una vez)
   bindInvestmentDetailDelegation();
+  // La grilla de destinos de arriba, y el detalle del destino que esté elegido.
+  renderGrillaDeDestinos();
 
   // Restaurar paneles que estaban abiertos antes del re-render. Esto evita
   // que acciones como eliminar un ticker o actualizar precios colapsen la

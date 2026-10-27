@@ -8342,6 +8342,40 @@ select.inv-plan-in { cursor: pointer; }
   display: block;
 }
 
+/* ── La grilla de destinos ────────────────────────────────────────────────
+   Una tabla de las de la app (.investment-detail-table): sus títulos, su
+   cuerpo, su padding y su divisor. Acá va sólo lo que esta tabla tiene y las
+   otras no: la fila que se elige, el nombre del destino y la fila de total. */
+.inv-destinos-tabla { margin-bottom: 14px; }
+.inv-destinos-tabla td { vertical-align: middle; height: 44px; }
+.inv-destino-fila { cursor: pointer; }
+.inv-destino-fila:hover td { background: var(--bg-1); }
+.inv-destino-fila:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* La fila elegida lleva el acento a la izquierda y un velo del mismo color: es
+   el que dice de cuál es el detalle de abajo. */
+.inv-destino-fila.inv-destino-sel td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.inv-destino-fila.inv-destino-sel td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+/* El nombre del destino, en el cuerpo y la tipografía de los títulos de la app
+   —el mismo que tenía en la cabecera que reemplaza—. */
+.inv-destino-nombre {
+  font-family: 'Fraunces', serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.inv-destinos-tabla .inv-sparkline { height: 24px; }
+/* Lo reservado a un objetivo va debajo del líquido, como en la cabecera, y no al
+   lado: en una celda angosta se pisaba con el número. */
+.inv-destinos-tabla .inv-header-cell-sub { display: block; margin-top: 2px; }
+.inv-destino-total td { border-top: 1px solid var(--border-strong, var(--border)); border-bottom: none; }
+/* La cabecera de cada panel ya la dice la grilla: no se muestra. La de Trading
+   queda, porque no son totales de tenencias sino las métricas de su cuenta. */
+.assets-grid .investment-detail-panel:not(.inv-panel-trading) > summary { display: none; }
+/* La meta de Reserva, al empezar su detalle, con la sangría del cuerpo de las
+   secciones. */
+.inv-reserva-meta .inv-header-totals { gap: 0; }
+
 @media (max-width: 900px) {
   .inv-header-grid {
     grid-template-columns: 1fr;
