@@ -1379,14 +1379,16 @@ footer .eyebrow-sources {
 .budget-annual-table tr.totals-row td.cat-col {
   background: var(--on-dark-bg);
   color: var(--accent);
-}  .budget-annual-table tr.subtotal-row td {
+}  .budget-annual-table tr.subtotal-row td,
+.inv-destinos-tabla tr.inv-destino-total td {
   background: #FAF3E4;
   color: #8B6A2A;
   font-weight: 600;
   border-top: 2px solid #D4A24C;
   border-bottom: 2px solid #D4A24C;
 }
-.budget-annual-table tr.subtotal-row td.cat-col {
+.budget-annual-table tr.subtotal-row td.cat-col,
+.inv-destinos-tabla tr.inv-destino-total td:first-child {
   background: #FAF3E4;
   color: #8B6A2A;
   font-family: 'JetBrains Mono', monospace;
@@ -1394,13 +1396,15 @@ footer .eyebrow-sources {
   letter-spacing: 1px;
   text-transform: uppercase;
 }
-[data-theme="dark"] .budget-annual-table tr.subtotal-row td {
+[data-theme="dark"] .budget-annual-table tr.subtotal-row td,
+[data-theme="dark"] .inv-destinos-tabla tr.inv-destino-total td {
   background: #3A3028;
   color: var(--accent);
   border-top: 2px solid var(--accent);
   border-bottom: 2px solid var(--accent);
 }
-[data-theme="dark"] .budget-annual-table tr.subtotal-row td.cat-col {
+[data-theme="dark"] .budget-annual-table tr.subtotal-row td.cat-col,
+[data-theme="dark"] .inv-destinos-tabla tr.inv-destino-total td:first-child {
   background: #3A3028;
   color: var(--accent);
 }
@@ -8347,22 +8351,39 @@ select.inv-plan-in { cursor: pointer; }
    cuerpo, su padding y su divisor. Acá va sólo lo que esta tabla tiene y las
    otras no: la fila que se elige, el nombre del destino y la fila de total. */
 .inv-destinos-tabla { margin-bottom: 14px; }
+/* El formato es el de la grilla de la solapa Evolución (.budget-annual-table):
+   la cabecera oscura con texto claro, las filas en mono de 11px con su divisor,
+   el nombre en Inter de 12px sobre el fondo de la primera columna, y el total
+   con la misma declaración que sus filas de subtotal (ver más arriba). */
 /* Todas las filas miden lo mismo: el alto lo fija la celda y no su contenido. Con
    el alto libre, la que lleva "reservado" debajo del líquido salía más alta que
-   las demás. Medido: con 52px esa fila pedía 56 y se estiraba; 60 alcanzan para
-   la segunda línea con su relleno, así que ninguna se estira. */
-.inv-destinos-tabla td { vertical-align: middle; height: 60px; }
-/* La cabecera, distinta de las filas que se eligen: más alta, con el fondo de las
-   bandas de las tablas y sin cursor ni resalte, porque no se toca. */
+   las demás; 56px alcanzan para esa segunda línea con su relleno. */
+.inv-destinos-tabla td {
+  vertical-align: middle;
+  height: 56px;
+  padding: 8px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  border-bottom: 1px solid var(--border);
+}
+/* La cabecera: los mismos colores, la misma tipografía y el mismo espaciado que la
+   de Evolución, pero más alta, y sin cursor ni resalte porque no se toca. */
 .inv-destinos-tabla thead th {
   height: 44px;
-  padding-top: 12px;
-  padding-bottom: 12px;
-  background: rgba(74, 107, 138, 0.12);
-  border-bottom: 1px solid var(--border-strong, var(--border));
-  color: var(--accent);
+  padding: 12px 10px;
+  background: var(--on-dark-bg);
+  color: var(--on-dark-text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: none;
+  border-bottom: none;
   cursor: default;
 }
+/* El nombre del destino: el de la categoría en Evolución, Inter de 12px y peso 500
+   sobre el fondo de la primera columna. */
+.inv-destinos-tabla td.inv-destino-nombre-celda { background: var(--bg-1); }
 .inv-destino-fila { cursor: pointer; }
 .inv-destino-fila:hover td { background: var(--bg-1); }
 .inv-destino-fila:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -8370,26 +8391,33 @@ select.inv-plan-in { cursor: pointer; }
    el que dice de cuál es el detalle de abajo. */
 .inv-destino-fila.inv-destino-sel td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .inv-destino-fila.inv-destino-sel td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
-/* El nombre del destino, en el cuerpo y la tipografía de los títulos de la app
-   —el mismo que tenía en la cabecera que reemplaza—. */
 .inv-destino-nombre {
-  font-family: 'Fraunces', serif;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: 'Inter', system-ui;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--ink);
 }
 .inv-destinos-tabla .inv-sparkline { height: 24px; }
 /* Lo reservado a un objetivo va debajo del líquido, como en la cabecera, y no al
    lado: en una celda angosta se pisaba con el número. */
 .inv-destinos-tabla .inv-header-cell-sub { display: block; margin-top: 2px; }
-/* El total, con un fondo propio —un velo de la tinta, ni el azul de la cabecera
-   ni el acento de la fila elegida— y una línea más marcada arriba, para que se
-   lea como el cierre de la tabla y no como una fila más. */
-.inv-destino-total td {
-  background: color-mix(in srgb, var(--ink) 9%, transparent);
-  border-top: 2px solid var(--border-strong, var(--border));
-  border-bottom: none;
+/* El líquido lleva a los movimientos, y su resalte al pasar el mouse es un
+   rectángulo. Como un elemento en línea con un bloque adentro —el "reservado"—,
+   el fondo se partía en pedazos y se veía cortado: va como bloque en línea. */
+.inv-destinos-tabla .inv-liq-clickable { display: inline-block; text-align: right; }
+/* El total no lleva un fondo propio: es una fila de subtotal de las de Evolución
+   —crema con texto dorado y las dos líneas de 2px en el acento, en tema claro; el
+   marrón con texto acento en el oscuro—, compartida en su declaración. Acá sólo
+   el texto de sus valores toma el color de la fila, salvo la variación, que sigue
+   en verde o rojo. */
+.inv-destino-total .inv-header-cell-value:not(.inv-gp-positive):not(.inv-gp-negative) { color: inherit; }
+.inv-destino-total .inv-destino-nombre {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
 }
 /* La cabecera de cada panel ya la dice la grilla: no se muestra. La de Trading
    queda, porque no son totales de tenencias sino las métricas de su cuenta. */
