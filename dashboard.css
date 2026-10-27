@@ -8357,6 +8357,11 @@ select.inv-plan-in { cursor: pointer; }
    que abre y cierra. Por eso la tabla no lleva borde propio arriba, que se
    sumaría al del recuadro. */
 .inv-destinos-wrap { margin-bottom: 14px; }
+/* El título de la grilla, "Patrimonio neto", es el de los títulos de Evolución
+   (.budget-annual-section-title). Acá la solapa es una grilla con 10px de
+   separación entre sus hijos, que en Evolución no hay: el margen de abajo se
+   descuenta para que el título quede a los mismos 8px de su tabla. */
+.assets-grid > .budget-annual-section-title { margin-bottom: -2px; }
 .inv-destinos-tabla { border-top: none; }
 /* El formato es el de la grilla de la solapa Evolución (.budget-annual-table):
    la cabecera oscura con texto claro, las filas en mono de 11px con su divisor,
