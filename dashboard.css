@@ -1088,7 +1088,8 @@ footer .eyebrow-sources {
 .budget-row .b-diff.over { color: #C8553D; }
 .budget-row .b-diff.under { color: #6B8E4E; }
 
-.budget-annual-wrap {
+.budget-annual-wrap,
+.inv-destinos-wrap {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--bg-1);
@@ -1098,7 +1099,8 @@ footer .eyebrow-sources {
   /* Ocultar el scrollbar horizontal (mantiene scrollable via wheel/trackpad) */
   scrollbar-width: none; /* Firefox */
 }
-.budget-annual-wrap::-webkit-scrollbar {
+.budget-annual-wrap::-webkit-scrollbar,
+.inv-destinos-wrap::-webkit-scrollbar {
   height: 0; /* Chrome/Safari */
   display: none;
 }
@@ -8350,7 +8352,12 @@ select.inv-plan-in { cursor: pointer; }
    Una tabla de las de la app (.investment-detail-table): sus títulos, su
    cuerpo, su padding y su divisor. Acá va sólo lo que esta tabla tiene y las
    otras no: la fila que se elige, el nombre del destino y la fila de total. */
-.inv-destinos-tabla { margin-bottom: 14px; }
+/* La tabla va dentro del mismo recuadro que la de Evolución (.budget-annual-wrap,
+   ver su declaración): el borde, las esquinas redondeadas y las líneas con las
+   que abre y cierra. Por eso la tabla no lleva borde propio arriba, que se
+   sumaría al del recuadro. */
+.inv-destinos-wrap { margin-bottom: 14px; }
+.inv-destinos-tabla { border-top: none; }
 /* El formato es el de la grilla de la solapa Evolución (.budget-annual-table):
    la cabecera oscura con texto claro, las filas en mono de 11px con su divisor,
    el nombre en Inter de 12px sobre el fondo de la primera columna, y el total

@@ -24780,7 +24780,7 @@ function htmlGrillaDeDestinos() {
     '<td class="num"><span class="inv-header-cell-value">' + monto(totales.invertido) + '</span></td>' +
     '<td class="num"><span class="inv-header-cell-value ' + clsTot + '">' + (totales.hayPrecio ? monto(totales.actualizado) : guion) + '</span></td>' +
     celdaVariacion(totVar, totPct) + '</tr>';
-  return '<table class="investment-detail-table inv-destinos-tabla">' +
+  return '<div class="inv-destinos-wrap"><table class="investment-detail-table inv-destinos-tabla">' +
     // En porcentajes y sumando 100: la última columna tomaba todo el ancho que
     // sobraba y dejaba un hueco enorme entre la variación y lo actualizado. Los
     // números van alineados a la derecha, así que una columna más ancha de lo que
@@ -24790,7 +24790,7 @@ function htmlGrillaDeDestinos() {
     '<colgroup><col style="width:15%"><col style="width:15%"><col style="width:11%"><col style="width:15%">' +
       '<col style="width:15%"><col style="width:15%"><col style="width:14%"></colgroup>' +
     '<thead><tr><th>Destino</th><th>Reparto</th><th>Evolución</th><th class="num">Líquido</th><th class="num">Invertido</th><th class="num">Actualizado</th><th class="num">Variación</th></tr></thead>' +
-    '<tbody>' + filas.join('') + filaTotal + '</tbody></table>';
+    '<tbody>' + filas.join('') + filaTotal + '</tbody></table></div>';
 }
 
 // Muestra el detalle del destino elegido y esconde los demás, y marca su fila.
