@@ -2444,7 +2444,6 @@ group('Lista de seguimiento', function () {
     assertEqual(resumenDeSeguimiento(base, AHORA).posicionEma, null);
   });
   // — El último balance publicado —
-  const SEG = function (s) { return Date.UTC(2026, 9, 8, 13, 30) / 1000 + s; };   // 08/10/2026 13:30 UTC
   const bal = function (fecha, pub, esp, vp, ve) {
     return { fecha: fecha, periodo: '2026Q3', epsPublicado: pub, epsEsperado: esp, ventasPublicadas: vp, ventasEsperadas: ve };
   };
@@ -2462,40 +2461,91 @@ group('Lista de seguimiento', function () {
     assertEqual(sorpresaDeBalance(2, undefined), null);
     assertEqual(sorpresaDeBalance(2, 0), null);
   });
-  test('el último balance es el más reciente que ya salió y trae cifras', function () {
-    const hoy = SEG(20 * 86400);
-    const u = ultimoBalanceDeFinviz([bal(SEG(-90 * 86400), 2.2, 2.1, 24000, 23900), bal(SEG(0), 2.34, 2.29, 25274, 24952),
-      bal(SEG(60 * 86400), null, 2.4, null, 25500)], hoy * 1000);
-    assertEqual(u.epsPublicado, 2.34);
-    assertEqual(u.ventasEsperadas, 24952);
-    assertEqual(u.ms, SEG(0) * 1000);
+  // Velas diarias a las 14:30 UTC de cada fecha, como las de Finviz: [fecha, cierre].
+  const velas = function (pares) {
+    return { fecha: pares.map(function (p) { return Date.parse(p[0] + 'T14:30:00Z') / 1000; }), cierre: pares.map(function (p) { return p[1]; }) };
+  };
+  const BMO = Date.parse('2026-10-08T12:30:00Z');   // antes de la apertura
+  const AMC = Date.parse('2026-10-08T20:30:00Z');   // después del cierre
+  const serie = velas([['2026-10-06', 99], ['2026-10-07', 100], ['2026-10-08', 110], ['2026-10-09', 111], ['2026-10-12', 112],
+    ['2026-10-13', 113], ['2026-10-14', 114], ['2026-10-15', 120], ['2026-10-16', 121], ['2026-10-23', 130]]);
+  test('si el balance salió antes de la apertura, la referencia es el cierre del día anterior', function () {
+    const m = movimientoTrasBalance(serie, BMO, 7);
+    assertEqual(m.referencia.dia, '2026-10-07');
+    assertEqual(m.referencia.precio, 100);
+    assertEqual(m.dia, '2026-10-15');
+    assertAlmost(m.pct, 20, 1e-9);
   });
-  test('un balance futuro, o sin cifras, no es el último publicado', function () {
-    const hoy = SEG(5 * 86400) * 1000;
-    assertEqual(ultimoBalanceDeFinviz([bal(SEG(60 * 86400), 2, 2, 1, 1)], hoy), null);
-    assertEqual(ultimoBalanceDeFinviz([bal(SEG(0), null, 2, null, 1)], hoy), null);
-    assertEqual(ultimoBalanceDeFinviz(null, hoy), null);
+  test('si salió después del cierre, la referencia es el cierre del mismo día', function () {
+    const m = movimientoTrasBalance(serie, AMC, 7);
+    assertEqual(m.referencia.dia, '2026-10-08');
+    assertEqual(m.referencia.precio, 110);
+    assertAlmost(m.pct, (120 / 110 - 1) * 100, 1e-9);
   });
-  test('el resumen del último balance dice la fecha en Argentina, los días y las dos sorpresas', function () {
-    const b = ultimoBalanceDeFinviz([bal(SEG(0), 2.34, 2.2949, 25274, 24952.8673)], SEG(86400 * 20) * 1000);
-    const r = resumenDeUltimoBalance(b, SEG(86400 * 20) * 1000);
+  test('los días se cuentan corridos desde la fecha del balance: a 15 días es el 23/10', function () {
+    const m = movimientoTrasBalance(serie, BMO, 15);
+    assertEqual(m.dia, '2026-10-23');
+    assertAlmost(m.pct, 30, 1e-9);
+  });
+  test('si no hubo rueda el día objetivo, se usa el último cierre anterior', function () {
+    // 08/10 + 4 días = 12/10 (lunes, con rueda); 08/10 + 3 = 11/10 (domingo): vale el viernes 09/10.
+    assertEqual(movimientoTrasBalance(serie, BMO, 3).dia, '2026-10-09');
+    assertEqual(movimientoTrasBalance(serie, BMO, 4).dia, '2026-10-12');
+  });
+  test('una ventana que todavía no terminó no tiene movimiento: null, no un número con menos días', function () {
+    assertEqual(movimientoTrasBalance(serie, BMO, 30), null);
+    assertEqual(movimientoTrasBalance(velas([['2026-10-07', 100], ['2026-10-08', 110]]), BMO, 7), null);
+  });
+  test('sin velas, o con series que no cierran, no hay movimiento: null', function () {
+    assertEqual(movimientoTrasBalance(null, BMO, 7), null);
+    assertEqual(movimientoTrasBalance({ fecha: [], cierre: [] }, BMO, 7), null);
+    assertEqual(movimientoTrasBalance({ fecha: [1, 2], cierre: [1] }, BMO, 7), null);
+    assertEqual(movimientoTrasBalance(serie, NaN, 7), null);
+  });
+  test('un balance anterior a todas las velas no tiene referencia: null', function () {
+    assertEqual(movimientoTrasBalance(serie, Date.parse('2020-01-02T12:30:00Z'), 7), null);
+  });
+  test('los últimos balances salen del más reciente al más viejo, sin futuros ni vacíos, con su movimiento', function () {
+    const t = function (iso) { return Date.parse(iso) / 1000; };
+    const hoy = Date.parse('2026-10-26T12:00:00Z');
+    const r = balancesConMovimiento([
+      bal(t('2026-01-20T12:30:00Z'), 1, 1, 1, 1), bal(t('2026-10-08T12:30:00Z'), 2.34, 2.29, 25274, 24952),
+      bal(t('2026-07-09T12:30:00Z'), 2.2, 2.1, 24000, 23900), bal(t('2027-01-20T12:30:00Z'), null, 2.4, null, 25500),
+      bal(t('2026-04-10T12:30:00Z'), null, 2, null, 1)
+    ], serie, hoy, 3);
+    assertEqual(r.map(function (x) { return x.ms; }), [Date.parse('2026-10-08T12:30:00Z'), Date.parse('2026-07-09T12:30:00Z'), Date.parse('2026-01-20T12:30:00Z')]);
+    assertAlmost(r[0].d7.pct, 20, 1e-9);
+    assertAlmost(r[0].d15.pct, 30, 1e-9);
+    assertEqual(r[1].d7, null);   // la serie de prueba no cubre julio
+  });
+  test('sin balances, o sin lista, no hay últimos balances', function () {
+    assertEqual(balancesConMovimiento(null, serie, BMO, 3), []);
+    assertEqual(balancesConMovimiento([bal(Date.parse('2027-01-01T12:30:00Z') / 1000, 2, 2, 1, 1)], serie, BMO, 3), []);
+  });
+  test('el resumen de un balance dice la fecha en Argentina, los días, las dos sorpresas y los movimientos', function () {
+    const hoy = Date.parse('2026-10-28T12:00:00Z');
+    const b = balancesConMovimiento([bal(BMO / 1000, 2.34, 2.2949, 25274, 24952.8673)], serie, hoy, 3)[0];
+    const r = resumenDeBalance(b, hoy);
     assertEqual(r.fecha, '08/10');
     assertEqual(r.dias, 20);
     assertEqual(r.periodo, '2026Q3');
     assertAlmost(r.eps.pct, 1.9652, 1e-3);
     assertAlmost(r.ventas.pct, 1.2870, 1e-3);
-    assertEqual(resumenDeUltimoBalance(null, 0), null);
+    assertAlmost(r.d7.pct, 20, 1e-9);
+    assertEqual(resumenDeBalance(null, 0), null);
+  });
+  test('el resumen lleva los últimos balances guardados junto a los datos, del más reciente al más viejo', function () {
+    const hoy = Date.parse('2026-10-28T12:00:00Z');
+    const guardados = balancesConMovimiento([bal(BMO / 1000, 2.34, 2.2949, 25274, 24952.8673),
+      bal(Date.parse('2026-07-09T12:30:00Z') / 1000, 2.2, 2.1, 24000, 23900)], serie, hoy, 3);
+    const r = resumenDeSeguimiento(Object.assign({}, base, { ultimosBalances: guardados }), hoy);
+    assertEqual(r.ultimos.map(function (x) { return x.fecha; }), ['08/10', '09/07']);
+    assertEqual(resumenDeSeguimiento(base, AHORA).ultimos, []);
   });
   test('el próximo balance sólo existe si la fecha no pasó: la de un balance ya publicado no es el próximo', function () {
     assertEqual(resumenDeSeguimiento(base, AHORA).proximo, '04/11 · en 9 días');
     assertEqual(resumenDeSeguimiento(Object.assign({}, base, { earnings: 'Oct 15 AMC' }), AHORA).proximo, null);
     assertEqual(resumenDeSeguimiento(Object.assign({}, base, { earnings: null }), AHORA).proximo, null);
-  });
-  test('el resumen lleva el último balance guardado junto a los datos', function () {
-    const ub = ultimoBalanceDeFinviz([bal(SEG(0), 2.34, 2.2949, 25274, 24952.8673)], SEG(86400) * 1000);
-    const r = resumenDeSeguimiento(Object.assign({}, base, { ultimoBalance: ub }), SEG(86400) * 1000);
-    assertEqual(r.ultimo.fecha, '08/10');
-    assertEqual(resumenDeSeguimiento(base, AHORA).ultimo, null);
   });
   test('el próximo balance dice la fecha y cuántos días faltan', function () {
     const r = resumenDeSeguimiento(base, AHORA);

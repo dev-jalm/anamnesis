@@ -12,7 +12,7 @@
 // Tres rutas, las tres de solo lectura:
 //   /api/fundamentales?t=AAPL  la ficha de un activo: su tabla de datos, la
 //                              cabecera con su sector e industria, sus velas
-//                              semanales y sus últimos balances.
+//                              diarias y semanales y sus últimos balances.
 //   /api/grupos                los promedios de cada sector y de cada industria,
 //                              contra los que se compara el activo.
 //   /api/calendario?d=AAAA-MM-DD  los eventos económicos de la semana que
@@ -89,8 +89,8 @@ function recortarGrupos(html) {
 }
 
 // Lo que la ficha trae incrustado para dibujar su gráfico (`var data = {...}`):
-// ~10 años de velas y los balances publicados. Se pide con `p=w`; sin esa marca
-// las velas son las diarias. Null si no está o no se puede leer.
+// las velas y los balances publicados. La página normal trae ~2 años de velas
+// diarias; con `p=w`, ~10 años de semanales. Null si no está o no se puede leer.
 function datosDelGrafico(html) {
   const marca = html.indexOf('var data = {"version"');
   if (marca < 0) return null;
@@ -112,6 +112,13 @@ function recortarSemanal(datos) {
       !Array.isArray(datos.low) || !Array.isArray(datos.date)) return null;
   const ultimas = function (a) { return a.slice(-SEMANAS_MAX); };
   return { fecha: ultimas(datos.date), alto: ultimas(datos.high), bajo: ultimas(datos.low), cierre: ultimas(datos.close) };
+}
+
+// Las velas diarias —fecha y cierre—, completas: alcanzan para medir cómo se movió
+// el precio los días siguientes a cada balance de los últimos dos años.
+function recortarDiaria(datos) {
+  if (!datos || datos.timeframe !== 'd' || !Array.isArray(datos.close) || !Array.isArray(datos.date)) return null;
+  return { fecha: datos.date, cierre: datos.close };
 }
 
 // Los balances: cuándo salió cada uno y el resultado contra lo esperado, en
@@ -148,8 +155,14 @@ async function fundamentales(request, url) {
   if (!TICKER_OK.test(ticker)) return json({ error: 'Ticker inválido.' }, 400);
   return conCache(request, CACHE_FICHA, async function () {
     let resp;
+    let respSemanal;
     try {
-      resp = await pedir('https://finviz.com/quote.ashx?t=' + encodeURIComponent(ticker) + '&p=w');
+      // La ficha diaria es la principal. La semanal sólo aporta las velas de la EMA
+      // de 200 semanas: si falla, se entrega igual sin ellas.
+      const base = 'https://finviz.com/quote.ashx?t=' + encodeURIComponent(ticker);
+      const par = await Promise.all([pedir(base), pedir(base + '&p=w').catch(function () { return null; })]);
+      resp = par[0];
+      respSemanal = par[1];
     } catch (e) {
       return json({ error: 'No se pudo conectar con Finviz.' }, 502);
     }
@@ -157,13 +170,14 @@ async function fundamentales(request, url) {
     if (!resp.ok) return json({ error: 'Finviz respondió ' + resp.status + '.' }, 502);
     const pagina = await resp.text();
     const grafico = datosDelGrafico(pagina);
+    const graficoSemanal = (respSemanal && respSemanal.ok) ? datosDelGrafico(await respSemanal.text()) : null;
     const tabla = recortarTabla(pagina);
     // Sin la tabla, o Finviz cambió la página o devolvió una verificación en
     // vez de la ficha. En los dos casos no hay nada que guardar.
     if (!tabla) return json({ error: 'Finviz no devolvió la ficha de ' + ticker + '.' }, 502);
     return json({
       ticker: ticker, fuente: 'finviz', fecha: new Date().toISOString(),
-      html: tabla, cabecera: recortarCabecera(pagina), semanal: recortarSemanal(grafico), balances: recortarBalances(grafico)
+      html: tabla, cabecera: recortarCabecera(pagina), semanal: recortarSemanal(graficoSemanal), diaria: recortarDiaria(grafico), balances: recortarBalances(grafico)
     });
   });
 }

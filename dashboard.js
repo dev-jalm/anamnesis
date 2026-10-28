@@ -21348,7 +21348,7 @@ const _fundamentalesEnVuelo = {};
 // seis horas en el navegador y en la caché de Cloudflare, con la dirección como
 // clave: sin esto, quien ya consultó un activo recibiría la versión vieja —sin
 // la cabecera con el sector— hasta que venciera.
-const FUNDAMENTALES_API_VERSION = 4;
+const FUNDAMENTALES_API_VERSION = 5;
 
 // Los promedios de cada sector e industria, ya leídos: { sector, industria }.
 // Una vez por sesión alcanza —son los mismos para todos los activos y cambian
@@ -21420,9 +21420,10 @@ function traerFundamentales(ticker, moneda, btn) {
       // La EMA de 200 semanas va junto a los datos de la ficha: es lo que se
       // guarda, no las 520 velas de las que sale.
       Object.assign(r.datos, emaSemanalDeFinviz(cuerpo.semanal));
-      // Y el último balance publicado contra lo esperado, que es lo que se guarda
-      // de los doce que trae la ficha.
-      r.datos.ultimoBalance = ultimoBalanceDeFinviz(cuerpo.balances, Date.now());
+      // Y los tres últimos balances publicados, contra lo esperado y con cómo se
+      // movió el precio después: es lo que se guarda de los doce balances y las
+      // 520 velas diarias que trae la ficha.
+      r.datos.ultimosBalances = balancesConMovimiento(cuerpo.balances, cuerpo.diaria, Date.now(), 3);
       const perfil = perfilDeFinviz(cuerpo.cabecera);
       return traerPromediosDeSector().then(function (grupos) {
         if (!state.tickerInfo) state.tickerInfo = {};
@@ -22656,9 +22657,10 @@ function htmlListaSeguimiento() {
     // El rango del último año como una barra: el mínimo al comienzo, el máximo
     // al final y una línea donde está el precio. Dice de un vistazo si el
     // precio está cerca de su piso o de su techo, que tres números sueltos no
-    // dicen. Sobre la barra va el precio, con lo que le falta para la EMA de 200
-    // semanas a su izquierda y para el máximo a su derecha; debajo de la línea azul
-    // de la EMA, su valor. El emergente propio de la app, no el title.
+    // dicen. Sobre la línea del precio, un punto con lo que le falta para la EMA de
+    // 200 semanas a la izquierda y para el máximo a la derecha; bajo las líneas,
+    // el precio y el valor de la EMA, cada uno en la suya. El emergente propio de
+    // la app, no el title.
     let rango = r.precio !== null ? usd(r.precio) : guion;
     if (r.posicion !== null) {
       const detalle = ['Está al ' + FUNDAMENTALES_N0.format(r.posicion) + '% del camino entre el mínimo (0%) y el máximo (100%).'];
@@ -22667,15 +22669,13 @@ function htmlListaSeguimiento() {
           ? 'A ' + FUNDAMENTALES_N2.format(Math.abs(r.distanciaAlMaximo)) + '% por debajo del máximo.'
           : 'Por encima del máximo que tenía Finviz.');
       }
-      // Una etiqueta sobre la barra, centrada en su línea. En los extremos del rango
+      // Una etiqueta bajo la barra, centrada en su línea. En los extremos del rango
       // se frena a `margen` % de cada borde: más cerca, el texto se saldría de la
-      // celda. El valor de la EMA, de unos 90px, pide un 14 %; el precio, con
-      // porcentajes a los lados pero en columnas vacías, aguanta un 6 %.
+      // celda. Va en su propia fila para que el precio y la EMA no se pisen cuando
+      // sus líneas están cerca.
       const etiqueta = function (pos, cls, html, tip, margen) {
-        const m = margen === undefined ? 14 : margen;
-        const ancla = Math.min(100 - m, Math.max(m, pos));
-        return '<span class="inv-rango-etiqueta ' + cls + '" style="left:' + ancla.toFixed(1) + '%"' +
-          (tip || '') + '>' + html + '</span>';
+        const ancla = Math.min(100 - margen, Math.max(margen, pos));
+        return '<span class="inv-rango-etiqueta ' + cls + '" style="left:' + ancla.toFixed(1) + '%"' + (tip || '') + '>' + html + '</span>';
       };
       // La EMA de 200 semanas, en la misma barra y con otro color: dónde queda
       // respecto del rango y del precio. Si cae fuera del rango del año se pega al
@@ -22687,13 +22687,13 @@ function htmlListaSeguimiento() {
           ? 'queda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.'
           : 'al ' + FUNDAMENTALES_N0.format(r.posicionEma) + '% del camino.'));
         marcaEma = '<span class="inv-rango-ema' + (r.fueraEma ? ' inv-rango-ema-fuera' : '') + '" style="left:' + r.posicionEma.toFixed(1) + '%"></span>';
-        valorEma = etiqueta(r.posicionEma, 'inv-falta-ema', 'EMA ' + usd(r.ema),
+        valorEma = etiqueta(r.posicionEma, 'inv-falta-ema', usd(r.ema),
           tipAttrs('EMA de 200 semanas', 'Valor de la media móvil exponencial de 200 semanas.' + (r.fueraEma
-            ? '\nQueda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.' : '')));
+            ? '\nQueda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.' : '')), 10);
       }
-      // A la izquierda del precio, lo que le falta para llegar a la EMA: el % con
-      // su signo (negativo si tiene que bajar). Cada porcentaje cuelga de su lado
-      // del precio, que es lo que queda centrado sobre su línea.
+      // A la izquierda del punto, lo que le falta al precio para llegar a la EMA:
+      // el % con su signo (negativo si tiene que bajar) y una flecha en el sentido
+      // en que hay que moverse.
       let faltaEma = '';
       if (r.faltaParaEma !== null) {
         const falta = r.faltaParaEma;
@@ -22701,10 +22701,10 @@ function htmlListaSeguimiento() {
           tipAttrs('Distancia a la EMA de 200 semanas', ['EMA de 200 semanas: ' + usd(r.ema) + '.',
             r.tocaEma ? 'La semana en curso la está tocando.'
               : 'El precio tendría que ' + (falta < 0 ? 'bajar ' : 'subir ') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '% para tocarla.'].join('\n')) + '>' +
-          (r.tocaEma ? 'TOCANDO' : (falta > 0 ? '+' : '−') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '%') + '</span>';
+          (r.tocaEma ? 'TOCANDO' : (falta > 0 ? '+' : '−') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '% ' + (falta < 0 ? '«' : '»')) + '</span>';
       }
       // A la derecha, lo que le falta para llegar al máximo, en %: siempre
-      // positivo; en el máximo dice EN MÁXIMO.
+      // positivo, con la flecha hacia el máximo; en el máximo dice EN MÁXIMO.
       let faltaMax = '';
       if (r.faltaParaMaximo !== null) {
         const enMax = r.faltaParaMaximo === 0;
@@ -22712,47 +22712,63 @@ function htmlListaSeguimiento() {
           tipAttrs('Distancia al máximo de 52 semanas', enMax
             ? 'El precio está en el máximo del año (' + usd(r.max) + ').'
             : 'El precio tendría que subir ' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '% para volver al máximo del año (' + usd(r.max) + ').') + '>' +
-          (enMax ? 'EN MÁXIMO' : '+' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '%') + '</span>';
+          (enMax ? 'EN MÁXIMO' : '» +' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '%') + '</span>';
       }
-      // Tres filas: el precio con sus dos porcentajes arriba, la barra con sus
-      // extremos en el medio y el valor de la EMA abajo. Las celdas vacías
-      // mantienen cada pieza en su columna.
+      // Cuatro filas: el punto con sus dos porcentajes, la barra con sus extremos, el
+      // precio y el valor de la EMA. Las celdas vacías mantienen cada pieza en su
+      // columna.
       rango = '<span class="inv-rango"' + tipAttrs('Posición en el rango de 52 semanas', detalle.join('\n')) + '>' +
         '<span></span>' +
         '<span class="inv-rango-fila">' + (r.precio !== null
-          ? etiqueta(r.posicion, 'inv-rango-precio', '<span class="inv-precio-valor">' + usd(r.precio) + faltaEma + faltaMax + '</span>', '', 6) : '') + '</span>' +
+          ? '<span class="inv-rango-ancla" style="left:' + r.posicion.toFixed(1) + '%"><span class="inv-punto"></span>' + faltaEma + faltaMax + '</span>' : '') + '</span>' +
         '<span></span>' +
         '<span class="inv-rango-extremo">' + usd(r.min) + '</span>' +
         '<span class="inv-rango-barra">' + marcaEma + '<span class="inv-rango-marca" style="left:' + r.posicion.toFixed(1) + '%"></span></span>' +
         '<span class="inv-rango-extremo">' + usd(r.max) + '</span>' +
         '<span></span>' +
+        '<span class="inv-rango-fila">' + (r.precio !== null ? etiqueta(r.posicion, 'inv-rango-precio', usd(r.precio), '', 10) : '') + '</span>' +
+        '<span></span>' +
+        '<span></span>' +
         '<span class="inv-rango-fila">' + valorEma + '</span>' +
         '<span></span>' +
       '</span>';
     }
-    // El último balance publicado: cuándo salió y, debajo, cuánto se alejaron las
-    // ganancias por acción (EPS) y los ingresos de lo esperado. Verde si lo
-    // superaron y rojo si quedaron por debajo, el criterio de la app; el
-    // emergente da lo publicado y lo esperado.
-    let ultimo = guion;
-    if (r.ultimo) {
-      const u = r.ultimo;
-      const cuando = u.fecha + ' · ' + (u.dias === 0 ? 'hoy' : (u.dias === 1 ? 'ayer' : 'hace ' + u.dias + ' días'));
-      const sorpresa = function (rotulo, nombre, par, formato) {
-        if (par.pct === null) return '<span><span class="inv-na">—</span></span>';
-        const signo = par.pct > 0 ? '+' : (par.pct < 0 ? '−' : '');
-        const tono = par.pct > 0 ? ' inv-cal-sor-pos' : (par.pct < 0 ? ' inv-cal-sor-neg' : '');
+    // Los tres últimos balances publicados, del más reciente al más viejo, en una
+    // mini tabla: cuándo salió cada uno, cuánto se alejaron de lo esperado las
+    // ganancias por acción (EPS) y los ingresos, y cómo se movió el precio a los 7
+    // y a los 15 días. Verde lo que superó o subió y rojo lo que quedó por debajo o
+    // bajó, el criterio de la app; un guion donde la ventana todavía no terminó.
+    let ultimos = guion;
+    if (r.ultimos.length) {
+      const dd = function (iso) { return iso.slice(8, 10) + '/' + iso.slice(5, 7); };
+      const signado = function (n, fmt) { return (n > 0 ? '+' : (n < 0 ? '−' : '')) + fmt.format(Math.abs(n)) + '%'; };
+      const tono = function (n) { return n > 0 ? ' inv-cal-sor-pos' : (n < 0 ? ' inv-cal-sor-neg' : ''); };
+      const vacio = '<span class="inv-bce-num"><span class="inv-na">—</span></span>';
+      const sorpresa = function (b, nombre, par, formato) {
+        if (par.pct === null) return vacio;
         const detalle = ['Publicó ' + formato(par.publicado) + ' contra ' + formato(par.esperado) + ' esperados.',
           par.pct === 0 ? 'Salió igual a lo esperado.'
             : (par.pct > 0 ? 'Superó' : 'Quedó por debajo de') + ' lo esperado en ' + FUNDAMENTALES_N2.format(Math.abs(par.pct)) + '%.'];
-        return '<span class="inv-cal-sor' + tono + '"' + tipAttrs('Último balance' + (u.periodo ? ' · ' + u.periodo : '') + ' · ' + nombre, detalle.join('\n')) + '>' +
-          rotulo + ' ' + signo + FUNDAMENTALES_N2.format(Math.abs(par.pct)) + '%</span>';
+        return '<span class="inv-bce-num inv-cal-sor' + tono(par.pct) + '"' +
+          tipAttrs('Balance' + (b.periodo ? ' ' + b.periodo : '') + ' · ' + nombre, detalle.join('\n')) + '>' + signado(par.pct, FUNDAMENTALES_N2) + '</span>';
       };
-      ultimo = '<span class="inv-bce-fecha">' + escapeHtmlSafe(cuando) + '</span>' +
-        '<span class="inv-bce-sor">' +
-          sorpresa('EPS', 'Ganancia por acción (EPS)', u.eps, function (n) { return n === null ? '—' : 'US$ ' + FUNDAMENTALES_N2.format(n); }) +
-          sorpresa('Ingresos', 'Ingresos', u.ventas, function (n) { return n === null ? '—' : 'US$ ' + FUNDAMENTALES_N0.format(n) + ' M'; }) +
+      const movimiento = function (b, m, dias) {
+        if (!m) return vacio;
+        return '<span class="inv-bce-num inv-cal-sor' + tono(m.pct) + '"' +
+          tipAttrs('Precio a ' + dias + ' días del balance' + (b.periodo ? ' ' + b.periodo : ''),
+            ['Cierre previo al balance: US$ ' + FUNDAMENTALES_N2.format(m.referencia.precio) + ' (' + dd(m.referencia.dia) + ').',
+              'A los ' + dias + ' días: US$ ' + FUNDAMENTALES_N2.format(m.precio) + ' (' + dd(m.dia) + ').'].join('\n')) + '>' +
+          signado(m.pct, FUNDAMENTALES_N1) + '</span>';
+      };
+      const usdEps = function (n) { return n === null ? '—' : 'US$ ' + FUNDAMENTALES_N2.format(n); };
+      const usdVentas = function (n) { return n === null ? '—' : 'US$ ' + FUNDAMENTALES_N0.format(n) + ' M'; };
+      ultimos = r.ultimos.map(function (b) {
+        return '<span class="inv-bce-fila">' +
+          '<span class="inv-bce-fecha"' + tipAttrs('Balance' + (b.periodo ? ' ' + b.periodo : ''), 'Presentado el ' + b.fecha + ', hace ' + b.dias + (b.dias === 1 ? ' día.' : ' días.')) + '>' + b.fecha + '</span>' +
+          sorpresa(b, 'Ganancia por acción (EPS)', b.eps, usdEps) + sorpresa(b, 'Ingresos', b.ventas, usdVentas) +
+          movimiento(b, b.d7, 7) + movimiento(b, b.d15, 15) +
         '</span>';
+      }).join('');
     }
     const dias = f ? diasDeAntiguedad(f.fecha) : null;
     return '<div class="inv-seg-fila' + (o.corte ? ' inv-seg-corte' : '') + '">' +
@@ -22778,13 +22794,14 @@ function htmlListaSeguimiento() {
         '" placeholder="EJ: APPLE INC."></span>' +
       rango +
       '<span>' + (r.proximo ? escapeHtmlSafe(r.proximo) : guion) + '</span>' +
-      '<span class="inv-bce">' + ultimo + '</span>' +
+      '<span class="inv-bce">' + ultimos + '</span>' +
       '<span class="inv-cal-num inv-cal-ref">' + (dias === null ? guion : (dias === 0 ? 'hoy' : 'hace ' + dias + (dias === 1 ? ' día' : ' días'))) + '</span>' +
     '</div>';
   });
   return banda + '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Descripción</span>' +
     '<span' + tipAttrs('Rango de 52 semanas', 'Arriba, el precio actual. Abajo, lo que le falta al precio para tocar la EMA de 200 semanas (azul) y, bajo el máximo, para volver a él. EMA: media móvil exponencial, un promedio del precio que pesa más lo reciente y que muchos miran como piso de largo plazo.') + '>Rango de 52 semanas</span>' +
-    '<span>Próx. balance</span><span>Último balance</span><span>Consulta</span></div>' +
+    '<span>Próx. balance</span><span class="inv-bce-cab"' + tipAttrs('Últimos balances', 'Los tres últimos balances presentados. EPS: ganancia por acción. EPS e ingresos, contra lo esperado; +7 d y +15 d, cuánto se movió el precio a los 7 y 15 días del balance, contra el cierre previo.') + '>' +
+    '<span>Balance</span><span>EPS</span><span>Ingresos</span><span>+7 d</span><span>+15 d</span></span><span>Consulta</span></div>' +
     filas.join('');
 }
 
