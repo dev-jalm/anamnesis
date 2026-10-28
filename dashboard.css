@@ -8295,47 +8295,67 @@ select.inv-plan-in { cursor: pointer; }
 .inv-falta-ema { color: var(--blue); }
 .inv-falta-max { color: var(--muted); }
 .inv-ema-toca { font-weight: 700; }
-/* El rango del último año en tres filas: arriba un punto sobre la línea del precio
-   con lo que le falta para la EMA a su izquierda y para el máximo a su derecha; en
-   el medio la barra con el mínimo y el máximo a los lados; y abajo, en una sola
-   línea, el precio bajo su línea y el valor de la EMA bajo la suya. La de arriba y
-   la de abajo son alto reservado: lo que va en ellas cuelga de la barra, con el
-   mismo porcentaje que las líneas. Con aire a los dos lados, que no se pegue a la
-   descripción ni al balance: 12px de margen, y el mismo en el título. */
+/* El rango del último año: una línea con cuatro puntos —mínimo, precio, EMA y máximo, por
+   orden de valor y a la misma distancia— con la referencia arriba de cada uno, su valor
+   abajo y, bajo la EMA y el máximo, lo que le falta al precio para llegar. Con aire a
+   los dos lados, que no se pegue a la descripción ni al balance: 12px de margen, y el
+   mismo en el título. Los puntos cuelgan de la línea con el mismo porcentaje, así que
+   cada texto queda sobre su punto con el ancho que tenga la celda. */
 .inv-rango {
-  display: grid;
-  grid-template-columns: auto minmax(40px, 1fr) auto;
-  grid-template-rows: 12px auto 16px;
-  column-gap: 8px;
-  row-gap: 2px;
-  align-items: center;
-  min-width: 0;
+  position: relative;
+  display: block;
+  height: 62px;
   margin: 0 12px;
+  min-width: 0;
 }
 .inv-seg-titulos > span:nth-child(4) { padding-left: 12px; }
-/* El mínimo y el máximo ocupan la fila del medio; las de arriba y abajo quedan
-   libres para lo que cuelga de la barra. */
-.inv-rango-extremo,
-.inv-rango-barra { grid-row: 2; }
-/* Las etiquetas de abajo, centradas en su línea y a 4px del riel, que es lo que
-   sobresale la línea. */
-.inv-rango-etiqueta {
+/* La línea, a 22px del borde de arriba, y cada punto una columna sin ancho centrada
+   en su posición: la referencia arriba, el punto sobre la línea, el valor y el
+   porcentaje abajo. El primero se alinea a la izquierda y el último a la derecha,
+   para que el texto no se salga de la celda. */
+.inv-rango-linea {
   position: absolute;
-  top: calc(100% + 4px);
-  transform: translateX(-50%);
-  height: 12px;
-  line-height: 12px;
+  left: 0;
+  right: 0;
+  top: 22px;
+  height: 2px;
+  background: var(--border);
+}
+.inv-rango-punto {
+  position: absolute;
+  top: 0;
+  width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   font-size: 11px;
+  line-height: 14px;
   white-space: nowrap;
 }
-/* El precio, bajo su línea y en su tinta. */
+.inv-rango-ini { align-items: flex-start; }
+.inv-rango-fin { align-items: flex-end; }
+.inv-rango-ref {
+  height: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.inv-rango-marca {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin: 5px 0 3px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.inv-rango-ini .inv-rango-marca { margin-left: -4px; }
+.inv-rango-fin .inv-rango-marca { margin-right: -4px; }
+.inv-rango-min,
+.inv-rango-max { color: var(--muted); }
 .inv-rango-precio { color: var(--ink); }
-/* El ancla es un punto sin ancho en la posición del precio: el punto queda sobre
-   la línea y los dos porcentajes cuelgan de él, a 7px de cada lado. */
-.inv-rango-ancla { position: absolute; top: -14px; width: 0; height: 12px; font-size: 11px; line-height: 12px; }
-.inv-punto { position: absolute; left: -3px; top: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
-.inv-precio-izq { position: absolute; right: 7px; top: 0; display: flex; gap: 6px; white-space: nowrap; }
-.inv-precio-der { position: absolute; left: 7px; top: 0; display: flex; gap: 6px; white-space: nowrap; }
+.inv-rango-ema { color: var(--blue); }
+.inv-rango-falta { font-size: 10px; }
 /* Lo que está por publicar va arriba y lo ya publicado debajo; el último de los
    primeros cierra con una línea más gruesa que el divisor de las filas y en el
    acento, que es el color con el que la app señala lo que hay que mirar: así
@@ -8344,44 +8364,11 @@ select.inv-plan-in { cursor: pointer; }
 /* Quitar y agregar al plan, uno al lado del otro: la columna del tacho pasa de 30
    a 40px, como la de las acciones de una fila del plan, que también lleva dos. */
 .inv-seg-acciones { display: flex; align-items: center; justify-content: center; }
-.inv-rango-extremo { flex-shrink: 0; color: var(--muted); font-size: 10px; }
-/* La barra es la de progreso de la meta de Reserva (.inv-meta-progress-bar), el
-   mismo riel con su borde y sus puntas redondas; acá no lleva relleno sino una
-   línea donde está el precio, en la tinta del precio de su fila. */
-.inv-rango-barra { flex: 1 1 auto; position: relative; min-width: 40px; }
-/* La línea sobresale del riel por arriba y por abajo, y con overflow oculto —el
-   de la barra de la meta— se recortaría. */
-.inv-rango-barra.inv-rango-barra { overflow: visible; }
-.inv-rango-marca {
-  position: absolute;
-  top: -4px;
-  bottom: -4px;
-  width: 3px;
-  margin-left: -1.5px;
-  border-radius: 2px;
-  background: var(--ink);
-}
 /* Lo publicado es el dato que se vino a buscar: en tinta plena y con peso, el
    mismo que el del ticker en las otras listas. El previo, en tinta apagada: es
    el dato de la vez anterior, la referencia y no lo que se espera ni lo que salió. */
 .inv-cal-pub { font-weight: 600; }
 .inv-cal-prev { color: var(--muted-2); }
-/* La EMA de 200 semanas en la barra del rango: una línea como la del precio pero
-   en azul, y más fina, para que se distingan donde se juntan. Atenuada cuando cae
-   fuera del rango del año y se pega al extremo. */
-.inv-rango-ema {
-  position: absolute;
-  top: -4px;
-  bottom: -4px;
-  width: 2px;
-  margin-left: -1px;
-  border-radius: 2px;
-  background: var(--blue);
-}
-/* Fuera del rango del año la línea de la EMA va afuera de la barra y en punteado: no
-   está en el rango, y se lee distinto de la que sí está. */
-.inv-rango-ema-fuera { width: 0; background: none; border-left: 2px dashed var(--blue); border-radius: 0; }
-
 /* Etiqueta y valor de la cotización MEP usada. Viven en la fila de las
    solapas principales (.main-tabs-mep); antes iban debajo de cada panel. */
 .inv-header-cotizacion-label {
@@ -8611,8 +8598,7 @@ select.inv-plan-in { cursor: pointer; }
   gap: 3px;
   width: 100%;
 }
-.inv-meta-progress-bar,
-.inv-rango-barra {
+.inv-meta-progress-bar {
   height: 14px;
   background: var(--bg-0);
   border: 1px solid var(--border);

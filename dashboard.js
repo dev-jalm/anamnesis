@@ -22656,13 +22656,13 @@ function htmlListaSeguimiento() {
   const filas = ordenarPorBalance(calculados, function (c) { return c.r.diasAlBalance; }).map(function (o) {
     const item = o.item.item, info = o.item.info, f = o.item.f, r = o.item.r;
     const desc = descripcionDeActivoSeguido(item.ticker);
-    // El rango del último año como una barra: el mínimo al comienzo, el máximo
-    // al final y una línea donde está el precio. Dice de un vistazo si el
-    // precio está cerca de su piso o de su techo, que tres números sueltos no
-    // dicen. Sobre la línea del precio, un punto con lo que le falta para la EMA de
-    // 200 semanas a la izquierda y para el máximo a la derecha; bajo las líneas,
-    // el precio y el valor de la EMA, cada uno en la suya. El emergente propio de
-    // la app, no el title.
+    // El rango del último año como una línea horizontal con cuatro puntos: el
+    // mínimo, el máximo, el precio y la EMA de 200 semanas, ordenados por valor de
+    // izquierda a derecha. Arriba de cada punto, qué es; abajo, su valor. Los puntos
+    // van a la misma distancia entre sí: es una referencia de orden, no una escala,
+    // y que el precio quede más cerca de un punto no dice que le falte menos —eso lo
+    // dicen los porcentajes, bajo la EMA y bajo el máximo—. La posición real, en el
+    // emergente propio de la app, no el title.
     let rango = r.precio !== null ? usd(r.precio) : guion;
     if (r.posicion !== null) {
       const detalle = ['Está al ' + FUNDAMENTALES_N0.format(r.posicion) + '% del camino entre el mínimo (0%) y el máximo (100%).'];
@@ -22671,95 +22671,54 @@ function htmlListaSeguimiento() {
           ? 'A ' + FUNDAMENTALES_N2.format(Math.abs(r.distanciaAlMaximo)) + '% por debajo del máximo.'
           : 'Por encima del máximo que tenía Finviz.');
       }
-      // Las dos líneas son una referencia, no una escala: van a la misma distancia
-      // entre sí y de los extremos —al tercio y a los dos tercios—, en el orden en
-      // que están los valores. Que el precio quede más cerca del máximo no dice que
-      // le falte menos: eso lo dicen los porcentajes. Con una sola línea va al medio.
-      // La EMA fuera del rango del año no cabe en la barra: su línea va afuera, en
-      // punteado, pasado el extremo que le toca, y el precio queda solo en el medio.
-      const emaFuera = r.fueraEma;
-      const emaEnBarra = r.posicionEma !== null && !emaFuera;
-      const emaPrimero = emaEnBarra ? r.ema <= r.precio : emaFuera === 'debajo';
-      const posPrecio = emaEnBarra ? (emaPrimero ? 200 / 3 : 100 / 3) : 50;
-      const posEma = r.posicionEma === null ? null : (emaEnBarra ? (emaPrimero ? 100 / 3 : 200 / 3) : (emaFuera === 'debajo' ? 0 : 100));
-      // Todo lo que va en la barra —las líneas, el punto y las etiquetas— se
-      // posiciona dentro de la propia barra y con el mismo porcentaje: así cada
-      // pieza queda exactamente sobre su línea, con el ancho que tenga la barra.
-      // Una etiqueta bajo la barra se centra en su línea; en los extremos se frena a
-      // un 10 % de cada borde, porque más cerca el texto se saldría de la celda.
-      const anclaDe = function (pos) { return Math.min(90, Math.max(10, pos)); };
-      // El precio y el valor de la EMA comparten fila. Si sus líneas están tan cerca
-      // que los textos se pisarían, cada uno se corre hacia afuera lo justo para
-      // dejar un carácter entre los dos. Los textos son monoespaciados: miden lo que
-      // tienen de caracteres, en ch, y la distancia entre líneas es un % del ancho
-      // de la barra, así que la cuenta se deja a CSS: max(0, S/2 − distancia/2).
-      let corrimiento = '0px';
-      if (r.posicionEma !== null && r.precio !== null) {
-        const separacion = Math.abs(anclaDe(posEma) - anclaDe(posPrecio));
-        const medios = (usd(r.precio).length + usd(r.ema).length) / 2 + 1;
-        corrimiento = 'max(0px, calc(' + (medios / 2) + 'ch - ' + (separacion / 2).toFixed(2) + '%))';
-      }
-      const etiqueta = function (pos, signo, cls, html, tip) {
-        return '<span class="inv-rango-etiqueta ' + cls + '" style="left:calc(' + anclaDe(pos).toFixed(1) + '% ' + signo + ' ' + corrimiento + ')"' + (tip || '') + '>' + html + '</span>';
-      };
-      const emaALaIzquierda = emaPrimero;
-      // La EMA de 200 semanas, en la misma barra y con otro color: dónde queda
-      // respecto del rango y del precio. Si cae fuera del rango del año se pega al
-      // extremo, atenuada, y el emergente lo dice.
-      let marcaEma = '';
-      let valorEma = '';
       if (r.posicionEma !== null) {
         detalle.push('EMA de 200 semanas (' + usd(r.ema) + '): ' + (r.fueraEma
           ? 'queda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.'
           : 'al ' + FUNDAMENTALES_N0.format(r.posicionEma) + '% del camino.'));
-        marcaEma = '<span class="inv-rango-ema' + (emaFuera ? ' inv-rango-ema-fuera' : '') + '" style="left:' +
-          (emaFuera ? 'calc(' + posEma + '% ' + (emaFuera === 'debajo' ? '-' : '+') + ' 5px)' : posEma.toFixed(1) + '%') + '"></span>';
-        valorEma = etiqueta(posEma, emaALaIzquierda ? '-' : '+', 'inv-falta-ema', usd(r.ema),
-          tipAttrs('EMA de 200 semanas', 'Valor de la media móvil exponencial de 200 semanas.' + (r.fueraEma
-            ? '\nQueda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.' : '')));
       }
       // Lo que le falta al precio para llegar a la EMA: el % con su signo (negativo si
-      // tiene que bajar) y una flecha en el sentido en que hay que moverse. Va a la
-      // izquierda del punto; si la EMA está por encima del máximo del año va a la
-      // derecha, después de lo que falta para el máximo, porque es lo que se
-      // alcanza después.
-      const emaArriba = emaFuera === 'arriba';
+      // tiene que bajar) y una flecha en el sentido en que hay que moverse.
       let faltaEma = '';
       if (r.faltaParaEma !== null) {
         const falta = r.faltaParaEma;
-        const flecha = falta < 0 ? '«' : '»';
-        const cifra = (falta > 0 ? '+' : '−') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '%';
-        faltaEma = '<span class="inv-falta-ema' + (r.tocaEma ? ' inv-ema-toca' : '') + '"' +
+        faltaEma = '<span class="inv-rango-falta inv-falta-ema' + (r.tocaEma ? ' inv-ema-toca' : '') + '"' +
           tipAttrs('Distancia a la EMA de 200 semanas', ['EMA de 200 semanas: ' + usd(r.ema) + '.',
             r.tocaEma ? 'La semana en curso la está tocando.'
               : 'El precio tendría que ' + (falta < 0 ? 'bajar ' : 'subir ') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '% para tocarla.'].join('\n')) + '>' +
-          (r.tocaEma ? 'TOCANDO' : (emaArriba ? flecha + ' ' + cifra : cifra + ' ' + flecha)) + '</span>';
+          (r.tocaEma ? 'TOCANDO' : (falta > 0 ? '+' : '−') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '% ' + (falta < 0 ? '«' : '»')) + '</span>';
       }
-      // A la derecha, lo que le falta para llegar al máximo, en %: siempre
-      // positivo, con la flecha hacia el máximo; en el máximo dice EN MÁXIMO.
+      // Lo que le falta para llegar al máximo, en %: siempre positivo, con la flecha
+      // hacia el máximo; en el máximo dice EN MÁXIMO.
       let faltaMax = '';
       if (r.faltaParaMaximo !== null) {
         const enMax = r.faltaParaMaximo === 0;
-        faltaMax = '<span class="inv-falta-max' + (enMax ? ' inv-ema-toca' : '') + '"' +
+        faltaMax = '<span class="inv-rango-falta inv-falta-max' + (enMax ? ' inv-ema-toca' : '') + '"' +
           tipAttrs('Distancia al máximo de 52 semanas', enMax
             ? 'El precio está en el máximo del año (' + usd(r.max) + ').'
             : 'El precio tendría que subir ' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '% para volver al máximo del año (' + usd(r.max) + ').') + '>' +
-          (enMax ? 'EN MÁXIMO' : '» +' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '%') + '</span>';
+          (enMax ? 'EN MÁXIMO' : '+' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '% »') + '</span>';
       }
-      // Tres filas: arriba, el punto con sus dos porcentajes; en el medio, la barra con
-      // su mínimo y su máximo; abajo, el precio y el valor de la EMA. Las filas de
-      // arriba y de abajo son espacio reservado por la grilla: lo que va en ellas
-      // cuelga de la barra.
+      // El orden de desempate es el de la vida real: ante valores iguales, el mínimo
+      // antes que el precio y el máximo después.
+      const puntos = [
+        { cls: 'inv-rango-min', ref: 'MÍN', v: r.min, rango: 0, falta: '' },
+        { cls: 'inv-rango-precio', ref: 'PRECIO', v: r.precio, rango: 1, falta: '' },
+        { cls: 'inv-rango-ema', ref: 'EMA', v: r.ema, rango: 2, falta: faltaEma,
+          tip: tipAttrs('EMA de 200 semanas', 'Valor de la media móvil exponencial de 200 semanas.' + (r.fueraEma
+            ? '\nQueda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.' : '')) },
+        { cls: 'inv-rango-max', ref: 'MÁX', v: r.max, rango: 3, falta: faltaMax }
+      ].filter(function (p) { return p.v !== null && p.v !== undefined; })
+        .sort(function (x, y) { return (x.v - y.v) || (x.rango - y.rango); });
+      const ultimo = puntos.length - 1;
       rango = '<span class="inv-rango"' + tipAttrs('Posición en el rango de 52 semanas', detalle.join('\n')) + '>' +
-        '<span class="inv-rango-extremo">' + usd(r.min) + '</span>' +
-        '<span class="inv-rango-barra">' + marcaEma + '<span class="inv-rango-marca" style="left:' + posPrecio.toFixed(1) + '%"></span>' +
-          (r.precio !== null
-            ? '<span class="inv-rango-ancla" style="left:' + posPrecio.toFixed(1) + '%"><span class="inv-punto"></span>' +
-              (faltaEma && !emaArriba ? '<span class="inv-precio-izq">' + faltaEma + '</span>' : '') +
-              (faltaMax || (faltaEma && emaArriba) ? '<span class="inv-precio-der">' + faltaMax + (emaArriba ? faltaEma : '') + '</span>' : '') + '</span>' +
-              etiqueta(posPrecio, emaALaIzquierda ? '+' : '-', 'inv-rango-precio', usd(r.precio)) : '') +
-          valorEma + '</span>' +
-        '<span class="inv-rango-extremo">' + usd(r.max) + '</span>' +
+        '<span class="inv-rango-linea"></span>' +
+        puntos.map(function (p, i) {
+          const pos = ultimo > 0 ? i * 100 / ultimo : 50;
+          const borde = i === 0 ? ' inv-rango-ini' : (i === ultimo ? ' inv-rango-fin' : '');
+          return '<span class="inv-rango-punto ' + p.cls + borde + '" style="left:' + pos.toFixed(1) + '%"' + (p.tip || '') + '>' +
+            '<span class="inv-rango-ref">' + p.ref + '</span><span class="inv-rango-marca"></span>' +
+            '<span class="inv-rango-valor">' + usd(p.v) + '</span>' + p.falta + '</span>';
+        }).join('') +
       '</span>';
     }
     // Los balances en una mini tabla de hasta cuatro filas. Arriba, en gris, el que
@@ -22864,7 +22823,7 @@ function htmlListaSeguimiento() {
     '</div>';
   });
   return banda + '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Descripción</span>' +
-    '<span' + tipAttrs('Rango de 52 semanas', 'Arriba, el precio actual. Abajo, lo que le falta al precio para tocar la EMA de 200 semanas (azul) y, bajo el máximo, para volver a él. EMA: media móvil exponencial, un promedio del precio que pesa más lo reciente y que muchos miran como piso de largo plazo.') + '>Rango de 52 semanas</span>' +
+    '<span' + tipAttrs('Rango de 52 semanas', 'El mínimo, el precio actual, la EMA de 200 semanas (azul) y el máximo, ordenados por valor y a igual distancia: es una referencia de orden, no una escala. Arriba de cada punto, qué es; abajo, su valor y, bajo la EMA y el máximo, lo que le falta al precio para llegar. EMA: media móvil exponencial, un promedio del precio que pesa más lo reciente y que muchos miran como piso de largo plazo.') + '>Rango de 52 semanas</span>' +
     '<span class="inv-bce-cab"' + tipAttrs('Balances', 'Arriba, en gris, el balance que viene con lo que esperan los analistas; debajo, los tres últimos presentados. Precio y EMA200: el cierre de referencia del balance y la EMA de 200 semanas de entonces, en dólares. EPS (ganancia por acción) e ingresos, contra lo esperado. +7 d y +15 d: cuánto se movió el precio a los 7 y 15 días del balance, contra el cierre previo.') + '>' +
     '<span>Balance</span><span>Precio</span><span>EMA200</span><span>EPS</span><span>Ingresos</span><span>+7 d</span><span>+15 d</span></span><span>Consulta</span></div>' +
     filas.join('');
