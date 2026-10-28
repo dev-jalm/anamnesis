@@ -8300,7 +8300,7 @@ select.inv-plan-in { cursor: pointer; }
 /* La fecha queda entre dos columnas numéricas: centrada, con su título, para que no se
    pegue al −7 d ni al precio. */
 .inv-bce-fecha,
-.inv-bce-cab > span:nth-child(3) { text-align: center; }
+.inv-bce-cab > span:nth-child(3) { text-align: center; padding-left: 7px; }
 /* Lo que falta para llegar a la EMA de 200 semanas y al máximo, cada porcentaje
    en el color de lo que mide: el azul de la línea de la EMA, y para el máximo el
    mismo del máximo en el rango de 52 semanas (.inv-rango-extremo). Cuando ya está
