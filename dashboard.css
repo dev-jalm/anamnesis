@@ -8299,15 +8299,17 @@ select.inv-plan-in { cursor: pointer; }
 .inv-bce-fecha { color: var(--muted); font-size: 10px; }
 /* Los datos del balance —fecha, precio, EMA, EPS e ingresos— sobre un fondo propio, para
    distinguirlos de lo que se movió el precio antes y después. Es una subgrilla de las cinco
-   columnas del medio, así que cada dato sigue en la columna de su título; el fondo se estira
-   3px con una sombra, que no ocupa lugar, para cubrir la separación entre columnas. */
+   columnas del medio, así que cada dato sigue en la columna de su título. El fondo se estira
+   con sombras sin desenfoque, que no ocupan lugar: 3px a los lados, para cubrir la separación
+   entre columnas, y 1px arriba y abajo, para llenar los 2px entre filas. Ni un píxel más: una
+   sombra de sobra se superpone con la de la fila vecina y la oscurece. */
 .inv-bce-datos {
   grid-column: 3 / span 5;
   display: grid;
   grid-template-columns: subgrid;
   background: rgba(212, 162, 76, 0.1);
-  box-shadow: 0 0 0 3px rgba(212, 162, 76, 0.1);
-  border-radius: 3px;
+  box-shadow: -3px 0 rgba(212, 162, 76, 0.1), 3px 0 rgba(212, 162, 76, 0.1),
+    0 -1px rgba(212, 162, 76, 0.1), 0 1px rgba(212, 162, 76, 0.1);
 }
 /* El balance que viene, en gris: lo que muestra son estimados, no datos. */
 .inv-bce-prox,
