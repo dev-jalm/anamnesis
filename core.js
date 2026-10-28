@@ -2431,6 +2431,10 @@ function movimientoPrevioAlBalance(diaria, ms, dias) {
   if (!v || !esNumeroFinito(ms) || !esNumeroFinito(dias)) return null;
   const ref = _referenciaDeBalance(v, ms);
   if (!ref) return null;
+  // Si el último cierre quedó lejos del día del balance (uno que viene dentro de varios
+  // días), la ventana no termina en el balance: no hay movimiento previo todavía.
+  const dia = new Date(ms).toISOString().slice(0, 10);
+  if ((Date.parse(dia) - Date.parse(ref.dia)) / 86400000 > 4) return null;
   const objetivo = new Date(ms - dias * 86400000).toISOString().slice(0, 10);
   if (objetivo < v.dia[0]) return null;
   const k = _ultimaVelaHasta(v.dia, objetivo, true);
@@ -2467,7 +2471,7 @@ function balancesConMovimiento(balances, diaria, ahora, cantidad, semanal) {
 // su resultado, con lo que se espera de él. Mientras no se publique y se confirme, sigue
 // siendo "el que viene": Finviz tarda en cargar el resultado y la fecha puede quedar un
 // par de días atrás, así que se toleran 3. Null si no hay ninguno.
-function proximoBalanceDeFinviz(balances, ahora) {
+function proximoBalanceDeFinviz(balances, ahora, diaria) {
   const hoy = esNumeroFinito(ahora) ? ahora : Date.now();
   const num = function (n) { return esNumeroFinito(n) ? n : null; };
   let prox = null;
@@ -2477,7 +2481,8 @@ function proximoBalanceDeFinviz(balances, ahora) {
     if (b.fecha * 1000 < hoy - 3 * 86400000) return;
     if (!prox || b.fecha < prox.fecha) prox = b;
   });
-  return prox ? { ms: prox.fecha * 1000, periodo: prox.periodo || '', epsEsperado: num(prox.epsEsperado), ventasEsperadas: num(prox.ventasEsperadas) } : null;
+  return prox ? { ms: prox.fecha * 1000, periodo: prox.periodo || '', epsEsperado: num(prox.epsEsperado), ventasEsperadas: num(prox.ventasEsperadas),
+    p7: movimientoPrevioAlBalance(diaria, prox.fecha * 1000, 7), p15: movimientoPrevioAlBalance(diaria, prox.fecha * 1000, 15) } : null;
 }
 
 // Cuánto se alejó lo publicado de lo esperado, en % del esperado: positivo si lo
@@ -2875,7 +2880,8 @@ function resumenDeProximoBalance(p, texto, ahora) {
     const f = fechaHoraArgentina(p.ms).dia;
     return { fecha: f.slice(8, 10) + '/' + f.slice(5, 7), dias: Math.round((dia(p.ms) - dia(ref)) / 86400000),
       periodo: p.periodo || '', epsEsperado: esNumeroFinito(p.epsEsperado) ? p.epsEsperado : null,
-      ventasEsperadas: esNumeroFinito(p.ventasEsperadas) ? p.ventasEsperadas : null };
+      ventasEsperadas: esNumeroFinito(p.ventasEsperadas) ? p.ventasEsperadas : null,
+      p7: p.p7 || null, p15: p.p15 || null };
   }
   const r = texto ? resultadosDe(texto, ref) : null;
   if (r && r.dias >= 0) {

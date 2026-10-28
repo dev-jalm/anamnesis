@@ -21425,7 +21425,7 @@ function traerFundamentales(ticker, moneda, btn) {
       // 520 velas diarias que trae la ficha.
       r.datos.ultimosBalances = balancesConMovimiento(cuerpo.balances, cuerpo.diaria, Date.now(), 3, cuerpo.semanal);
       // Y el que viene, con lo que se espera de él.
-      r.datos.proximoBalance = proximoBalanceDeFinviz(cuerpo.balances, Date.now());
+      r.datos.proximoBalance = proximoBalanceDeFinviz(cuerpo.balances, Date.now(), cuerpo.diaria);
       const perfil = perfilDeFinviz(cuerpo.cabecera);
       return traerPromediosDeSector().then(function (grupos) {
         if (!state.tickerInfo) state.tickerInfo = {};
@@ -22800,7 +22800,7 @@ function htmlListaSeguimiento() {
           return '<span class="inv-bce-num"' + tipAttrs('Balance' + (p.periodo ? ' ' + p.periodo : '') + ' · ' + nombre, frase + '.\n' + aviso) + '>' + celda + '</span>';
         };
         proxima = '<span class="inv-bce-fila inv-bce-prox">' +
-          vacio + vacio +
+          previo(p, p.p15, 15) + previo(p, p.p7, 7) +
           '<span class="inv-bce-fecha"' + tipAttrs('Próximo balance' + (p.periodo ? ' ' + p.periodo : ''), 'Se presenta el ' + p.fecha + ' (' + cuando + ').\n' + aviso) + '>' + p.fecha + '</span>' +
           vacio + vacio +
           esperado(p.epsEsperado, 'Ganancia por acción (EPS)', 'EPS esperado por los analistas: ' + usdEps(p.epsEsperado), FUNDAMENTALES_N2.format(p.epsEsperado)) +
