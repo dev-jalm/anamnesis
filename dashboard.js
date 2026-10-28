@@ -22726,16 +22726,16 @@ function htmlListaSeguimiento() {
         '" placeholder="EJ: APPLE INC."></span>' +
       '<span class="inv-cal-num">' + usd(r.precio) + '</span>' +
       rango +
-      '<span class="inv-cal-num">' + almax + '</span>' +
       '<span class="inv-cal-num">' + ema + '</span>' +
+      '<span class="inv-cal-num">' + almax + '</span>' +
       '<span>' + (r.balance ? escapeHtmlSafe(r.balance) : guion) + '</span>' +
       '<span class="inv-cal-num inv-cal-ref">' + (dias === null ? guion : (dias === 0 ? 'hoy' : 'hace ' + dias + (dias === 1 ? ' día' : ' días'))) + '</span>' +
     '</div>';
   });
   return banda + '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Descripción</span><span>Precio</span>' +
-    '<span>Rango de 52 semanas</span><span>Falta p/ máx.</span>' +
+    '<span>Rango de 52 semanas</span>' +
     '<span' + tipAttrs('EMA de 200 semanas', 'Media móvil exponencial de 200 semanas: un promedio del precio que pesa más lo reciente y que muchos miran como piso de largo plazo.') + '>Falta p/ EMA200 sem.</span>' +
-    '<span>Próx. balance</span><span>Consulta</span></div>' +
+    '<span>Falta p/ máx.</span><span>Próx. balance</span><span>Consulta</span></div>' +
     filas.join('');
 }
 

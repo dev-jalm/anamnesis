@@ -8265,13 +8265,18 @@ select.inv-plan-in { cursor: pointer; }
 .inv-seg-titulos span:nth-child(6),
 .inv-seg-titulos span:nth-child(7),
 .inv-seg-titulos span:nth-child(9) { text-align: right; }
-/* Lo que falta para llegar al máximo y a la EMA de 200 semanas, cada porcentaje
-   en el color de su línea en la barra del rango: el del precio (acento) para el
-   máximo y el azul de la EMA para ella. Cuando ya está ahí, el mismo color y con
-   peso. */
-.inv-falta-max { color: var(--accent); }
+/* Lo que falta para llegar a la EMA de 200 semanas y al máximo, cada porcentaje
+   en el color de lo que mide: el azul de la línea de la EMA, y para el máximo el
+   mismo del máximo en el rango de 52 semanas (.inv-rango-extremo). Cuando ya está
+   ahí, el mismo color y con peso. */
 .inv-falta-ema { color: var(--blue); }
+.inv-falta-max { color: var(--muted); }
 .inv-ema-toca { font-weight: 700; }
+/* Aire entre los dos porcentajes, que van a la derecha, y la fecha del balance,
+   que arranca a la izquierda: sin él los dos se leían pegados. Lo mismo en el
+   título. */
+.inv-seg-titulos span:nth-child(8),
+.inv-seg-fila > :nth-child(8) { padding-left: 24px; }
 /* El rango del último año: el mínimo, la barra y el máximo en una línea. Con
    aire a los dos lados, que el precio de la izquierda y la fecha de la derecha
    no se pegan a los extremos: 20px de margen, y el mismo en el título. */
@@ -8288,7 +8293,7 @@ select.inv-plan-in { cursor: pointer; }
 .inv-rango-extremo { flex-shrink: 0; color: var(--muted); font-size: 10px; }
 /* La barra es la de progreso de la meta de Reserva (.inv-meta-progress-bar), el
    mismo riel con su borde y sus puntas redondas; acá no lleva relleno sino una
-   línea donde está el precio. */
+   línea donde está el precio, en la tinta del precio de su fila. */
 .inv-rango-barra { flex: 1 1 auto; position: relative; min-width: 40px; }
 /* La línea sobresale del riel por arriba y por abajo, y con overflow oculto —el
    de la barra de la meta— se recortaría. */
@@ -8300,7 +8305,7 @@ select.inv-plan-in { cursor: pointer; }
   width: 3px;
   margin-left: -1.5px;
   border-radius: 2px;
-  background: var(--accent);
+  background: var(--ink);
 }
 /* Lo publicado es el dato que se vino a buscar: en tinta plena y con peso, el
    mismo que el del ticker en las otras listas. El previo, en tinta apagada: es
