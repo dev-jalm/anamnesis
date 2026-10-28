@@ -2355,46 +2355,80 @@ function emaSemanalDeFinviz(semanal) {
   return { ema200w: ema, bajoSem: ult(s.bajo), altoSem: ult(s.alto) };
 }
 
+// Las velas de { fecha (segundos), cierre } con su día (AAAA-MM-DD, UTC) a mano, o
+// null si la serie no sirve: no es una lista, está vacía o no cierra con sus fechas.
+function _velasConDia(velas) {
+  const fechas = velas && velas.fecha;
+  const cierres = velas && velas.cierre;
+  if (!Array.isArray(fechas) || !Array.isArray(cierres) || !fechas.length || fechas.length !== cierres.length) return null;
+  return { dia: fechas.map(function (t) { return new Date(t * 1000).toISOString().slice(0, 10); }), cierre: cierres };
+}
+
+// El índice de la última vela cuyo día es anterior a `limite` (o igual, con
+// `incluye`); -1 si no hay. Las velas van por orden de fecha.
+function _ultimaVelaHasta(dia, limite, incluye) {
+  let k = -1;
+  for (let i = 0; i < dia.length; i++) {
+    if (incluye ? dia[i] <= limite : dia[i] < limite) k = i; else break;
+  }
+  return k;
+}
+
+// La vela diaria que sirve de referencia a un balance: el cierre previo a su efecto.
+// Es el del día anterior si salió antes o durante la rueda, y el del mismo día si
+// salió después del cierre (desde las 19:00 UTC; el 16:00 de Nueva York son las 20:00
+// o las 21:00). Devuelve { k, precio, dia } o null.
+function _referenciaDeBalance(v, ms) {
+  if (!v || !esNumeroFinito(ms)) return null;
+  const despuesDelCierre = new Date(ms).getUTCHours() >= 19;
+  const k = _ultimaVelaHasta(v.dia, new Date(ms).toISOString().slice(0, 10), despuesDelCierre);
+  const precio = k >= 0 ? v.cierre[k] : null;
+  return (k >= 0 && esNumeroFinito(precio) && precio > 0) ? { k: k, precio: precio, dia: v.dia[k] } : null;
+}
+
+// El precio del activo al publicarse un balance: el cierre de referencia, con su día.
+// Null si las velas no llegan hasta ahí.
+function precioAlBalance(diaria, ms) {
+  const r = _referenciaDeBalance(_velasConDia(diaria), ms);
+  return r ? { precio: r.precio, dia: r.dia } : null;
+}
+
+// La EMA de 200 semanas al publicarse un balance: la de la última semana ya cerrada
+// antes de él, para que no entre la semana del balance ni su reacción. `semanal` es
+// { fecha (segundos), cierre } con las velas semanales del Worker, que llevan la fecha
+// de la última rueda de la semana. Null sin las 200 semanas que pide la media.
+function emaAlBalance(semanal, ms) {
+  const v = _velasConDia(semanal);
+  if (!v || !esNumeroFinito(ms)) return null;
+  const k = _ultimaVelaHasta(v.dia, new Date(ms).toISOString().slice(0, 10), false);
+  return k < 0 ? null : mediaExponencial(v.cierre.slice(0, k + 1), EMA_SEMANAL_PERIODO);
+}
+
 // Cómo se movió el precio en los `dias` días corridos posteriores a un balance.
 // `diaria` es { fecha (segundos), cierre } —las velas diarias del Worker— y `ms` el
-// instante del balance. La referencia es el cierre previo a su efecto: el del día
-// anterior si salió antes o durante la rueda, y el del mismo día si salió después
-// del cierre (desde las 19:00 UTC; el 16:00 de Nueva York son las 20:00 o las 21:00).
-// El final es el último cierre hasta el día objetivo, contando desde la fecha del
-// balance. Null si faltan velas o la ventana todavía no terminó: nunca un número
-// con menos días de los pedidos.
+// instante del balance. La referencia es el cierre previo a su efecto
+// (_referenciaDeBalance) y el final, el último cierre hasta el día objetivo, contando
+// desde la fecha del balance. Null si faltan velas o la ventana todavía no terminó:
+// nunca un número con menos días de los pedidos.
 function movimientoTrasBalance(diaria, ms, dias) {
-  const fechas = diaria && diaria.fecha;
-  const cierres = diaria && diaria.cierre;
-  if (!Array.isArray(fechas) || !Array.isArray(cierres) || !fechas.length || fechas.length !== cierres.length ||
-      !esNumeroFinito(ms) || !esNumeroFinito(dias)) return null;
-  const iso = function (t) { return new Date(t).toISOString().slice(0, 10); };
-  const dia = fechas.map(function (t) { return iso(t * 1000); });
-  const ultimoHasta = function (limite, incluye) {
-    let k = -1;
-    for (let i = 0; i < dia.length; i++) {
-      if (incluye ? dia[i] <= limite : dia[i] < limite) k = i; else break;
-    }
-    return k;
-  };
-  const despuesDelCierre = new Date(ms).getUTCHours() >= 19;
-  const kRef = ultimoHasta(iso(ms), despuesDelCierre);
-  const objetivo = iso(ms + dias * 86400000);
-  if (kRef < 0 || objetivo > dia[dia.length - 1]) return null;
-  const k = ultimoHasta(objetivo, true);
-  const ref = cierres[kRef];
-  const fin = cierres[k];
-  if (k <= kRef || !esNumeroFinito(ref) || ref <= 0 || !esNumeroFinito(fin)) return null;
-  return { pct: (fin / ref - 1) * 100, referencia: { precio: ref, dia: dia[kRef] }, precio: fin, dia: dia[k] };
+  const v = _velasConDia(diaria);
+  if (!v || !esNumeroFinito(ms) || !esNumeroFinito(dias)) return null;
+  const ref = _referenciaDeBalance(v, ms);
+  const objetivo = new Date(ms + dias * 86400000).toISOString().slice(0, 10);
+  if (!ref || objetivo > v.dia[v.dia.length - 1]) return null;
+  const k = _ultimaVelaHasta(v.dia, objetivo, true);
+  const fin = v.cierre[k];
+  if (k <= ref.k || !esNumeroFinito(fin)) return null;
+  return { pct: (fin / ref.precio - 1) * 100, referencia: { precio: ref.precio, dia: ref.dia }, precio: fin, dia: v.dia[k] };
 }
 
 // De los balances que devuelve el Worker ({ fecha en segundos, periodo,
 // epsPublicado, epsEsperado, ventasPublicadas, ventasEsperadas }), los `cantidad`
 // últimos ya publicados, del más reciente al más viejo, cada uno con cómo se movió
-// el precio a los 7 y a los 15 días. Un balance publicado es uno cuya fecha pasó y
-// que trae su resultado: Finviz lista también los que vienen, sin cifras. Vacío si
-// no hay ninguno.
-function balancesConMovimiento(balances, diaria, ahora, cantidad) {
+// el precio a los 7 y a los 15 días, el precio de entonces y la EMA de 200 semanas
+// que tenía. Un balance publicado es uno cuya fecha pasó y que trae su resultado:
+// Finviz lista también los que vienen, sin cifras. Vacío si no hay ninguno.
+function balancesConMovimiento(balances, diaria, ahora, cantidad, semanal) {
   const hoy = esNumeroFinito(ahora) ? ahora : Date.now();
   const num = function (n) { return esNumeroFinito(n) ? n : null; };
   return (Array.isArray(balances) ? balances : []).filter(function (b) {
@@ -2405,9 +2439,27 @@ function balancesConMovimiento(balances, diaria, ahora, cantidad) {
       ms: b.fecha * 1000, periodo: b.periodo || '',
       epsPublicado: num(b.epsPublicado), epsEsperado: num(b.epsEsperado),
       ventasPublicadas: num(b.ventasPublicadas), ventasEsperadas: num(b.ventasEsperadas),
+      precio: precioAlBalance(diaria, b.fecha * 1000), ema200: emaAlBalance(semanal, b.fecha * 1000),
       d7: movimientoTrasBalance(diaria, b.fecha * 1000, 7), d15: movimientoTrasBalance(diaria, b.fecha * 1000, 15)
     };
   });
+}
+
+// De los balances que devuelve el Worker, el que viene: el primero que todavía no trae
+// su resultado, con lo que se espera de él. Mientras no se publique y se confirme, sigue
+// siendo "el que viene": Finviz tarda en cargar el resultado y la fecha puede quedar un
+// par de días atrás, así que se toleran 3. Null si no hay ninguno.
+function proximoBalanceDeFinviz(balances, ahora) {
+  const hoy = esNumeroFinito(ahora) ? ahora : Date.now();
+  const num = function (n) { return esNumeroFinito(n) ? n : null; };
+  let prox = null;
+  (Array.isArray(balances) ? balances : []).forEach(function (b) {
+    if (!b || !esNumeroFinito(b.fecha)) return;
+    if (num(b.epsPublicado) !== null || num(b.ventasPublicadas) !== null) return;
+    if (b.fecha * 1000 < hoy - 3 * 86400000) return;
+    if (!prox || b.fecha < prox.fecha) prox = b;
+  });
+  return prox ? { ms: prox.fecha * 1000, periodo: prox.periodo || '', epsEsperado: num(prox.epsEsperado), ventasEsperadas: num(prox.ventasEsperadas) } : null;
 }
 
 // Cuánto se alejó lo publicado de lo esperado, en % del esperado: positivo si lo
@@ -2784,8 +2836,8 @@ function resumenDeSeguimiento(datos, ahora) {
     // publicado hasta que la empresa anuncia el siguiente.
     balance: r ? (r.dias < 0 ? 'último ' : '') + fundamentalesTextoDeResultados(d.earnings, ahora, false) : null,
     diasAlBalance: r ? r.dias : null,
-    // El próximo balance, sólo si todavía no salió: la fecha y los días que faltan.
-    proximo: (r && r.dias >= 0) ? fundamentalesTextoDeResultados(d.earnings, ahora, false) : null,
+    // El balance que viene, con lo que se espera de él si Finviz lo trae.
+    siguiente: resumenDeProximoBalance(d.proximoBalance, d.earnings, ahora),
     // Los últimos balances publicados, del más reciente al más viejo.
     ultimos: (Array.isArray(d.ultimosBalances) ? d.ultimosBalances : []).map(function (b) { return resumenDeBalance(b, ahora); })
       .filter(function (b) { return b !== null; }),
@@ -2793,8 +2845,30 @@ function resumenDeSeguimiento(datos, ahora) {
   };
 }
 
+// El balance que viene, para mostrar: la fecha, los días que faltan (negativos si ya
+// pasó y todavía no se confirmó) y lo que se espera de él, en ganancia por acción y en
+// ventas. Sale de los balances de la ficha; si no figura ahí, de la fecha de la tabla
+// de datos, sin estimados. Null si no hay un balance por venir.
+function resumenDeProximoBalance(p, texto, ahora) {
+  const ref = esNumeroFinito(ahora) ? ahora : Date.now();
+  const dos = function (n) { return String(n).padStart(2, '0'); };
+  if (p && esNumeroFinito(p.ms)) {
+    const dia = function (ms) { const q = fechaHoraArgentina(ms).dia.split('-').map(Number); return Date.UTC(q[0], q[1] - 1, q[2]); };
+    const f = fechaHoraArgentina(p.ms).dia;
+    return { fecha: f.slice(8, 10) + '/' + f.slice(5, 7), dias: Math.round((dia(p.ms) - dia(ref)) / 86400000),
+      periodo: p.periodo || '', epsEsperado: esNumeroFinito(p.epsEsperado) ? p.epsEsperado : null,
+      ventasEsperadas: esNumeroFinito(p.ventasEsperadas) ? p.ventasEsperadas : null };
+  }
+  const r = texto ? resultadosDe(texto, ref) : null;
+  if (r && r.dias >= 0) {
+    return { fecha: dos(r.fecha.getDate()) + '/' + dos(r.fecha.getMonth() + 1), dias: r.dias, periodo: '', epsEsperado: null, ventasEsperadas: null };
+  }
+  return null;
+}
+
 // Un balance publicado para mostrar: cuándo salió, la sorpresa de ganancia por
-// acción y de ventas —cada una con lo publicado, lo esperado y el %— y el
+// acción y de ventas —cada una con lo publicado, lo esperado y el %—, el precio y
+// la EMA de 200 semanas de entonces, con la distancia entre los dos, y el
 // movimiento del precio a los 7 y 15 días. Null sin balance. La fecha y los días
 // son los de Argentina, como el calendario.
 function resumenDeBalance(b, ahora) {
@@ -2811,6 +2885,10 @@ function resumenDeBalance(b, ahora) {
     periodo: b.periodo || '',
     eps: par(b.epsPublicado, b.epsEsperado),
     ventas: par(b.ventasPublicadas, b.ventasEsperadas),
+    precio: b.precio || null,
+    ema: esNumeroFinito(b.ema200) && b.ema200 > 0 ? b.ema200 : null,
+    // Cuánto estaba el precio por encima (+) o por debajo (−) de su EMA.
+    distanciaEma: (b.precio && esNumeroFinito(b.ema200) && b.ema200 > 0) ? (b.precio.precio / b.ema200 - 1) * 100 : null,
     d7: b.d7 || null,
     d15: b.d15 || null
   };
@@ -5109,7 +5187,7 @@ if (typeof module !== 'undefined' && module.exports) {
     fundamentalesParaMostrar, clasificarFundamental, puntajeContraSector, lecturaCortoPlazo,
     fundamentalesCalculados,
     resultadosDe, fundamentalesTextoDeResultados, numeroDeFinviz, diasDeAntiguedad,
-    esTickerDeFinviz, mediaExponencial, emaSemanalDeFinviz, EMA_SEMANAL_PERIODO, movimientoTrasBalance,
+    esTickerDeFinviz, mediaExponencial, emaSemanalDeFinviz, EMA_SEMANAL_PERIODO, movimientoTrasBalance, precioAlBalance, emaAlBalance, proximoBalanceDeFinviz, resumenDeProximoBalance,
     balancesConMovimiento, sorpresaDeBalance, resumenDeBalance, resumenDeSeguimiento, balanceDeActivo, ordenarPorBalance,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,

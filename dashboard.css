@@ -8258,31 +8258,34 @@ select.inv-plan-in { cursor: pointer; }
 .inv-cal-ref { color: var(--muted); }
 /* La lista de seguimiento, en la misma lista: quitar | Activo | Descripción |
    Rango de 52 semanas (con el precio y lo que falta para la EMA y el máximo
-   adentro) | Próx. balance | Últimos balances (una mini tabla de tres filas) |
-   Consulta. La fecha de consulta a la derecha, como en las demás. */
+   adentro) | Balances (una mini tabla de cuatro filas: el que viene y los tres
+   últimos) | Consulta. La fecha de consulta a la derecha, como en las demás. */
 .inv-seg-titulos,
 .inv-seg-fila {
-  grid-template-columns: 40px 112px minmax(0, 1fr) minmax(0, 2.9fr) minmax(0, 1.1fr) minmax(0, 2.9fr) 96px;
+  grid-template-columns: 40px 112px minmax(0, 1fr) minmax(0, 3fr) minmax(0, 3.4fr) 96px;
   gap: 8px;
 }
 /* Los títulos en una línea: uno que se parte en dos desalinea la fila de títulos
    contra la de datos. */
 .inv-seg-titulos span { white-space: nowrap; }
-.inv-seg-titulos > span:nth-child(7) { text-align: right; }
+.inv-seg-titulos > span:nth-child(6) { text-align: right; }
 /* Los últimos balances: una mini tabla de hasta tres filas, la más reciente arriba.
-   Cada fila y el título comparten las mismas cinco columnas —fecha, EPS, ingresos,
-   precio a 7 días y a 15—, con los números a la derecha como en el resto de las
-   tablas. */
+   Cada fila y el título comparten las mismas siete columnas —fecha, precio, EMA200,
+   EPS, ingresos, precio a 7 días y a 15—, con los números a la derecha como en el
+   resto de las tablas. La EMA va en el azul de su línea en la barra del rango. */
 .inv-bce { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .inv-bce-fila,
 .inv-bce-cab {
   display: grid;
-  grid-template-columns: 40px repeat(4, minmax(0, 1fr));
+  grid-template-columns: 40px repeat(6, minmax(0, 1fr));
   gap: 6px;
   white-space: nowrap;
 }
 .inv-bce-fila { font-size: 11px; line-height: 14px; }
 .inv-bce-fecha { color: var(--muted); font-size: 10px; }
+/* El balance que viene, en gris: lo que muestra son estimados, no datos. */
+.inv-bce-prox,
+.inv-bce-prox .inv-na { color: var(--muted-2); }
 .inv-bce-num,
 .inv-bce-cab > span:nth-child(n+2) { text-align: right; }
 /* Lo que falta para llegar a la EMA de 200 semanas y al máximo, cada porcentaje

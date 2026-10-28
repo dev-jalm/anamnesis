@@ -2505,6 +2505,35 @@ group('Lista de seguimiento', function () {
   test('un balance anterior a todas las velas no tiene referencia: null', function () {
     assertEqual(movimientoTrasBalance(serie, Date.parse('2020-01-02T12:30:00Z'), 7), null);
   });
+  // Velas semanales con la fecha del viernes, de 2021-01-08 a 2026-10-23; cierran en 100 hasta el 02/10/2026
+  // y en 200 desde el 09/10, la semana del balance de prueba.
+  const semanal = (function () {
+    const fecha = [];
+    const cierre = [];
+    for (let t = Date.parse('2021-01-08T20:00:00Z'); t <= Date.parse('2026-10-23T20:00:00Z'); t += 7 * 86400000) {
+      fecha.push(t / 1000);
+      cierre.push(t >= Date.parse('2026-10-09T00:00:00Z') ? 200 : 100);
+    }
+    return { fecha: fecha, cierre: cierre };
+  })();
+  test('el precio al balance es el cierre de referencia, con su día', function () {
+    assertEqual(precioAlBalance(serie, BMO), { precio: 100, dia: '2026-10-07' });
+    assertEqual(precioAlBalance(serie, AMC), { precio: 110, dia: '2026-10-08' });
+    assertEqual(precioAlBalance(null, BMO), null);
+    assertEqual(precioAlBalance(serie, Date.parse('2020-01-02T12:30:00Z')), null);
+  });
+  test('la EMA al balance es la de la última semana cerrada antes de él: la semana del balance no entra', function () {
+    // Con la semana del 09/10 (cierra en 200) la EMA subiría de 100; sin ella queda en 100.
+    assertAlmost(emaAlBalance(semanal, BMO), 100, 1e-9);
+  });
+  test('la EMA de un balance posterior sí incluye lo que pasó entre medio', function () {
+    assert(emaAlBalance(semanal, Date.parse('2026-10-22T12:30:00Z')) > 100, 'ya incluye las semanas a 200');
+  });
+  test('sin 200 semanas de historia, o sin velas, no hay EMA al balance: null', function () {
+    assertEqual(emaAlBalance({ fecha: semanal.fecha.slice(0, 150), cierre: semanal.cierre.slice(0, 150) }, BMO), null);
+    assertEqual(emaAlBalance(null, BMO), null);
+    assertEqual(emaAlBalance(semanal, NaN), null);
+  });
   test('los últimos balances salen del más reciente al más viejo, sin futuros ni vacíos, con su movimiento', function () {
     const t = function (iso) { return Date.parse(iso) / 1000; };
     const hoy = Date.parse('2026-10-26T12:00:00Z');
@@ -2512,7 +2541,9 @@ group('Lista de seguimiento', function () {
       bal(t('2026-01-20T12:30:00Z'), 1, 1, 1, 1), bal(t('2026-10-08T12:30:00Z'), 2.34, 2.29, 25274, 24952),
       bal(t('2026-07-09T12:30:00Z'), 2.2, 2.1, 24000, 23900), bal(t('2027-01-20T12:30:00Z'), null, 2.4, null, 25500),
       bal(t('2026-04-10T12:30:00Z'), null, 2, null, 1)
-    ], serie, hoy, 3);
+    ], serie, hoy, 3, semanal);
+    assertEqual(r[0].precio.precio, 100);
+    assertAlmost(r[0].ema200, 100, 1e-9);
     assertEqual(r.map(function (x) { return x.ms; }), [Date.parse('2026-10-08T12:30:00Z'), Date.parse('2026-07-09T12:30:00Z'), Date.parse('2026-01-20T12:30:00Z')]);
     assertAlmost(r[0].d7.pct, 20, 1e-9);
     assertAlmost(r[0].d15.pct, 30, 1e-9);
@@ -2534,6 +2565,16 @@ group('Lista de seguimiento', function () {
     assertAlmost(r.d7.pct, 20, 1e-9);
     assertEqual(resumenDeBalance(null, 0), null);
   });
+  test('el resumen de un balance da el precio, la EMA y a cuánto estaba el precio de ella', function () {
+    const hoy = Date.parse('2026-10-28T12:00:00Z');
+    const arriba = resumenDeBalance(balancesConMovimiento([bal(BMO / 1000, 2, 2, 1, 1)], serie, hoy, 1, { fecha: semanal.fecha, cierre: semanal.cierre.map(function () { return 80; }) })[0], hoy);
+    assertEqual(arriba.precio.precio, 100);
+    assertAlmost(arriba.ema, 80, 1e-9);
+    assertAlmost(arriba.distanciaEma, 25, 1e-9);
+    const sinEma = resumenDeBalance(balancesConMovimiento([bal(BMO / 1000, 2, 2, 1, 1)], serie, hoy, 1, null)[0], hoy);
+    assertEqual(sinEma.ema, null);
+    assertEqual(sinEma.distanciaEma, null);
+  });
   test('el resumen lleva los últimos balances guardados junto a los datos, del más reciente al más viejo', function () {
     const hoy = Date.parse('2026-10-28T12:00:00Z');
     const guardados = balancesConMovimiento([bal(BMO / 1000, 2.34, 2.2949, 25274, 24952.8673),
@@ -2542,10 +2583,60 @@ group('Lista de seguimiento', function () {
     assertEqual(r.ultimos.map(function (x) { return x.fecha; }), ['08/10', '09/07']);
     assertEqual(resumenDeSeguimiento(base, AHORA).ultimos, []);
   });
-  test('el próximo balance sólo existe si la fecha no pasó: la de un balance ya publicado no es el próximo', function () {
-    assertEqual(resumenDeSeguimiento(base, AHORA).proximo, '04/11 · en 9 días');
-    assertEqual(resumenDeSeguimiento(Object.assign({}, base, { earnings: 'Oct 15 AMC' }), AHORA).proximo, null);
-    assertEqual(resumenDeSeguimiento(Object.assign({}, base, { earnings: null }), AHORA).proximo, null);
+  // — El balance que viene —
+  const futuro = function (iso, eps, ventas, extra) {
+    return Object.assign({ fecha: Date.parse(iso) / 1000, periodo: '2027Q1', epsPublicado: null, epsEsperado: eps, ventasPublicadas: null, ventasEsperadas: ventas }, extra || {});
+  };
+  test('el balance que viene es el primero sin resultado, con lo que se espera de él', function () {
+    const hoy = Date.parse('2026-10-26T12:00:00Z');
+    const p = proximoBalanceDeFinviz([bal(Date.parse('2026-07-09T12:30:00Z') / 1000, 2.2, 2.1, 24000, 23900),
+      futuro('2027-01-28T21:30:00Z', 5, 95000), futuro('2026-10-28T20:30:00Z', 4.72, 90617)], hoy);
+    assertEqual(p.ms, Date.parse('2026-10-28T20:30:00Z'));
+    assertEqual(p.epsEsperado, 4.72);
+    assertEqual(p.ventasEsperadas, 90617);
+    assertEqual(p.periodo, '2027Q1');
+  });
+  test('un balance sin confirmar sigue siendo el que viene unos días después de su fecha, pero no semanas', function () {
+    const sinConfirmar = futuro('2026-10-28T20:30:00Z', 4.72, 90617);
+    assertEqual(proximoBalanceDeFinviz([sinConfirmar], Date.parse('2026-10-30T12:00:00Z')).ms, Date.parse('2026-10-28T20:30:00Z'));
+    assertEqual(proximoBalanceDeFinviz([sinConfirmar], Date.parse('2026-11-15T12:00:00Z')), null);
+  });
+  test('sin balances futuros, o publicados, no hay balance que viene: null', function () {
+    assertEqual(proximoBalanceDeFinviz([bal(Date.parse('2026-07-09T12:30:00Z') / 1000, 2.2, 2.1, 24000, 23900)], Date.parse('2026-10-26T12:00:00Z')), null);
+    assertEqual(proximoBalanceDeFinviz(null, Date.parse('2026-10-26T12:00:00Z')), null);
+  });
+  test('un estimado que falta queda en null, no en cero', function () {
+    const p = proximoBalanceDeFinviz([futuro('2026-10-28T20:30:00Z', null, undefined)], Date.parse('2026-10-26T12:00:00Z'));
+    assertEqual(p.epsEsperado, null);
+    assertEqual(p.ventasEsperadas, null);
+  });
+  test('el resumen del que viene dice la fecha en Argentina, los días y los estimados', function () {
+    const hoy = Date.parse('2026-10-26T12:00:00Z');
+    const p = proximoBalanceDeFinviz([futuro('2026-10-28T20:30:00Z', 4.72, 90617)], hoy);
+    const r = resumenDeProximoBalance(p, null, hoy);
+    assertEqual(r.fecha, '28/10');
+    assertEqual(r.dias, 2);
+    assertEqual(r.epsEsperado, 4.72);
+    assertEqual(r.ventasEsperadas, 90617);
+  });
+  test('un balance que ya pasó y no se confirmó tiene días negativos', function () {
+    const p = proximoBalanceDeFinviz([futuro('2026-10-28T20:30:00Z', 4.72, 90617)], Date.parse('2026-10-30T12:00:00Z'));
+    assertEqual(resumenDeProximoBalance(p, null, Date.parse('2026-10-30T12:00:00Z')).dias, -2);
+  });
+  test('si la ficha no lista el balance, la fecha de la tabla lo reemplaza, sin estimados', function () {
+    const r = resumenDeProximoBalance(null, 'Nov 04 AMC', AHORA);
+    assertEqual(r.fecha, '04/11');
+    assertEqual(r.dias, 9);
+    assertEqual(r.epsEsperado, null);
+  });
+  test('una fecha de la tabla que ya pasó no es un balance que viene', function () {
+    assertEqual(resumenDeProximoBalance(null, 'Oct 15 AMC', AHORA), null);
+    assertEqual(resumenDeProximoBalance(null, null, AHORA), null);
+  });
+  test('el resumen de seguimiento lleva el balance que viene', function () {
+    assertEqual(resumenDeSeguimiento(base, AHORA).siguiente.fecha, '04/11');
+    assertEqual(resumenDeSeguimiento(Object.assign({}, base, { earnings: 'Oct 15 AMC' }), AHORA).siguiente, null);
+    assertEqual(resumenDeSeguimiento(Object.assign({}, base, { earnings: null }), AHORA).siguiente, null);
   });
   test('el próximo balance dice la fecha y cuántos días faltan', function () {
     const r = resumenDeSeguimiento(base, AHORA);

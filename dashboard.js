@@ -21423,7 +21423,9 @@ function traerFundamentales(ticker, moneda, btn) {
       // Y los tres últimos balances publicados, contra lo esperado y con cómo se
       // movió el precio después: es lo que se guarda de los doce balances y las
       // 520 velas diarias que trae la ficha.
-      r.datos.ultimosBalances = balancesConMovimiento(cuerpo.balances, cuerpo.diaria, Date.now(), 3);
+      r.datos.ultimosBalances = balancesConMovimiento(cuerpo.balances, cuerpo.diaria, Date.now(), 3, cuerpo.semanal);
+      // Y el que viene, con lo que se espera de él.
+      r.datos.proximoBalance = proximoBalanceDeFinviz(cuerpo.balances, Date.now());
       const perfil = perfilDeFinviz(cuerpo.cabecera);
       return traerPromediosDeSector().then(function (grupos) {
         if (!state.tickerInfo) state.tickerInfo = {};
@@ -22741,13 +22743,17 @@ function htmlListaSeguimiento() {
         '<span class="inv-rango-extremo">' + usd(r.max) + '</span>' +
       '</span>';
     }
-    // Los tres últimos balances publicados, del más reciente al más viejo, en una
-    // mini tabla: cuándo salió cada uno, cuánto se alejaron de lo esperado las
-    // ganancias por acción (EPS) y los ingresos, y cómo se movió el precio a los 7
-    // y a los 15 días. Verde lo que superó o subió y rojo lo que quedó por debajo o
-    // bajó, el criterio de la app; un guion donde la ventana todavía no terminó.
+    // Los balances en una mini tabla de hasta cuatro filas. Arriba, en gris, el que
+    // viene, con lo que se espera de él si Finviz lo trae: el gris dice que todavía
+    // no es un dato, y cuando se publique y se confirme esa fila pasa a ser la de
+    // arriba de las publicadas. Debajo, los tres últimos presentados, del más
+    // reciente al más viejo: cuándo salió cada uno, el precio de entonces y la EMA de
+    // 200 semanas que tenía, cuánto se alejaron de lo esperado las ganancias por
+    // acción (EPS) y los ingresos, y cómo se movió el precio a los 7 y a los 15 días.
+    // Verde lo que superó o subió y rojo lo que quedó por debajo o bajó, el criterio
+    // de la app; un guion donde la ventana todavía no terminó.
     let ultimos = guion;
-    if (r.ultimos.length) {
+    if (r.ultimos.length || r.siguiente) {
       const dd = function (iso) { return iso.slice(8, 10) + '/' + iso.slice(5, 7); };
       const signado = function (n, fmt) { return (n > 0 ? '+' : (n < 0 ? '−' : '')) + fmt.format(Math.abs(n)) + '%'; };
       const tono = function (n) { return n > 0 ? ' inv-cal-sor-pos' : (n < 0 ? ' inv-cal-sor-neg' : ''); };
@@ -22768,11 +22774,44 @@ function htmlListaSeguimiento() {
               'A los ' + dias + ' días: US$ ' + FUNDAMENTALES_N2.format(m.precio) + ' (' + dd(m.dia) + ').'].join('\n')) + '>' +
           signado(m.pct, FUNDAMENTALES_N1) + '</span>';
       };
+      const precioDelBalance = function (b) {
+        if (!b.precio) return vacio;
+        return '<span class="inv-bce-num"' + tipAttrs('Precio al balance' + (b.periodo ? ' ' + b.periodo : ''),
+          'Cierre de referencia: US$ ' + FUNDAMENTALES_N2.format(b.precio.precio) + ' (' + dd(b.precio.dia) + ').\nEs el último cierre antes de que el precio reaccionara al balance.') + '>' +
+          FUNDAMENTALES_N2.format(b.precio.precio) + '</span>';
+      };
+      const emaDelBalance = function (b) {
+        if (b.ema === null) return vacio;
+        const dist = b.distanciaEma;
+        return '<span class="inv-bce-num inv-falta-ema"' + tipAttrs('EMA de 200 semanas al balance' + (b.periodo ? ' ' + b.periodo : ''),
+          ['Valor: US$ ' + FUNDAMENTALES_N2.format(b.ema) + ', el de la última semana cerrada antes del balance.'].concat(dist === null ? [] :
+            ['El precio estaba ' + FUNDAMENTALES_N2.format(Math.abs(dist)) + '% ' + (dist < 0 ? 'por debajo' : (dist > 0 ? 'por encima' : 'justo en')) + (dist === 0 ? ' su EMA.' : ' de su EMA.')]).join('\n')) + '>' +
+          FUNDAMENTALES_N2.format(b.ema) + '</span>';
+      };
       const usdEps = function (n) { return n === null ? '—' : 'US$ ' + FUNDAMENTALES_N2.format(n); };
       const usdVentas = function (n) { return n === null ? '—' : 'US$ ' + FUNDAMENTALES_N0.format(n) + ' M'; };
-      ultimos = r.ultimos.map(function (b) {
+      let proxima = '';
+      if (r.siguiente) {
+        const p = r.siguiente;
+        const cuando = p.dias === 0 ? 'hoy' : (p.dias === 1 ? 'mañana' : (p.dias > 1 ? 'en ' + p.dias + ' días'
+          : 'hace ' + (-p.dias) + (p.dias === -1 ? ' día' : ' días') + ', todavía sin confirmar'));
+        const aviso = 'Todavía no se publicó: cuando salga y se confirme, esta fila pasa a mostrar la sorpresa y el movimiento del precio.';
+        const esperado = function (n, nombre, frase, celda) {
+          if (n === null) return vacio;
+          return '<span class="inv-bce-num"' + tipAttrs('Balance' + (p.periodo ? ' ' + p.periodo : '') + ' · ' + nombre, frase + '.\n' + aviso) + '>' + celda + '</span>';
+        };
+        proxima = '<span class="inv-bce-fila inv-bce-prox">' +
+          '<span class="inv-bce-fecha"' + tipAttrs('Próximo balance' + (p.periodo ? ' ' + p.periodo : ''), 'Se presenta el ' + p.fecha + ' (' + cuando + ').\n' + aviso) + '>' + p.fecha + '</span>' +
+          vacio + vacio +
+          esperado(p.epsEsperado, 'Ganancia por acción (EPS)', 'EPS esperado por los analistas: ' + usdEps(p.epsEsperado), FUNDAMENTALES_N2.format(p.epsEsperado)) +
+          esperado(p.ventasEsperadas, 'Ingresos', 'Ingresos esperados por los analistas: ' + usdVentas(p.ventasEsperadas), FUNDAMENTALES_N0.format(p.ventasEsperadas) + 'M') +
+          vacio + vacio +
+        '</span>';
+      }
+      ultimos = proxima + r.ultimos.map(function (b) {
         return '<span class="inv-bce-fila">' +
           '<span class="inv-bce-fecha"' + tipAttrs('Balance' + (b.periodo ? ' ' + b.periodo : ''), 'Presentado el ' + b.fecha + ', hace ' + b.dias + (b.dias === 1 ? ' día.' : ' días.')) + '>' + b.fecha + '</span>' +
+          precioDelBalance(b) + emaDelBalance(b) +
           sorpresa(b, 'Ganancia por acción (EPS)', b.eps, usdEps) + sorpresa(b, 'Ingresos', b.ventas, usdVentas) +
           movimiento(b, b.d7, 7) + movimiento(b, b.d15, 15) +
         '</span>';
@@ -22801,15 +22840,14 @@ function htmlListaSeguimiento() {
         '" data-moneda="USD" value="' + escapeHtmlSafe(desc).replace(/"/g, '&quot;') +
         '" placeholder="EJ: APPLE INC."></span>' +
       rango +
-      '<span>' + (r.proximo ? escapeHtmlSafe(r.proximo) : guion) + '</span>' +
       '<span class="inv-bce">' + ultimos + '</span>' +
       '<span class="inv-cal-num inv-cal-ref">' + (dias === null ? guion : (dias === 0 ? 'hoy' : 'hace ' + dias + (dias === 1 ? ' día' : ' días'))) + '</span>' +
     '</div>';
   });
   return banda + '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Descripción</span>' +
     '<span' + tipAttrs('Rango de 52 semanas', 'Arriba, el precio actual. Abajo, lo que le falta al precio para tocar la EMA de 200 semanas (azul) y, bajo el máximo, para volver a él. EMA: media móvil exponencial, un promedio del precio que pesa más lo reciente y que muchos miran como piso de largo plazo.') + '>Rango de 52 semanas</span>' +
-    '<span>Próx. balance</span><span class="inv-bce-cab"' + tipAttrs('Últimos balances', 'Los tres últimos balances presentados. EPS: ganancia por acción. EPS e ingresos, contra lo esperado; +7 d y +15 d, cuánto se movió el precio a los 7 y 15 días del balance, contra el cierre previo.') + '>' +
-    '<span>Balance</span><span>EPS</span><span>Ingresos</span><span>+7 d</span><span>+15 d</span></span><span>Consulta</span></div>' +
+    '<span class="inv-bce-cab"' + tipAttrs('Balances', 'Arriba, en gris, el balance que viene con lo que esperan los analistas; debajo, los tres últimos presentados. Precio y EMA200: el cierre de referencia del balance y la EMA de 200 semanas de entonces, en dólares. EPS (ganancia por acción) e ingresos, contra lo esperado. +7 d y +15 d: cuánto se movió el precio a los 7 y 15 días del balance, contra el cierre previo.') + '>' +
+    '<span>Balance</span><span>Precio</span><span>EMA200</span><span>EPS</span><span>Ingresos</span><span>+7 d</span><span>+15 d</span></span><span>Consulta</span></div>' +
     filas.join('');
 }
 
