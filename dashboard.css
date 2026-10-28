@@ -8297,11 +8297,24 @@ select.inv-plan-in { cursor: pointer; }
 }
 .inv-bce-fila { font-size: 11px; line-height: 14px; }
 .inv-bce-fecha { color: var(--muted); font-size: 10px; }
+/* Los datos del balance —fecha, precio, EMA, EPS e ingresos— sobre un fondo propio, para
+   distinguirlos de lo que se movió el precio antes y después. Es una subgrilla de las cinco
+   columnas del medio, así que cada dato sigue en la columna de su título; el fondo se estira
+   3px con una sombra, que no ocupa lugar, para cubrir la separación entre columnas. */
+.inv-bce-datos {
+  grid-column: 3 / span 5;
+  display: grid;
+  grid-template-columns: subgrid;
+  background: rgba(212, 162, 76, 0.1);
+  box-shadow: 0 0 0 3px rgba(212, 162, 76, 0.1);
+  border-radius: 3px;
+}
 /* El balance que viene, en gris: lo que muestra son estimados, no datos. */
 .inv-bce-prox,
 .inv-bce-prox .inv-na { color: var(--muted-2); }
 .inv-bce-num,
-.inv-bce-cab > span:not(:nth-child(3)) { text-align: right; }
+.inv-bce-cab > span,
+.inv-bce-datos > span:not(:first-child) { text-align: right; }
 /* La fecha queda entre dos columnas numéricas que van alineadas a la derecha: el −7 d
    termina pegado a su borde y el precio, de 6 caracteres (40px), deja a su izquierda lo
    que le sobra de su columna. Para que la fecha quede a la misma distancia de los dos se
@@ -8309,7 +8322,7 @@ select.inv-plan-in { cursor: pointer; }
    la tabla: ((ancho − fecha − 8 separaciones) / 8 columnas − 40px) / 2. Va con left y no con
    padding porque el texto puede ser más ancho que lo que queda de la celda. */
 .inv-bce-fecha,
-.inv-bce-cab > span:nth-child(3) {
+.inv-bce-cab > .inv-bce-datos > span:first-child {
   text-align: center;
   position: relative;
   left: max(0px, calc(((100cqw - 100px) / 8 - 40px) / 2));
