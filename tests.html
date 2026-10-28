@@ -2104,14 +2104,14 @@ group('Calendario económico', function () {
     assertEqual(instanteDeFinviz(null), null);
   });
   // — La Fed —
-  test('la decisión de tasas, el comunicado y la conferencia del FOMC se siguen; las minutas no', function () {
+  test('del FOMC sólo se sigue la decisión de tasas; comunicado, conferencia y minutas no (no traen cifras)', function () {
     const e = function (evento, fecha) { return { id: evento, evento: evento, fecha: fecha, importancia: 3 }; };
     const r = calendarioRelevante([
       e('Fed Interest Rate Decision', '2026-10-28T14:00:00'), e('FOMC Statement', '2026-10-28T14:00:00'),
       e('Fed Press Conference', '2026-10-28T14:30:00'), e('FOMC Minutes', '2026-11-18T14:00:00'),
       e('Fed Musalem Speech', '2026-10-30T12:30:00'), e('Atlanta Fed GDPNow', '2026-10-28T11:00:00')
     ]);
-    assertEqual(r.map(function (x) { return x.corto; }), ['tasas', 'comunicado', 'conferencia']);
+    assertEqual(r.map(function (x) { return x.corto; }), ['tasas']);
     assertEqual(r[0].grupo, 'fed');
     assertEqual(r[0].rotuloGrupo, 'FOMC');
     assertEqual(r[0].hora, '15:00');   // 14:00 de Nueva York con horario de verano
