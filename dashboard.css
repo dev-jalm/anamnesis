@@ -8283,6 +8283,9 @@ select.inv-plan-in { cursor: pointer; }
    EPS, ingresos, precio a 7 días y a 15—, con los números a la derecha como en el
    resto de las tablas. La EMA va en el azul de su línea en la barra del rango. */
 .inv-bce { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* Contenedores de medida: la fecha se acomoda según el ancho de las columnas vecinas (abajo). */
+.inv-bce,
+.inv-bce-cab { container-type: inline-size; }
 .inv-bce-fila,
 .inv-bce-cab {
   display: grid;
@@ -8297,10 +8300,18 @@ select.inv-plan-in { cursor: pointer; }
 .inv-bce-prox .inv-na { color: var(--muted-2); }
 .inv-bce-num,
 .inv-bce-cab > span:not(:nth-child(3)) { text-align: right; }
-/* La fecha queda entre dos columnas numéricas: centrada, con su título, para que no se
-   pegue al −7 d ni al precio. */
+/* La fecha queda entre dos columnas numéricas que van alineadas a la derecha: el −7 d
+   termina pegado a su borde y el precio, de 6 caracteres (40px), deja a su izquierda lo
+   que le sobra de su columna. Para que la fecha quede a la misma distancia de los dos se
+   corre a la derecha la mitad de lo que le sobra a esa columna, que depende del ancho de
+   la tabla: ((ancho − fecha − 8 separaciones) / 8 columnas − 40px) / 2. Va con left y no con
+   padding porque el texto puede ser más ancho que lo que queda de la celda. */
 .inv-bce-fecha,
-.inv-bce-cab > span:nth-child(3) { text-align: center; padding-left: 7px; }
+.inv-bce-cab > span:nth-child(3) {
+  text-align: center;
+  position: relative;
+  left: max(0px, calc(((100cqw - 100px) / 8 - 40px) / 2));
+}
 /* Lo que falta para llegar a la EMA de 200 semanas y al máximo, cada porcentaje
    en el color de lo que mide: el azul de la línea de la EMA, y para el máximo el
    mismo del máximo en el rango de 52 semanas (.inv-rango-extremo). Cuando ya está
