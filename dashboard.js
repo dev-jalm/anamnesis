@@ -22707,7 +22707,7 @@ function htmlListaSeguimiento() {
           tipAttrs('Distancia al mínimo de 52 semanas', bajar === 0
             ? 'El precio está en el mínimo del año (' + usd(r.min) + ').'
             : 'El precio tendría que bajar ' + FUNDAMENTALES_N2.format(bajar) + '% para llegar al mínimo del año (' + usd(r.min) + ').') + '>' +
-          (bajar === 0 ? 'EN MÍNIMO' : '« −' + FUNDAMENTALES_N2.format(bajar) + '%') + '</span>';
+          (bajar === 0 ? 'EN MÍNIMO' : '−' + FUNDAMENTALES_N2.format(bajar) + '% «') + '</span>';
       }
       // El orden de desempate es el de la vida real: ante valores iguales, el mínimo
       // antes que el precio y el máximo después.
