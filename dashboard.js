@@ -22698,10 +22698,21 @@ function htmlListaSeguimiento() {
             : 'El precio tendría que subir ' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '% para volver al máximo del año (' + usd(r.max) + ').') + '>' +
           (enMax ? 'EN MÁXIMO' : '+' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '% »') + '</span>';
       }
+      // Lo que le falta para llegar al mínimo, en %: negativo, con la flecha hacia el
+      // mínimo; en el mínimo dice EN MÍNIMO.
+      let faltaMin = '';
+      if (r.precio !== null && r.min !== null && r.precio > 0) {
+        const bajar = Math.max(0, (1 - r.min / r.precio) * 100);
+        faltaMin = '<span class="inv-rango-falta inv-falta-min' + (bajar === 0 ? ' inv-ema-toca' : '') + '"' +
+          tipAttrs('Distancia al mínimo de 52 semanas', bajar === 0
+            ? 'El precio está en el mínimo del año (' + usd(r.min) + ').'
+            : 'El precio tendría que bajar ' + FUNDAMENTALES_N2.format(bajar) + '% para llegar al mínimo del año (' + usd(r.min) + ').') + '>' +
+          (bajar === 0 ? 'EN MÍNIMO' : '« −' + FUNDAMENTALES_N2.format(bajar) + '%') + '</span>';
+      }
       // El orden de desempate es el de la vida real: ante valores iguales, el mínimo
       // antes que el precio y el máximo después.
       const puntos = [
-        { cls: 'inv-rango-min', ref: 'MÍN', v: r.min, rango: 0, falta: '' },
+        { cls: 'inv-rango-min', ref: 'MÍN', v: r.min, rango: 0, falta: faltaMin },
         { cls: 'inv-rango-precio', ref: 'PRECIO', v: r.precio, rango: 1, falta: '' },
         { cls: 'inv-rango-ema', ref: 'EMA', v: r.ema, rango: 2, falta: faltaEma,
           tip: tipAttrs('EMA de 200 semanas', 'Valor de la media móvil exponencial de 200 semanas.' + (r.fueraEma
@@ -22789,19 +22800,20 @@ function htmlListaSeguimiento() {
           return '<span class="inv-bce-num"' + tipAttrs('Balance' + (p.periodo ? ' ' + p.periodo : '') + ' · ' + nombre, frase + '.\n' + aviso) + '>' + celda + '</span>';
         };
         proxima = '<span class="inv-bce-fila inv-bce-prox">' +
+          vacio + vacio +
           '<span class="inv-bce-fecha"' + tipAttrs('Próximo balance' + (p.periodo ? ' ' + p.periodo : ''), 'Se presenta el ' + p.fecha + ' (' + cuando + ').\n' + aviso) + '>' + p.fecha + '</span>' +
           vacio + vacio +
           esperado(p.epsEsperado, 'Ganancia por acción (EPS)', 'EPS esperado por los analistas: ' + usdEps(p.epsEsperado), FUNDAMENTALES_N2.format(p.epsEsperado)) +
           esperado(p.ventasEsperadas, 'Ingresos', 'Ingresos esperados por los analistas: ' + usdVentas(p.ventasEsperadas), FUNDAMENTALES_N0.format(p.ventasEsperadas) + 'M') +
-          vacio + vacio + vacio + vacio +
+          vacio + vacio +
         '</span>';
       }
       ultimos = proxima + r.ultimos.map(function (b) {
         return '<span class="inv-bce-fila">' +
+          previo(b, b.p15, 15) + previo(b, b.p7, 7) +
           '<span class="inv-bce-fecha"' + tipAttrs('Balance' + (b.periodo ? ' ' + b.periodo : ''), 'Presentado el ' + b.fecha + ', hace ' + b.dias + (b.dias === 1 ? ' día.' : ' días.')) + '>' + b.fecha + '</span>' +
           precioDelBalance(b) + emaDelBalance(b) +
           sorpresa(b, 'Ganancia por acción (EPS)', b.eps, usdEps) + sorpresa(b, 'Ingresos', b.ventas, usdVentas) +
-          previo(b, b.p15, 15) + previo(b, b.p7, 7) +
           movimiento(b, b.d7, 7) + movimiento(b, b.d15, 15) +
         '</span>';
       }).join('');
@@ -22847,9 +22859,9 @@ function htmlListaSeguimiento() {
     '</div>';
   });
   return banda + '<div class="inv-seg-titulos"><span></span><span>Activo | Descripción</span>' +
-    '<span' + tipAttrs('Rango de 52 semanas', 'El mínimo, el precio actual, la EMA de 200 semanas (azul) y el máximo, ordenados por valor y a igual distancia: es una referencia de orden, no una escala. Arriba de cada punto, qué es; abajo, su valor y, bajo la EMA y el máximo, lo que le falta al precio para llegar. EMA: media móvil exponencial, un promedio del precio que pesa más lo reciente y que muchos miran como piso de largo plazo.') + '>Rango de 52 semanas</span>' +
+    '<span' + tipAttrs('Rango de 52 semanas', 'El mínimo, el precio actual, la EMA de 200 semanas (azul) y el máximo, ordenados por valor y a igual distancia: es una referencia de orden, no una escala. Arriba de cada punto, qué es; abajo, su valor y, bajo el mínimo, la EMA y el máximo, lo que le falta al precio para llegar. EMA: media móvil exponencial, un promedio del precio que pesa más lo reciente y que muchos miran como piso de largo plazo.') + '>Rango de 52 semanas</span>' +
     '<span class="inv-bce-cab"' + tipAttrs('Balances', 'Arriba, en gris, el balance que viene con lo que esperan los analistas; debajo, los tres últimos presentados. Precio y EMA200: el cierre de referencia del balance y la EMA de 200 semanas de entonces, en dólares. EPS (ganancia por acción) e ingresos, contra lo esperado. −15 d y −7 d: cuánto se movió el precio en los 15 y 7 días anteriores al balance, hasta su cierre previo. +7 d y +15 d: cuánto se movió a los 7 y 15 días después, contra ese mismo cierre.') + '>' +
-    '<span>Balance</span><span>Precio</span><span>EMA200</span><span>EPS</span><span>Ingresos</span><span>−15 d</span><span>−7 d</span><span>+7 d</span><span>+15 d</span></span><span>Consulta</span></div>' +
+    '<span>−15 d</span><span>−7 d</span><span>Balance</span><span>Precio</span><span>EMA200</span><span>EPS</span><span>Ingresos</span><span>+7 d</span><span>+15 d</span></span><span>Consulta</span></div>' +
     filas.join('');
 }
 

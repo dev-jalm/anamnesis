@@ -8286,7 +8286,7 @@ select.inv-plan-in { cursor: pointer; }
 .inv-bce-fila,
 .inv-bce-cab {
   display: grid;
-  grid-template-columns: 40px repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr)) 40px repeat(6, minmax(0, 1fr));
   gap: 6px;
   white-space: nowrap;
 }
@@ -8296,13 +8296,17 @@ select.inv-plan-in { cursor: pointer; }
 .inv-bce-prox,
 .inv-bce-prox .inv-na { color: var(--muted-2); }
 .inv-bce-num,
-.inv-bce-cab > span:nth-child(n+2) { text-align: right; }
+.inv-bce-cab > span:not(:nth-child(3)) { text-align: right; }
+/* La fecha queda entre dos columnas numéricas: un poco de aire para que no se pegue al −7 d. */
+.inv-bce-fecha,
+.inv-bce-cab > span:nth-child(3) { padding-left: 6px; }
 /* Lo que falta para llegar a la EMA de 200 semanas y al máximo, cada porcentaje
    en el color de lo que mide: el azul de la línea de la EMA, y para el máximo el
    mismo del máximo en el rango de 52 semanas (.inv-rango-extremo). Cuando ya está
    ahí, el mismo color y con peso. */
 .inv-falta-ema { color: var(--blue); }
-.inv-falta-max { color: var(--muted); }
+.inv-falta-max,
+.inv-falta-min { color: var(--muted); }
 .inv-ema-toca { font-weight: 700; }
 /* El rango del último año: una línea con cuatro puntos —mínimo, precio, EMA y máximo, por
    orden de valor y a la misma distancia— con la referencia arriba de cada uno, su valor
