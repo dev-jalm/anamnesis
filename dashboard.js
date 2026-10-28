@@ -22683,7 +22683,7 @@ function htmlListaSeguimiento() {
     let almax = guion;
     if (r.faltaParaMaximo !== null) {
       const enMax = r.faltaParaMaximo === 0;
-      almax = '<span class="inv-ema' + (enMax ? ' inv-ema-toca' : '') + '"' +
+      almax = '<span class="inv-falta-max' + (enMax ? ' inv-ema-toca' : '') + '"' +
         tipAttrs('Distancia al máximo de 52 semanas', enMax
           ? 'El precio está en el máximo del año (' + usd(r.max) + ').'
           : 'El precio tendría que subir ' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '% para volver al máximo del año (' + usd(r.max) + ').') + '>' +
@@ -22698,7 +22698,7 @@ function htmlListaSeguimiento() {
       detalle.push(r.tocaEma
         ? 'La semana en curso la está tocando.'
         : 'El precio tendría que ' + (falta < 0 ? 'bajar ' : 'subir ') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '% para tocarla.');
-      ema = '<span class="inv-ema' + (r.tocaEma ? ' inv-ema-toca' : '') + '"' + tipAttrs('Distancia a la EMA de 200 semanas', detalle.join('\n')) + '>' +
+      ema = '<span class="inv-falta-ema' + (r.tocaEma ? ' inv-ema-toca' : '') + '"' + tipAttrs('Distancia a la EMA de 200 semanas', detalle.join('\n')) + '>' +
         (r.tocaEma ? 'TOCANDO' : (falta > 0 ? '+' : '−') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '%') +
       '</span>';
     }

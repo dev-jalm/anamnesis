@@ -8265,9 +8265,13 @@ select.inv-plan-in { cursor: pointer; }
 .inv-seg-titulos span:nth-child(6),
 .inv-seg-titulos span:nth-child(7),
 .inv-seg-titulos span:nth-child(9) { text-align: right; }
-/* Lo que falta para tocar la EMA de 200 semanas. Tocándola se pinta con el
-   acento, el color con el que la app señala lo que hay que mirar. */
-.inv-ema-toca { color: var(--accent); font-weight: 700; }
+/* Lo que falta para llegar al máximo y a la EMA de 200 semanas, cada porcentaje
+   en el color de su línea en la barra del rango: el del precio (acento) para el
+   máximo y el azul de la EMA para ella. Cuando ya está ahí, el mismo color y con
+   peso. */
+.inv-falta-max { color: var(--accent); }
+.inv-falta-ema { color: var(--blue); }
+.inv-ema-toca { font-weight: 700; }
 /* El rango del último año: el mínimo, la barra y el máximo en una línea. Con
    aire a los dos lados, que el precio de la izquierda y la fecha de la derecha
    no se pegan a los extremos: 20px de margen, y el mismo en el título. */
