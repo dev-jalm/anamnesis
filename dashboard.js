@@ -22669,14 +22669,27 @@ function htmlListaSeguimiento() {
           ? 'A ' + FUNDAMENTALES_N2.format(Math.abs(r.distanciaAlMaximo)) + '% por debajo del máximo.'
           : 'Por encima del máximo que tenía Finviz.');
       }
-      // Una etiqueta bajo la barra, centrada en su línea. En los extremos del rango
-      // se frena a `margen` % de cada borde: más cerca, el texto se saldría de la
-      // celda. Va en su propia fila para que el precio y la EMA no se pisen cuando
-      // sus líneas están cerca.
-      const etiqueta = function (pos, cls, html, tip, margen) {
-        const ancla = Math.min(100 - margen, Math.max(margen, pos));
-        return '<span class="inv-rango-etiqueta ' + cls + '" style="left:' + ancla.toFixed(1) + '%"' + (tip || '') + '>' + html + '</span>';
+      // Todo lo que va en la barra —las líneas, el punto y las etiquetas— se
+      // posiciona dentro de la propia barra y con el mismo porcentaje: así cada
+      // pieza queda exactamente sobre su línea, con el ancho que tenga la barra.
+      // Una etiqueta bajo la barra se centra en su línea; en los extremos se frena a
+      // un 10 % de cada borde, porque más cerca el texto se saldría de la celda.
+      const anclaDe = function (pos) { return Math.min(90, Math.max(10, pos)); };
+      // El precio y el valor de la EMA comparten fila. Si sus líneas están tan cerca
+      // que los textos se pisarían, cada uno se corre hacia afuera lo justo para
+      // dejar un carácter entre los dos. Los textos son monoespaciados: miden lo que
+      // tienen de caracteres, en ch, y la distancia entre líneas es un % del ancho
+      // de la barra, así que la cuenta se deja a CSS: max(0, S/2 − distancia/2).
+      let corrimiento = '0px';
+      if (r.posicionEma !== null && r.precio !== null) {
+        const separacion = Math.abs(anclaDe(r.posicionEma) - anclaDe(r.posicion));
+        const medios = (usd(r.precio).length + usd(r.ema).length) / 2 + 1;
+        corrimiento = 'max(0px, calc(' + (medios / 2) + 'ch - ' + (separacion / 2).toFixed(2) + '%))';
+      }
+      const etiqueta = function (pos, signo, cls, html, tip) {
+        return '<span class="inv-rango-etiqueta ' + cls + '" style="left:calc(' + anclaDe(pos).toFixed(1) + '% ' + signo + ' ' + corrimiento + ')"' + (tip || '') + '>' + html + '</span>';
       };
+      const emaALaIzquierda = r.posicionEma !== null && r.posicionEma <= r.posicion;
       // La EMA de 200 semanas, en la misma barra y con otro color: dónde queda
       // respecto del rango y del precio. Si cae fuera del rango del año se pega al
       // extremo, atenuada, y el emergente lo dice.
@@ -22687,9 +22700,9 @@ function htmlListaSeguimiento() {
           ? 'queda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.'
           : 'al ' + FUNDAMENTALES_N0.format(r.posicionEma) + '% del camino.'));
         marcaEma = '<span class="inv-rango-ema' + (r.fueraEma ? ' inv-rango-ema-fuera' : '') + '" style="left:' + r.posicionEma.toFixed(1) + '%"></span>';
-        valorEma = etiqueta(r.posicionEma, 'inv-falta-ema', usd(r.ema),
+        valorEma = etiqueta(r.posicionEma, emaALaIzquierda ? '-' : '+', 'inv-falta-ema', usd(r.ema),
           tipAttrs('EMA de 200 semanas', 'Valor de la media móvil exponencial de 200 semanas.' + (r.fueraEma
-            ? '\nQueda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.' : '')), 10);
+            ? '\nQueda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.' : '')));
       }
       // A la izquierda del punto, lo que le falta al precio para llegar a la EMA:
       // el % con su signo (negativo si tiene que bajar) y una flecha en el sentido
@@ -22714,23 +22727,18 @@ function htmlListaSeguimiento() {
             : 'El precio tendría que subir ' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '% para volver al máximo del año (' + usd(r.max) + ').') + '>' +
           (enMax ? 'EN MÁXIMO' : '» +' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '%') + '</span>';
       }
-      // Cuatro filas: el punto con sus dos porcentajes, la barra con sus extremos, el
-      // precio y el valor de la EMA. Las celdas vacías mantienen cada pieza en su
-      // columna.
+      // Tres filas: arriba, el punto con sus dos porcentajes; en el medio, la barra con
+      // su mínimo y su máximo; abajo, el precio y el valor de la EMA. Las filas de
+      // arriba y de abajo son espacio reservado por la grilla: lo que va en ellas
+      // cuelga de la barra.
       rango = '<span class="inv-rango"' + tipAttrs('Posición en el rango de 52 semanas', detalle.join('\n')) + '>' +
-        '<span></span>' +
-        '<span class="inv-rango-fila">' + (r.precio !== null
-          ? '<span class="inv-rango-ancla" style="left:' + r.posicion.toFixed(1) + '%"><span class="inv-punto"></span>' + faltaEma + faltaMax + '</span>' : '') + '</span>' +
-        '<span></span>' +
         '<span class="inv-rango-extremo">' + usd(r.min) + '</span>' +
-        '<span class="inv-rango-barra">' + marcaEma + '<span class="inv-rango-marca" style="left:' + r.posicion.toFixed(1) + '%"></span></span>' +
+        '<span class="inv-rango-barra">' + marcaEma + '<span class="inv-rango-marca" style="left:' + r.posicion.toFixed(1) + '%"></span>' +
+          (r.precio !== null
+            ? '<span class="inv-rango-ancla" style="left:' + r.posicion.toFixed(1) + '%"><span class="inv-punto"></span>' + faltaEma + faltaMax + '</span>' +
+              etiqueta(r.posicion, emaALaIzquierda ? '+' : '-', 'inv-rango-precio', usd(r.precio)) : '') +
+          valorEma + '</span>' +
         '<span class="inv-rango-extremo">' + usd(r.max) + '</span>' +
-        '<span></span>' +
-        '<span class="inv-rango-fila">' + (r.precio !== null ? etiqueta(r.posicion, 'inv-rango-precio', usd(r.precio), '', 10) : '') + '</span>' +
-        '<span></span>' +
-        '<span></span>' +
-        '<span class="inv-rango-fila">' + valorEma + '</span>' +
-        '<span></span>' +
       '</span>';
     }
     // Los tres últimos balances publicados, del más reciente al más viejo, en una

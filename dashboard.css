@@ -8292,15 +8292,17 @@ select.inv-plan-in { cursor: pointer; }
 .inv-falta-ema { color: var(--blue); }
 .inv-falta-max { color: var(--muted); }
 .inv-ema-toca { font-weight: 700; }
-/* El rango del último año en cuatro filas: un punto sobre la línea del precio con
-   lo que le falta para la EMA a su izquierda y para el máximo a su derecha; la
-   barra con el mínimo y el máximo a los lados; y debajo, en dos filas, el precio
-   bajo su línea y el valor de la EMA bajo la suya. Tres columnas —mínimo, barra,
-   máximo— que comparten todas las filas. Con aire a los dos lados, que no se
-   pegue a la descripción ni al balance: 12px de margen, y el mismo en el título. */
+/* El rango del último año en tres filas: arriba un punto sobre la línea del precio
+   con lo que le falta para la EMA a su izquierda y para el máximo a su derecha; en
+   el medio la barra con el mínimo y el máximo a los lados; y abajo, en una sola
+   línea, el precio bajo su línea y el valor de la EMA bajo la suya. La de arriba y
+   la de abajo son alto reservado: lo que va en ellas cuelga de la barra, con el
+   mismo porcentaje que las líneas. Con aire a los dos lados, que no se pegue a la
+   descripción ni al balance: 12px de margen, y el mismo en el título. */
 .inv-rango {
   display: grid;
   grid-template-columns: auto minmax(40px, 1fr) auto;
+  grid-template-rows: 12px auto 16px;
   column-gap: 8px;
   row-gap: 2px;
   align-items: center;
@@ -8308,16 +8310,27 @@ select.inv-plan-in { cursor: pointer; }
   margin: 0 12px;
 }
 .inv-seg-titulos > span:nth-child(4) { padding-left: 12px; }
-/* Las filas de etiquetas: una línea de alto fijo con las etiquetas posicionadas
-   por porcentaje sobre la barra. */
-.inv-rango-fila { position: relative; height: 12px; line-height: 12px; font-size: 11px; }
-.inv-rango-etiqueta { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+/* El mínimo y el máximo ocupan la fila del medio; las de arriba y abajo quedan
+   libres para lo que cuelga de la barra. */
+.inv-rango-extremo,
+.inv-rango-barra { grid-row: 2; }
+/* Las etiquetas de abajo, centradas en su línea y a 4px del riel, que es lo que
+   sobresale la línea. */
+.inv-rango-etiqueta {
+  position: absolute;
+  top: calc(100% + 4px);
+  transform: translateX(-50%);
+  height: 12px;
+  line-height: 12px;
+  font-size: 11px;
+  white-space: nowrap;
+}
 /* El precio, bajo su línea y en su tinta. */
 .inv-rango-precio { color: var(--ink); }
 /* El ancla es un punto sin ancho en la posición del precio: el punto queda sobre
    la línea y los dos porcentajes cuelgan de él, a 7px de cada lado. */
-.inv-rango-ancla { position: absolute; top: 0; width: 0; height: 12px; }
-.inv-punto { position: absolute; left: -3px; top: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+.inv-rango-ancla { position: absolute; top: -14px; width: 0; height: 12px; font-size: 11px; line-height: 12px; }
+.inv-punto { position: absolute; left: -3px; top: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
 .inv-precio-izq { position: absolute; right: 7px; top: 0; white-space: nowrap; }
 .inv-precio-der { position: absolute; left: 7px; top: 0; white-space: nowrap; }
 /* Lo que está por publicar va arriba y lo ya publicado debajo; el último de los
