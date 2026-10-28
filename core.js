@@ -1558,12 +1558,11 @@ const CALENDARIO_EVENTOS = {
   'GDP Growth Rate QoQ 2nd Est': ['pib', 'PIB trimestral (2.ª estimación)', '2.ª estimación'],
   'GDP Growth Rate QoQ Final': ['pib', 'PIB trimestral (final)', 'final'],
   // La Fed: la decisión de tasas, el comunicado y la conferencia de prensa salen
-  // el mismo día; las minutas, tres semanas después. El comunicado, la
-  // conferencia y las minutas no traen cifras: sólo la fecha y la hora.
+  // el mismo día. El comunicado y la conferencia no traen cifras: sólo la fecha y la
+  // hora. Las minutas ("FOMC Minutes", tres semanas después) no se siguen.
   'Fed Interest Rate Decision': ['fed', 'Decisión de tasas de la Fed', 'tasas'],
   'FOMC Statement': ['fed', 'Comunicado del FOMC', 'comunicado'],
-  'Fed Press Conference': ['fed', 'Conferencia de prensa de la Fed', 'conferencia'],
-  'FOMC Minutes': ['fed', 'Minutas del FOMC', 'minutas']
+  'Fed Press Conference': ['fed', 'Conferencia de prensa de la Fed', 'conferencia']
 };
 
 const CALENDARIO_ZONA_FINVIZ = 'America/New_York';
