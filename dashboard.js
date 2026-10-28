@@ -22656,8 +22656,11 @@ function htmlListaSeguimiento() {
     // El rango del último año como una barra: el mínimo al comienzo, el máximo
     // al final y una línea donde está el precio. Dice de un vistazo si el
     // precio está cerca de su piso o de su techo, que tres números sueltos no
-    // dicen. El emergente propio de la app, no el title.
-    let rango = guion;
+    // dicen. Los valores que antes eran columnas van acá, cada uno donde le toca:
+    // el precio sobre la barra, en su línea; lo que falta para la EMA de 200
+    // semanas debajo de la suya, en azul; y lo que falta para el máximo debajo del
+    // máximo, en su color. El emergente propio de la app, no el title.
+    let rango = r.precio !== null ? usd(r.precio) : guion;
     if (r.posicion !== null) {
       const detalle = ['Está al ' + FUNDAMENTALES_N0.format(r.posicion) + '% del camino entre el mínimo (0%) y el máximo (100%).'];
       if (r.distanciaAlMaximo !== null) {
@@ -22665,44 +22668,57 @@ function htmlListaSeguimiento() {
           ? 'A ' + FUNDAMENTALES_N2.format(Math.abs(r.distanciaAlMaximo)) + '% por debajo del máximo.'
           : 'Por encima del máximo que tenía Finviz.');
       }
+      // Una etiqueta sobre la barra, en el punto de su línea: con el desplazamiento
+      // igual al porcentaje, en el 0 % arranca en el borde izquierdo y en el 100 %
+      // termina en el derecho, y no se sale de la celda.
+      const etiqueta = function (pos, cls, html, tip) {
+        return '<span class="inv-rango-etiqueta ' + cls + '" style="left:' + pos.toFixed(1) + '%;transform:translateX(-' + pos.toFixed(1) + '%)"' +
+          (tip || '') + '>' + html + '</span>';
+      };
       // La EMA de 200 semanas, en la misma barra y con otro color: dónde queda
       // respecto del rango y del precio. Si cae fuera del rango del año se pega al
       // extremo, atenuada, y el emergente lo dice.
       let marcaEma = '';
+      let debajoEma = '';
       if (r.posicionEma !== null) {
         detalle.push('EMA de 200 semanas (' + usd(r.ema) + '): ' + (r.fueraEma
           ? 'queda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.'
           : 'al ' + FUNDAMENTALES_N0.format(r.posicionEma) + '% del camino.'));
         marcaEma = '<span class="inv-rango-ema' + (r.fueraEma ? ' inv-rango-ema-fuera' : '') + '" style="left:' + r.posicionEma.toFixed(1) + '%"></span>';
+        // Lo que le falta al precio para llegar a la EMA: el % con su signo
+        // (negativo si tiene que bajar).
+        if (r.faltaParaEma !== null) {
+          const falta = r.faltaParaEma;
+          const tip = tipAttrs('Distancia a la EMA de 200 semanas', ['EMA de 200 semanas: ' + usd(r.ema) + '.',
+            r.tocaEma ? 'La semana en curso la está tocando.'
+              : 'El precio tendría que ' + (falta < 0 ? 'bajar ' : 'subir ') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '% para tocarla.'].join('\n'));
+          debajoEma = etiqueta(r.posicionEma, 'inv-falta-ema' + (r.tocaEma ? ' inv-ema-toca' : ''),
+            'EMA ' + (r.tocaEma ? 'TOCANDO' : (falta > 0 ? '+' : '−') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '%'), tip);
+        }
       }
+      // Lo que le falta al precio para llegar al máximo, en %: siempre positivo;
+      // en el máximo dice EN MÁXIMO.
+      let faltaMax = '';
+      if (r.faltaParaMaximo !== null) {
+        const enMax = r.faltaParaMaximo === 0;
+        faltaMax = '<span class="inv-rango-pct inv-falta-max' + (enMax ? ' inv-ema-toca' : '') + '"' +
+          tipAttrs('Distancia al máximo de 52 semanas', enMax
+            ? 'El precio está en el máximo del año (' + usd(r.max) + ').'
+            : 'El precio tendría que subir ' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '% para volver al máximo del año (' + usd(r.max) + ').') + '>' +
+          (enMax ? 'EN MÁXIMO' : '+' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '%') + '</span>';
+      }
+      // Tres filas: el precio arriba, la barra con sus extremos en el medio y los
+      // porcentajes abajo. Las celdas vacías mantienen cada pieza en su columna.
       rango = '<span class="inv-rango"' + tipAttrs('Posición en el rango de 52 semanas', detalle.join('\n')) + '>' +
+        '<span></span>' +
+        '<span class="inv-rango-fila">' + (r.precio !== null ? etiqueta(r.posicion, 'inv-rango-precio', usd(r.precio)) : '') + '</span>' +
+        '<span></span>' +
         '<span class="inv-rango-extremo">' + usd(r.min) + '</span>' +
         '<span class="inv-rango-barra">' + marcaEma + '<span class="inv-rango-marca" style="left:' + r.posicion.toFixed(1) + '%"></span></span>' +
         '<span class="inv-rango-extremo">' + usd(r.max) + '</span>' +
-      '</span>';
-    }
-    // Lo que le falta al precio para llegar al máximo del año, en %: siempre
-    // positivo; en el máximo dice EN MÁXIMO, con el acento de la EMA tocada.
-    let almax = guion;
-    if (r.faltaParaMaximo !== null) {
-      const enMax = r.faltaParaMaximo === 0;
-      almax = '<span class="inv-falta-max' + (enMax ? ' inv-ema-toca' : '') + '"' +
-        tipAttrs('Distancia al máximo de 52 semanas', enMax
-          ? 'El precio está en el máximo del año (' + usd(r.max) + ').'
-          : 'El precio tendría que subir ' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '% para volver al máximo del año (' + usd(r.max) + ').') + '>' +
-        (enMax ? 'EN MÁXIMO' : '+' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '%') + '</span>';
-    }
-    // Lo que le falta al precio para llegar a la EMA de 200 semanas: el % con
-    // su signo (negativo si tiene que bajar), la EMA debajo en el emergente.
-    let ema = guion;
-    if (r.faltaParaEma !== null) {
-      const falta = r.faltaParaEma;
-      const detalle = ['EMA de 200 semanas: ' + usd(r.ema) + '.'];
-      detalle.push(r.tocaEma
-        ? 'La semana en curso la está tocando.'
-        : 'El precio tendría que ' + (falta < 0 ? 'bajar ' : 'subir ') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '% para tocarla.');
-      ema = '<span class="inv-falta-ema' + (r.tocaEma ? ' inv-ema-toca' : '') + '"' + tipAttrs('Distancia a la EMA de 200 semanas', detalle.join('\n')) + '>' +
-        (r.tocaEma ? 'TOCANDO' : (falta > 0 ? '+' : '−') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '%') +
+        '<span></span>' +
+        '<span class="inv-rango-fila">' + debajoEma + '</span>' +
+        faltaMax +
       '</span>';
     }
     // El último balance publicado: cuándo salió y, debajo, cuánto se alejaron las
@@ -22751,19 +22767,15 @@ function htmlListaSeguimiento() {
       '<span><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(item.ticker) +
         '" data-moneda="USD" value="' + escapeHtmlSafe(desc).replace(/"/g, '&quot;') +
         '" placeholder="EJ: APPLE INC."></span>' +
-      '<span class="inv-cal-num">' + usd(r.precio) + '</span>' +
       rango +
-      '<span class="inv-cal-num">' + ema + '</span>' +
-      '<span class="inv-cal-num">' + almax + '</span>' +
       '<span>' + (r.proximo ? escapeHtmlSafe(r.proximo) : guion) + '</span>' +
       '<span class="inv-bce">' + ultimo + '</span>' +
       '<span class="inv-cal-num inv-cal-ref">' + (dias === null ? guion : (dias === 0 ? 'hoy' : 'hace ' + dias + (dias === 1 ? ' día' : ' días'))) + '</span>' +
     '</div>';
   });
-  return banda + '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Descripción</span><span>Precio</span>' +
-    '<span>Rango de 52 semanas</span>' +
-    '<span' + tipAttrs('EMA de 200 semanas', 'Media móvil exponencial de 200 semanas: un promedio del precio que pesa más lo reciente y que muchos miran como piso de largo plazo.') + '>Falta p/ EMA200 sem.</span>' +
-    '<span>Falta p/ máx.</span><span>Próx. balance</span><span>Último balance</span><span>Consulta</span></div>' +
+  return banda + '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Descripción</span>' +
+    '<span' + tipAttrs('Rango de 52 semanas', 'Arriba, el precio actual. Abajo, lo que le falta al precio para tocar la EMA de 200 semanas (azul) y, bajo el máximo, para volver a él. EMA: media móvil exponencial, un promedio del precio que pesa más lo reciente y que muchos miran como piso de largo plazo.') + '>Rango de 52 semanas</span>' +
+    '<span>Próx. balance</span><span>Último balance</span><span>Consulta</span></div>' +
     filas.join('');
 }
 

@@ -8257,20 +8257,18 @@ select.inv-plan-in { cursor: pointer; }
 .inv-cal-num { text-align: right; }
 .inv-cal-ref { color: var(--muted); }
 /* La lista de seguimiento, en la misma lista: quitar | Activo | Descripción |
-   Precio | Rango de 52 semanas | Falta p/ EMA200 sem. | Próx. balance | Consulta. El precio y la fecha
-   de consulta a la derecha, como en las demás. */
+   Rango de 52 semanas (con el precio y lo que falta para la EMA y el máximo
+   adentro) | Próx. balance | Último balance | Consulta. La fecha de consulta a la
+   derecha, como en las demás. */
 .inv-seg-titulos,
 .inv-seg-fila {
-  grid-template-columns: 40px 112px minmax(0, 1fr) minmax(0, .9fr) minmax(0, 2.1fr) minmax(0, 1.35fr) minmax(0, .9fr) minmax(0, 1.3fr) minmax(0, 1.9fr) 96px;
+  grid-template-columns: 40px 112px minmax(0, 1fr) minmax(0, 3.6fr) minmax(0, 1.1fr) minmax(0, 1.7fr) 96px;
   gap: 8px;
 }
-/* Los títulos en una línea: con diez columnas, uno que se parte en dos desalinea
-   la fila de títulos contra la de datos. */
+/* Los títulos en una línea: uno que se parte en dos desalinea la fila de títulos
+   contra la de datos. */
 .inv-seg-titulos span { white-space: nowrap; }
-.inv-seg-titulos span:nth-child(4),
-.inv-seg-titulos span:nth-child(6),
-.inv-seg-titulos span:nth-child(7),
-.inv-seg-titulos span:nth-child(10) { text-align: right; }
+.inv-seg-titulos span:nth-child(7) { text-align: right; }
 /* El último balance: la fecha arriba y debajo las dos sorpresas, en una línea.
    Con dos líneas la fila no pasa de los 40px mínimos. */
 .inv-bce { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -8283,16 +8281,29 @@ select.inv-plan-in { cursor: pointer; }
 .inv-falta-ema { color: var(--blue); }
 .inv-falta-max { color: var(--muted); }
 .inv-ema-toca { font-weight: 700; }
-/* Aire entre los dos porcentajes, que van a la derecha, y la fecha del balance,
-   que arranca a la izquierda: sin él los dos se leían pegados. Lo mismo en el
+/* El rango del último año en tres filas: el precio sobre la barra, la barra con el
+   mínimo y el máximo a los lados, y debajo lo que falta para la EMA y para el
+   máximo. Tres columnas —mínimo, barra, máximo— que comparten todas las filas, de
+   modo que cada porcentaje queda bajo lo que mide. Con aire a los dos lados, que
+   no se pegue a la descripción ni al balance: 12px de margen, y el mismo en el
    título. */
-.inv-seg-titulos span:nth-child(8),
-.inv-seg-fila > :nth-child(8) { padding-left: 24px; }
-/* El rango del último año: el mínimo, la barra y el máximo en una línea. Con
-   aire a los dos lados, que el precio de la izquierda y la fecha de la derecha
-   no se pegan a los extremos: 12px de margen, y el mismo en el título. */
-.inv-rango { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0 12px; }
-.inv-seg-titulos span:nth-child(5) { padding-left: 12px; }
+.inv-rango {
+  display: grid;
+  grid-template-columns: auto minmax(40px, 1fr) auto;
+  column-gap: 8px;
+  row-gap: 2px;
+  align-items: center;
+  min-width: 0;
+  margin: 0 12px;
+}
+.inv-seg-titulos span:nth-child(4) { padding-left: 12px; }
+/* Las filas de etiquetas: una línea de alto fijo con las etiquetas posicionadas
+   por porcentaje sobre la barra. */
+.inv-rango-fila { position: relative; height: 12px; line-height: 12px; font-size: 11px; }
+.inv-rango-etiqueta { position: absolute; top: 0; white-space: nowrap; }
+.inv-rango-precio { color: var(--ink); }
+/* Lo que falta para el máximo va bajo el máximo, alineado a su derecha. */
+.inv-rango-pct { justify-self: end; height: 12px; line-height: 12px; font-size: 11px; white-space: nowrap; }
 /* Lo que está por publicar va arriba y lo ya publicado debajo; el último de los
    primeros cierra con una línea más gruesa que el divisor de las filas y en el
    acento, que es el color con el que la app señala lo que hay que mirar: así
