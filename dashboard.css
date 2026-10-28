@@ -8311,6 +8311,8 @@ select.inv-plan-in { cursor: pointer; }
   box-shadow: -3px 0 rgba(212, 162, 76, 0.1), 3px 0 rgba(212, 162, 76, 0.1),
     0 -1px rgba(212, 162, 76, 0.1), 0 1px rgba(212, 162, 76, 0.1);
 }
+/* El fondo es de los valores: los títulos de esas columnas van sin él. */
+.inv-bce-cab > .inv-bce-datos { background: none; box-shadow: none; }
 /* El balance que viene, en gris: lo que muestra son estimados, no datos. */
 .inv-bce-prox,
 .inv-bce-prox .inv-na { color: var(--muted-2); }
