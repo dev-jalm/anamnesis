@@ -2505,6 +2505,26 @@ group('Lista de seguimiento', function () {
   test('un balance anterior a todas las velas no tiene referencia: null', function () {
     assertEqual(movimientoTrasBalance(serie, Date.parse('2020-01-02T12:30:00Z'), 7), null);
   });
+  const previa = velas([['2026-09-23', 50], ['2026-09-25', 60], ['2026-10-01', 80], ['2026-10-06', 99], ['2026-10-07', 100], ['2026-10-08', 110]]);
+  test('el movimiento previo va del cierre de hace N días corridos al de referencia', function () {
+    const m = movimientoPrevioAlBalance(previa, BMO, 7);
+    assertEqual(m.dia, '2026-10-01');
+    assertEqual(m.referencia.dia, '2026-10-07');
+    assertAlmost(m.pct, 25, 1e-9);
+    assertAlmost(movimientoPrevioAlBalance(previa, BMO, 15).pct, 100, 1e-9);
+  });
+  test('en el movimiento previo, si salió después del cierre la referencia es la del mismo día', function () {
+    assertAlmost(movimientoPrevioAlBalance(previa, AMC, 7).pct, (110 / 80 - 1) * 100, 1e-9);
+  });
+  test('si no hubo rueda ese día, el movimiento previo parte del último cierre anterior', function () {
+    // 08/10 − 14 = 24/09: sin rueda ese día, vale el cierre del 23/09.
+    assertEqual(movimientoPrevioAlBalance(previa, BMO, 14).dia, '2026-09-23');
+  });
+  test('si las velas no llegan tan atrás, el movimiento previo es null, no un número con menos días', function () {
+    assertEqual(movimientoPrevioAlBalance(previa, BMO, 30), null);
+    assertEqual(movimientoPrevioAlBalance(null, BMO, 7), null);
+    assertEqual(movimientoPrevioAlBalance(previa, NaN, 7), null);
+  });
   // Velas semanales con la fecha del viernes, de 2021-01-08 a 2026-10-23; cierran en 100 hasta el 02/10/2026
   // y en 200 desde el 09/10, la semana del balance de prueba.
   const semanal = (function () {

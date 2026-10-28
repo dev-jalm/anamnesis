@@ -2422,6 +2422,23 @@ function movimientoTrasBalance(diaria, ms, dias) {
   return { pct: (fin / ref.precio - 1) * 100, referencia: { precio: ref.precio, dia: ref.dia }, precio: fin, dia: v.dia[k] };
 }
 
+// Cómo se movió el precio en los `dias` días corridos anteriores a un balance: del último
+// cierre hasta ese día, contando hacia atrás desde la fecha del balance, al cierre de
+// referencia (_referenciaDeBalance), que es el último antes de que el precio reaccione.
+// Null si las velas no llegan tan atrás: nunca un número con menos días de los pedidos.
+function movimientoPrevioAlBalance(diaria, ms, dias) {
+  const v = _velasConDia(diaria);
+  if (!v || !esNumeroFinito(ms) || !esNumeroFinito(dias)) return null;
+  const ref = _referenciaDeBalance(v, ms);
+  if (!ref) return null;
+  const objetivo = new Date(ms - dias * 86400000).toISOString().slice(0, 10);
+  if (objetivo < v.dia[0]) return null;
+  const k = _ultimaVelaHasta(v.dia, objetivo, true);
+  const ini = k >= 0 ? v.cierre[k] : null;
+  if (k < 0 || k >= ref.k || !esNumeroFinito(ini) || ini <= 0) return null;
+  return { pct: (ref.precio / ini - 1) * 100, referencia: { precio: ref.precio, dia: ref.dia }, precio: ini, dia: v.dia[k] };
+}
+
 // De los balances que devuelve el Worker ({ fecha en segundos, periodo,
 // epsPublicado, epsEsperado, ventasPublicadas, ventasEsperadas }), los `cantidad`
 // últimos ya publicados, del más reciente al más viejo, cada uno con cómo se movió
@@ -2440,6 +2457,7 @@ function balancesConMovimiento(balances, diaria, ahora, cantidad, semanal) {
       epsPublicado: num(b.epsPublicado), epsEsperado: num(b.epsEsperado),
       ventasPublicadas: num(b.ventasPublicadas), ventasEsperadas: num(b.ventasEsperadas),
       precio: precioAlBalance(diaria, b.fecha * 1000), ema200: emaAlBalance(semanal, b.fecha * 1000),
+      p7: movimientoPrevioAlBalance(diaria, b.fecha * 1000, 7), p15: movimientoPrevioAlBalance(diaria, b.fecha * 1000, 15),
       d7: movimientoTrasBalance(diaria, b.fecha * 1000, 7), d15: movimientoTrasBalance(diaria, b.fecha * 1000, 15)
     };
   });
@@ -2889,6 +2907,8 @@ function resumenDeBalance(b, ahora) {
     ema: esNumeroFinito(b.ema200) && b.ema200 > 0 ? b.ema200 : null,
     // Cuánto estaba el precio por encima (+) o por debajo (−) de su EMA.
     distanciaEma: (b.precio && esNumeroFinito(b.ema200) && b.ema200 > 0) ? (b.precio.precio / b.ema200 - 1) * 100 : null,
+    p7: b.p7 || null,
+    p15: b.p15 || null,
     d7: b.d7 || null,
     d15: b.d15 || null
   };
@@ -5187,7 +5207,7 @@ if (typeof module !== 'undefined' && module.exports) {
     fundamentalesParaMostrar, clasificarFundamental, puntajeContraSector, lecturaCortoPlazo,
     fundamentalesCalculados,
     resultadosDe, fundamentalesTextoDeResultados, numeroDeFinviz, diasDeAntiguedad,
-    esTickerDeFinviz, mediaExponencial, emaSemanalDeFinviz, EMA_SEMANAL_PERIODO, movimientoTrasBalance, precioAlBalance, emaAlBalance, proximoBalanceDeFinviz, resumenDeProximoBalance,
+    esTickerDeFinviz, mediaExponencial, emaSemanalDeFinviz, EMA_SEMANAL_PERIODO, movimientoTrasBalance, movimientoPrevioAlBalance, precioAlBalance, emaAlBalance, proximoBalanceDeFinviz, resumenDeProximoBalance,
     balancesConMovimiento, sorpresaDeBalance, resumenDeBalance, resumenDeSeguimiento, balanceDeActivo, ordenarPorBalance,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,

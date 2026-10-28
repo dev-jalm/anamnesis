@@ -8286,7 +8286,7 @@ select.inv-plan-in { cursor: pointer; }
 .inv-bce-fila,
 .inv-bce-cab {
   display: grid;
-  grid-template-columns: 40px repeat(6, minmax(0, 1fr));
+  grid-template-columns: 40px repeat(8, minmax(0, 1fr));
   gap: 6px;
   white-space: nowrap;
 }
