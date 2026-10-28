@@ -22453,8 +22453,8 @@ function bandaDeSeguimiento(rotulo, conteo, extra) {
 function aperturasDeMercadosHtml() {
   return '<span class="inv-pf-sep">|</span>' + aperturasDeMercados(Date.now()).map(function (a) {
     return '<span class="inv-section-count inv-apertura"' + tipAttrs('Apertura de ' + a.plaza,
-      'Abre a las ' + a.horaLocal + ' hora de ' + a.plaza + ': las ' + a.hora + ' en Argentina.') + '>' + escapeHtmlSafe(a.nombre) + ' ' + a.hora + '</span>';
-  }).join('');
+      'Abre a las ' + a.horaLocal + ' hora de ' + a.plaza + ': las ' + a.hora + ' en Argentina.') + '>' + escapeHtmlSafe(a.nombre) + ' <span class="inv-apertura-hora">' + a.hora + '</span></span>';
+  }).join('<span class="inv-pf-sep">|</span>');
 }
 
 // La banda del calendario va adentro de lo que se repinta: su conteo cambia con

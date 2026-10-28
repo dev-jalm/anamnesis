@@ -7648,6 +7648,8 @@ select.inv-plan-in { cursor: pointer; }
      para partirlo. */
   white-space: nowrap;
 }
+/* En las aperturas del calendario, la hora en la tinta del dato y el nombre de la plaza, apagado. */
+.inv-currency-header-row .inv-apertura-hora { color: var(--ink); font-weight: 600; }
 .inv-currency-header-row .inv-section-count {
   color: var(--muted-2);
   font-weight: 500;
