@@ -2349,6 +2349,43 @@ group('Lista de seguimiento', function () {
     assertEqual(vacio.balance, null);
     assertEqual(vacio.distanciaAlMaximo, null);
   });
+  test('la EMA de 200 semanas: con precios constantes es ese precio, y con menos de 200 no existe', function () {
+    assertAlmost(mediaExponencial(new Array(250).fill(50), 200), 50, 1e-9);
+    assertEqual(mediaExponencial(new Array(199).fill(50), 200), null);
+    assertEqual(mediaExponencial(undefined, 200), null);
+  });
+  test('la EMA pesa más lo reciente: 200 en 100 y 50 al final queda entre las dos', function () {
+    const v = new Array(200).fill(100).concat([200]);
+    const e = mediaExponencial(v, 200);
+    assertAlmost(e, 100 + 100 * 2 / 201, 1e-9);
+  });
+  test('las velas semanales dan la EMA y el rango de la última semana', function () {
+    const n = 260;
+    const r = emaSemanalDeFinviz({ cierre: new Array(n).fill(80), bajo: new Array(n).fill(70), alto: new Array(n).fill(90) });
+    assertAlmost(r.ema200w, 80, 1e-9);
+    assertEqual(r.bajoSem, 70);
+    assertEqual(r.altoSem, 90);
+    const poca = emaSemanalDeFinviz({ cierre: [1, 2, 3], bajo: [1], alto: [3] });
+    assertEqual(poca.ema200w, null);
+    assertEqual(emaSemanalDeFinviz(null).ema200w, null);
+  });
+  test('lo que falta para tocar la EMA: negativo si tiene que bajar, positivo si tiene que subir', function () {
+    const sobre = resumenDeSeguimiento({ price: 200, ema200w: 150, bajoSem: 190, altoSem: 210 }, AHORA);
+    assertAlmost(sobre.faltaParaEma, -25, 1e-9);
+    assertEqual(sobre.tocaEma, false);
+    const bajo = resumenDeSeguimiento({ price: 100, ema200w: 125, bajoSem: 95, altoSem: 105 }, AHORA);
+    assertAlmost(bajo.faltaParaEma, 25, 1e-9);
+  });
+  test('toca la EMA cuando cae dentro del rango de la semana en curso, y entonces no falta nada', function () {
+    const r = resumenDeSeguimiento({ price: 100, ema200w: 98, bajoSem: 95, altoSem: 105 }, AHORA);
+    assertEqual(r.tocaEma, true);
+    assertEqual(r.faltaParaEma, 0);
+  });
+  test('sin EMA o sin precio no hay distancia: null, nunca cero', function () {
+    assertEqual(resumenDeSeguimiento({ price: 100 }, AHORA).faltaParaEma, null);
+    assertEqual(resumenDeSeguimiento({ ema200w: 90 }, AHORA).faltaParaEma, null);
+    assertEqual(resumenDeSeguimiento({ price: 100 }, AHORA).tocaEma, false);
+  });
   test('el próximo balance dice la fecha y cuántos días faltan', function () {
     const r = resumenDeSeguimiento(base, AHORA);
     assertEqual(r.balance, '04/11 · en 9 días');

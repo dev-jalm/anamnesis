@@ -21348,7 +21348,7 @@ const _fundamentalesEnVuelo = {};
 // seis horas en el navegador y en la caché de Cloudflare, con la dirección como
 // clave: sin esto, quien ya consultó un activo recibiría la versión vieja —sin
 // la cabecera con el sector— hasta que venciera.
-const FUNDAMENTALES_API_VERSION = 2;
+const FUNDAMENTALES_API_VERSION = 3;
 
 // Los promedios de cada sector e industria, ya leídos: { sector, industria }.
 // Una vez por sesión alcanza —son los mismos para todos los activos y cambian
@@ -21417,6 +21417,9 @@ function traerFundamentales(ticker, moneda, btn) {
       // Ni un dato reconocible: no es que a la empresa le falte algo, es que
       // Finviz cambió la página. Guardar los nulls pisaría lo que ya se tenía.
       if (!r.hayDatos) throw new Error('Finviz respondió, pero no se reconoce su tabla de datos: seguramente cambió su formato.');
+      // La EMA de 200 semanas va junto a los datos de la ficha: es lo que se
+      // guarda, no las 520 velas de las que sale.
+      Object.assign(r.datos, emaSemanalDeFinviz(cuerpo.semanal));
       const perfil = perfilDeFinviz(cuerpo.cabecera);
       return traerPromediosDeSector().then(function (grupos) {
         if (!state.tickerInfo) state.tickerInfo = {};
@@ -22653,6 +22656,19 @@ function htmlListaSeguimiento() {
         '<span class="inv-rango-extremo">' + usd(r.max) + '</span>' +
       '</span>';
     }
+    // Lo que le falta al precio para llegar a la EMA de 200 semanas: el % con
+    // su signo (negativo si tiene que bajar), la EMA debajo en el emergente.
+    let ema = guion;
+    if (r.faltaParaEma !== null) {
+      const falta = r.faltaParaEma;
+      const detalle = ['EMA de 200 semanas: ' + usd(r.ema) + '.'];
+      detalle.push(r.tocaEma
+        ? 'La semana en curso la está tocando.'
+        : 'El precio tendría que ' + (falta < 0 ? 'bajar ' : 'subir ') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '% para tocarla.');
+      ema = '<span class="inv-ema' + (r.tocaEma ? ' inv-ema-toca' : '') + '"' + tipAttrs('Distancia a la EMA de 200 semanas', detalle.join('\n')) + '>' +
+        (r.tocaEma ? 'TOCANDO' : (falta > 0 ? '+' : '−') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '%') +
+      '</span>';
+    }
     const dias = f ? diasDeAntiguedad(f.fecha) : null;
     return '<div class="inv-seg-fila' + (o.corte ? ' inv-seg-corte' : '') + '">' +
       '<span class="inv-seg-acciones">' +
@@ -22677,12 +22693,13 @@ function htmlListaSeguimiento() {
         '" placeholder="EJ: APPLE INC."></span>' +
       '<span class="inv-cal-num">' + usd(r.precio) + '</span>' +
       rango +
+      '<span class="inv-cal-num">' + ema + '</span>' +
       '<span>' + (r.balance ? escapeHtmlSafe(r.balance) : guion) + '</span>' +
       '<span class="inv-cal-num inv-cal-ref">' + (dias === null ? guion : (dias === 0 ? 'hoy' : 'hace ' + dias + (dias === 1 ? ' día' : ' días'))) + '</span>' +
     '</div>';
   });
   return banda + '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Descripción</span><span>Precio</span>' +
-    '<span>Rango de 52 semanas</span><span>Próx. balance</span><span>Consulta</span></div>' +
+    '<span>Rango de 52 semanas</span><span>Falta p/ EMA200 sem.</span><span>Próx. balance</span><span>Consulta</span></div>' +
     filas.join('');
 }
 

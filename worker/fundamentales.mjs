@@ -10,8 +10,9 @@
 // "main" de wrangler.jsonc.
 //
 // Tres rutas, las tres de solo lectura:
-//   /api/fundamentales?t=AAPL  la ficha de un activo: su tabla de datos y la
-//                              cabecera con su sector e industria.
+//   /api/fundamentales?t=AAPL  la ficha de un activo: su tabla de datos, la
+//                              cabecera con su sector e industria y sus velas
+//                              semanales.
 //   /api/grupos                los promedios de cada sector y de cada industria,
 //                              contra los que se compara el activo.
 //   /api/calendario?d=AAAA-MM-DD  los eventos económicos de la semana que
@@ -87,6 +88,29 @@ function recortarGrupos(html) {
   return html.slice(ini, fin + 8).replace(/<(\w+)\s[^>]*>/g, '<$1>');
 }
 
+// Las velas semanales que la ficha trae incrustadas para dibujar su gráfico
+// (`var data = {...}`, ~10 años). Se piden con `p=w`; sin esa marca la página
+// trae las diarias. Salen sólo las columnas que usa la app y las últimas
+// SEMANAS_MAX: una EMA de 200 semanas converge con holgura en 520.
+const SEMANAS_MAX = 520;
+function recortarSemanal(html) {
+  const marca = html.indexOf('var data = {"version"');
+  if (marca < 0) return null;
+  const ini = html.indexOf('{', marca);
+  const fin = html.indexOf('\n', ini);
+  if (ini < 0 || fin < 0) return null;
+  let datos;
+  try {
+    datos = JSON.parse(html.slice(ini, fin).trim().replace(/;$/, ''));
+  } catch (e) {
+    return null;
+  }
+  if (!datos || datos.timeframe !== 'w' || !Array.isArray(datos.close) || !Array.isArray(datos.high) ||
+      !Array.isArray(datos.low) || !Array.isArray(datos.date)) return null;
+  const ultimas = function (a) { return a.slice(-SEMANAS_MAX); };
+  return { fecha: ultimas(datos.date), alto: ultimas(datos.high), bajo: ultimas(datos.low), cierre: ultimas(datos.close) };
+}
+
 async function conCache(request, segundos, producir) {
   const cache = (typeof caches !== 'undefined') ? caches.default : null;
   const clave = new Request(new URL(request.url).origin + new URL(request.url).pathname +
@@ -109,7 +133,7 @@ async function fundamentales(request, url) {
   return conCache(request, CACHE_FICHA, async function () {
     let resp;
     try {
-      resp = await pedir('https://finviz.com/quote.ashx?t=' + encodeURIComponent(ticker));
+      resp = await pedir('https://finviz.com/quote.ashx?t=' + encodeURIComponent(ticker) + '&p=w');
     } catch (e) {
       return json({ error: 'No se pudo conectar con Finviz.' }, 502);
     }
@@ -122,7 +146,7 @@ async function fundamentales(request, url) {
     if (!tabla) return json({ error: 'Finviz no devolvió la ficha de ' + ticker + '.' }, 502);
     return json({
       ticker: ticker, fuente: 'finviz', fecha: new Date().toISOString(),
-      html: tabla, cabecera: recortarCabecera(pagina)
+      html: tabla, cabecera: recortarCabecera(pagina), semanal: recortarSemanal(pagina)
     });
   });
 }

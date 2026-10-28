@@ -2305,6 +2305,35 @@ function fundamentalesDeFinviz(html) {
   return { datos: datos, faltan: faltan, hayDatos: hay };
 }
 
+// Las 200 semanas de la media que muchos usan como piso de largo plazo.
+const EMA_SEMANAL_PERIODO = 200;
+
+// La media móvil exponencial de `periodo` valores: se siembra con el promedio de
+// los primeros `periodo` y de ahí cada valor pesa 2/(periodo+1). Null si no hay
+// al menos `periodo` valores.
+function mediaExponencial(valores, periodo) {
+  const v = (valores || []).filter(esNumeroFinito);
+  if (v.length < periodo) return null;
+  const k = 2 / (periodo + 1);
+  let ema = v.slice(0, periodo).reduce(function (a, b) { return a + b; }, 0) / periodo;
+  for (let i = periodo; i < v.length; i++) ema = v[i] * k + ema * (1 - k);
+  return ema;
+}
+
+// De las velas semanales que devuelve el Worker ({ alto, bajo, cierre }), la EMA
+// de 200 semanas y el mínimo y el máximo de la última vela, que es la semana en
+// curso: con ellos se sabe si la EMA cae dentro de lo que el precio recorrió.
+// Todo null cuando faltan velas —un activo con menos de 200 semanas de vida no
+// tiene esta media—; nunca un cero.
+function emaSemanalDeFinviz(semanal) {
+  const vacio = { ema200w: null, bajoSem: null, altoSem: null };
+  const s = semanal || {};
+  const ema = mediaExponencial(s.cierre, EMA_SEMANAL_PERIODO);
+  if (ema === null) return vacio;
+  const ult = function (a) { const n = Array.isArray(a) ? a[a.length - 1] : null; return esNumeroFinito(n) && n > 0 ? n : null; };
+  return { ema200w: ema, bajoSem: ult(s.bajo), altoSem: ult(s.alto) };
+}
+
 // El texto de una celda, sin etiquetas, con las entidades de & decodificadas.
 function _textoDeCelda(s) {
   return String(s).replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
@@ -2640,7 +2669,17 @@ function resumenDeSeguimiento(datos, ahora) {
   const posicion = (precio !== null && min !== null && max !== null && max > min)
     ? Math.min(100, Math.max(0, (precio - min) / (max - min) * 100)) : null;
   const r = d.earnings ? resultadosDe(d.earnings, ahora) : null;
+  // Lo que le falta al precio para tocar la EMA de 200 semanas, en %: negativo si
+  // tiene que bajar (la EMA está debajo), positivo si tiene que subir. Toca
+  // cuando la EMA cae dentro del rango de la semana en curso.
+  const ema = positivo(d.ema200w);
+  const bajoSem = positivo(d.bajoSem);
+  const altoSem = positivo(d.altoSem);
+  const toca = ema !== null && bajoSem !== null && altoSem !== null && ema >= bajoSem && ema <= altoSem;
   return {
+    ema: ema,
+    faltaParaEma: (ema !== null && precio !== null) ? (toca ? 0 : (ema / precio - 1) * 100) : null,
+    tocaEma: toca,
     precio: precio, min: min, max: max, posicion: posicion,
     // Una fecha ya pasada es el último balance, no el próximo: Finviz deja el
     // publicado hasta que la empresa anuncia el siguiente.
@@ -4943,7 +4982,7 @@ if (typeof module !== 'undefined' && module.exports) {
     fundamentalesParaMostrar, clasificarFundamental, puntajeContraSector, lecturaCortoPlazo,
     fundamentalesCalculados,
     resultadosDe, fundamentalesTextoDeResultados, numeroDeFinviz, diasDeAntiguedad,
-    esTickerDeFinviz, resumenDeSeguimiento, balanceDeActivo, ordenarPorBalance,
+    esTickerDeFinviz, mediaExponencial, emaSemanalDeFinviz, EMA_SEMANAL_PERIODO, resumenDeSeguimiento, balanceDeActivo, ordenarPorBalance,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
     equivalenteDeCedear, cotizacionDeCedear, textoDeRatioCedear,

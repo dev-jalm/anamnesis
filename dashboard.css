@@ -8256,12 +8256,16 @@ select.inv-plan-in { cursor: pointer; }
 .inv-cal-num { text-align: right; }
 .inv-cal-ref { color: var(--muted); }
 /* La lista de seguimiento, en la misma lista: quitar | Activo | Descripción |
-   Precio | Rango de 52 semanas | Próx. balance | Consulta. El precio y la fecha
+   Precio | Rango de 52 semanas | Falta p/ EMA200 sem. | Próx. balance | Consulta. El precio y la fecha
    de consulta a la derecha, como en las demás. */
 .inv-seg-titulos,
-.inv-seg-fila { grid-template-columns: 40px 112px minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 2.6fr) minmax(0, 1.3fr) 96px; }
+.inv-seg-fila { grid-template-columns: 40px 112px minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 2.4fr) minmax(0, 1.2fr) minmax(0, 1.2fr) 96px; }
 .inv-seg-titulos span:nth-child(4),
-.inv-seg-titulos span:nth-child(7) { text-align: right; }
+.inv-seg-titulos span:nth-child(6),
+.inv-seg-titulos span:nth-child(8) { text-align: right; }
+/* Lo que falta para tocar la EMA de 200 semanas. Tocándola se pinta con el
+   acento, el color con el que la app señala lo que hay que mirar. */
+.inv-ema-toca { color: var(--accent); font-weight: 700; }
 /* El rango del último año: el mínimo, la barra y el máximo en una línea. Con
    aire a los dos lados, que el precio de la izquierda y la fecha de la derecha
    no se pegan a los extremos: 20px de margen, y el mismo en el título. */
