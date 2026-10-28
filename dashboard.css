@@ -8281,12 +8281,12 @@ select.inv-plan-in { cursor: pointer; }
 .inv-falta-ema { color: var(--blue); }
 .inv-falta-max { color: var(--muted); }
 .inv-ema-toca { font-weight: 700; }
-/* El rango del último año en tres filas: el precio sobre la barra, la barra con el
-   mínimo y el máximo a los lados, y debajo lo que falta para la EMA y para el
-   máximo. Tres columnas —mínimo, barra, máximo— que comparten todas las filas, de
-   modo que cada porcentaje queda bajo lo que mide. Con aire a los dos lados, que
-   no se pegue a la descripción ni al balance: 12px de margen, y el mismo en el
-   título. */
+/* El rango del último año en tres filas: el precio sobre la barra, con lo que le
+   falta para la EMA a su izquierda y para el máximo a su derecha; la barra con el
+   mínimo y el máximo a los lados; y debajo el valor de la EMA, bajo su línea. Tres
+   columnas —mínimo, barra, máximo— que comparten todas las filas. Con aire a los
+   dos lados, que no se pegue a la descripción ni al balance: 12px de margen, y el
+   mismo en el título. */
 .inv-rango {
   display: grid;
   grid-template-columns: auto minmax(40px, 1fr) auto;
@@ -8300,10 +8300,13 @@ select.inv-plan-in { cursor: pointer; }
 /* Las filas de etiquetas: una línea de alto fijo con las etiquetas posicionadas
    por porcentaje sobre la barra. */
 .inv-rango-fila { position: relative; height: 12px; line-height: 12px; font-size: 11px; }
-.inv-rango-etiqueta { position: absolute; top: 0; white-space: nowrap; }
+.inv-rango-etiqueta { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+/* El precio, centrado sobre su línea, con sus dos porcentajes colgando a 8px de cada
+   lado: el de la EMA a la izquierda y el del máximo a la derecha. */
 .inv-rango-precio { color: var(--ink); }
-/* Lo que falta para el máximo va bajo el máximo, alineado a su derecha. */
-.inv-rango-pct { justify-self: end; height: 12px; line-height: 12px; font-size: 11px; white-space: nowrap; }
+.inv-precio-valor { position: relative; }
+.inv-precio-izq { position: absolute; right: 100%; margin-right: 8px; }
+.inv-precio-der { position: absolute; left: 100%; margin-left: 8px; }
 /* Lo que está por publicar va arriba y lo ya publicado debajo; el último de los
    primeros cierra con una línea más gruesa que el divisor de las filas y en el
    acento, que es el color con el que la app señala lo que hay que mirar: así
