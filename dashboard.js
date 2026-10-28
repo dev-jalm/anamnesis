@@ -22796,6 +22796,14 @@ function htmlListaSeguimiento() {
       }).join('');
     }
     const dias = f ? diasDeAntiguedad(f.fecha) : null;
+    // El sector tal como lo trae Finviz y el puntaje contra el promedio de ese
+    // sector, en el color de su lectura; lo que no se trajo no se dibuja.
+    const sectorFinviz = f && f.datos ? ((f.perfil && f.perfil.sector) || (f.referencias && f.referencias.sector) || '') : '';
+    const pt = f && f.datos ? puntajeContraSector(f.datos, f.referencias) : null;
+    const sectorYPuntaje =
+      (sectorFinviz ? '<span class="inv-seg-sector"' + tipAttrs('Sector según Finviz', sectorFinviz) + '>' + escapeHtmlSafe(sectorFinviz) + '</span>' : '') +
+      (pt ? '<span class="inv-seg-puntaje' + (pt.lectura.tono ? ' ' + pt.lectura.tono : '') + '"' +
+        tipAttrs('Puntaje frente al sector', pt.general + '/100 · ' + pt.lectura.texto) + '>' + pt.general + '/100</span>' : '');
     return '<div class="inv-seg-fila' + (o.corte ? ' inv-seg-corte' : '') + '">' +
       '<span class="inv-seg-acciones">' +
         '<button class="inv-delete-btn" data-seg-del="' + escapeHtmlSafe(item.id) + '" title="Quitar del seguimiento">' +
@@ -22807,22 +22815,27 @@ function htmlListaSeguimiento() {
           '<i data-lucide="plus" style="width:11px;height:11px"></i>' +
         '</button>' +
       '</span>' +
-      '<span class="inv-liq-activo">' +
-        '<span class="inv-liq-tk">' + escapeHtmlSafe(item.ticker) + '</span>' +
-        botonFundamentalesHtml(item.ticker, 'USD') +
+      // Activo | descripción en una línea y, debajo, el sector que trae Finviz, el
+      // puntaje frente al sector y el botón de los fundamentales. La descripción es
+      // el mismo campo de Activos y de Planificación, no un texto que lo imita: de
+      // ahí salen la tipografía, el color y que se pueda corregir. Se guarda junto
+      // al activo, en dólares.
+      '<span class="inv-seg-activo">' +
+        '<span class="inv-liq-activo">' +
+          '<span class="inv-liq-tk">' + escapeHtmlSafe(item.ticker) + '</span>' +
+          '<span class="inv-seg-barra">|</span>' +
+          '<input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(item.ticker) +
+            '" data-moneda="USD" value="' + escapeHtmlSafe(desc).replace(/"/g, '&quot;') +
+            '" placeholder="EJ: APPLE INC.">' +
+        '</span>' +
+        '<span class="inv-seg-detalle">' + sectorYPuntaje + botonFundamentalesHtml(item.ticker, 'USD') + '</span>' +
       '</span>' +
-      // La descripción es el mismo campo de Activos y de Planificación, no un
-      // texto que lo imita: de ahí salen la tipografía, el color y que se pueda
-      // corregir. Se guarda junto al activo, en dólares.
-      '<span><input type="text" class="inv-desc-input" data-ticker="' + escapeHtmlSafe(item.ticker) +
-        '" data-moneda="USD" value="' + escapeHtmlSafe(desc).replace(/"/g, '&quot;') +
-        '" placeholder="EJ: APPLE INC."></span>' +
       rango +
       '<span class="inv-bce">' + ultimos + '</span>' +
       '<span class="inv-cal-num inv-cal-ref">' + (dias === null ? guion : (dias === 0 ? 'hoy' : 'hace ' + dias + (dias === 1 ? ' día' : ' días'))) + '</span>' +
     '</div>';
   });
-  return banda + '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Descripción</span>' +
+  return banda + '<div class="inv-seg-titulos"><span></span><span>Activo | Descripción</span>' +
     '<span' + tipAttrs('Rango de 52 semanas', 'El mínimo, el precio actual, la EMA de 200 semanas (azul) y el máximo, ordenados por valor y a igual distancia: es una referencia de orden, no una escala. Arriba de cada punto, qué es; abajo, su valor y, bajo la EMA y el máximo, lo que le falta al precio para llegar. EMA: media móvil exponencial, un promedio del precio que pesa más lo reciente y que muchos miran como piso de largo plazo.') + '>Rango de 52 semanas</span>' +
     '<span class="inv-bce-cab"' + tipAttrs('Balances', 'Arriba, en gris, el balance que viene con lo que esperan los analistas; debajo, los tres últimos presentados. Precio y EMA200: el cierre de referencia del balance y la EMA de 200 semanas de entonces, en dólares. EPS (ganancia por acción) e ingresos, contra lo esperado. +7 d y +15 d: cuánto se movió el precio a los 7 y 15 días del balance, contra el cierre previo.') + '>' +
     '<span>Balance</span><span>Precio</span><span>EMA200</span><span>EPS</span><span>Ingresos</span><span>+7 d</span><span>+15 d</span></span><span>Consulta</span></div>' +

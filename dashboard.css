@@ -8262,13 +8262,22 @@ select.inv-plan-in { cursor: pointer; }
    últimos) | Consulta. La fecha de consulta a la derecha, como en las demás. */
 .inv-seg-titulos,
 .inv-seg-fila {
-  grid-template-columns: 40px 112px minmax(0, 1fr) minmax(0, 3fr) minmax(0, 3.4fr) 96px;
+  grid-template-columns: 40px minmax(0, 1.5fr) minmax(0, 3fr) minmax(0, 3.4fr) 96px;
   gap: 8px;
 }
+/* Activo | descripción arriba; abajo, sector, puntaje y el botón de fundamentales. */
+.inv-seg-activo { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.inv-seg-activo .inv-liq-activo { align-items: center; gap: 4px; }
+.inv-seg-barra { color: var(--muted-2); flex-shrink: 0; }
+.inv-seg-detalle { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 10px; }
+.inv-seg-sector { color: var(--muted-2); text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.inv-seg-puntaje { font-family: 'JetBrains Mono', monospace; font-weight: 600; flex-shrink: 0; }
+.inv-seg-puntaje.pos { color: var(--green); }
+.inv-seg-puntaje.neg { color: var(--red); }
 /* Los títulos en una línea: uno que se parte en dos desalinea la fila de títulos
    contra la de datos. */
 .inv-seg-titulos span { white-space: nowrap; }
-.inv-seg-titulos > span:nth-child(6) { text-align: right; }
+.inv-seg-titulos > span:nth-child(5) { text-align: right; }
 /* Los últimos balances: una mini tabla de hasta tres filas, la más reciente arriba.
    Cada fila y el título comparten las mismas siete columnas —fecha, precio, EMA200,
    EPS, ingresos, precio a 7 días y a 15—, con los números a la derecha como en el
@@ -8308,7 +8317,7 @@ select.inv-plan-in { cursor: pointer; }
   margin: 0 12px;
   min-width: 0;
 }
-.inv-seg-titulos > span:nth-child(4) { padding-left: 12px; }
+.inv-seg-titulos > span:nth-child(3) { padding-left: 12px; }
 /* La línea, a 22px del borde de arriba, y cada punto una columna sin ancho centrada
    en su posición: la referencia arriba, el punto sobre la línea, el valor y el
    porcentaje abajo. El primero se alinea a la izquierda y el último a la derecha,
