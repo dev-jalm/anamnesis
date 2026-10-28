@@ -22671,6 +22671,13 @@ function htmlListaSeguimiento() {
           ? 'A ' + FUNDAMENTALES_N2.format(Math.abs(r.distanciaAlMaximo)) + '% por debajo del máximo.'
           : 'Por encima del máximo que tenía Finviz.');
       }
+      // Las dos líneas son una referencia, no una escala: van a la misma distancia
+      // entre sí y de los extremos —al tercio y a los dos tercios—, en el orden en
+      // que están los valores. Que el precio quede más cerca del máximo no dice que
+      // le falte menos: eso lo dicen los porcentajes. Con una sola línea va al medio.
+      const emaPrimero = r.posicionEma !== null && r.ema <= r.precio;
+      const posPrecio = r.posicionEma === null ? 50 : (emaPrimero ? 200 / 3 : 100 / 3);
+      const posEma = r.posicionEma === null ? null : (emaPrimero ? 100 / 3 : 200 / 3);
       // Todo lo que va en la barra —las líneas, el punto y las etiquetas— se
       // posiciona dentro de la propia barra y con el mismo porcentaje: así cada
       // pieza queda exactamente sobre su línea, con el ancho que tenga la barra.
@@ -22684,14 +22691,14 @@ function htmlListaSeguimiento() {
       // de la barra, así que la cuenta se deja a CSS: max(0, S/2 − distancia/2).
       let corrimiento = '0px';
       if (r.posicionEma !== null && r.precio !== null) {
-        const separacion = Math.abs(anclaDe(r.posicionEma) - anclaDe(r.posicion));
+        const separacion = Math.abs(anclaDe(posEma) - anclaDe(posPrecio));
         const medios = (usd(r.precio).length + usd(r.ema).length) / 2 + 1;
         corrimiento = 'max(0px, calc(' + (medios / 2) + 'ch - ' + (separacion / 2).toFixed(2) + '%))';
       }
       const etiqueta = function (pos, signo, cls, html, tip) {
         return '<span class="inv-rango-etiqueta ' + cls + '" style="left:calc(' + anclaDe(pos).toFixed(1) + '% ' + signo + ' ' + corrimiento + ')"' + (tip || '') + '>' + html + '</span>';
       };
-      const emaALaIzquierda = r.posicionEma !== null && r.posicionEma <= r.posicion;
+      const emaALaIzquierda = emaPrimero;
       // La EMA de 200 semanas, en la misma barra y con otro color: dónde queda
       // respecto del rango y del precio. Si cae fuera del rango del año se pega al
       // extremo, atenuada, y el emergente lo dice.
@@ -22701,8 +22708,8 @@ function htmlListaSeguimiento() {
         detalle.push('EMA de 200 semanas (' + usd(r.ema) + '): ' + (r.fueraEma
           ? 'queda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.'
           : 'al ' + FUNDAMENTALES_N0.format(r.posicionEma) + '% del camino.'));
-        marcaEma = '<span class="inv-rango-ema' + (r.fueraEma ? ' inv-rango-ema-fuera' : '') + '" style="left:' + r.posicionEma.toFixed(1) + '%"></span>';
-        valorEma = etiqueta(r.posicionEma, emaALaIzquierda ? '-' : '+', 'inv-falta-ema', usd(r.ema),
+        marcaEma = '<span class="inv-rango-ema' + (r.fueraEma ? ' inv-rango-ema-fuera' : '') + '" style="left:' + posEma.toFixed(1) + '%"></span>';
+        valorEma = etiqueta(posEma, emaALaIzquierda ? '-' : '+', 'inv-falta-ema', usd(r.ema),
           tipAttrs('EMA de 200 semanas', 'Valor de la media móvil exponencial de 200 semanas.' + (r.fueraEma
             ? '\nQueda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.' : '')));
       }
@@ -22735,10 +22742,10 @@ function htmlListaSeguimiento() {
       // cuelga de la barra.
       rango = '<span class="inv-rango"' + tipAttrs('Posición en el rango de 52 semanas', detalle.join('\n')) + '>' +
         '<span class="inv-rango-extremo">' + usd(r.min) + '</span>' +
-        '<span class="inv-rango-barra">' + marcaEma + '<span class="inv-rango-marca" style="left:' + r.posicion.toFixed(1) + '%"></span>' +
+        '<span class="inv-rango-barra">' + marcaEma + '<span class="inv-rango-marca" style="left:' + posPrecio.toFixed(1) + '%"></span>' +
           (r.precio !== null
-            ? '<span class="inv-rango-ancla" style="left:' + r.posicion.toFixed(1) + '%"><span class="inv-punto"></span>' + faltaEma + faltaMax + '</span>' +
-              etiqueta(r.posicion, emaALaIzquierda ? '+' : '-', 'inv-rango-precio', usd(r.precio)) : '') +
+            ? '<span class="inv-rango-ancla" style="left:' + posPrecio.toFixed(1) + '%"><span class="inv-punto"></span>' + faltaEma + faltaMax + '</span>' +
+              etiqueta(posPrecio, emaALaIzquierda ? '+' : '-', 'inv-rango-precio', usd(r.precio)) : '') +
           valorEma + '</span>' +
         '<span class="inv-rango-extremo">' + usd(r.max) + '</span>' +
       '</span>';
