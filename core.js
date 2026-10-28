@@ -1592,6 +1592,30 @@ function desfaseDeZona(ms, zona) {
   return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - t;
 }
 
+// La apertura de las tres plazas que mueven el día, con su hora local y la de Argentina,
+// por orden de apertura: Asia (la bolsa de Tokio), Londres y Nueva York. Cada una abre a
+// su hora de pared y cada una cambia de hora en su fecha, así que la hora argentina no es
+// fija: se calcula para el día que se pide.
+const MERCADOS_APERTURA = [
+  { nombre: 'Asia', plaza: 'Tokio', zona: 'Asia/Tokyo', hora: 9, minuto: 0 },
+  { nombre: 'Londres', plaza: 'Londres', zona: 'Europe/London', hora: 8, minuto: 0 },
+  { nombre: 'Nueva York', plaza: 'Nueva York', zona: 'America/New_York', hora: 9, minuto: 30 }
+];
+function aperturasDeMercados(ahora) {
+  const ms = esNumeroFinito(ahora) ? ahora : Date.now();
+  const dos = function (n) { return String(n).padStart(2, '0'); };
+  return MERCADOS_APERTURA.map(function (m) {
+    const p = {};
+    formatoDeZona(m.zona).formatToParts(new Date(ms)).forEach(function (x) { p[x.type] = Number(x.value); });
+    const pared = Date.UTC(p.year, p.month - 1, p.day, m.hora, m.minuto);
+    // Dos pasadas, como instanteDeFinviz: el desfase se mide en un instante ya corrido por él.
+    let utc = pared - desfaseDeZona(pared, m.zona);
+    utc = pared - desfaseDeZona(utc, m.zona);
+    return { nombre: m.nombre, plaza: m.plaza, horaLocal: dos(m.hora) + ':' + dos(m.minuto),
+      hora: fechaHoraArgentina(utc).hora, utc: utc };
+  }).sort(function (a, b) { return (a.utc % 86400000) - (b.utc % 86400000); });
+}
+
 // Finviz da la hora de pared de Nueva York ("2026-10-29T08:30:00", sin zona).
 // Devuelve el instante real en milisegundos UTC, o null si no se puede leer.
 function instanteDeFinviz(texto) {
@@ -5219,7 +5243,7 @@ if (typeof module !== 'undefined' && module.exports) {
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
     equivalenteDeCedear, cotizacionDeCedear, textoDeRatioCedear,
     // calendario económico
-    CALENDARIO_GRUPOS, instanteDeFinviz, fechaHoraArgentina, valorDeCalendario, calendarioRelevante,
+    CALENDARIO_GRUPOS, instanteDeFinviz, aperturasDeMercados, fechaHoraArgentina, valorDeCalendario, calendarioRelevante,
     calendarioPorMes, semanasDelCalendario, sorpresaDeCalendario,
     resumirTanda,
     // reserva

@@ -22447,11 +22447,21 @@ function bandaDeSeguimiento(rotulo, conteo, extra) {
   '</div></div>';
 }
 
+// Después del conteo, una barra y la apertura de las tres plazas en hora argentina, por
+// orden de apertura y una al lado de la otra. Cada una lleva en su emergente la hora local
+// de la plaza: el cambio de hora de Nueva York y de Londres mueve la argentina.
+function aperturasDeMercadosHtml() {
+  return '<span class="inv-pf-sep">|</span>' + aperturasDeMercados(Date.now()).map(function (a) {
+    return '<span class="inv-section-count inv-apertura"' + tipAttrs('Apertura de ' + a.plaza,
+      'Abre a las ' + a.horaLocal + ' hora de ' + a.plaza + ': las ' + a.hora + ' en Argentina.') + '>' + escapeHtmlSafe(a.nombre) + ' ' + a.hora + '</span>';
+  }).join('');
+}
+
 // La banda del calendario va adentro de lo que se repinta: su conteo cambia con
 // los datos.
 function htmlCalendario() {
   const r = cuerpoDelCalendario();
-  return bandaDeSeguimiento('Calendario económico', r.conteo) + r.html;
+  return bandaDeSeguimiento('Calendario económico', r.conteo, aperturasDeMercadosHtml()) + r.html;
 }
 
 function cuerpoDelCalendario() {
