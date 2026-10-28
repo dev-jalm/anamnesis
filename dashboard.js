@@ -21348,7 +21348,7 @@ const _fundamentalesEnVuelo = {};
 // seis horas en el navegador y en la caché de Cloudflare, con la dirección como
 // clave: sin esto, quien ya consultó un activo recibiría la versión vieja —sin
 // la cabecera con el sector— hasta que venciera.
-const FUNDAMENTALES_API_VERSION = 3;
+const FUNDAMENTALES_API_VERSION = 4;
 
 // Los promedios de cada sector e industria, ya leídos: { sector, industria }.
 // Una vez por sesión alcanza —son los mismos para todos los activos y cambian
@@ -21420,6 +21420,9 @@ function traerFundamentales(ticker, moneda, btn) {
       // La EMA de 200 semanas va junto a los datos de la ficha: es lo que se
       // guarda, no las 520 velas de las que sale.
       Object.assign(r.datos, emaSemanalDeFinviz(cuerpo.semanal));
+      // Y el último balance publicado contra lo esperado, que es lo que se guarda
+      // de los doce que trae la ficha.
+      r.datos.ultimoBalance = ultimoBalanceDeFinviz(cuerpo.balances, Date.now());
       const perfil = perfilDeFinviz(cuerpo.cabecera);
       return traerPromediosDeSector().then(function (grupos) {
         if (!state.tickerInfo) state.tickerInfo = {};
@@ -22702,6 +22705,30 @@ function htmlListaSeguimiento() {
         (r.tocaEma ? 'TOCANDO' : (falta > 0 ? '+' : '−') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '%') +
       '</span>';
     }
+    // El último balance publicado: cuándo salió y, debajo, cuánto se alejaron las
+    // ganancias por acción (EPS) y los ingresos de lo esperado. Verde si lo
+    // superaron y rojo si quedaron por debajo, el criterio de la app; el
+    // emergente da lo publicado y lo esperado.
+    let ultimo = guion;
+    if (r.ultimo) {
+      const u = r.ultimo;
+      const cuando = u.fecha + ' · ' + (u.dias === 0 ? 'hoy' : (u.dias === 1 ? 'ayer' : 'hace ' + u.dias + ' días'));
+      const sorpresa = function (rotulo, nombre, par, formato) {
+        if (par.pct === null) return '<span><span class="inv-na">—</span></span>';
+        const signo = par.pct > 0 ? '+' : (par.pct < 0 ? '−' : '');
+        const tono = par.pct > 0 ? ' inv-cal-sor-pos' : (par.pct < 0 ? ' inv-cal-sor-neg' : '');
+        const detalle = ['Publicó ' + formato(par.publicado) + ' contra ' + formato(par.esperado) + ' esperados.',
+          par.pct === 0 ? 'Salió igual a lo esperado.'
+            : (par.pct > 0 ? 'Superó' : 'Quedó por debajo de') + ' lo esperado en ' + FUNDAMENTALES_N2.format(Math.abs(par.pct)) + '%.'];
+        return '<span class="inv-cal-sor' + tono + '"' + tipAttrs('Último balance' + (u.periodo ? ' · ' + u.periodo : '') + ' · ' + nombre, detalle.join('\n')) + '>' +
+          rotulo + ' ' + signo + FUNDAMENTALES_N2.format(Math.abs(par.pct)) + '%</span>';
+      };
+      ultimo = '<span class="inv-bce-fecha">' + escapeHtmlSafe(cuando) + '</span>' +
+        '<span class="inv-bce-sor">' +
+          sorpresa('EPS', 'Ganancia por acción (EPS)', u.eps, function (n) { return n === null ? '—' : 'US$ ' + FUNDAMENTALES_N2.format(n); }) +
+          sorpresa('Ingresos', 'Ingresos', u.ventas, function (n) { return n === null ? '—' : 'US$ ' + FUNDAMENTALES_N0.format(n) + ' M'; }) +
+        '</span>';
+    }
     const dias = f ? diasDeAntiguedad(f.fecha) : null;
     return '<div class="inv-seg-fila' + (o.corte ? ' inv-seg-corte' : '') + '">' +
       '<span class="inv-seg-acciones">' +
@@ -22728,14 +22755,15 @@ function htmlListaSeguimiento() {
       rango +
       '<span class="inv-cal-num">' + ema + '</span>' +
       '<span class="inv-cal-num">' + almax + '</span>' +
-      '<span>' + (r.balance ? escapeHtmlSafe(r.balance) : guion) + '</span>' +
+      '<span>' + (r.proximo ? escapeHtmlSafe(r.proximo) : guion) + '</span>' +
+      '<span class="inv-bce">' + ultimo + '</span>' +
       '<span class="inv-cal-num inv-cal-ref">' + (dias === null ? guion : (dias === 0 ? 'hoy' : 'hace ' + dias + (dias === 1 ? ' día' : ' días'))) + '</span>' +
     '</div>';
   });
   return banda + '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Descripción</span><span>Precio</span>' +
     '<span>Rango de 52 semanas</span>' +
     '<span' + tipAttrs('EMA de 200 semanas', 'Media móvil exponencial de 200 semanas: un promedio del precio que pesa más lo reciente y que muchos miran como piso de largo plazo.') + '>Falta p/ EMA200 sem.</span>' +
-    '<span>Falta p/ máx.</span><span>Próx. balance</span><span>Consulta</span></div>' +
+    '<span>Falta p/ máx.</span><span>Próx. balance</span><span>Último balance</span><span>Consulta</span></div>' +
     filas.join('');
 }
 

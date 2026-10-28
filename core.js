@@ -1617,9 +1617,14 @@ function fechaHoraArgentina(ms) {
 // Finviz escribe como en inglés: "3.5%", "225K", "1,234.5". Se pasa a la forma de
 // la app —coma decimal, sin separador de miles— sin tocar la unidad. Vacío si el
 // dato todavía no existe.
+// Un porcentaje lleva siempre al menos un decimal: Finviz escribe "4%" en un dato y
+// "4.0%" en otro, y en la misma columna se leían como dos cosas. Los que ya traen
+// más ("3.75%") se dejan como están: redondearlos cambiaría lo que dice. Lo que no
+// es porcentaje —"225K"— no se toca.
 function valorDeCalendario(texto) {
   if (texto === null || texto === undefined || String(texto).trim() === '') return '';
-  return String(texto).trim().replace(/,/g, '').replace('.', ',');
+  const v = String(texto).trim().replace(/,/g, '').replace('.', ',');
+  return /^-?\d+%$/.test(v) ? v.replace('%', ',0%') : v;
 }
 
 // De las entradas crudas del Worker a lo que se muestra: sólo los eventos que se
@@ -2350,6 +2355,36 @@ function emaSemanalDeFinviz(semanal) {
   return { ema200w: ema, bajoSem: ult(s.bajo), altoSem: ult(s.alto) };
 }
 
+// De los balances que devuelve el Worker ({ fecha en segundos, periodo,
+// epsPublicado, epsEsperado, ventasPublicadas, ventasEsperadas }), el último ya
+// publicado: el más reciente cuya fecha pasó y que trae su resultado. Finviz lista
+// también los que vienen, sin cifras. Null si no hay ninguno.
+function ultimoBalanceDeFinviz(balances, ahora) {
+  const hoy = esNumeroFinito(ahora) ? ahora : Date.now();
+  const num = function (n) { return esNumeroFinito(n) ? n : null; };
+  let ult = null;
+  (Array.isArray(balances) ? balances : []).forEach(function (b) {
+    if (!b || !esNumeroFinito(b.fecha) || b.fecha * 1000 > hoy) return;
+    if (num(b.epsPublicado) === null && num(b.ventasPublicadas) === null) return;
+    if (!ult || b.fecha > ult.fecha) ult = b;
+  });
+  if (!ult) return null;
+  return {
+    ms: ult.fecha * 1000, periodo: ult.periodo || '',
+    epsPublicado: num(ult.epsPublicado), epsEsperado: num(ult.epsEsperado),
+    ventasPublicadas: num(ult.ventasPublicadas), ventasEsperadas: num(ult.ventasEsperadas)
+  };
+}
+
+// Cuánto se alejó lo publicado de lo esperado, en % del esperado: positivo si lo
+// superó. Con esperado negativo se divide por su valor absoluto, así una pérdida
+// menor a la esperada sigue contando como superar. Null si falta alguno o el
+// esperado es cero.
+function sorpresaDeBalance(publicado, esperado) {
+  if (!esNumeroFinito(publicado) || !esNumeroFinito(esperado) || esperado === 0) return null;
+  return (publicado - esperado) / Math.abs(esperado) * 100;
+}
+
 // El texto de una celda, sin etiquetas, con las entidades de & decodificadas.
 function _textoDeCelda(s) {
   return String(s).replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
@@ -2715,7 +2750,30 @@ function resumenDeSeguimiento(datos, ahora) {
     // publicado hasta que la empresa anuncia el siguiente.
     balance: r ? (r.dias < 0 ? 'último ' : '') + fundamentalesTextoDeResultados(d.earnings, ahora, false) : null,
     diasAlBalance: r ? r.dias : null,
+    // El próximo balance, sólo si todavía no salió: la fecha y los días que faltan.
+    proximo: (r && r.dias >= 0) ? fundamentalesTextoDeResultados(d.earnings, ahora, false) : null,
+    ultimo: resumenDeUltimoBalance(d.ultimoBalance, ahora),
     distanciaAlMaximo: esNumeroFinito(d.dist52High) ? d.dist52High : null
+  };
+}
+
+// El último balance publicado para mostrar: cuándo salió y la sorpresa de
+// ganancia por acción y de ventas, cada una con lo publicado, lo esperado y el %.
+// Null sin balance. La fecha y los días son los de Argentina, como el calendario.
+function resumenDeUltimoBalance(b, ahora) {
+  if (!b || !esNumeroFinito(b.ms)) return null;
+  const ref = esNumeroFinito(ahora) ? ahora : Date.now();
+  const dia = function (ms) { const p = fechaHoraArgentina(ms).dia.split('-').map(Number); return Date.UTC(p[0], p[1] - 1, p[2]); };
+  const f = fechaHoraArgentina(b.ms).dia;
+  const par = function (pub, esp) {
+    return { publicado: pub, esperado: esp, pct: sorpresaDeBalance(pub, esp) };
+  };
+  return {
+    fecha: f.slice(8, 10) + '/' + f.slice(5, 7),
+    dias: Math.round((dia(ref) - dia(b.ms)) / 86400000),
+    periodo: b.periodo || '',
+    eps: par(b.epsPublicado, b.epsEsperado),
+    ventas: par(b.ventasPublicadas, b.ventasEsperadas)
   };
 }
 
@@ -5012,7 +5070,8 @@ if (typeof module !== 'undefined' && module.exports) {
     fundamentalesParaMostrar, clasificarFundamental, puntajeContraSector, lecturaCortoPlazo,
     fundamentalesCalculados,
     resultadosDe, fundamentalesTextoDeResultados, numeroDeFinviz, diasDeAntiguedad,
-    esTickerDeFinviz, mediaExponencial, emaSemanalDeFinviz, EMA_SEMANAL_PERIODO, resumenDeSeguimiento, balanceDeActivo, ordenarPorBalance,
+    esTickerDeFinviz, mediaExponencial, emaSemanalDeFinviz, EMA_SEMANAL_PERIODO, ultimoBalanceDeFinviz,
+    sorpresaDeBalance, resumenDeUltimoBalance, resumenDeSeguimiento, balanceDeActivo, ordenarPorBalance,
     // planificación de compras
     filaDePlan, totalPctDePlan, agruparPlanPorActivo, compraPlanificada,
     equivalenteDeCedear, cotizacionDeCedear, textoDeRatioCedear,

@@ -8260,11 +8260,22 @@ select.inv-plan-in { cursor: pointer; }
    Precio | Rango de 52 semanas | Falta p/ EMA200 sem. | Próx. balance | Consulta. El precio y la fecha
    de consulta a la derecha, como en las demás. */
 .inv-seg-titulos,
-.inv-seg-fila { grid-template-columns: 40px 112px minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.2fr) 96px; }
+.inv-seg-fila {
+  grid-template-columns: 40px 112px minmax(0, 1fr) minmax(0, .9fr) minmax(0, 2.1fr) minmax(0, 1.35fr) minmax(0, .9fr) minmax(0, 1.3fr) minmax(0, 1.9fr) 96px;
+  gap: 8px;
+}
+/* Los títulos en una línea: con diez columnas, uno que se parte en dos desalinea
+   la fila de títulos contra la de datos. */
+.inv-seg-titulos span { white-space: nowrap; }
 .inv-seg-titulos span:nth-child(4),
 .inv-seg-titulos span:nth-child(6),
 .inv-seg-titulos span:nth-child(7),
-.inv-seg-titulos span:nth-child(9) { text-align: right; }
+.inv-seg-titulos span:nth-child(10) { text-align: right; }
+/* El último balance: la fecha arriba y debajo las dos sorpresas, en una línea.
+   Con dos líneas la fila no pasa de los 40px mínimos. */
+.inv-bce { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.inv-bce-fecha { color: var(--muted); font-size: 10px; }
+.inv-bce-sor { display: flex; gap: 10px; white-space: nowrap; }
 /* Lo que falta para llegar a la EMA de 200 semanas y al máximo, cada porcentaje
    en el color de lo que mide: el azul de la línea de la EMA, y para el máximo el
    mismo del máximo en el rango de 52 semanas (.inv-rango-extremo). Cuando ya está
@@ -8279,9 +8290,9 @@ select.inv-plan-in { cursor: pointer; }
 .inv-seg-fila > :nth-child(8) { padding-left: 24px; }
 /* El rango del último año: el mínimo, la barra y el máximo en una línea. Con
    aire a los dos lados, que el precio de la izquierda y la fecha de la derecha
-   no se pegan a los extremos: 20px de margen, y el mismo en el título. */
-.inv-rango { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0 20px; }
-.inv-seg-titulos span:nth-child(5) { padding-left: 20px; }
+   no se pegan a los extremos: 12px de margen, y el mismo en el título. */
+.inv-rango { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 0 12px; }
+.inv-seg-titulos span:nth-child(5) { padding-left: 12px; }
 /* Lo que está por publicar va arriba y lo ya publicado debajo; el último de los
    primeros cierra con una línea más gruesa que el divisor de las filas y en el
    acento, que es el color con el que la app señala lo que hay que mirar: así

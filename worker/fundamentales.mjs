@@ -11,8 +11,8 @@
 //
 // Tres rutas, las tres de solo lectura:
 //   /api/fundamentales?t=AAPL  la ficha de un activo: su tabla de datos, la
-//                              cabecera con su sector e industria y sus velas
-//                              semanales.
+//                              cabecera con su sector e industria, sus velas
+//                              semanales y sus últimos balances.
 //   /api/grupos                los promedios de cada sector y de cada industria,
 //                              contra los que se compara el activo.
 //   /api/calendario?d=AAAA-MM-DD  los eventos económicos de la semana que
@@ -88,27 +88,43 @@ function recortarGrupos(html) {
   return html.slice(ini, fin + 8).replace(/<(\w+)\s[^>]*>/g, '<$1>');
 }
 
-// Las velas semanales que la ficha trae incrustadas para dibujar su gráfico
-// (`var data = {...}`, ~10 años). Se piden con `p=w`; sin esa marca la página
-// trae las diarias. Salen sólo las columnas que usa la app y las últimas
-// SEMANAS_MAX: una EMA de 200 semanas converge con holgura en 520.
-const SEMANAS_MAX = 520;
-function recortarSemanal(html) {
+// Lo que la ficha trae incrustado para dibujar su gráfico (`var data = {...}`):
+// ~10 años de velas y los balances publicados. Se pide con `p=w`; sin esa marca
+// las velas son las diarias. Null si no está o no se puede leer.
+function datosDelGrafico(html) {
   const marca = html.indexOf('var data = {"version"');
   if (marca < 0) return null;
   const ini = html.indexOf('{', marca);
   const fin = html.indexOf('\n', ini);
   if (ini < 0 || fin < 0) return null;
-  let datos;
   try {
-    datos = JSON.parse(html.slice(ini, fin).trim().replace(/;$/, ''));
+    return JSON.parse(html.slice(ini, fin).trim().replace(/;$/, ''));
   } catch (e) {
     return null;
   }
+}
+
+// Las velas semanales, sólo las columnas que usa la app y las últimas
+// SEMANAS_MAX: una EMA de 200 semanas converge con holgura en 520.
+const SEMANAS_MAX = 520;
+function recortarSemanal(datos) {
   if (!datos || datos.timeframe !== 'w' || !Array.isArray(datos.close) || !Array.isArray(datos.high) ||
       !Array.isArray(datos.low) || !Array.isArray(datos.date)) return null;
   const ultimas = function (a) { return a.slice(-SEMANAS_MAX); };
   return { fecha: ultimas(datos.date), alto: ultimas(datos.high), bajo: ultimas(datos.low), cierre: ultimas(datos.close) };
+}
+
+// Los balances: cuándo salió cada uno y el resultado contra lo esperado, en
+// ganancia por acción y en ventas. Los últimos BALANCES_MAX; la app usa el más
+// reciente ya publicado.
+const BALANCES_MAX = 12;
+function recortarBalances(datos) {
+  if (!datos || !Array.isArray(datos.chartEvents)) return null;
+  return datos.chartEvents.filter(function (e) { return e && e.eventType === 'chartEvent/earnings'; })
+    .slice(-BALANCES_MAX).map(function (e) {
+      return { fecha: e.dateTimestamp, periodo: e.fiscalPeriod, epsPublicado: e.epsActual, epsEsperado: e.epsEstimate,
+        ventasPublicadas: e.salesActual, ventasEsperadas: e.salesEstimate };
+    });
 }
 
 async function conCache(request, segundos, producir) {
@@ -140,13 +156,14 @@ async function fundamentales(request, url) {
     if (resp.status === 404) return json({ error: 'Finviz no conoce ' + ticker + '.' }, 404);
     if (!resp.ok) return json({ error: 'Finviz respondió ' + resp.status + '.' }, 502);
     const pagina = await resp.text();
+    const grafico = datosDelGrafico(pagina);
     const tabla = recortarTabla(pagina);
     // Sin la tabla, o Finviz cambió la página o devolvió una verificación en
     // vez de la ficha. En los dos casos no hay nada que guardar.
     if (!tabla) return json({ error: 'Finviz no devolvió la ficha de ' + ticker + '.' }, 502);
     return json({
       ticker: ticker, fuente: 'finviz', fecha: new Date().toISOString(),
-      html: tabla, cabecera: recortarCabecera(pagina), semanal: recortarSemanal(pagina)
+      html: tabla, cabecera: recortarCabecera(pagina), semanal: recortarSemanal(grafico), balances: recortarBalances(grafico)
     });
   });
 }
