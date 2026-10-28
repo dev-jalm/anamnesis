@@ -1514,12 +1514,20 @@ function textoDeRatioCedear(ratio) {
 // a los productores (PPI), PCE, empleo y PIB. Finviz trae decenas de eventos por
 // semana y estos son los que se siguen; cada uno se reconoce por el nombre con el
 // que Finviz lo publica (el IPC figura como "Inflation Rate", no como "CPI").
+// `nombre` y `mide` van al emergente de la sigla: lo que una sigla dice sólo lo
+// sabe quien ya la conoce. "Empleo" no es una sigla y no lleva.
 const CALENDARIO_GRUPOS = [
-  { clave: 'ipc', rotulo: 'IPC' },
-  { clave: 'ppi', rotulo: 'PPI' },
-  { clave: 'pce', rotulo: 'PCE' },
+  { clave: 'ipc', rotulo: 'IPC', nombre: 'Índice de Precios al Consumidor',
+    mide: 'La inflación que ve el consumidor: cuánto subió lo que compra. El subyacente deja afuera alimentos y energía, que son lo más volátil.' },
+  { clave: 'ppi', rotulo: 'PPI', nombre: 'Índice de Precios al Productor',
+    mide: 'La inflación en el mayoreo: cuánto cobran los productores por lo que venden. Suele adelantarse al IPC.' },
+  { clave: 'pce', rotulo: 'PCE', nombre: 'Gasto de Consumo Personal (índice de precios)',
+    mide: 'La medida de inflación que la Fed mira para su meta del 2 %.' },
   { clave: 'empleo', rotulo: 'Empleo' },
-  { clave: 'pib', rotulo: 'PIB' }
+  { clave: 'pib', rotulo: 'PIB', nombre: 'Producto Interno Bruto',
+    mide: 'Cuánto creció la economía de Estados Unidos en el trimestre.' },
+  { clave: 'fed', rotulo: 'FOMC', nombre: 'Comité Federal de Mercado Abierto',
+    mide: 'El comité de la Fed que decide la tasa de interés. Se reúne ocho veces por año.' }
 ];
 
 // Nombre de Finviz -> grupo y nombre en castellano. Los que no están acá no se
@@ -1548,7 +1556,14 @@ const CALENDARIO_EVENTOS = {
   'Unemployment Rate': ['empleo', 'Tasa de desempleo', 'tasa de desempleo'],
   'GDP Growth Rate QoQ Adv': ['pib', 'PIB trimestral (adelanto)', 'adelanto'],
   'GDP Growth Rate QoQ 2nd Est': ['pib', 'PIB trimestral (2.ª estimación)', '2.ª estimación'],
-  'GDP Growth Rate QoQ Final': ['pib', 'PIB trimestral (final)', 'final']
+  'GDP Growth Rate QoQ Final': ['pib', 'PIB trimestral (final)', 'final'],
+  // La Fed: la decisión de tasas, el comunicado y la conferencia de prensa salen
+  // el mismo día; las minutas, tres semanas después. El comunicado, la
+  // conferencia y las minutas no traen cifras: sólo la fecha y la hora.
+  'Fed Interest Rate Decision': ['fed', 'Decisión de tasas de la Fed', 'tasas'],
+  'FOMC Statement': ['fed', 'Comunicado del FOMC', 'comunicado'],
+  'Fed Press Conference': ['fed', 'Conferencia de prensa de la Fed', 'conferencia'],
+  'FOMC Minutes': ['fed', 'Minutas del FOMC', 'minutas']
 };
 
 const CALENDARIO_ZONA_FINVIZ = 'America/New_York';
@@ -1626,7 +1641,8 @@ function calendarioRelevante(entradas) {
     const grupo = CALENDARIO_GRUPOS.filter(function (g) { return g.clave === def[0]; })[0];
     const fh = fechaHoraArgentina(ms);
     salida.push({
-      id: e.id, evento: e.evento, grupo: grupo.clave, rotuloGrupo: grupo.rotulo, nombre: def[1], corto: def[2], ms: ms,
+      id: e.id, evento: e.evento, grupo: grupo.clave, rotuloGrupo: grupo.rotulo, nombreGrupo: grupo.nombre || '',
+      mideGrupo: grupo.mide || '', nombre: def[1], corto: def[2], ms: ms,
       dia: fh.dia, hora: fh.hora, referencia: e.referencia || '',
       previo: valorDeCalendario(e.previo), pronostico: valorDeCalendario(e.pronostico),
       publicado: valorDeCalendario(e.publicado), importancia: Number(e.importancia) || 0,
@@ -2573,7 +2589,8 @@ function calendarioPorMes(eventos, hoyDia, cantidad) {
     }
     let fam = dia.familias.filter(function (f) { return f.grupo === e.grupo; })[0];
     if (!fam) {
-      fam = { grupo: e.grupo, rotulo: e.rotuloGrupo, referencia: e.referencia, hora: e.hora, lineas: [] };
+      fam = { grupo: e.grupo, rotulo: e.rotuloGrupo, nombre: e.nombreGrupo || '', mide: e.mideGrupo || '',
+        referencia: e.referencia, hora: e.hora, lineas: [] };
       dia.familias.push(fam);
     }
     fam.lineas.push({
@@ -2676,8 +2693,21 @@ function resumenDeSeguimiento(datos, ahora) {
   const bajoSem = positivo(d.bajoSem);
   const altoSem = positivo(d.altoSem);
   const toca = ema !== null && bajoSem !== null && altoSem !== null && ema >= bajoSem && ema <= altoSem;
+  // La EMA en la barra del rango: su punto entre el mínimo y el máximo del año,
+  // recortado a los extremos cuando cae afuera; `fueraEma` dice de qué lado.
+  let posicionEma = null;
+  let fueraEma = null;
+  if (ema !== null && min !== null && max !== null && max > min) {
+    fueraEma = ema < min ? 'debajo' : (ema > max ? 'arriba' : null);
+    posicionEma = Math.min(100, Math.max(0, (ema - min) / (max - min) * 100));
+  }
   return {
     ema: ema,
+    posicionEma: posicionEma,
+    fueraEma: fueraEma,
+    // Lo que le falta al precio para llegar al máximo del año, nunca negativo: un
+    // precio en o sobre el máximo está en máximos, no "a −2 %" de ellos.
+    faltaParaMaximo: (max !== null && precio !== null) ? Math.max(0, (max / precio - 1) * 100) : null,
     faltaParaEma: (ema !== null && precio !== null) ? (toca ? 0 : (ema / precio - 1) * 100) : null,
     tocaEma: toca,
     precio: precio, min: min, max: max, posicion: posicion,

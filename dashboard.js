@@ -22343,6 +22343,14 @@ const CALENDARIO_VIGENCIA_MS = 15 * 60 * 1000;
 // que ya pasaron del mes en curso se quedan a la vista, porque ahí está lo
 // publicado, que es lo que se compara con lo esperado.
 const CALENDARIO_CANTIDAD_MESES = 3;
+
+// Lo que quiere decir la unidad con que termina una sorpresa, para su emergente.
+const CALENDARIO_UNIDADES = {
+  'pp': 'pp: puntos porcentuales.',
+  'K': 'K: miles.',
+  'M': 'M: millones.',
+  'B': 'B: miles de millones.'
+};
 // Sube cuando cambia la FORMA de la respuesta del Worker: se guarda 15 minutos
 // en la caché de Cloudflare con la dirección como clave, y sin esto se serviría
 // la versión vieja —sin el sentido de cada dato— hasta que venciera.
@@ -22467,7 +22475,8 @@ function cuerpoDelCalendario() {
       '<div class="inv-cal-fams">' + d.familias.map(function (f) {
         return '<div class="inv-cal-fam">' +
           '<div class="inv-cal-fam-cab">' +
-            '<span class="inv-cal-chip inv-cal-' + f.grupo + '">' + escapeHtmlSafe(f.rotulo) + '</span>' +
+            // La sigla dice qué es en su emergente; "Empleo" no lo necesita.
+            '<span class="inv-cal-chip inv-cal-' + f.grupo + '"' + (f.nombre ? tipAttrs(f.nombre, f.mide) : '') + '>' + escapeHtmlSafe(f.rotulo) + '</span>' +
             (f.referencia ? '<span class="inv-cal-ref">' + escapeHtmlSafe(f.referencia) + '</span>' : '') +
             '<span class="inv-cal-hora">' + f.hora + ' h</span>' +
           '</div>' +
@@ -22476,11 +22485,14 @@ function cuerpoDelCalendario() {
             // mejor de lo esperado y rojo si salió peor —el criterio de toda la
             // app—; sin color donde no se juzga o no hay diferencia.
             const sor = l.sorpresa;
+            const unidad = sor ? sor.texto.replace(/^[+−]?\d+(?:,\d+)?\s?/, '') : '';
             return '<div class="inv-cal-lin"><span class="inv-cal-corto">' + escapeHtmlSafe(l.corto) + '</span>' +
-              dato('inv-cal-num', l.previo) + dato('inv-cal-num', l.pronostico) +
+              dato('inv-cal-num inv-cal-prev', l.previo) + dato('inv-cal-num', l.pronostico) +
               dato('inv-cal-num inv-cal-pub', l.publicado) +
               (sor
-                ? '<span class="inv-cal-num inv-cal-sor' + (sor.tono ? ' inv-cal-sor-' + sor.tono : '') + '">' + escapeHtmlSafe(sor.texto) + '</span>'
+                ? '<span class="inv-cal-num inv-cal-sor' + (sor.tono ? ' inv-cal-sor-' + sor.tono : '') + '"' +
+                  tipAttrs('Sorpresa', 'Lo publicado menos lo esperado.' + (CALENDARIO_UNIDADES[unidad] ? '\n' + CALENDARIO_UNIDADES[unidad] : '')) + '>' +
+                  escapeHtmlSafe(sor.texto) + '</span>'
                 : '<span class="inv-cal-num"><span class="inv-na">—</span></span>') +
             '</div>';
           }).join('') +
@@ -22519,7 +22531,7 @@ function cuerpoDelCalendario() {
     return '<div class="inv-liq-celda inv-cal-mes' + (i ? ' inv-liq-col2' : '') + '">' + cab +
       (m.dias.length
         ? '<div class="inv-cal-mes-titulos"><span></span><span>Previo</span><span>Esperado</span><span>Publicado</span><span>Sorpresa</span></div>' + cuerpo
-        : (m.clave > (hasta || '').slice(0, 7) ? '' : nota('Sin publicaciones de IPC, PPI, PCE, empleo ni PIB.'))) +
+        : (m.clave > (hasta || '').slice(0, 7) ? '' : nota('Sin publicaciones de IPC, PPI, PCE, empleo, PIB ni FOMC.'))) +
       (aviso ? nota(aviso) : '') +
     '</div>';
   };
@@ -22650,11 +22662,32 @@ function htmlListaSeguimiento() {
           ? 'A ' + FUNDAMENTALES_N2.format(Math.abs(r.distanciaAlMaximo)) + '% por debajo del máximo.'
           : 'Por encima del máximo que tenía Finviz.');
       }
+      // La EMA de 200 semanas, en la misma barra y con otro color: dónde queda
+      // respecto del rango y del precio. Si cae fuera del rango del año se pega al
+      // extremo, atenuada, y el emergente lo dice.
+      let marcaEma = '';
+      if (r.posicionEma !== null) {
+        detalle.push('EMA de 200 semanas (' + usd(r.ema) + '): ' + (r.fueraEma
+          ? 'queda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.'
+          : 'al ' + FUNDAMENTALES_N0.format(r.posicionEma) + '% del camino.'));
+        marcaEma = '<span class="inv-rango-ema' + (r.fueraEma ? ' inv-rango-ema-fuera' : '') + '" style="left:' + r.posicionEma.toFixed(1) + '%"></span>';
+      }
       rango = '<span class="inv-rango"' + tipAttrs('Posición en el rango de 52 semanas', detalle.join('\n')) + '>' +
         '<span class="inv-rango-extremo">' + usd(r.min) + '</span>' +
-        '<span class="inv-rango-barra"><span class="inv-rango-marca" style="left:' + r.posicion.toFixed(1) + '%"></span></span>' +
+        '<span class="inv-rango-barra">' + marcaEma + '<span class="inv-rango-marca" style="left:' + r.posicion.toFixed(1) + '%"></span></span>' +
         '<span class="inv-rango-extremo">' + usd(r.max) + '</span>' +
       '</span>';
+    }
+    // Lo que le falta al precio para llegar al máximo del año, en %: siempre
+    // positivo; en el máximo dice EN MÁXIMO, con el acento de la EMA tocada.
+    let almax = guion;
+    if (r.faltaParaMaximo !== null) {
+      const enMax = r.faltaParaMaximo === 0;
+      almax = '<span class="inv-ema' + (enMax ? ' inv-ema-toca' : '') + '"' +
+        tipAttrs('Distancia al máximo de 52 semanas', enMax
+          ? 'El precio está en el máximo del año (' + usd(r.max) + ').'
+          : 'El precio tendría que subir ' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '% para volver al máximo del año (' + usd(r.max) + ').') + '>' +
+        (enMax ? 'EN MÁXIMO' : '+' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '%') + '</span>';
     }
     // Lo que le falta al precio para llegar a la EMA de 200 semanas: el % con
     // su signo (negativo si tiene que bajar), la EMA debajo en el emergente.
@@ -22693,13 +22726,16 @@ function htmlListaSeguimiento() {
         '" placeholder="EJ: APPLE INC."></span>' +
       '<span class="inv-cal-num">' + usd(r.precio) + '</span>' +
       rango +
+      '<span class="inv-cal-num">' + almax + '</span>' +
       '<span class="inv-cal-num">' + ema + '</span>' +
       '<span>' + (r.balance ? escapeHtmlSafe(r.balance) : guion) + '</span>' +
       '<span class="inv-cal-num inv-cal-ref">' + (dias === null ? guion : (dias === 0 ? 'hoy' : 'hace ' + dias + (dias === 1 ? ' día' : ' días'))) + '</span>' +
     '</div>';
   });
   return banda + '<div class="inv-seg-titulos"><span></span><span>Activo</span><span>Descripción</span><span>Precio</span>' +
-    '<span>Rango de 52 semanas</span><span>Falta p/ EMA200 sem.</span><span>Próx. balance</span><span>Consulta</span></div>' +
+    '<span>Rango de 52 semanas</span><span>Falta p/ máx.</span>' +
+    '<span' + tipAttrs('EMA de 200 semanas', 'Media móvil exponencial de 200 semanas: un promedio del precio que pesa más lo reciente y que muchos miran como piso de largo plazo.') + '>Falta p/ EMA200 sem.</span>' +
+    '<span>Próx. balance</span><span>Consulta</span></div>' +
     filas.join('');
 }
 

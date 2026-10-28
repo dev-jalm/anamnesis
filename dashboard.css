@@ -8147,7 +8147,7 @@ select.inv-plan-in { cursor: pointer; }
    Liquidado pero con tres: la misma grilla, el mismo divisor entre columnas, el
    mismo título de grupo y el mismo título de columna. Va después de las
    declaraciones compartidas para que lo suyo sea lo que rige. */
-.inv-cal-meses { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.inv-cal-meses { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 14px; }
 /* En el del medio no vale el padding de la columna de la derecha de Liquidado:
    tiene otra columna a su derecha y su divisor. */
 .inv-cal-mes { --cal-val: 60px; --cal-dia: 32px; }
@@ -8241,6 +8241,7 @@ select.inv-plan-in { cursor: pointer; }
 .inv-cal-pce { --cal-c: #7F77DD; }
 .inv-cal-empleo { --cal-c: #1D9E75; }
 .inv-cal-pib { --cal-c: #378ADD; }
+.inv-cal-fed { --cal-c: #6B7C8F; }
 /* Hoy, entre lo que ya salió y lo que viene: una línea en el acento, el color
    con el que la app señala lo que hay que mirar, con la fecha encima. */
 .inv-cal-hoy {
@@ -8259,10 +8260,11 @@ select.inv-plan-in { cursor: pointer; }
    Precio | Rango de 52 semanas | Falta p/ EMA200 sem. | Próx. balance | Consulta. El precio y la fecha
    de consulta a la derecha, como en las demás. */
 .inv-seg-titulos,
-.inv-seg-fila { grid-template-columns: 40px 112px minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 2.4fr) minmax(0, 1.2fr) minmax(0, 1.2fr) 96px; }
+.inv-seg-fila { grid-template-columns: 40px 112px minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.2fr) 96px; }
 .inv-seg-titulos span:nth-child(4),
 .inv-seg-titulos span:nth-child(6),
-.inv-seg-titulos span:nth-child(8) { text-align: right; }
+.inv-seg-titulos span:nth-child(7),
+.inv-seg-titulos span:nth-child(9) { text-align: right; }
 /* Lo que falta para tocar la EMA de 200 semanas. Tocándola se pinta con el
    acento, el color con el que la app señala lo que hay que mirar. */
 .inv-ema-toca { color: var(--accent); font-weight: 700; }
@@ -8297,8 +8299,23 @@ select.inv-plan-in { cursor: pointer; }
   background: var(--accent);
 }
 /* Lo publicado es el dato que se vino a buscar: en tinta plena y con peso, el
-   mismo que el del ticker en las otras listas. */
+   mismo que el del ticker en las otras listas. El previo, en tinta apagada: es
+   el dato de la vez anterior, la referencia y no lo que se espera ni lo que salió. */
 .inv-cal-pub { font-weight: 600; }
+.inv-cal-prev { color: var(--muted-2); }
+/* La EMA de 200 semanas en la barra del rango: una línea como la del precio pero
+   en azul, y más fina, para que se distingan donde se juntan. Atenuada cuando cae
+   fuera del rango del año y se pega al extremo. */
+.inv-rango-ema {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: var(--blue);
+}
+.inv-rango-ema-fuera { opacity: .45; }
 
 /* Etiqueta y valor de la cotización MEP usada. Viven en la fila de las
    solapas principales (.main-tabs-mep); antes iban debajo de cada panel. */
