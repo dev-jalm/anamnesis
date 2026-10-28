@@ -8334,8 +8334,8 @@ select.inv-plan-in { cursor: pointer; }
    la línea y los dos porcentajes cuelgan de él, a 7px de cada lado. */
 .inv-rango-ancla { position: absolute; top: -14px; width: 0; height: 12px; font-size: 11px; line-height: 12px; }
 .inv-punto { position: absolute; left: -3px; top: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
-.inv-precio-izq { position: absolute; right: 7px; top: 0; white-space: nowrap; }
-.inv-precio-der { position: absolute; left: 7px; top: 0; white-space: nowrap; }
+.inv-precio-izq { position: absolute; right: 7px; top: 0; display: flex; gap: 6px; white-space: nowrap; }
+.inv-precio-der { position: absolute; left: 7px; top: 0; display: flex; gap: 6px; white-space: nowrap; }
 /* Lo que está por publicar va arriba y lo ya publicado debajo; el último de los
    primeros cierra con una línea más gruesa que el divisor de las filas y en el
    acento, que es el color con el que la app señala lo que hay que mirar: así
@@ -8378,7 +8378,9 @@ select.inv-plan-in { cursor: pointer; }
   border-radius: 2px;
   background: var(--blue);
 }
-.inv-rango-ema-fuera { opacity: .45; }
+/* Fuera del rango del año la línea de la EMA va afuera de la barra y en punteado: no
+   está en el rango, y se lee distinto de la que sí está. */
+.inv-rango-ema-fuera { width: 0; background: none; border-left: 2px dashed var(--blue); border-radius: 0; }
 
 /* Etiqueta y valor de la cotización MEP usada. Viven en la fila de las
    solapas principales (.main-tabs-mep); antes iban debajo de cada panel. */

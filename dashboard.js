@@ -22675,9 +22675,13 @@ function htmlListaSeguimiento() {
       // entre sí y de los extremos —al tercio y a los dos tercios—, en el orden en
       // que están los valores. Que el precio quede más cerca del máximo no dice que
       // le falte menos: eso lo dicen los porcentajes. Con una sola línea va al medio.
-      const emaPrimero = r.posicionEma !== null && r.ema <= r.precio;
-      const posPrecio = r.posicionEma === null ? 50 : (emaPrimero ? 200 / 3 : 100 / 3);
-      const posEma = r.posicionEma === null ? null : (emaPrimero ? 100 / 3 : 200 / 3);
+      // La EMA fuera del rango del año no cabe en la barra: su línea va afuera, en
+      // punteado, pasado el extremo que le toca, y el precio queda solo en el medio.
+      const emaFuera = r.fueraEma;
+      const emaEnBarra = r.posicionEma !== null && !emaFuera;
+      const emaPrimero = emaEnBarra ? r.ema <= r.precio : emaFuera === 'debajo';
+      const posPrecio = emaEnBarra ? (emaPrimero ? 200 / 3 : 100 / 3) : 50;
+      const posEma = r.posicionEma === null ? null : (emaEnBarra ? (emaPrimero ? 100 / 3 : 200 / 3) : (emaFuera === 'debajo' ? 0 : 100));
       // Todo lo que va en la barra —las líneas, el punto y las etiquetas— se
       // posiciona dentro de la propia barra y con el mismo porcentaje: así cada
       // pieza queda exactamente sobre su línea, con el ancho que tenga la barra.
@@ -22708,29 +22712,35 @@ function htmlListaSeguimiento() {
         detalle.push('EMA de 200 semanas (' + usd(r.ema) + '): ' + (r.fueraEma
           ? 'queda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.'
           : 'al ' + FUNDAMENTALES_N0.format(r.posicionEma) + '% del camino.'));
-        marcaEma = '<span class="inv-rango-ema' + (r.fueraEma ? ' inv-rango-ema-fuera' : '') + '" style="left:' + posEma.toFixed(1) + '%"></span>';
+        marcaEma = '<span class="inv-rango-ema' + (emaFuera ? ' inv-rango-ema-fuera' : '') + '" style="left:' +
+          (emaFuera ? 'calc(' + posEma + '% ' + (emaFuera === 'debajo' ? '-' : '+') + ' 5px)' : posEma.toFixed(1) + '%') + '"></span>';
         valorEma = etiqueta(posEma, emaALaIzquierda ? '-' : '+', 'inv-falta-ema', usd(r.ema),
           tipAttrs('EMA de 200 semanas', 'Valor de la media móvil exponencial de 200 semanas.' + (r.fueraEma
             ? '\nQueda ' + (r.fueraEma === 'debajo' ? 'por debajo del mínimo' : 'por encima del máximo') + ' del año.' : '')));
       }
-      // A la izquierda del punto, lo que le falta al precio para llegar a la EMA:
-      // el % con su signo (negativo si tiene que bajar) y una flecha en el sentido
-      // en que hay que moverse.
+      // Lo que le falta al precio para llegar a la EMA: el % con su signo (negativo si
+      // tiene que bajar) y una flecha en el sentido en que hay que moverse. Va a la
+      // izquierda del punto; si la EMA está por encima del máximo del año va a la
+      // derecha, después de lo que falta para el máximo, porque es lo que se
+      // alcanza después.
+      const emaArriba = emaFuera === 'arriba';
       let faltaEma = '';
       if (r.faltaParaEma !== null) {
         const falta = r.faltaParaEma;
-        faltaEma = '<span class="inv-falta-ema inv-precio-izq' + (r.tocaEma ? ' inv-ema-toca' : '') + '"' +
+        const flecha = falta < 0 ? '«' : '»';
+        const cifra = (falta > 0 ? '+' : '−') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '%';
+        faltaEma = '<span class="inv-falta-ema' + (r.tocaEma ? ' inv-ema-toca' : '') + '"' +
           tipAttrs('Distancia a la EMA de 200 semanas', ['EMA de 200 semanas: ' + usd(r.ema) + '.',
             r.tocaEma ? 'La semana en curso la está tocando.'
               : 'El precio tendría que ' + (falta < 0 ? 'bajar ' : 'subir ') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '% para tocarla.'].join('\n')) + '>' +
-          (r.tocaEma ? 'TOCANDO' : (falta > 0 ? '+' : '−') + FUNDAMENTALES_N2.format(Math.abs(falta)) + '% ' + (falta < 0 ? '«' : '»')) + '</span>';
+          (r.tocaEma ? 'TOCANDO' : (emaArriba ? flecha + ' ' + cifra : cifra + ' ' + flecha)) + '</span>';
       }
       // A la derecha, lo que le falta para llegar al máximo, en %: siempre
       // positivo, con la flecha hacia el máximo; en el máximo dice EN MÁXIMO.
       let faltaMax = '';
       if (r.faltaParaMaximo !== null) {
         const enMax = r.faltaParaMaximo === 0;
-        faltaMax = '<span class="inv-falta-max inv-precio-der' + (enMax ? ' inv-ema-toca' : '') + '"' +
+        faltaMax = '<span class="inv-falta-max' + (enMax ? ' inv-ema-toca' : '') + '"' +
           tipAttrs('Distancia al máximo de 52 semanas', enMax
             ? 'El precio está en el máximo del año (' + usd(r.max) + ').'
             : 'El precio tendría que subir ' + FUNDAMENTALES_N2.format(r.faltaParaMaximo) + '% para volver al máximo del año (' + usd(r.max) + ').') + '>' +
@@ -22744,7 +22754,9 @@ function htmlListaSeguimiento() {
         '<span class="inv-rango-extremo">' + usd(r.min) + '</span>' +
         '<span class="inv-rango-barra">' + marcaEma + '<span class="inv-rango-marca" style="left:' + posPrecio.toFixed(1) + '%"></span>' +
           (r.precio !== null
-            ? '<span class="inv-rango-ancla" style="left:' + posPrecio.toFixed(1) + '%"><span class="inv-punto"></span>' + faltaEma + faltaMax + '</span>' +
+            ? '<span class="inv-rango-ancla" style="left:' + posPrecio.toFixed(1) + '%"><span class="inv-punto"></span>' +
+              (faltaEma && !emaArriba ? '<span class="inv-precio-izq">' + faltaEma + '</span>' : '') +
+              (faltaMax || (faltaEma && emaArriba) ? '<span class="inv-precio-der">' + faltaMax + (emaArriba ? faltaEma : '') + '</span>' : '') + '</span>' +
               etiqueta(posPrecio, emaALaIzquierda ? '+' : '-', 'inv-rango-precio', usd(r.precio)) : '') +
           valorEma + '</span>' +
         '<span class="inv-rango-extremo">' + usd(r.max) + '</span>' +
