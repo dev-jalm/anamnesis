@@ -352,6 +352,21 @@ Se dice "no sé qué lo causó" y se listan las hipótesis descartadas con su
 evidencia. Una causa afirmada de más manda a investigar en la dirección
 equivocada, que cuesta más que no decir nada.
 
+### Todo dato que se incorpora se valida antes
+
+**Cuando el usuario pide agregar un dato —un horario, una cifra, una regla de
+un mercado, un nombre de campo de una fuente— primero se valida contra una
+fuente, y recién después se escribe.** No se agrega "de memoria" ni "porque
+suena a lo correcto". Pasó con la apertura de la bolsa de Buenos Aires: se
+puso 11:00 de memoria y desde el 28/07/2025 abre a las 10:30; el dato salió
+publicado, con tests y especificación, y el usuario tuvo que pedir que se
+validara.
+
+Cómo se hace: buscar la fuente (la oficial si se puede; si no, dos medios
+que coincidan y con fecha), anotar la fecha de vigencia, y decir en la
+respuesta qué se validó y contra qué. Si no se logra confirmar, se dice qué
+queda sin confirmar en vez de incorporarlo como cierto.
+
 ### Medir, no afirmar
 
 Antes de decir que algo funciona: estilos computados, posiciones en píxeles, o
