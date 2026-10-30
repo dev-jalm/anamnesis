@@ -22447,7 +22447,7 @@ function bandaDeSeguimiento(rotulo, conteo, extra) {
   '</div></div>';
 }
 
-// Después del conteo, una barra y la apertura de las tres plazas en hora argentina, por
+// Después del conteo, una barra y la apertura de las cuatro plazas en hora argentina, por
 // orden de apertura y una al lado de la otra. Cada una lleva en su emergente la hora local
 // de la plaza: el cambio de hora de Nueva York y de Londres mueve la argentina.
 function aperturasDeMercadosHtml() {

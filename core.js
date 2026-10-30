@@ -1589,14 +1589,16 @@ function desfaseDeZona(ms, zona) {
   return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - t;
 }
 
-// La apertura de las tres plazas que mueven el día, con su hora local y la de Argentina,
-// por orden de apertura: Asia (la bolsa de Tokio), Londres y Nueva York. Cada una abre a
+// La apertura de las plazas que mueven el día, con su hora local y la de Argentina,
+// por orden de apertura: Asia (la bolsa de Tokio), Londres, Nueva York y Buenos Aires
+// (BYMA, 11:00). Cada una abre a
 // su hora de pared y cada una cambia de hora en su fecha, así que la hora argentina no es
 // fija: se calcula para el día que se pide.
 const MERCADOS_APERTURA = [
   { nombre: 'Asia', plaza: 'Tokio', zona: 'Asia/Tokyo', hora: 9, minuto: 0 },
   { nombre: 'Londres', plaza: 'Londres', zona: 'Europe/London', hora: 8, minuto: 0 },
-  { nombre: 'Nueva York', plaza: 'Nueva York', zona: 'America/New_York', hora: 9, minuto: 30 }
+  { nombre: 'Nueva York', plaza: 'Nueva York', zona: 'America/New_York', hora: 9, minuto: 30 },
+  { nombre: 'Buenos Aires', plaza: 'Buenos Aires', zona: 'America/Argentina/Buenos_Aires', hora: 11, minuto: 0 }
 ];
 function aperturasDeMercados(ahora) {
   const ms = esNumeroFinito(ahora) ? ahora : Date.now();

@@ -2654,15 +2654,16 @@ group('Lista de seguimiento', function () {
     assertEqual(p.p15, null);
   });
   const aperturas = function (iso) { return aperturasDeMercados(Date.parse(iso)).map(function (a) { return a.nombre + ' ' + a.hora; }).join(' | '); };
-  test('las aperturas van por orden —Asia, Londres, Nueva York— y en hora argentina', function () {
-    assertEqual(aperturas('2026-10-28T09:00:00Z'), 'Asia 21:00 | Londres 05:00 | Nueva York 10:30');
+  test('las aperturas van por orden —Asia, Londres, Nueva York, Buenos Aires— y en hora argentina', function () {
+    assertEqual(aperturas('2026-10-28T09:00:00Z'), 'Asia 21:00 | Londres 05:00 | Nueva York 10:30 | Buenos Aires 11:00');
   });
   test('las aperturas siguen el cambio de hora de cada plaza: en verano del norte Londres abre a las 04:00 y en invierno Nueva York a las 11:30', function () {
-    assertEqual(aperturas('2026-07-15T15:00:00Z'), 'Asia 21:00 | Londres 04:00 | Nueva York 10:30');
-    assertEqual(aperturas('2026-12-15T15:00:00Z'), 'Asia 21:00 | Londres 05:00 | Nueva York 11:30');
+    assertEqual(aperturas('2026-07-15T15:00:00Z'), 'Asia 21:00 | Londres 04:00 | Nueva York 10:30 | Buenos Aires 11:00');
+    // En invierno del norte Nueva York abre después que Buenos Aires: el orden lo da la hora, no la lista.
+    assertEqual(aperturas('2026-12-15T15:00:00Z'), 'Asia 21:00 | Londres 05:00 | Buenos Aires 11:00 | Nueva York 11:30');
   });
   test('cada apertura trae también su hora local', function () {
-    assertEqual(aperturasDeMercados(Date.parse('2026-10-28T09:00:00Z')).map(function (a) { return a.horaLocal; }).join(' '), '09:00 08:00 09:30');
+    assertEqual(aperturasDeMercados(Date.parse('2026-10-28T09:00:00Z')).map(function (a) { return a.horaLocal; }).join(' '), '09:00 08:00 09:30 11:00');
   });
   test('un balance que ya pasó y no se confirmó tiene días negativos', function () {
     const p = proximoBalanceDeFinviz([futuro('2026-10-28T20:30:00Z', 4.72, 90617)], Date.parse('2026-10-30T12:00:00Z'));
