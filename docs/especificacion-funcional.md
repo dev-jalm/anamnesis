@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.166 |
+| **Versión** | 1.167 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -887,7 +887,7 @@ Todas son de solo lectura, sin autenticación y sin envío de datos del usuario.
 | INT-07 | Finviz, por el intermediario del propio sitio | `/api/fundamentales?t={símbolo}&v={versión}` → `https://finviz.com/quote.ashx?t={símbolo}` y `…&p=w` (dos pedidos en paralelo) | Fundamentales de un activo planificado y su sector e industria (RF-212w a RF-212ab); sus velas semanales, sus velas diarias y sus últimos balances (RF-212an, RF-212aq) | 15 s |
 | INT-08 | Finviz, por el intermediario del propio sitio | `/api/grupos?v={versión}` → `https://finviz.com/groups.ashx?g={sector|industry}&v={110|120|160}` | Promedios de cada sector y de cada industria, contra los que se compara el activo (RF-212ac a RF-212ae) | 20 s |
 | INT-09 | dolarapi | `https://dolarapi.com/v1/dolares/contadoconliqui` | Cotización CCL (campo `venta`) para el CEDEAR equivalente al precio de entrada (RF-212ah) | 8 s |
-| INT-10 | Finviz, por el intermediario del propio sitio | `/api/calendario?d={AAAA-MM-DD}` → `https://finviz.com/calendar/economic?dateFrom={AAAA-MM-DD}` | Eventos económicos de la semana que contiene esa fecha, de los que se muestran IPC, PPI, PCE, empleo, PIB y FOMC (RF-212ai, RF-212aj, RF-212ao) | 15 s |
+| INT-10 | Finviz, por el intermediario del propio sitio | `/api/calendario?d={AAAA-MM-DD}` → `https://finviz.com/calendar/economic?dateFrom={AAAA-MM-DD}` | Eventos económicos de la semana que contiene esa fecha, leídos del JSON que la página trae incrustado (`economic.entries`; Finviz lo movió el 2/11/2026 y el calendario dejó de cargar hasta que se lo buscó ahí), de los que se muestran IPC, PPI, PCE, empleo, PIB y FOMC (RF-212ai, RF-212aj, RF-212ao) | 15 s |
 
 **INT-07 e INT-08.** El navegador no puede leer Finviz directamente —su respuesta no admite lecturas desde otro origen (CORS)—, así que la aplicación se lo pide a un intermediario que corre en el mismo sitio (`worker/fundamentales.mjs`). En Cloudflare Pages lo atienden dos Pages Functions (`functions/api/fundamentales.js` y `functions/api/grupos.js`, que lo envuelven); en Workers con assets, el `main` de `wrangler.jsonc`, atendido antes que los archivos estáticos sólo para `/api/*`. El intermediario **no tiene estado ni guarda datos**: valida que el símbolo sea alfanumérico (con un punto o guion para las clases, como `BRK-B`), pide la página y devuelve sólo lo que se lee de ella: de la ficha, su tabla de datos y la cabecera con el sector y la industria; de los grupos, las seis tablas de promedios (sector e industria, tres vistas cada uno) sin atributos de estilo. Guarda la ficha **seis horas** y los promedios **un día**. Lo único que recibe es un símbolo bursátil. **No interpreta los valores**: eso lo hace la aplicación (`core.js`), que puede corregirse sin volver a desplegar el intermediario. El parámetro `v` sube cuando cambia la forma de la respuesta: la respuesta se guarda en el navegador y en la caché de Cloudflare con la dirección como clave, y sin él quien ya consultó un activo recibiría la versión vieja. Abierta desde un archivo local, la aplicación no tiene a quién pedirle y lo informa.
 
@@ -1428,7 +1428,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.163 | 28/10/2026 | Las minutas del FOMC salen del calendario económico (RF-212ao) | Reemplazada |
 | 1.164 | 28/10/2026 | El comunicado y la conferencia de prensa del FOMC salen del calendario económico: no traen cifras (RF-212ao) | Reemplazada |
 | 1.165 | 30/10/2026 | Las aperturas del calendario suman la bolsa de Buenos Aires (11:00) (RF-212av) | Reemplazada |
-| 1.166 | 30/10/2026 | La apertura de la bolsa de Buenos Aires se corrige a 10:30 (era 11:00 hasta el 28/07/2025), validada contra La Nación y Bloomberg Línea (RF-212av) | **Vigente** |
+| 1.166 | 30/10/2026 | La apertura de la bolsa de Buenos Aires se corrige a 10:30 (era 11:00 hasta el 28/07/2025), validada contra La Nación y Bloomberg Línea (RF-212av) | Reemplazada |
+| 1.167 | 04/11/2026 | El calendario vuelve a cargar: el Worker lee el JSON de Finviz en su nueva ubicación; horarios de apertura de las cuatro bolsas validados sin cambios (INT-10, RF-212av) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 

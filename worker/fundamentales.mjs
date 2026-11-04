@@ -211,33 +211,36 @@ async function grupos(request) {
   });
 }
 
-// El calendario económico viaja incrustado en la página como un JSON
-// (`route-init-data`): se extrae y se parsea acá, sin pasar HTML a la app. Los
-// campos se renombran a los de la app y se descartan los que no se usan; qué
+// El calendario económico viaja incrustado en la página como un JSON dentro de un
+// <script type="application/json" data-ssr-props="…">, en `economic.entries`: se
+// busca ese bloque y se parsea acá, sin pasar HTML a la app. Se lo busca por lo
+// que contiene y no por el número de la isla ("ssr-island-1"), que es de Finviz.
+// Los campos se renombran a los de la app y se descartan los que no se usan; qué
 // eventos interesan y en qué hora se muestran lo decide core.js.
 function recortarCalendario(html) {
-  const marca = html.indexOf('id="route-init-data"');
-  if (marca < 0) return null;
-  const ini = html.indexOf('>', marca);
-  const fin = html.indexOf('</script>', ini);
-  if (ini < 0 || fin < 0) return null;
-  let datos;
-  try {
-    datos = JSON.parse(html.slice(ini + 1, fin));
-  } catch (e) {
-    return null;
+  const guiones = /<script type="application\/json"[^>]*>([\s\S]*?)<\/script>/g;
+  let bloque;
+  while ((bloque = guiones.exec(html))) {
+    if (bloque[1].indexOf('"economic"') < 0) continue;
+    let datos;
+    try {
+      datos = JSON.parse(bloque[1]);
+    } catch (e) {
+      continue;
+    }
+    const entradas = datos && datos.economic && datos.economic.entries;
+    if (!Array.isArray(entradas)) continue;
+    return entradas.map(function (x) {
+      return {
+        id: x.calendarId, evento: x.event, fecha: x.date, referencia: x.reference,
+        previo: x.previous, pronostico: x.forecast, publicado: x.actual, importancia: x.importance,
+        // En qué sentido es bueno el dato: 1 si más alto es favorable (empleo, PIB),
+        // -1 si es desfavorable (inflación, desempleo), 0 si no se juzga.
+        masEsMejor: x.isHigherPositive
+      };
+    });
   }
-  const entradas = datos && datos.data && datos.data.entries;
-  if (!Array.isArray(entradas)) return null;
-  return entradas.map(function (x) {
-    return {
-      id: x.calendarId, evento: x.event, fecha: x.date, referencia: x.reference,
-      previo: x.previous, pronostico: x.forecast, publicado: x.actual, importancia: x.importance,
-      // En qué sentido es bueno el dato: 1 si más alto es favorable (empleo, PIB),
-      // -1 si es desfavorable (inflación, desempleo), 0 si no se juzga.
-      masEsMejor: x.isHigherPositive
-    };
-  });
+  return null;
 }
 
 // Un valor publicado aparece en minutos, así que la caché es corta: lo suficiente
