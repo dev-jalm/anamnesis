@@ -22448,12 +22448,14 @@ function bandaDeSeguimiento(rotulo, conteo, extra) {
 }
 
 // Después del conteo, una barra y la apertura de las cuatro plazas en hora argentina, por
-// orden de apertura y una al lado de la otra. Cada una lleva en su emergente la hora local
-// de la plaza: el cambio de hora de Nueva York y de Londres mueve la argentina.
+// orden de apertura y una al lado de la otra. Entre paréntesis, la hora real de apertura en
+// la plaza —la argentina se mueve con el cambio de hora de Nueva York y de Londres—; en
+// Buenos Aires es la misma y no se repite. El emergente lo dice con palabras.
 function aperturasDeMercadosHtml() {
   return '<span class="inv-pf-sep">|</span>' + aperturasDeMercados(Date.now()).map(function (a) {
+    const real = a.horaLocal !== a.hora ? ' (' + a.horaLocal + ')' : '';
     return '<span class="inv-section-count inv-apertura"' + tipAttrs('Apertura de ' + a.plaza,
-      'Abre a las ' + a.horaLocal + ' hora de ' + a.plaza + ': las ' + a.hora + ' en Argentina.') + '>' + escapeHtmlSafe(a.nombre) + ' <span class="inv-apertura-hora">' + a.hora + '</span></span>';
+      'Abre a las ' + a.horaLocal + ' hora de ' + a.plaza + ': las ' + a.hora + ' en Argentina.') + '>' + escapeHtmlSafe(a.nombre) + ' <span class="inv-apertura-hora">' + a.hora + '</span>' + real + '</span>';
   }).join('<span class="inv-pf-sep">|</span>');
 }
 
