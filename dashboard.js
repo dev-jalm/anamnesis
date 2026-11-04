@@ -22447,7 +22447,7 @@ function bandaDeSeguimiento(rotulo, conteo, extra) {
   '</div></div>';
 }
 
-// Después del conteo, una barra y la apertura de las cuatro plazas en hora argentina, por
+// Después del rótulo, una barra y la apertura de las cuatro plazas en hora argentina, por
 // orden de apertura y una al lado de la otra. Entre paréntesis, la hora real de apertura en
 // la plaza —la argentina se mueve con el cambio de hora de Nueva York y de Londres—; en
 // Buenos Aires es la misma y no se repite. El emergente lo dice con palabras.
@@ -22459,23 +22459,21 @@ function aperturasDeMercadosHtml() {
   }).join('<span class="inv-pf-sep">|</span>');
 }
 
-// La banda del calendario va adentro de lo que se repinta: su conteo cambia con
-// los datos.
+// La banda del calendario va adentro de lo que se repinta: las aperturas llevan la hora
+// del día en que se arma. Sin conteo: "7 fechas" no decía nada que los meses de abajo no digan.
 function htmlCalendario() {
-  const r = cuerpoDelCalendario();
-  return bandaDeSeguimiento('Calendario económico', r.conteo, aperturasDeMercadosHtml()) + r.html;
+  return bandaDeSeguimiento('Calendario económico', '', aperturasDeMercadosHtml()) + cuerpoDelCalendario();
 }
 
 function cuerpoDelCalendario() {
   const nota = function (texto) { return '<div class="inv-liq-vacio">' + escapeHtmlSafe(texto) + '</div>'; };
   // La demostración no sale a la red (RF-227).
-  if (window.DEMO_MODE) return { conteo: '', html: nota('En la demostración no se consulta el calendario: no sale a la red.') };
+  if (window.DEMO_MODE) return nota('En la demostración no se consulta el calendario: no sale a la red.');
   if (!_calendario) {
-    return { conteo: '', html: nota(_calendarioError ? 'No se pudo traer el calendario: ' + _calendarioError : 'Trayendo el calendario de Finviz…') };
+    return nota(_calendarioError ? 'No se pudo traer el calendario: ' + _calendarioError : 'Trayendo el calendario de Finviz…');
   }
   const hoy = hoyDelCalendario();
   const meses = calendarioPorMes(_calendario.entradas, hoy, CALENDARIO_CANTIDAD_MESES);
-  const total = meses.reduce(function (n, m) { return n + m.dias.length; }, 0);
   const dato = function (cls, texto) {
     return '<span class="' + cls + '">' + (texto ? escapeHtmlSafe(texto) : '<span class="inv-na">—</span>') + '</span>';
   };
@@ -22555,11 +22553,8 @@ function cuerpoDelCalendario() {
   };
 
   const consulta = new Date(_calendario.ms).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
-  return {
-    conteo: total + (total === 1 ? ' fecha' : ' fechas'),
-    html: '<div class="inv-liq-grid inv-cal-meses">' + meses.map(htmlMes).join('') + '</div>' +
-      nota('Hora de Argentina · Finviz · consultado a las ' + consulta)
-  };
+  return '<div class="inv-liq-grid inv-cal-meses">' + meses.map(htmlMes).join('') + '</div>' +
+    nota('Hora de Argentina · Finviz · consultado a las ' + consulta);
 }
 
 // ─── La lista de seguimiento ───
