@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Documento** | Especificación funcional del producto |
-| **Versión** | 1.169 |
+| **Versión** | 1.170 |
 | **Fecha** | 19 de septiembre de 2026 |
 | **Estado** | Vigente |
 | **Producto** | anamnesis |
@@ -1154,7 +1154,7 @@ pantalla el elemento del que habla.
 | ID | Requerimiento |
 |---|---|
 | RF-240 | El recorrido se inicia solo al entrar al modo demostración, una vez cargado el conjunto de datos |
-| RF-241 | Consta de once pasos: bienvenida, la barra de las cinco solapas, el panel lateral, cada una de las cinco solapas con la pregunta que responde, la carga de datos, la mesa de trading y cierre |
+| RF-241 | Consta de diez pasos: bienvenida, la barra de las cinco solapas, el panel lateral, cada una de las cinco solapas con la pregunta que responde, la carga de datos y cierre. La mesa de trading no tiene paso propio: es un destino entre cinco, y detenerse en ella alargaba una presentación que tiene que terminar antes de que el visitante quiera empezar a tocar |
 | RF-242 | Cada paso oscurece la pantalla y deja iluminado el elemento que describe. Los pasos sin un elemento concreto —bienvenida y cierre— oscurecen la pantalla completa y centran la tarjeta |
 | RF-243 | El paso que describe una solapa la deja seleccionada antes de iluminarla, de modo que el texto y lo que se ve en pantalla coincidan |
 | RF-244 | La tarjeta indica en qué paso se está sobre el total, y ofrece avanzar, retroceder y salir |
@@ -1431,7 +1431,8 @@ Las siguientes funcionalidades **no** forman parte del producto y no se especifi
 | 1.166 | 30/10/2026 | La apertura de la bolsa de Buenos Aires se corrige a 10:30 (era 11:00 hasta el 28/07/2025), validada contra La Nación y Bloomberg Línea (RF-212av) | Reemplazada |
 | 1.167 | 04/11/2026 | El calendario vuelve a cargar: el Worker lee el JSON de Finviz en su nueva ubicación; horarios de apertura de las cuatro bolsas validados sin cambios (INT-10, RF-212av) | Reemplazada |
 | 1.168 | 04/11/2026 | Las aperturas del calendario llevan entre paréntesis la hora real de apertura en la plaza (RF-212av) | Reemplazada |
-| 1.169 | 04/11/2026 | La banda del calendario deja de mostrar el conteo de fechas (RF-212av) | **Vigente** |
+| 1.169 | 04/11/2026 | La banda del calendario deja de mostrar el conteo de fechas (RF-212av) | Reemplazada |
+| 1.170 | 12/11/2026 | El recorrido guiado deja de tener un paso para la mesa de trading: pasa de once a diez (RF-241) | **Vigente** |
 
 ### 14.1 Cambios implementados en el producto junto con esta versión
 
@@ -1940,7 +1941,7 @@ manual, los títulos de sus secciones de carga y la actualización del Anexo A.
 
 | Cambio | Requerimiento |
 |---|---|
-| Recorrido guiado de once pasos sobre el modo demostración | RF-240 a RF-250 |
+| Recorrido guiado de diez pasos sobre el modo demostración | RF-240 a RF-250 |
 | Acceso RECORRIDO en el panel lateral | RF-249 |
 | Manual compuesto íntegramente en tema oscuro | RF-214b |
 

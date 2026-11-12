@@ -99,13 +99,6 @@
              'Cada activo se despliega en sus compras individuales, y cada compra muestra cómo le fue contra el precio de hoy. También se puede <strong>vender</strong>, entero o por partes: lo cobrado pasa al líquido del destino.'
     },
     {
-      solapa: 'assets',
-      selector: '#tradingContent .investment-detail-panel',
-      titulo: 'Y la mesa de trading',
-      texto: 'Trading es el único destino que no lista tenencias. Una operación apalancada no es una compra que se acumula: es un viaje con entrada, stop y salida.<br><br>' +
-             'La mesa calcula el tamaño de posición desde el riesgo que elegís, el precio de liquidación real, y compara tus operaciones <strong>con stop contra las que fueron sin stop</strong>.'
-    },
-    {
       solapa: 'budget',
       selector: '[data-main-tab="budget"]',
       titulo: 'Evolución',
